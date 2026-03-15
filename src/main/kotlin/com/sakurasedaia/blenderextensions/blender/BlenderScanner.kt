@@ -83,6 +83,8 @@ object BlenderScanner {
         }
     }
 
+    private val versionRegex = Regex("Blender (\\d+\\.\\d+)")
+
     fun tryGetVersion(path: String): String {
         val cacheKey = VERSION_CACHE_PREFIX + path.hashCode()
         val cachedVersion = PropertiesComponent.getInstance().getValue(cacheKey)
@@ -97,7 +99,7 @@ object BlenderScanner {
             if (output.exitCode != 0) return unknown
             
             // Output looks like "Blender 4.2.0\nbuild date: ..."
-            val match = Regex("Blender (\\d+\\.\\d+)").find(output.stdout)
+            val match = versionRegex.find(output.stdout)
             val version = match?.groupValues?.get(1) ?: unknown
 
             if (version != unknown) {

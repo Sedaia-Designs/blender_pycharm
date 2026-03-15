@@ -58,13 +58,12 @@ class BlenderCommunicationService(private val project: Project) {
     }
 
     fun stopServer() {
+        isRunning.set(false)
         try {
             serverSocket?.close()
             blenderClient?.close()
         } catch (e: Exception) {
             // Ignore
-        } finally {
-            isRunning.set(false)
         }
     }
 

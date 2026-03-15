@@ -168,7 +168,8 @@ class BlenderService(private val project: Project) {
 
     fun setupPythonInterpreter(blenderExePath: String, skipLinter: Boolean = false) {
         try {
-            val pythonExe = BlenderPathUtil.findPythonExecutable(Path.of(blenderExePath))
+            val path = Path.of(blenderExePath)
+            val pythonExe = BlenderPathUtil.findPythonExecutable(path)
             if (pythonExe == null || !pythonExe.exists()) {
                 BlenderNotification(project).sendError(
                     LangManager.message("toolwindow.setup.interpreter"),
@@ -177,15 +178,10 @@ class BlenderService(private val project: Project) {
                 return
             }
 
-            val sdkTypeClass = try {
-                Class.forName("com.jetbrains.python.sdk.PythonSdkType")
-            } catch (e: ClassNotFoundException) {
-                null
-            }
-
-            val pySdkType = if (sdkTypeClass != null) {
+            val pySdkType = try {
+                val sdkTypeClass = Class.forName("com.jetbrains.python.sdk.PythonSdkType")
                 com.intellij.openapi.projectRoots.SdkType.findInstance(sdkTypeClass as Class<out com.intellij.openapi.projectRoots.SdkType>)
-            } else {
+            } catch (e: Exception) {
                 com.intellij.openapi.projectRoots.ProjectJdkTable.getInstance().allJdks.find { it.sdkType.name == "Python SDK" }?.sdkType
                     ?: com.intellij.openapi.projectRoots.SdkType.getAllTypes().find { it.name == "Python SDK" }
             }
@@ -198,7 +194,7 @@ class BlenderService(private val project: Project) {
                 return
             }
 
-            val sdkName = "Blender Python (${Path.of(blenderExePath).parent.name})"
+            val sdkName = "Blender Python (${path.parent.name})"
             com.intellij.openapi.application.ApplicationManager.getApplication().runWriteAction {
                 val sdkTable = ProjectJdkTable.getInstance()
                 val existingSdk = sdkTable.allJdks.find { it.name == sdkName && it.sdkType == pySdkType }
@@ -211,26 +207,21 @@ class BlenderService(private val project: Project) {
                 sdkModificator.removeAllRoots()
 
                 // Add standard library paths and Blender modules
-                val pythonExePath = java.nio.file.Path.of(pythonExe.toString())
-                BlenderPathUtil.getPythonLibraryPaths(pythonExePath).forEach { path ->
-                    VirtualFileManager.getInstance().findFileByNioPath(path)?.let { vFile ->
+                BlenderPathUtil.getPythonLibraryPaths(pythonExe).forEach { libPath ->
+                    VirtualFileManager.getInstance().findFileByNioPath(libPath)?.let { vFile ->
                         sdkModificator.addRoot(vFile, OrderRootType.CLASSES)
                     }
                 }
 
                 // Add linting paths if available
-                val version = try {
-                    if (blenderExePath.contains("blender_downloads")) {
-                        Path.of(blenderExePath).parent.name
-                    } else {
-                        BlenderScanner.tryGetVersion(blenderExePath).takeIf { it != LangManager.message("blender.version.unknown") } ?: "unknown"
-                    }
-                } catch (e: Exception) {
-                    "unknown"
+                val version = if (blenderExePath.contains("blender_downloads")) {
+                    path.parent.name
+                } else {
+                    BlenderScanner.tryGetVersion(blenderExePath).takeIf { it != LangManager.message("blender.version.unknown") } ?: "unknown"
                 }
                 
-                val downloader = BlenderDownloader(project)
                 if (version != "unknown") {
+                    val downloader = BlenderDownloader.getInstance(project)
                     val lintDir = downloader.getLintDirectory(version)
                     if (lintDir.exists()) {
                         VirtualFileManager.getInstance().findFileByNioPath(lintDir)?.let { vFile ->
