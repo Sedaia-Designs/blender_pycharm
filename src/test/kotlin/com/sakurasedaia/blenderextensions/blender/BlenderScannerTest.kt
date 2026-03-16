@@ -1,12 +1,10 @@
 package com.sakurasedaia.blenderextensions.blender
 
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.sakurasedaia.blenderextensions.LangManager
 
-class BlenderScannerTest {
+class BlenderScannerTest : BasePlatformTestCase() {
 
-    @Test
     fun testScanSystemInstallationsDoesNotCrash() {
         val installations = BlenderScanner.scanSystemInstallations()
         // We can't guarantee anything is installed on the build machine, 
@@ -14,10 +12,10 @@ class BlenderScannerTest {
         assertNotNull(installations)
     }
 
-    @Test
     fun testTryGetVersionWithInvalidPath() {
         val version = BlenderScanner.tryGetVersion("/path/to/nonexistent/blender")
         assertNotNull(version)
-        assertTrue(version == "Unknown")
+        val unknown = LangManager.message("blender.version.unknown")
+        assertEquals(unknown, version)
     }
 }

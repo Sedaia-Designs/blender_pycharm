@@ -9,7 +9,7 @@ import junit.framework.Assert.assertNull
 class BlenderDownloaderReproductionTest : BasePlatformTestCase() {
 
     fun testExtractionCommandsListExecution() {
-        val downloader = BlenderDownloader(project)
+        val downloader = BlenderDownloader.getInstance(project)
         val tempDir = createTempDirectory("extraction_test")
         val testFile = tempDir.resolve("test.txt")
         java.nio.file.Files.writeString(testFile, "test content")
@@ -31,9 +31,11 @@ class BlenderDownloaderReproductionTest : BasePlatformTestCase() {
             )
         }
 
-        val method = BlenderDownloader::class.java.getDeclaredMethod("executeExtractionCommands", List::class.java)
-        method.isAccessible = true
-        method.invoke(downloader, commands)
+        val method = BlenderDownloader::class.java.getDeclaredMethods().find { it.name == "executeExtractionCommands" }
+        method?.let { m ->
+            m.isAccessible = true
+            m.invoke(downloader, commands, false)
+        }
 
         try {
             assertTrue("File should have been moved", java.nio.file.Files.exists(targetFile))

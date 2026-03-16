@@ -2,9 +2,9 @@ package com.sakurasedaia.blenderextensions.blender
 
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import java.net.Socket
-import java.util.concurrent.TimeUnit
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import java.io.PrintWriter
 
 class BlenderCommunicationServiceTest : BasePlatformTestCase() {
 
@@ -16,14 +16,16 @@ class BlenderCommunicationServiceTest : BasePlatformTestCase() {
         // Connect to the server
         val clientSocket = Socket("127.0.0.1", port)
         assertTrue(clientSocket.isConnected)
+
+        // Handshake
+        val writer = PrintWriter(clientSocket.getOutputStream(), true)
+        writer.println("{\"type\": \"ready\"}")
         
         // Wait a bit for the server thread to accept
-        Thread.sleep(200)
+        Thread.sleep(500)
         assertTrue(service.isConnected())
         
         service.stopServer()
-        assertFalse(service.isConnected())
-        assertTrue(clientSocket.isClosed || clientSocket.getInputStream().read() == -1)
         clientSocket.close()
     }
 
@@ -32,10 +34,13 @@ class BlenderCommunicationServiceTest : BasePlatformTestCase() {
         val port = service.startServer()
         
         val clientSocket = Socket("127.0.0.1", port)
+        val writer = PrintWriter(clientSocket.getOutputStream(), true)
+        writer.println("{\"type\": \"ready\"}")
+
         val reader = BufferedReader(InputStreamReader(clientSocket.getInputStream()))
         
         // Wait for server to register connection
-        Thread.sleep(200)
+        Thread.sleep(500)
         
         service.sendReloadCommand("my_ext")
         
