@@ -9,6 +9,7 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.util.io.HttpRequests
 import com.sakurasedaia.blenderextensions.LangManager
+import com.sakurasedaia.blenderextensions.python.PythonUtil
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -149,7 +150,7 @@ class BlenderDownloader(private val project: Project) {
     }
 
     fun installFakeBpyModule(blenderExePath: Path, version: String) {
-        val pythonExe = BlenderPathUtil.findPythonExecutable(blenderExePath) ?: return
+        val pythonExe = PythonUtil.findPythonExecutable(blenderExePath) ?: return
         val lintDir = getLintDirectory(version)
         
         val statusText = LangManager.message("log.blender.installing.linter.progress", version)

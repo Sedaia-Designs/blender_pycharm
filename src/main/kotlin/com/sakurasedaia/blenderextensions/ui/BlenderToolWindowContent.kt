@@ -16,6 +16,7 @@ import com.sakurasedaia.blenderextensions.LangManager
 import com.sakurasedaia.blenderextensions.blender.*
 import com.sakurasedaia.blenderextensions.icons.BlenderIcons
 import com.sakurasedaia.blenderextensions.notifications.BlenderNotification
+import com.sakurasedaia.blenderextensions.python.PythonService
 import com.sakurasedaia.blenderextensions.settings.BlenderSettings
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
@@ -24,6 +25,7 @@ import javax.swing.*
 
 class BlenderToolWindowContent(private val project: Project) {
     private val service = BlenderService.getInstance(project)
+    private val pythonService = PythonService.getInstance(project)
     private val commService = BlenderCommunicationService.getInstance(project)
     private val managedTable = ManagedBlenderTable(project)
     private val systemTable = SystemBlenderTable(project)
@@ -187,7 +189,7 @@ class BlenderToolWindowContent(private val project: Project) {
                 val version = managedTable.getSelectedVersion() ?: return@addActionListener
                 val path = BlenderDownloader.getInstance(project).getOrDownloadBlenderPath(version)
                 if (path != null) {
-                    service.setupPythonInterpreter(path)
+                    pythonService.setupPythonInterpreter(path)
                 }
             }
         }
@@ -241,7 +243,7 @@ class BlenderToolWindowContent(private val project: Project) {
             toolTipText = LangManager.message("toolwindow.setup.interpreter.tooltip")
             addActionListener {
                 val inst = systemTable.getSelectedInstallation() ?: return@addActionListener
-                service.setupPythonInterpreter(inst.path)
+                pythonService.setupPythonInterpreter(inst.path)
             }
         }
 
