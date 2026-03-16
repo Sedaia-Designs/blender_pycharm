@@ -5,8 +5,7 @@ plugins {
 }
 
 group = "com.sakura-sedaia"
-// version = "0.4.0-INDEV"
-version = "0.4.0-SNAPSHOT"
+version = "0.5.0-SNAPSHOT"
 
 repositories {
 	mavenCentral()
@@ -39,6 +38,16 @@ intellijPlatform {
 		
 		changeNotes = """
 			<b>Added</b>
+			<ul>
+				<li><b>VENV-based Python Setup</b>: Configures a Virtual Environment (VENV) based on Blender's bundled Python for a cleaner development environment.</li>
+				<li><b>Python Module Extraction</b>: Dedicated <code>python</code> package for improved modularity and reliability.</li>
+			</ul>
+			<b>Fixed</b>
+			<ul>
+				<li><b>Interpreter Paths</b>: Resolved issues where <code>site-packages</code> were lost during linter auto-setup.</li>
+			</ul>
+			<br>
+			<b>Previous version (0.4.0)</b>
 			<ul>
 				<li><b>Blender Status Bar Widget</b>: New indicator in the IDE status bar showing connection status to Blender.</li>
 				<li><b>Support for Multiple Source Folders</b>: Projects can now designate and manage multiple folders as Blender source directories.</li>

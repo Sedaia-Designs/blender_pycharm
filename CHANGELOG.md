@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.0] - 2026-03-16
+### Added
+- **VENV-based Python Interpreter Setup**: Changed the Python interpreter configuration to create a Virtual Environment (VENV) based on the Python version bundled with Blender, using the bundled Python module directly to ensure maximum compatibility.
+- **Python Module Extraction**: Extracted all Python-specific functions and services into a new dedicated `python` package for better modularity and code reuse.
+
+### Changed
+- **Blender Python Integration**: Updated `BlenderService` to utilize the new centralized `PythonService` for interpreter setup and management.
+
+### Fixed
+- **Linter Auto-Setup**: Resolved an issue where the `site-packages` submodule was being removed from the interpreter paths during the linter configuration process, ensuring user-installed packages remain accessible.
+
 ## [0.4.0] - 2026-03-15
 ### Added
 - **Integrated Linter Setup**: The "Setup Python Interpreter" action now automatically triggers the installation and configuration of the `fake-bpy-module` linter for the selected Blender version.
