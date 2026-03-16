@@ -1,6 +1,6 @@
 # Blender Development for PyCharm
 
-Blender Development integration for PyCharm. This plugin allows you to launch Blender from within PyCharm and automatically or manually reload your Blender extensions during development.
+Blender Development for PyCharm is a comprehensive plugin that streamlines the creation and debugging of Blender extensions by enabling seamless launch and real-time reloading directly from the IDE. It features a dedicated management system for multiple Blender versions (LTS 4.2+ & 5.0) and offers robust auto-reload capabilities powered by bidirectional TCP communication. With an integrated project wizard and multi-language support, it provides a powerful environment for developers to manage complex, multi-source projects with ease.
 
 ## Documentation
 - [Installation Guide](https://wiki.sakura-sedaia.com/docs/blender-development-pycharm/getting-started/installation.html)
