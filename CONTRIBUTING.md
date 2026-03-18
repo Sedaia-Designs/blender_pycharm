@@ -56,21 +56,24 @@ The built plugin will be available in `build/distributions/`.
 
 ### 4. Commit and Push
 Commit your changes using the following standardized Conventional Commits prefixes:
-- `Feat(scope)`: New feature implementation.
-- `Fix(scope)`: Bug fixes.
-- `Docs(scope)`: Documentation updates.
-- `Style(scope)`: Stylistic changes (whitespace, formatting) with no logic changes.
-- `Refactor(scope)`: Code clarity refactors (no functional changes).
-- `Test(scope)`: Adding or updating tests.
-- `Chore(scope)`: General file cleanup, dependency updates, or internal tasks.
-- `I18n(scope)`: Internationalization and localization updates.
-- `Build(scope)`: Changes affecting the build system or external dependencies.
-- `Ci(scope)`: Changes to CI configuration files and scripts.
-- `Perf(scope)`: Performance improvements.
+- `Feat`: New feature implementation.
+- `Fix`: Bug fixes.
+- `Docs`: Documentation updates.
+- `Style`: Stylistic changes (whitespace, formatting) with no logic changes.
+- `Refactor`: Code clarity refactors (no functional changes).
+- `Test`: Adding or updating tests.
+- `Chore`: General file cleanup, dependency updates, or internal tasks.
+- `I18n`: Internationalization and localization updates.
+- `Build`: Changes affecting the build system or external dependencies.
+- `Ci`: Changes to CI configuration files and scripts.
+- `Perf`: Performance improvements.
+- `UI`: Changes to UI components and layout.
 
-The `(scope)` is optional but recommended to identify the affected module (e.g., `Feat(blender):`, `Fix(ui):`).
-
-For AI agents, detailed procedures are available in `.agent/skills/git_management.md`.
+**Commit Guidelines**:
+- Each commit must contain at most **1 to 2 features**.
+- Commit messages must be at most **2 sentences long** (the prefix does not count towards this limit).
+- The use of the `(scope)` (e.g., `Feat(blender):`) is optional but recommended.
+- For AI agents, always include the co-author trailer: `--trailer "Co-authored-by: Junie <junie@jetbrains.com>"`
 
 ```bash
 git add .

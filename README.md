@@ -16,8 +16,10 @@ Blender Development for PyCharm is a comprehensive plugin that streamlines the c
 - **Blender Status Bar Widget**: Real-time indicator for Blender connection status and auto-reload status.
 - **Multiple Source Folders**: Projects can now designate and manage multiple folders as Blender source directories.
 - **Auto-Reload**: Real-time extension updates on file save with robust bidirectional TCP communication and heartbeat logic.
-- **Project Template**: Integrated New Project Wizard for Blender extensions with automatic Python interpreter setup and manifest configuration.
-- **Blender Management**: Dedicated tool window for multi-version downloads (LTS 4.2+ & 5.0) and sandbox management.
+- **Project Template**: Integrated New Project Wizard for Blender extensions with automatic Python interpreter setup, VENV creation, and manifest configuration.
+- **Blender Management**: Dedicated tool window for multi-version downloads (LTS 4.2+ & 5.0), automatic `fake-bpy-module` linter installation, and sandbox management.
+- **Python Integration**: VENV-based interpreter configuration that matches the Python version bundled with Blender, with automatic site-packages and linter path mapping.
+- **UI Improvements**: Optimized Tool Window layout with scrollable tables and dedicated action buttons for easier Blender version management.
 - **Offline Telemetry**: Local-only telemetry support to aid in debugging and stability monitoring.
 - **Internationalization**: Full i18n support for 11 languages (Spanish, German, French, Italian, Japanese, Korean, Dutch, Polish, Portuguese, Russian, and Chinese).
 

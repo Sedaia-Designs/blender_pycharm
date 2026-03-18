@@ -9,6 +9,8 @@ This document provides high-priority instructions for Junie (the AI agent) to en
 - **Capitalization**: The `Type` MUST start with a capital letter.
 - **Approved Types**: `Feat`, `Fix`, `Docs`, `Style`, `Refactor`, `Test`, `Chore`, `I18n`, `Build`, `Ci`, `Perf`.
 - **Scope**: Optional but encouraged (e.g., `Feat(blender):`, `Fix(ui):`).
+- **Feature Limit**: Each commit MUST contain at most **1 to 2 features**. Do NOT group more features into a single commit.
+- **Message Length**: Commit messages (excluding the prefix and trailer) MUST be at most **2 sentences** long.
 - **Trailer**: EVERY commit MUST include the co-author trailer:
   `Co-authored-by: Junie <junie@jetbrains.com>`
 
