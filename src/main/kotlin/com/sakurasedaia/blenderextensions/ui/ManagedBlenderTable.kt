@@ -20,6 +20,8 @@ class ManagedBlenderTable(private val project: Project) : JBTable() {
 
         columnModel.getColumn(0).preferredWidth = 100
         columnModel.getColumn(1).preferredWidth = 120
+
+        preferredViewportSize = java.awt.Dimension(-1, getRowHeight() * 2)
     }
 
     fun refresh() {

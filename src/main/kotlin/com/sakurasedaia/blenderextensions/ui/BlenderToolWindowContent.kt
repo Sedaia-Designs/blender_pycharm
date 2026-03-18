@@ -35,11 +35,11 @@ class BlenderToolWindowContent(private val project: Project) {
     private val managedActionButtons = JPanel(FlowLayout(FlowLayout.LEFT, 5, 0))
     private val downloadUninstallButton = JButton()
     private val setupInterpreterButton = JButton(LangManager.message("toolwindow.setup.interpreter"), BlenderIcons.Python)
-    private val setupLinterButton = JButton(LangManager.message("toolwindow.managed.button.setup.linter"))
+    private val setupLinterButton = JButton(LangManager.message("toolwindow.managed.button.setup.linter"), BlenderIcons.Add)
     
     private val systemActionButtons = JPanel(FlowLayout(FlowLayout.LEFT, 5, 0))
     private val systemSetupInterpreterButton = JButton(LangManager.message("toolwindow.setup.interpreter"), BlenderIcons.Python)
-    private val systemSetupLinterButton = JButton(LangManager.message("toolwindow.managed.button.setup.linter"))
+    private val systemSetupLinterButton = JButton(LangManager.message("toolwindow.managed.button.setup.linter"), BlenderIcons.Add)
     private val systemRemoveButton = JButton("", BlenderIcons.Remove)
 
     private val managedProgressPanel = JPanel(VerticalLayout(2))
@@ -379,9 +379,9 @@ class BlenderToolWindowContent(private val project: Project) {
         c.insets = JBUI.insets(5)
         mainPanel.add(managedVersionsHeader, c)
 
-        // Managed Table (Expandable)
+        // Managed Table (Shortened)
         c.gridy = 1
-        c.weighty = 1.0
+        c.weighty = 0.0
         c.insets = JBUI.insets(0, 5, 5, 5)
         mainPanel.add(JBScrollPane(managedTable), c)
 
@@ -389,7 +389,11 @@ class BlenderToolWindowContent(private val project: Project) {
         c.gridy = 2
         c.weighty = 0.0
         c.insets = JBUI.insets(0, 5, 5, 5)
-        mainPanel.add(managedActionButtons, c)
+        mainPanel.add(JBScrollPane(managedActionButtons).apply {
+            border = null
+            verticalScrollBarPolicy = JBScrollPane.VERTICAL_SCROLLBAR_NEVER
+            horizontalScrollBarPolicy = JBScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED
+        }, c)
 
         // Managed Progress
         c.gridy = 3
@@ -403,9 +407,9 @@ class BlenderToolWindowContent(private val project: Project) {
         c.insets = JBUI.insets(15, 5, 5, 5)
         mainPanel.add(systemVersionsHeader, c)
 
-        // System Table (Expandable)
+        // System Table (Shortened)
         c.gridy = 5
-        c.weighty = 1.0
+        c.weighty = 0.0
         c.insets = JBUI.insets(0, 5, 5, 5)
         mainPanel.add(JBScrollPane(systemTable), c)
 
@@ -413,7 +417,11 @@ class BlenderToolWindowContent(private val project: Project) {
         c.gridy = 6
         c.weighty = 0.0
         c.insets = JBUI.insets(0, 5, 5, 5)
-        mainPanel.add(systemActionButtons, c)
+        mainPanel.add(JBScrollPane(systemActionButtons).apply {
+            border = null
+            verticalScrollBarPolicy = JBScrollPane.VERTICAL_SCROLLBAR_NEVER
+            horizontalScrollBarPolicy = JBScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED
+        }, c)
 
         // System Progress
         c.gridy = 7
@@ -439,7 +447,9 @@ class BlenderToolWindowContent(private val project: Project) {
 
         // Wrap in a BorderLayout panel to respect expansion
         val panel = JPanel(BorderLayout())
-        panel.add(mainPanel, BorderLayout.CENTER)
+        panel.add(JBScrollPane(mainPanel).apply {
+            border = null
+        }, BorderLayout.CENTER)
         panel.border = JBUI.Borders.empty(5)
         
         return panel

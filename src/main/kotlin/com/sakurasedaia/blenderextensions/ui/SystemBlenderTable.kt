@@ -27,6 +27,8 @@ class SystemBlenderTable(private val project: Project) : JBTable() {
         columnModel.getColumn(0).preferredWidth = 40
         columnModel.getColumn(1).preferredWidth = 100
 
+        preferredViewportSize = java.awt.Dimension(-1, getRowHeight() * 2)
+
         columnModel.getColumn(0).cellRenderer = object : DefaultTableCellRenderer() {
             override fun getTableCellRendererComponent(
                 table: JTable, value: Any, isSelected: Boolean, hasFocus: Boolean, row: Int, column: Int
