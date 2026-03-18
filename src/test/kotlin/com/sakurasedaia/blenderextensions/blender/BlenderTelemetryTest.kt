@@ -1,5 +1,6 @@
 package com.sakurasedaia.blenderextensions.blender
 
+import com.sakurasedaia.blenderextensions.python.PythonUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import java.nio.file.Path
 import java.time.LocalDateTime
@@ -45,13 +46,7 @@ class BlenderTelemetryTest : BasePlatformTestCase() {
     }
 
     fun testGetBlenderVersion() {
-        val telemetryService = BlenderTelemetryService.getInstance(project)
-        val method = BlenderTelemetryService::class.java.getDeclaredMethod("getBlenderVersion", String::class.java)
-        method.isAccessible = true
-        
-        // This will try to run 'blender --version' which might fail in test env if blender is not installed,
-        // but it should at least return "Unknown" or not crash.
-        val result = method.invoke(telemetryService, "non-existent-blender")
+        val result = PythonUtil.getBlenderVersion("non-existent-blender")
         assertNotNull(result)
     }
 }

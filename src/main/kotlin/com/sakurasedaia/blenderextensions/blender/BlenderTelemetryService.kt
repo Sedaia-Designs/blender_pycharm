@@ -4,6 +4,8 @@ import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.util.ExecUtil
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
+import com.sakurasedaia.blenderextensions.python.PythonService
+import com.sakurasedaia.blenderextensions.python.PythonUtil
 import com.sakurasedaia.blenderextensions.run.BlenderRunConfigurationOptions
 import java.lang.management.ManagementFactory
 import java.nio.file.Path
@@ -49,10 +51,10 @@ class BlenderTelemetryService(private val project: Project) {
         // Add Blender info if available
         if (blenderPath != null) {
             telemetryData.append("Blender Path: $blenderPath\n")
-            val version = blenderVersion ?: getBlenderVersion(blenderPath)
+            val version = blenderVersion ?: PythonUtil.getBlenderVersion(blenderPath)
             telemetryData.append("Blender Version: $version\n")
             
-            val pythonInfo = getBlenderPythonInfo(blenderPath)
+            val pythonInfo = PythonService.getInstance(project).getBlenderPythonInfo(blenderPath)
             telemetryData.append("Python Version: ${pythonInfo.first}\n")
             telemetryData.append("fake-bpy-module status: ${if (pythonInfo.second) "Installed" else "Not Found"}\n")
         }
@@ -69,40 +71,6 @@ class BlenderTelemetryService(private val project: Project) {
         telemetryData.append("--------------------------------------")
 
         logger.log(telemetryData.toString())
-    }
-
-    private fun getBlenderVersion(path: String): String {
-        return BlenderScanner.tryGetVersion(path)
-    }
-
-    private fun getBlenderPythonInfo(blenderPath: String): Pair<String, Boolean> {
-        return try {
-            val script = "import sys; import importlib.util; has_fake = importlib.util.find_spec('bpy') is not null; print(f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}|{has_fake}')"
-            // Note: In Blender, 'bpy' is always present, but 'fake-bpy-module' usually provides stubs.
-            // However, the user asked for 'fake-bpy-module status'.
-            // Actually, if we are running INSIDE blender, 'bpy' is the real one.
-            // To check for 'fake-bpy-module', we'd need to check the python environment used by PyCharm, 
-            // but the request says "include data points about ... fake-bpy-module status".
-            // If it means "is it available for the developer in their IDE environment", 
-            // checking it from Blender doesn't make sense.
-            // But let's check it from Blender's python just in case, or maybe it means "can we import it".
-            
-            // Re-evaluating: 'fake-bpy-module' is for IDE completion. 
-            // Usually, it's installed in the project's virtualenv.
-            
-            val commandLine = GeneralCommandLine(blenderPath, "--background", "--python-expr", script)
-            val output = ExecUtil.execAndGetOutput(commandLine)
-            if (output.exitCode == 0) {
-                val lastLine = output.stdoutLines.lastOrNull { it.contains("|") }
-                if (lastLine != null) {
-                    val parts = lastLine.split("|")
-                    return Pair(parts[0], parts[1].toBoolean())
-                }
-            }
-            Pair("Unknown", false)
-        } catch (e: Exception) {
-            Pair("Error: ${e.message}", false)
-        }
     }
 
     companion object {

@@ -1,5 +1,7 @@
 package com.sakurasedaia.blenderextensions.blender
 
+import com.sakurasedaia.blenderextensions.python.PythonService
+import com.sakurasedaia.blenderextensions.python.PythonUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import java.nio.file.Files
 import java.nio.file.Path
@@ -11,8 +13,7 @@ import kotlin.io.path.name
 class BlenderLinterTest : BasePlatformTestCase() {
 
     fun testGetLintDirectory() {
-        val downloader = BlenderDownloader.getInstance(project)
-        val lintDir = downloader.getLintDirectory("4.2")
+        val lintDir = PythonUtil.getLintDirectory("4.2")
         assertTrue(lintDir.toString().contains("blender_downloads"))
         assertTrue(lintDir.toString().contains("lint"))
         assertTrue(lintDir.toString().contains("4.2"))
@@ -44,12 +45,12 @@ class BlenderLinterTest : BasePlatformTestCase() {
                 tempDir.resolve("blender").createFile()
             }
 
-            val lintDir = downloader.getLintDirectory(version)
+            val lintDir = PythonUtil.getLintDirectory(version)
             if (lintDir.exists()) {
                 lintDir.toFile().deleteRecursively()
             }
             
-            downloader.installFakeBpyModule(blenderExe, version)
+            PythonService.getInstance(project).installFakeBpyModule(blenderExe, version)
             
             assertTrue("Lint directory should be created even if pip fails (because of directory creation logic)", lintDir.exists())
             

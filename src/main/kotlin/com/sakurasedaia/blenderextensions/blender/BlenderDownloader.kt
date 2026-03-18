@@ -9,6 +9,7 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.util.io.HttpRequests
 import com.sakurasedaia.blenderextensions.LangManager
+import com.sakurasedaia.blenderextensions.python.PythonService
 import com.sakurasedaia.blenderextensions.python.PythonUtil
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -42,6 +43,10 @@ class BlenderDownloader(private val project: Project) {
         NONE, DOWNLOAD, LINTER
     }
 
+    fun updateProgress(progress: DownloadProgress) {
+        _downloadProgress.value = progress
+    }
+
     fun getBaseDownloadDirectory(): Path {
         return Path.of(PathManager.getSystemPath(), "blender_downloads")
     }
@@ -52,10 +57,6 @@ class BlenderDownloader(private val project: Project) {
 
     fun getVersionDirectory(version: String?): Path {
         return getAppDirectory().resolve(version ?: "unknown")
-    }
-
-    fun getLintDirectory(version: String): Path {
-        return getBaseDownloadDirectory().resolve("lint").resolve(version)
     }
 
 
@@ -142,41 +143,11 @@ class BlenderDownloader(private val project: Project) {
         val finalExecutable = findBlenderExecutable(versionDir)
         if (finalExecutable != null) {
             logger.log(LangManager.message("log.blender.extracted", version, finalExecutable.absolutePathString()))
-            installFakeBpyModule(finalExecutable, version)
+            PythonService.getInstance(project).installFakeBpyModule(finalExecutable, version)
         } else {
             logger.log(LangManager.message("log.blender.could.not.find.exec", versionDir.absolutePathString()))
         }
         return finalExecutable?.absolutePathString()
-    }
-
-    fun installFakeBpyModule(blenderExePath: Path, version: String) {
-        val pythonExe = PythonUtil.findPythonExecutable(blenderExePath) ?: return
-        val lintDir = getLintDirectory(version)
-        
-        val statusText = LangManager.message("log.blender.installing.linter.progress", version)
-        _downloadProgress.value = DownloadProgress(true, -1.0, statusText, version, ProgressType.LINTER)
-
-        if (!lintDir.exists()) {
-            Files.createDirectories(lintDir)
-        }
-
-        val commandLine = GeneralCommandLine(
-            pythonExe.toString(),
-            "-m", "pip", "install",
-            "fake-bpy-module-$version",
-            "--target", lintDir.toString()
-        )
-
-        try {
-            val handler = OSProcessHandler(commandLine)
-            handler.startNotify()
-            handler.waitFor()
-            logger.log("Successfully installed fake-bpy-module-$version for linting.")
-        } catch (e: Exception) {
-            logger.log("Failed to install fake-bpy-module for linting: ${e.message}")
-        } finally {
-            _downloadProgress.value = DownloadProgress.None
-        }
     }
 
     private fun findBlenderExecutable(directory: Path): Path? {
@@ -244,9 +215,6 @@ class BlenderDownloader(private val project: Project) {
             try {
                 HttpRequests.request(url)
                     .connect { request ->
-                        val connection = request.connection
-                        val contentLength = connection.contentLengthLong
-                        
                         request.saveToFile(targetFile, object : com.intellij.openapi.progress.ProgressIndicator by (indicator ?: com.intellij.openapi.progress.EmptyProgressIndicator()) {
                             override fun setFraction(fraction: Double) {
                                 indicator?.fraction = fraction
@@ -387,7 +355,6 @@ class BlenderDownloader(private val project: Project) {
     }
 
     private fun isSysCompatible(version: String): Boolean {
-        // TODO: Implement logic to prevent Apple Macintosh from installing Blender 5.0 and newer
         val versionInt = version.split(".").map { it.toInt() }.toIntArray()
         val osName = System.getProperty("os.name").lowercase()
         val arch = System.getProperty("os.arch").lowercase()

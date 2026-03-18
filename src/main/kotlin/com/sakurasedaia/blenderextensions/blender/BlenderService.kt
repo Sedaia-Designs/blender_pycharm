@@ -10,11 +10,8 @@ import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.sakurasedaia.blenderextensions.notifications.BlenderNotification
 import com.sakurasedaia.blenderextensions.python.PythonService
+import com.sakurasedaia.blenderextensions.python.PythonUtil
 import com.sakurasedaia.blenderextensions.settings.BlenderSettings
-import com.intellij.openapi.roots.OrderRootType
-import com.intellij.openapi.vfs.VirtualFileManager
-import com.intellij.openapi.projectRoots.ProjectJdkTable
-import com.intellij.openapi.roots.ProjectRootManager
 import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.io.path.exists
@@ -178,17 +175,7 @@ class BlenderService(private val project: Project) {
                 return
             }
 
-            val version = try {
-                // Try to get a clean version string from the path if it's managed, 
-                // otherwise use the scanner to get it from the executable
-                if (blenderExePath.contains("blender_downloads")) {
-                    path.parent.name
-                } else {
-                    BlenderScanner.tryGetVersion(blenderExePath).takeIf { it != LangManager.message("blender.version.unknown") } ?: "unknown"
-                }
-            } catch (e: Exception) {
-                "unknown"
-            }
+            val version = PythonUtil.getBlenderVersion(blenderExePath)
 
             if (version == "unknown") {
                 BlenderNotification(project).sendError(
@@ -201,10 +188,15 @@ class BlenderService(private val project: Project) {
             ProgressManager.getInstance().run(
                 object : Task.Backgroundable(project, "Installing linter for Blender $version", true) {
                     override fun run(indicator: com.intellij.openapi.progress.ProgressIndicator) {
-                        downloader.installFakeBpyModule(path, version)
+                        // First ensure the interpreter is set up (and venv is created)
+                        com.intellij.openapi.application.ApplicationManager.getApplication().invokeAndWait {
+                            PythonService.getInstance(project).setupPythonInterpreter(blenderExePath)
+                        }
                         
-                        // After installation, re-run setupPythonInterpreter to add the new roots to the SDK
-                        // This will update the project SDK with the new linting paths
+                        // Then install the linter module
+                        PythonService.getInstance(project).installFakeBpyModule(path, version)
+                        
+                        // Finally update the interpreter roots again to include any new paths
                         com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater {
                             PythonService.getInstance(project).setupPythonInterpreter(blenderExePath)
                         }
