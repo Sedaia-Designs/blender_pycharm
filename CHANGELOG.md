@@ -2,11 +2,13 @@
 
 ## [0.5.0] - 2026-03-16
 ### Added
-- **VENV-based Python Interpreter Setup**: Changed the Python interpreter configuration to create a Virtual Environment (VENV) based on the Python version bundled with Blender, using the bundled Python module directly to ensure maximum compatibility.
+- **VENV-based Python Interpreter Setup**: Changed the Python interpreter configuration to create a Virtual Environment (VENV) based on the Python version bundled with Blender.
 - **Python Module Extraction**: Extracted all Python-specific functions and services into a new dedicated `python` package for better modularity and code reuse.
+- **NPW SDK Integration**: Integrated the Python SDK setup into the New Project Wizard to automate environment configuration for new projects.
 
 ### Changed
 - **Blender Python Integration**: Updated `BlenderService` to utilize the new centralized `PythonService` for interpreter setup and management.
+- **UI Table Layout**: Shortened the Blender installation tables and added scrolling to ensure action buttons are always visible.
 
 ### Fixed
 - **Linter Auto-Setup**: Resolved an issue where the `site-packages` submodule was being removed from the interpreter paths during the linter configuration process, ensuring user-installed packages remain accessible.
