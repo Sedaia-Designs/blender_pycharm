@@ -22,7 +22,9 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
 import java.awt.*
 import javax.swing.*
-
+/*
+* TODO: Convert this tool window into being on the lower half of the IDE, alongside the Build, Terminal, and Git windows.
+* */
 class BlenderToolWindowContent(private val project: Project) {
     private val service = BlenderService.getInstance(project)
     private val pythonService = PythonService.getInstance(project)
@@ -102,6 +104,7 @@ class BlenderToolWindowContent(private val project: Project) {
             return
         }
 
+        // TODO: Examine code and verify these two variables are necessary
         val isManaged = progress.type == BlenderDownloader.ProgressType.DOWNLOAD
         val isLinter = progress.type == BlenderDownloader.ProgressType.LINTER
         

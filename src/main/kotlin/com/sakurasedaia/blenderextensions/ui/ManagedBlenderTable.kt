@@ -15,13 +15,13 @@ class ManagedBlenderTable(private val project: Project) : JBTable() {
 
     init {
         model = tableModel
-        autoResizeMode = JTable.AUTO_RESIZE_LAST_COLUMN
+        autoResizeMode = AUTO_RESIZE_LAST_COLUMN
         selectionModel.selectionMode = ListSelectionModel.SINGLE_SELECTION
 
         columnModel.getColumn(0).preferredWidth = 100
         columnModel.getColumn(1).preferredWidth = 120
 
-        preferredViewportSize = java.awt.Dimension(-1, getRowHeight() * 2)
+        preferredViewportSize = java.awt.Dimension(-1, getRowHeight() * 5)
     }
 
     fun refresh() {

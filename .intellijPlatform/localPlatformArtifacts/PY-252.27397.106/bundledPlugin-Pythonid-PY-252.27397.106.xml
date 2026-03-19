@@ -4,10 +4,10 @@
     <conf name="default" visibility="public" />
   </configurations>
   <publications>
-    <artifact name="java-websocket" ext="jar" conf="default" url="plugins/python/lib" />
-    <artifact name="libthrift" ext="jar" conf="default" url="plugins/python/lib" />
     <artifact name="python" ext="jar" conf="default" url="plugins/python/lib" />
     <artifact name="xmlrpc" ext="jar" conf="default" url="plugins/python/lib" />
+    <artifact name="java-websocket" ext="jar" conf="default" url="plugins/python/lib" />
+    <artifact name="libthrift" ext="jar" conf="default" url="plugins/python/lib" />
     <artifact name="intellij.python.core.impl" ext="jar" conf="default" url="plugins/python/lib/modules" />
     <artifact name="intellij.python.wsl" ext="jar" conf="default" url="plugins/python/lib/modules" />
   </publications>

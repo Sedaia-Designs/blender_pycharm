@@ -1,35 +1,37 @@
 package com.sakurasedaia.blenderextensions.blender
 
-import org.junit.Assert.*
+import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import org.junit.Test
 
-class BlenderVersionsTest {
+class BlenderVersionsTest : BasePlatformTestCase() {
 
     @Test
     fun testSupportedVersions() {
-        assertEquals(3, BlenderVersions.SUPPORTED_VERSIONS.size)
+        // Since we are in a test environment, dynamic versions might fail to fetch and return empty
+        // but static versions should still be there.
+        assertTrue(BlenderVersions.SUPPORTED_VERSIONS.size >= 2)
         assertTrue(BlenderVersions.SUPPORTED_VERSIONS.any { it.majorMinor == "4.2" })
-        assertTrue(BlenderVersions.SUPPORTED_VERSIONS.any { it.majorMinor == "5.0" })
+        assertTrue(BlenderVersions.SUPPORTED_VERSIONS.any { it.majorMinor == "4.3" })
     }
 
     @Test
     fun testFallbackPatches() {
         assertEquals("18", BlenderVersions.SUPPORTED_VERSIONS.find { it.majorMinor == "4.2" }?.fallbackPatch)
-        assertEquals("1", BlenderVersions.SUPPORTED_VERSIONS.find { it.majorMinor == "5.0" }?.fallbackPatch)
+        assertEquals("2", BlenderVersions.SUPPORTED_VERSIONS.find { it.majorMinor == "4.3" }?.fallbackPatch)
     }
 
     @Test
     fun testGetSupportedVersions() {
         val versions = BlenderVersions.getSupportedVersionsWithCustom()
         assertTrue(versions.contains("4.2"))
-        assertTrue(versions.contains("5.0"))
-        assertEquals(3, versions.size)
+        assertTrue(versions.contains("4.3"))
+        assertTrue(versions.size >= 2)
     }
 
     @Test
     fun testGetAllSelectableVersions() {
         val versions = BlenderVersions.getAllSelectableVersions()
         assertTrue(versions.contains("4.2"))
-        assertTrue(versions.contains("5.0"))
+        assertTrue(versions.contains("4.3"))
     }
 }
