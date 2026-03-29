@@ -28,7 +28,6 @@ class BlenderToolWindowContent(private val project: Project) {
     private val versionComboBox = ComboBox<String>()
     private val downloadButton = JButton(LangManager.message("toolwindow.managed.button.download"))
     private val setupInterpreterButton = JButton(LangManager.message("toolwindow.setup.interpreter"))
-    private val setPythonVersionButton = JButton(LangManager.message("toolwindow.set.python.version"))
     private val clearSandboxButton = JButton(LangManager.message("toolwindow.sandbox.clear"))
 
     init {
@@ -107,13 +106,11 @@ class BlenderToolWindowContent(private val project: Project) {
         vGbc.gridx = 0
         versionPanel.add(downloadButton, vGbc)
         vGbc.gridx = 1
+        vGbc.gridwidth = 2
         versionPanel.add(setupInterpreterButton, vGbc)
-        vGbc.gridx = 2
-        versionPanel.add(setPythonVersionButton, vGbc)
 
         downloadButton.addActionListener { handleDownload() }
         setupInterpreterButton.addActionListener { handleSetupInterpreter() }
-        setPythonVersionButton.addActionListener { handleSetPythonVersion() }
         versionComboBox.addActionListener { updateButtonStates() }
 
         updateButtonStates()
@@ -153,12 +150,10 @@ class BlenderToolWindowContent(private val project: Project) {
         if (isPath) {
             downloadButton.isEnabled = false
             setupInterpreterButton.isEnabled = true
-            setPythonVersionButton.isEnabled = true
         } else {
             val isDownloaded = downloader.isDownloaded(selected)
             downloadButton.isEnabled = !isDownloaded
             setupInterpreterButton.isEnabled = isDownloaded
-            setPythonVersionButton.isEnabled = isDownloaded
         }
     }
 
@@ -185,7 +180,12 @@ class BlenderToolWindowContent(private val project: Project) {
         if (path != null) {
             ProgressManager.getInstance().run(object : Task.Backgroundable(project, LangManager.message("toolwindow.setup.interpreter")) {
                 override fun run(indicator: ProgressIndicator) {
+                    // First set project interpreter (the SDK)
+                    pythonService.setProjectInterpreterForBlenderVersion(path)
+                    
+                    // Then setup venv and fake-bpy
                     val success = pythonService.setupPythonInterpreter(path)
+                    
                     ApplicationManager.getApplication().invokeLater {
                         if (success) {
                             BlenderNotification(project).sendInfo(
@@ -194,23 +194,6 @@ class BlenderToolWindowContent(private val project: Project) {
                             )
                         }
                     }
-                }
-            })
-        }
-    }
-
-    private fun handleSetPythonVersion() {
-        val selected = versionComboBox.selectedItem as? String ?: return
-        val path = if (selected.contains("/") || selected.contains("\\")) {
-            selected
-        } else {
-            downloader.getOrDownloadBlenderPath(selected)
-        }
-
-        if (path != null) {
-            ProgressManager.getInstance().run(object : Task.Backgroundable(project, LangManager.message("toolwindow.set.python.version")) {
-                override fun run(indicator: ProgressIndicator) {
-                    pythonService.setProjectInterpreterForBlenderVersion(path)
                 }
             })
         }
