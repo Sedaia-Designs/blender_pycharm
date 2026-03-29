@@ -1,7 +1,5 @@
 package com.sakurasedaia.blenderextensions.blender
 
-import com.intellij.execution.configurations.GeneralCommandLine
-import com.intellij.execution.util.ExecUtil
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.sakurasedaia.blenderextensions.python.PythonService

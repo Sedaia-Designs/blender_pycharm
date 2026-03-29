@@ -9,14 +9,12 @@ import java.io.PrintWriter
 import java.net.ServerSocket
 import java.net.Socket
 import com.sakurasedaia.blenderextensions.LangManager
-import java.util.concurrent.atomic.AtomicBoolean
 
 @Service(Service.Level.PROJECT)
 class BlenderCommunicationService(private val project: Project) {
     private val logger = BlenderLogger.getInstance(project)
     private var serverSocket: ServerSocket? = null
     private var blenderClient: Socket? = null
-    private val isRunning = AtomicBoolean(false)
 
     fun startServer(): Int {
         val server = ServerSocket(0)
@@ -53,12 +51,10 @@ class BlenderCommunicationService(private val project: Project) {
                 // Server closed or error
             }
         }.start()
-        isRunning.set(true)
         return port
     }
 
     fun stopServer() {
-        isRunning.set(false)
         try {
             serverSocket?.close()
             blenderClient?.close()

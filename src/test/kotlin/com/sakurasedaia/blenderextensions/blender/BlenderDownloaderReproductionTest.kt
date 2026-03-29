@@ -1,10 +1,7 @@
 package com.sakurasedaia.blenderextensions.blender
 
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import java.nio.file.Path
 import kotlin.io.path.createTempDirectory
-import kotlin.io.path.deleteRecursively
-import junit.framework.Assert.assertNull
 
 class BlenderDownloaderReproductionTest : BasePlatformTestCase() {
 
@@ -31,11 +28,8 @@ class BlenderDownloaderReproductionTest : BasePlatformTestCase() {
             )
         }
 
-        val method = BlenderDownloader::class.java.getDeclaredMethods().find { it.name == "executeExtractionCommands" }
-        method?.let { m ->
-            m.isAccessible = true
-            m.invoke(downloader, commands, false)
-        }
+        val logger = BlenderLogger.getInstance(project)
+        com.sakurasedaia.blenderextensions.system.ExternalProcessUtil.executeGroup(commands, false, logger)
 
         try {
             assertTrue("File should have been moved", java.nio.file.Files.exists(targetFile))

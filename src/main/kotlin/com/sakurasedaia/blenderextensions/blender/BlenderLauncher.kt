@@ -1,5 +1,6 @@
 package com.sakurasedaia.blenderextensions.blender
 
+import com.sakurasedaia.blenderextensions.settings.BlenderSettings
 import com.sakurasedaia.blenderextensions.LangManager
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
@@ -61,7 +62,7 @@ class BlenderLauncher(private val project: Project) {
     ) {
         logger.log(LangManager.message("log.launcher.using.sandbox"))
         val projectPath = project.basePath ?: return
-        val sandboxDir = Paths.get(projectPath, ".blender-sandbox")
+        val sandboxDir = Paths.get(projectPath, ".venv", "blender_sandbox")
         val configDir = sandboxDir.resolve("config")
         val scriptsDir = sandboxDir.resolve("scripts")
         
@@ -147,7 +148,7 @@ class BlenderLauncher(private val project: Project) {
 
     private fun handleSandboxSplashScreen(templatesDir: Path) {
         val projectPath = project.basePath ?: return
-        val projectSplash = Paths.get(projectPath, "images/splash.png")
+        val projectSplash = Paths.get(projectPath, "images/sandbox_splash.png")
         val targetSplash = templatesDir.resolve("splash.png")
         
         if (projectSplash.exists()) {

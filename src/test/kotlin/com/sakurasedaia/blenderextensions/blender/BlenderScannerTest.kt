@@ -2,6 +2,7 @@ package com.sakurasedaia.blenderextensions.blender
 
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.sakurasedaia.blenderextensions.LangManager
+import com.sakurasedaia.blenderextensions.system.BlenderFinder
 
 class BlenderScannerTest : BasePlatformTestCase() {
 
@@ -13,7 +14,7 @@ class BlenderScannerTest : BasePlatformTestCase() {
     }
 
     fun testTryGetVersionWithInvalidPath() {
-        val version = BlenderScanner.tryGetVersion("/path/to/nonexistent/blender")
+        val version = BlenderFinder.tryGetVersion("/path/to/nonexistent/blender")
         assertNotNull(version)
         val unknown = LangManager.message("blender.version.unknown")
         assertEquals(unknown, version)

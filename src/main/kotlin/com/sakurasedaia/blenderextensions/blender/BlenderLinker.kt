@@ -1,6 +1,7 @@
 package com.sakurasedaia.blenderextensions.blender
 
 import com.sakurasedaia.blenderextensions.LangManager
+import com.sakurasedaia.blenderextensions.system.ExternalProcessUtil
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
@@ -80,8 +81,7 @@ class BlenderLinker(private val project: Project) {
         logger.log(LangManager.message("log.linker.attempt.junction"))
         try {
             val commandLine = GeneralCommandLine("cmd", "/c", "mklink", "/J", target.toString(), source.toString())
-            val process = commandLine.createProcess()
-            val exitCode = process.waitFor()
+            val exitCode = ExternalProcessUtil.executeCommand(commandLine, silentFailure = false, logger = logger)
             if (exitCode == 0) {
                 logger.log(LangManager.message("log.linker.junction.success"))
             } else {
@@ -95,7 +95,7 @@ class BlenderLinker(private val project: Project) {
     fun getExtensionsRepoDir(isSandboxed: Boolean = false): Path? {
         if (isSandboxed) {
             val projectPath = project.basePath ?: return null
-            return Path.of(projectPath, ".blender-sandbox", "extensions", "blender_pycharm")
+            return Path.of(projectPath, ".venv", "blender_sandbox", "extensions", "blender_pycharm")
         }
         
         val blenderConfigDir = BlenderPathUtil.getBlenderRootConfigDir() ?: return null

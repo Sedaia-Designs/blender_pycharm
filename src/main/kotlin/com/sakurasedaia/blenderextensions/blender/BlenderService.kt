@@ -2,15 +2,13 @@ package com.sakurasedaia.blenderextensions.blender
 
 import com.sakurasedaia.blenderextensions.LangManager
 import com.intellij.execution.process.OSProcessHandler
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.execution.process.ProcessListener
 import com.intellij.execution.process.ProcessEvent
 import com.intellij.openapi.components.Service
-import com.intellij.openapi.progress.ProgressManager
-import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.sakurasedaia.blenderextensions.notifications.BlenderNotification
 import com.sakurasedaia.blenderextensions.python.PythonService
-import com.sakurasedaia.blenderextensions.python.PythonUtil
 import com.sakurasedaia.blenderextensions.settings.BlenderSettings
 import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicBoolean
@@ -48,10 +46,16 @@ class BlenderService(private val project: Project) {
 
     fun clearSandbox() {
         val projectPath = project.basePath ?: return
-        val sandboxDir = Path.of(projectPath, ".blender-sandbox")
+        val sandboxDir = Path.of(projectPath, ".venv", "blender_sandbox")
         if (sandboxDir.exists()) {
             com.intellij.openapi.util.io.FileUtil.delete(sandboxDir.toFile())
             logger.log(LangManager.message("log.service.cleared.sandbox", sandboxDir.toString()))
+        }
+    }
+
+    fun scanInstallations() {
+        ApplicationManager.getApplication().executeOnPooledThread {
+            BlenderScanner.scanSystemInstallations(force = true)
         }
     }
 
@@ -164,52 +168,8 @@ class BlenderService(private val project: Project) {
         }
     }
 
-    fun setupLinter(blenderExePath: String) {
-        try {
-            val path = Path.of(blenderExePath)
-            if (!path.exists()) {
-                BlenderNotification(project).sendError(
-                    LangManager.message("toolwindow.setup.interpreter"),
-                    LangManager.message("toolwindow.setup.interpreter.error", "Blender executable not found: $blenderExePath")
-                )
-                return
-            }
-
-            val version = PythonUtil.getBlenderVersion(blenderExePath)
-
-            if (version == "unknown") {
-                BlenderNotification(project).sendError(
-                    LangManager.message("toolwindow.setup.interpreter"),
-                    LangManager.message("toolwindow.setup.interpreter.error", "Could not determine Blender version for $blenderExePath")
-                )
-                return
-            }
-
-            ProgressManager.getInstance().run(
-                object : Task.Backgroundable(project, "Installing linter for Blender $version", true) {
-                    override fun run(indicator: com.intellij.openapi.progress.ProgressIndicator) {
-                        // First ensure the interpreter is set up (and venv is created)
-                        com.intellij.openapi.application.ApplicationManager.getApplication().invokeAndWait {
-                            PythonService.getInstance(project).setupPythonInterpreter(blenderExePath)
-                        }
-                        
-                        // Then install the linter module
-                        PythonService.getInstance(project).installFakeBpyModule(path, version)
-                        
-                        // Finally update the interpreter roots again to include any new paths
-                        com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater {
-                            PythonService.getInstance(project).setupPythonInterpreter(blenderExePath)
-                        }
-                    }
-                }
-            )
-        } catch (e: Exception) {
-            BlenderNotification(project).sendError(
-                LangManager.message("toolwindow.setup.interpreter"),
-                LangManager.message("toolwindow.setup.interpreter.error", e.message ?: "Unknown error")
-            )
-        }
-    }
+    fun setupLinter(blenderExePath: String) =
+        PythonService.getInstance(project).setupLinter(blenderExePath)
 
     companion object {
         fun getInstance(project: Project): BlenderService = project.getService(BlenderService::class.java)

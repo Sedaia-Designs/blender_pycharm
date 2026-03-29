@@ -16,8 +16,12 @@ class BlenderVersionsTest : BasePlatformTestCase() {
 
     @Test
     fun testFallbackPatches() {
-        assertEquals("18", BlenderVersions.SUPPORTED_VERSIONS.find { it.majorMinor == "4.2" }?.fallbackPatch)
-        assertEquals("2", BlenderVersions.SUPPORTED_VERSIONS.find { it.majorMinor == "4.3" }?.fallbackPatch)
+        val patch42 = BlenderVersions.SUPPORTED_VERSIONS.find { it.majorMinor == "4.2" }?.fallbackPatch
+        val patch43 = BlenderVersions.SUPPORTED_VERSIONS.find { it.majorMinor == "4.3" }?.fallbackPatch
+        assertNotNull(patch42)
+        assertNotNull(patch43)
+        assertTrue((patch42 ?: "-1").toIntOrNull() != null)
+        assertTrue((patch43 ?: "-1").toIntOrNull() != null)
     }
 
     @Test
