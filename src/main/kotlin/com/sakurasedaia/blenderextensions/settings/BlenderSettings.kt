@@ -5,16 +5,30 @@ import com.intellij.openapi.project.Project
 
 @Service(Service.Level.PROJECT)
 @State(name = "BlenderSettings", storages = [Storage("blender_settings.xml")])
-class BlenderSettings : PersistentStateComponent<BlenderSettings.State> {
+class BlenderSettings(private val project: Project) : PersistentStateComponent<BlenderSettings.State> {
     data class State(
         var autoReload: Boolean = true,
         var blenderSourceFolders: MutableSet<String> = mutableSetOf(),
-        var customBlenderPaths: MutableMap<String, String> = mutableMapOf() // path -> name
+        var customBlenderPaths: MutableMap<String, String> = mutableMapOf(), // path -> name
+        var downloadsPath: String = ""
     )
 
     private var myState = State()
 
-    override fun getState(): State = myState
+    init {
+        // Initialize default paths if empty
+        if (myState.downloadsPath.isEmpty()) {
+            myState.downloadsPath = java.nio.file.Path.of(com.intellij.openapi.application.PathManager.getSystemPath(), "blender_downloads").toString()
+        }
+    }
+
+    override fun getState(): State {
+        // Double check initialization
+        if (myState.downloadsPath.isEmpty()) {
+            myState.downloadsPath = java.nio.file.Path.of(com.intellij.openapi.application.PathManager.getSystemPath(), "blender_downloads").toString()
+        }
+        return myState
+    }
     override fun loadState(state: State) {
         myState = state
     }

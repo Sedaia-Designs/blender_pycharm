@@ -108,17 +108,10 @@ class SystemBlenderTable(private val project: Project) : JBTable() {
         }
 
         fun refresh() {
-            com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread {
-                val customPaths = BlenderSettings.getInstance(project).getCustomBlenderPaths()
-                val newInstallations = BlenderScanner.scanSystemInstallations(force = true, customPaths = customPaths)
-                SwingUtilities.invokeLater {
-                    // Check if the project is not disposed before updating UI
-                    if (!project.isDisposed) {
-                        installations = newInstallations
-                        fireTableDataChanged()
-                    }
-                }
-            }
+            val customPaths = BlenderSettings.getInstance(project).getCustomBlenderPaths()
+            val newInstallations = BlenderScanner.getCachedInstallations() ?: emptyList()
+            installations = newInstallations
+            fireTableDataChanged()
         }
 
         fun getInstallationAt(row: Int) = installations[row]

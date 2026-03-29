@@ -49,7 +49,7 @@ class BlenderRunProfileState(
 
         // If version is still unknown, try a quick scan of the path itself if it's a path
         if (detectedVersion == null && (blenderPath.contains("/") || blenderPath.contains("\\"))) {
-             detectedVersion = com.sakurasedaia.blenderextensions.blender.BlenderScanner.tryGetVersion(blenderPath)
+             detectedVersion = com.sakurasedaia.blenderextensions.system.BlenderFinder.tryGetVersion(blenderPath)
              if (detectedVersion == "Unknown") {
                  val match = Regex("(\\d+\\.\\d+)").find(blenderPath)
                  detectedVersion = match?.groupValues?.get(1)

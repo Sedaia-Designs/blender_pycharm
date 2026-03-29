@@ -20,6 +20,7 @@ import javax.swing.SwingUtilities
 import com.intellij.execution.RunManager
 import com.intellij.execution.configurations.ConfigurationTypeUtil
 import com.sakurasedaia.blenderextensions.blender.*
+import com.sakurasedaia.blenderextensions.system.*
 import com.sakurasedaia.blenderextensions.run.*
 import com.sakurasedaia.blenderextensions.python.PythonService
 import com.sakurasedaia.blenderextensions.settings.BlenderSettings
@@ -71,7 +72,7 @@ class BlenderAddonProjectGenerator : DirectoryProjectGenerator<BlenderAddonProje
             "$selectedVersion.$patch"
         } else {
             // It might be a path. Try to get version from it.
-            val detected = BlenderScanner.tryGetVersion(selectedVersion)
+            val detected = BlenderFinder.tryGetVersion(selectedVersion)
             if (detected != LangManager.message("blender.version.unknown")) {
                 detected + ".0" // BlenderScanner returns X.Y, we need X.Y.Z
             } else {
@@ -419,7 +420,7 @@ internal class BlenderAddonProjectPeer : ProjectGeneratorPeer<BlenderAddonProjec
             val minVer = if (supported != null) {
                 "${supported.majorMinor}.${supported.fallbackPatch}"
             } else {
-                val detected = BlenderScanner.tryGetVersion(selected)
+                val detected = BlenderFinder.tryGetVersion(selected)
                 if (detected != LangManager.message("blender.version.unknown")) {
                     detected + ".0"
                 } else {

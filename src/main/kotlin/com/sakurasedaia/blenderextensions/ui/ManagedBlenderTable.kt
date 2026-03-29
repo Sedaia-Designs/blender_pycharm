@@ -19,7 +19,7 @@ class ManagedBlenderTable(private val project: Project) : JBTable() {
         selectionModel.selectionMode = ListSelectionModel.SINGLE_SELECTION
 
         columnModel.getColumn(0).preferredWidth = 100
-        columnModel.getColumn(1).preferredWidth = 120
+        columnModel.getColumn(1).preferredWidth = 400
 
         preferredViewportSize = java.awt.Dimension(-1, getRowHeight() * 5)
     }
@@ -61,10 +61,10 @@ class ManagedBlenderTable(private val project: Project) : JBTable() {
             val version = versions[rowIndex].majorMinor
             return when (columnIndex) {
                 0 -> listOf("Blender", version).joinToString(" ")
-                1 -> if (downloader.isDownloaded(version)) 
-                    LangManager.message("toolwindow.managed.status.downloaded")
-                else 
-                    LangManager.message("toolwindow.managed.status.not.downloaded")
+                1 -> if (downloader.isDownloaded(version))
+                    downloader.getVersionDirectory(version).toAbsolutePath().toString()
+                else
+                    LangManager.message("toolwindow.managed.status.not.installed")
                 else -> ""
             }
         }
