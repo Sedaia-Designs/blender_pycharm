@@ -505,7 +505,6 @@ class PythonInterpreterService(private val project: Project) {
         val isArm64 = arch == "aarch64" || arch == "arm64"
         val platformFragment = when {
             SystemInfo.isWindows -> "x86_64-pc-windows-msvc-shared"
-            SystemInfo.isMac -> if (isArm64) "aarch64-apple-darwin" else "x86_64-apple-darwin"
             else -> if (isArm64) "aarch64-unknown-linux-gnu" else "x86_64-unknown-linux-gnu"
         }
 
@@ -526,12 +525,12 @@ class PythonInterpreterService(private val project: Project) {
             val candidates = mutableListOf<Candidate>()
 
             val urlRegex = Regex(
-                """https://github\.com/indygreg/python-build-standalone/releases/download/[^"]*/cpython-${Regex.escape(version)}\.(\d+)\+([^-"]+)-${Regex.escape(platformFragment)}-(install_runtime|install_only|install_full)\.(tar\.gz|zip)"""
+                """https://github\.com/(?:indygreg|astral-sh)/python-build-standalone/releases/download/[^"]*/cpython-${Regex.escape(version)}\.(\d+)\+([^-"]+)-${Regex.escape(platformFragment)}-(install_runtime|install_only|install_full)\.(tar\.gz|zip)"""
             )
 
             // Scan multiple pages to ensure older major.minor lines (e.g. 3.10/3.11) are still found.
             for (page in 1..3) {
-                val apiUrl = "https://api.github.com/repos/indygreg/python-build-standalone/releases?per_page=100&page=$page"
+                val apiUrl = "https://api.github.com/repos/astral-sh/python-build-standalone/releases?per_page=100&page=$page"
                 val body = HttpRequests.request(apiUrl).connect { request -> request.readString() }
                 if (body.trim().isEmpty() || body.trim() == "[]") break
 
