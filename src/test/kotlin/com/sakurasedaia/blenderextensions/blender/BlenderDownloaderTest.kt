@@ -43,14 +43,9 @@ class BlenderDownloaderTest : BasePlatformTestCase() {
             // Create a mock executable
             val osName = System.getProperty("os.name").lowercase()
             val isWindows = osName.contains("win")
-            val isMac = osName.contains("mac")
             
             val executablePath = if (isWindows) {
                 tempDir.resolve("blender.exe").createFile()
-            } else if (isMac) {
-                val macPath = tempDir.resolve("Blender 4.2.app/Contents/MacOS")
-                macPath.createDirectories()
-                macPath.resolve("Blender").createFile()
             } else {
                 val linuxPath = tempDir.resolve("blender").createFile()
                 // Set executable permission for Linux to ensure discovery

@@ -130,11 +130,6 @@ object PythonUtil {
 
 
     private fun getBlenderInternalDir(blenderExePath: Path): Path? {
-        return if (SystemInfo.isMac) {
-            // blenderExePath is .../Blender.app/Contents/MacOS/Blender
-            blenderExePath.parent?.parent?.resolve("Resources")
-        } else {
-            blenderExePath.parent
-        }
+        return blenderExePath.parent
     }
 }

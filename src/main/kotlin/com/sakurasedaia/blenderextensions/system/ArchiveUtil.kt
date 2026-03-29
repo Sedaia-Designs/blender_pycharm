@@ -49,48 +49,6 @@ object ArchiveUtil {
     }
 
     fun extractDmg(file: Path, targetDir: Path, version: String, logger: BlenderLogger? = null) {
-        if (!System.getProperty("os.name").lowercase().contains("mac")) {
-            logger?.log("DMG extraction is only supported on macOS")
-            return
-        }
-
-        val mountPoint = Path.of("/tmp", "blender_mount_${System.currentTimeMillis()}")
-        val appName = "Blender $version.app"
-        val blendDir = targetDir.resolve(version)
-        val appInBlendDir = blendDir.resolve(appName)
-        Files.createDirectories(mountPoint)
-        try {
-            ExternalProcessUtil.executeGroup(listOf(GeneralCommandLine("hdiutil", "detach", mountPoint.absolutePathString(), "-force").apply {
-                setWorkDirectory(targetDir.toFile())
-            }), silentFailure = true, logger)
-
-            logger?.log("Mounting DMG: ${file.absolutePathString()}")
-            ExternalProcessUtil.executeCommand(
-                GeneralCommandLine("hdiutil", "attach", file.absolutePathString(), "-mountpoint", mountPoint.absolutePathString(), "-nobrowse", "-readonly"), silentFailure = false, logger)
-
-            Files.list(mountPoint).use { stream ->
-                val appFile = stream.filter { it.name == "Blender.app" }.findFirst().orElse(null)
-                if (appFile != null) {
-                    logger?.log("Copying app: ${appFile.name} to ${appInBlendDir.absolutePathString()}")
-                    Files.createDirectories(blendDir)
-                    ExternalProcessUtil.executeGroup(listOf(
-                        GeneralCommandLine("cp", "-R", appFile.absolutePathString(), appInBlendDir.absolutePathString())
-                    ), false, logger)
-                } else {
-                    logger?.log("Failed to find Blender.app in mount point: ${mountPoint.absolutePathString()}")
-                }
-            }
-        } catch (e: Exception) {
-            logger?.log("Failed to mount DMG ${file.absolutePathString()}: ${e.message}")
-        } finally {
-            logger?.log("Detaching mount point: ${mountPoint.absolutePathString()}")
-            ExternalProcessUtil.executeGroup(listOf(
-                GeneralCommandLine("hdiutil", "detach", mountPoint.absolutePathString(), "-force"),
-                GeneralCommandLine("rm", file.absolutePathString())
-            ), false, logger)
-            try {
-                Files.deleteIfExists(mountPoint)
-            } catch (_: Exception) {}
-        }
+        logger?.log("DMG extraction is not supported")
     }
 }

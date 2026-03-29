@@ -12,7 +12,6 @@ class BlenderPathUtilTest {
         val exe = BlenderPathUtil.getBlenderExecutableName()
         when {
             SystemInfo.isWindows -> assertTrue(exe.endsWith(".exe"))
-            SystemInfo.isMac -> assertTrue(exe.contains("MacOS"))
             else -> assertTrue(exe == "blender")
         }
     }

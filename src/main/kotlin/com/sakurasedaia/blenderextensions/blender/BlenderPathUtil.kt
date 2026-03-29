@@ -16,9 +16,6 @@ object BlenderPathUtil {
                 val appData = System.getenv("APPDATA")
                 if (appData != null) Paths.get(appData, "Blender Foundation", "Blender", version, "config") else null
             }
-            SystemInfo.isMac -> {
-                Paths.get(userHome, "Library", "Application Support", "Blender", version, "config")
-            }
             SystemInfo.isLinux -> {
                 Paths.get(userHome, ".config", "blender", version, "config")
             }
@@ -32,9 +29,6 @@ object BlenderPathUtil {
                 val appData = System.getenv("APPDATA")
                 if (appData != null) Paths.get(appData, "Blender Foundation", "Blender") else null
             }
-            SystemInfo.isMac -> {
-                Paths.get(userHome, "Library", "Application Support", "Blender")
-            }
             SystemInfo.isLinux -> {
                 Paths.get(userHome, ".config", "blender")
             }
@@ -45,7 +39,6 @@ object BlenderPathUtil {
     fun getBlenderExecutableName(): String {
         return when {
             SystemInfo.isWindows -> "blender.exe"
-            SystemInfo.isMac -> "Blender.app/Contents/MacOS/Blender"
             else -> "blender"
         }
     }

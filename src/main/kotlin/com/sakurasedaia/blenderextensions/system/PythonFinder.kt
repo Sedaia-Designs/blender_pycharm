@@ -102,8 +102,6 @@ object PythonFinder {
                 locations.add(Path.of(drive, "Python${targetVersion.replace(".", "")}"))
             }
             locations
-        } else if (SystemInfo.isMac) {
-            listOf(Path.of("/usr/local/bin"), Path.of("/opt/homebrew/bin"))
         } else {
             listOf(Path.of("/usr/bin"), Path.of("/usr/local/bin"))
         }

@@ -33,7 +33,6 @@ object BlenderScanner {
         
         when {
             SystemInfo.isWindows -> installations.addAll(scanWindows())
-            SystemInfo.isMac -> installations.addAll(scanMac())
             SystemInfo.isLinux -> installations.addAll(scanLinux())
         }
 
@@ -117,28 +116,6 @@ object BlenderScanner {
             }
         }
         return paths
-    }
-
-    private fun scanMac(): List<BlenderInstallation> {
-        val installations = mutableListOf<BlenderInstallation>()
-
-        // 1. Try which command
-        tryWhich("Blender")?.let { addIfValid(installations, it, LangManager.message("blender.installation.manual")) }
-
-        // 2. Scan standard Application folders
-        listOf("/Applications", System.getProperty("user.home") + "/Applications").forEach { base ->
-            val basePath = Path.of(base)
-            if (basePath.exists() && basePath.isDirectory()) {
-                Files.list(basePath).use { stream ->
-                    stream.filter { it.isDirectory() && it.name == "Blender.app" }
-                        .forEach { app ->
-                            val exe = app.resolve("Contents/MacOS/Blender")
-                            addIfValid(installations, exe.toString(), "System: $base")
-                        }
-                }
-            }
-        }
-        return installations
     }
 
     private fun scanLinux(): List<BlenderInstallation> {
