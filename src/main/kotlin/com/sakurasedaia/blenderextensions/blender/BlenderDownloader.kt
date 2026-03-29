@@ -1,22 +1,19 @@
 package com.sakurasedaia.blenderextensions.blender
 
-import com.intellij.execution.configurations.GeneralCommandLine
-import com.intellij.execution.process.OSProcessHandler
-import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.PathManager
+import com.sakurasedaia.blenderextensions.system.ExternalProcessUtil
+import com.sakurasedaia.blenderextensions.system.ArchiveUtil
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.util.io.HttpRequests
 import com.sakurasedaia.blenderextensions.LangManager
+import com.sakurasedaia.blenderextensions.settings.BlenderSettings
 import com.sakurasedaia.blenderextensions.python.PythonService
-import com.sakurasedaia.blenderextensions.python.PythonUtil
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.concurrent.atomic.AtomicReference
 import kotlin.io.path.*
 
 @Service(Service.Level.PROJECT)
@@ -48,7 +45,8 @@ class BlenderDownloader(private val project: Project) {
     }
 
     fun getBaseDownloadDirectory(): Path {
-        return Path.of(PathManager.getSystemPath(), "blender_downloads")
+        val path = BlenderSettings.getInstance(project).state.downloadsPath
+        return Path.of(path)
     }
 
     fun getAppDirectory(): Path {
@@ -58,8 +56,7 @@ class BlenderDownloader(private val project: Project) {
     fun getVersionDirectory(version: String?): Path {
         return getAppDirectory().resolve(version ?: "unknown")
     }
-
-
+    
     fun isDownloaded(version: String?): Boolean {
         return isDownloadedCache.getOrPut(version) {
             val downloadDir = getVersionDirectory(version)
@@ -124,10 +121,7 @@ class BlenderDownloader(private val project: Project) {
         }
 
         // If not, download it
-        val downloadUrl = getDownloadUrl(version, isWindows, isMac, isLinux, arch) ?: run {
-            logger.log(LangManager.message("log.blender.download.failed", version, "URL not found"))
-            return null
-        }
+        val downloadUrl = getDownloadUrl(version, isWindows, isMac, isLinux, arch)
         
         logger.log(LangManager.message("log.blender.downloading", version))
         val downloadedFile = downloadFile(downloadUrl, baseDir) ?: run {
@@ -177,7 +171,8 @@ class BlenderDownloader(private val project: Project) {
         val platformSuffix = when {
             isWindows -> "windows-x64\\.zip"
             isMac -> if (isArm64) "macos-arm64\\.dmg" else "macos-x64\\.dmg"
-            else -> "linux-x64\\.tar\\.xz"
+            isLinux -> "linux-x64\\.tar\\.xz"
+            else -> throw Exception("Unsupported platform: $arch")
         }
         
         val regex = Regex("blender-$version\\.(\\d+)-$platformSuffix")
@@ -249,108 +244,14 @@ class BlenderDownloader(private val project: Project) {
         val fileName = file.name
         try {
             when {
-                fileName.endsWith(".zip") -> extractZip(file, targetDir, version)
-                fileName.endsWith(".tar.xz") -> extractTarXz(file, targetDir, version)
-                fileName.endsWith(".dmg") -> extractDmg(file, targetDir, version)
+                fileName.endsWith(".zip") -> ArchiveUtil.extractZip(file, targetDir, true, logger)
+                fileName.endsWith(".tar.xz") -> ArchiveUtil.extractTarXz(file, getVersionDirectory(version), getAppDirectory(), logger)
+                fileName.endsWith(".dmg") -> ArchiveUtil.extractDmg(file, targetDir, version, logger)
                 else -> logger.log(LangManager.message("log.blender.unsupported.format", fileName))
             }
         } catch (e: Exception) {
             logger.log(LangManager.message("log.blender.extraction.failed", fileName, e.message ?: ""))
             throw e
-        }
-    }
-
-    private fun extractZip(file: Path, targetDir: Path, version: String) {
-        val commands = listOf(
-            GeneralCommandLine("powershell", "Expand-Archive", "-Path", file.absolutePathString(), "-DestinationPath", targetDir.absolutePathString(), "-Force"),
-            GeneralCommandLine("powershell", "Get-ChildItem -Path '${targetDir.absolutePathString()}' -Directory | ForEach-Object { Move-Item -Path \"\$(\$_.FullName)\\*\" -Destination '${targetDir.absolutePathString()}' -Force; Remove-Item -Path \"\$(\$_.FullName)\" -Force }"),
-            GeneralCommandLine("powershell", "Remove-Item", "-Path", file.absolutePathString())
-        )
-        executeExtractionCommands(commands)
-    }
-
-    private fun extractTarXz(file: Path, targetDir: Path, version: String) {
-        val commands = listOf(
-            GeneralCommandLine("sh", "-c", "tar -xvf ${file.absolutePathString()} -C ${targetDir.absolutePathString()} --strip-components=1"),
-            GeneralCommandLine("sh", "-c", "rm ${file.absolutePathString()}")
-        )
-
-        executeExtractionCommands(commands)
-    }
-
-    private fun extractDmg(file: Path, targetDir: Path, version: String) {
-        if (!System.getProperty("os.name").lowercase().contains("mac")) {
-            logger.log(LangManager.message("log.blender.dmg.extracted"))
-            return
-        }
-
-        val mountPoint = Path.of("/tmp", "blender_mount_${System.currentTimeMillis()}")
-        val appName = "Blender $version.app"
-        val blendDir = targetDir.resolve(version)
-        val appInBlendDir = blendDir.resolve(appName)
-        Files.createDirectories(mountPoint)
-        try {
-            // First, ensure any previous mount at this point is detached (unlikely with timestamp, but good practice)
-            executeExtractionCommands(listOf(
-                GeneralCommandLine("hdiutil", "detach", mountPoint.absolutePathString(), "-force").apply {
-                    setWorkDirectory(targetDir.toFile())
-                }
-            ), silentFailure = true)
-
-            logger.log(LangManager.message("log.blender.mounting", file.absolutePathString()))
-            executeExtractionCommands(listOf(
-                GeneralCommandLine("hdiutil", "attach", file.absolutePathString(), "-mountpoint", mountPoint.absolutePathString(), "-nobrowse", "-readonly")
-            ))
-            
-            Files.list(mountPoint).use { stream ->
-                val appFile = stream.filter { it.name == "Blender.app" }.findFirst().orElse(null)
-                if (appFile != null) {
-                    logger.log(LangManager.message("log.blender.copying.app", appFile.name, appInBlendDir.absolutePathString()))
-                    Files.createDirectories(blendDir)
-                    executeExtractionCommands(listOf(
-                        GeneralCommandLine("cp", "-R", appFile.absolutePathString(), appInBlendDir.absolutePathString())
-                    ))
-                } else {
-                    logger.log(LangManager.message("log.blender.failed.copy.app", mountPoint.absolutePathString()))
-                }
-            }
-        } catch (e: Exception) {
-            logger.log(LangManager.message("log.blender.failed.mount", file.absolutePathString(), e.message ?: ""))
-            logger.log(LangManager.message("log.blender.error.during.download", e.message ?: ""))
-        } finally {
-            logger.log(LangManager.message("log.blender.detaching", mountPoint.absolutePathString()))
-            executeExtractionCommands(listOf(
-                GeneralCommandLine("hdiutil", "detach", mountPoint.absolutePathString(), "-force"),
-                GeneralCommandLine("rm", file.absolutePathString())
-            ))
-            try {
-                Files.deleteIfExists(mountPoint)
-            } catch (_: Exception) {}
-        }
-    }
-
-    private fun executeExtractionCommands(commandLines: List<GeneralCommandLine>, silentFailure: Boolean = false) {
-        for (commandLine in commandLines) {
-            try {
-                val handler = OSProcessHandler(commandLine)
-                handler.startNotify()
-                while (!handler.waitFor(100)) {
-                    ProgressManager.checkCanceled()
-                }
-                if (handler.exitCode != 0 && !silentFailure) {
-                    logger.log("Extraction command failed with exit code ${handler.exitCode}: ${commandLine.commandLineString}")
-                    break
-                }
-            } catch (e: Exception) {
-                if (e is com.intellij.openapi.progress.ProcessCanceledException) {
-                    logger.log("Extraction cancelled by user")
-                    throw e
-                }
-                if (!silentFailure) {
-                    logger.log("Failed to execute extraction command: ${e.message}")
-                }
-                break
-            }
         }
     }
 
@@ -370,7 +271,7 @@ class BlenderDownloader(private val project: Project) {
         }
         return true
     }
-
+    
     companion object {
         fun getInstance(project: Project): BlenderDownloader = project.getService(BlenderDownloader::class.java)
     }
