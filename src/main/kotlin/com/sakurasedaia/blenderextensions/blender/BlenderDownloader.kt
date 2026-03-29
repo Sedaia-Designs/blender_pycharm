@@ -1,6 +1,5 @@
 package com.sakurasedaia.blenderextensions.blender
 
-import com.sakurasedaia.blenderextensions.system.ExternalProcessUtil
 import com.sakurasedaia.blenderextensions.system.ArchiveUtil
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.progress.ProgressManager
@@ -93,8 +92,7 @@ class BlenderDownloader(private val project: Project) {
         val osName = System.getProperty("os.name").lowercase()
         val arch = System.getProperty("os.arch").lowercase()
         val isWindows = osName.contains("win")
-        val isMac = osName.contains("mac")
-        val isLinux = !isWindows && !isMac
+        val isLinux = !isWindows
 
         val baseDir = getBaseDownloadDirectory()
         val appDir = getAppDirectory()
@@ -104,11 +102,11 @@ class BlenderDownloader(private val project: Project) {
             Files.createDirectories(appDir)
         }
         try {
-            if (!isSysCompatible(version)) {
+            if (!isSysCompatible()) {
                 throw Exception("System compatibility check failed")
             }
         } catch (e: Exception) {
-            logger.log(LangManager.message("log.blender.incompatible.macintoshintel", e))
+            logger.log(LangManager.message("log.blender.incompatible", e))
             return null
         }
 
@@ -121,7 +119,7 @@ class BlenderDownloader(private val project: Project) {
         }
 
         // If not, download it
-        val downloadUrl = getDownloadUrl(version, isWindows, isMac, isLinux, arch)
+        val downloadUrl = getDownloadUrl(version, isWindows, isLinux, arch)
         
         logger.log(LangManager.message("log.blender.downloading", version))
         val downloadedFile = downloadFile(downloadUrl, baseDir) ?: run {
@@ -149,28 +147,21 @@ class BlenderDownloader(private val project: Project) {
 
         val osName = System.getProperty("os.name").lowercase()
         val isWindows = osName.contains("win")
-        val isMac = osName.contains("mac")
 
         val executableName = if (isWindows) "blender.exe" else "blender"
         
         // Walk the directory to find the executable, limited depth for performance
         Files.walk(directory, 3).use { stream ->
             return stream.filter { path ->
-                if (isMac) {
-                    path.name == "Blender" && path.toString().contains(".app/Contents/MacOS")
-                } else {
-                    path.name == executableName && path.isRegularFile() && (isWindows || Files.isExecutable(path))
-                }
+                path.name == executableName && path.isRegularFile() && (isWindows || Files.isExecutable(path))
             }.findFirst().orElse(null)
         }
     }
 
-    private fun getDownloadUrl(version: String, isWindows: Boolean, isMac: Boolean, isLinux: Boolean, arch: String): String {
+    private fun getDownloadUrl(version: String, isWindows: Boolean, isLinux: Boolean, arch: String): String {
         val baseUrl = "https://download.blender.org/release/Blender$version/"
-        val isArm64 = arch.contains("aarch64") || arch.contains("arm64")
         val platformSuffix = when {
             isWindows -> "windows-x64\\.zip"
-            isMac -> if (isArm64) "macos-arm64\\.dmg" else "macos-x64\\.dmg"
             isLinux -> "linux-x64\\.tar\\.xz"
             else -> throw Exception("Unsupported platform: $arch")
         }
@@ -189,7 +180,6 @@ class BlenderDownloader(private val project: Project) {
         val fallbackPatch = BlenderVersions.SUPPORTED_VERSIONS.find { it.majorMinor == version }?.fallbackPatch ?: "0"
         val suffix = when {
             isWindows -> "windows-x64.zip"
-            isMac -> if (isArm64) "macos-arm64.dmg" else "macos-x64.dmg"
             else -> "linux-x64.tar.xz"
         }
         return "${baseUrl}blender-$version.$fallbackPatch-$suffix"
@@ -210,17 +200,40 @@ class BlenderDownloader(private val project: Project) {
             try {
                 HttpRequests.request(url)
                     .connect { request ->
-                        request.saveToFile(targetFile, object : com.intellij.openapi.progress.ProgressIndicator by (indicator ?: com.intellij.openapi.progress.EmptyProgressIndicator()) {
+                        val progressIndicator = indicator ?: com.intellij.openapi.progress.EmptyProgressIndicator()
+                        request.saveToFile(targetFile, object : com.intellij.openapi.progress.ProgressIndicator {
                             override fun setFraction(fraction: Double) {
-                                indicator?.fraction = fraction
+                                progressIndicator.fraction = fraction
                                 _downloadProgress.value = DownloadProgress(true, fraction, statusText, version, ProgressType.DOWNLOAD)
                             }
+
+                            override fun isPopupWasShown() = progressIndicator.isPopupWasShown
+                            override fun isShowing() = progressIndicator.isShowing
+                            override fun isModal() = progressIndicator.isModal
+                            override fun getModalityState() = progressIndicator.modalityState
+                            override fun setModalityProgress(modalityProgress: com.intellij.openapi.progress.ProgressIndicator?) { progressIndicator.setModalityProgress(modalityProgress) }
+                            override fun setIndeterminate(indeterminate: Boolean) { progressIndicator.isIndeterminate = indeterminate }
+                            override fun isIndeterminate() = progressIndicator.isIndeterminate
+                            override fun checkCanceled() = progressIndicator.checkCanceled()
+                            override fun start() = progressIndicator.start()
+                            override fun stop() = progressIndicator.stop()
+                            override fun isRunning() = progressIndicator.isRunning
+                            override fun cancel() = progressIndicator.cancel()
+                            override fun isCanceled() = progressIndicator.isCanceled
+                            override fun setText(text: String?) { progressIndicator.text = text }
+                            override fun getText() = progressIndicator.text
+                            override fun setText2(text: String?) { progressIndicator.text2 = text }
+                            override fun getText2() = progressIndicator.text2
+                            override fun getFraction() = progressIndicator.fraction
+                            override fun pushState() = progressIndicator.pushState()
+                            override fun popState() = progressIndicator.popState()
                         })
                     }
                 return targetFile
             } catch (e: Exception) {
                 if (e is com.intellij.openapi.progress.ProcessCanceledException) {
                     logger.log("Download cancelled by user")
+                    throw e
                 } else {
                     logger.log("Download failed: ${e.message}")
                 }
@@ -246,7 +259,6 @@ class BlenderDownloader(private val project: Project) {
             when {
                 fileName.endsWith(".zip") -> ArchiveUtil.extractZip(file, targetDir, true, logger)
                 fileName.endsWith(".tar.xz") -> ArchiveUtil.extractTarXz(file, getVersionDirectory(version), getAppDirectory(), logger)
-                fileName.endsWith(".dmg") -> ArchiveUtil.extractDmg(file, targetDir, version, logger)
                 else -> logger.log(LangManager.message("log.blender.unsupported.format", fileName))
             }
         } catch (e: Exception) {
@@ -255,19 +267,13 @@ class BlenderDownloader(private val project: Project) {
         }
     }
 
-    private fun isSysCompatible(version: String): Boolean {
-        val versionInt = version.split(".").map { it.toInt() }.toIntArray()
+    private fun isSysCompatible(): Boolean {
         val osName = System.getProperty("os.name").lowercase()
-        val arch = System.getProperty("os.arch").lowercase()
         val isMac = osName.contains("mac")
-        val isLegacy = arch.contains("x86_64") || arch.contains("amd64")
 
         if (isMac) {
-            if (versionInt[0] >= 5 && isLegacy) {
-                logger.log("Blender 5.0 and newer are not compatible with Apple Macintosh")
-                return false
-            }
-            return true
+            logger.log("Apple MacOS is not currently supported")
+            return false
         }
         return true
     }
