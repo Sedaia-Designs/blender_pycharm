@@ -1,7 +1,7 @@
 package com.sakurasedaia.blenderextensions.blender
 
 import com.sakurasedaia.blenderextensions.LangManager
-import com.intellij.ide.util.PropertiesComponent
+import com.sakurasedaia.blenderextensions.system.BlenderFinder
 import com.intellij.openapi.util.SystemInfo
 import java.nio.file.Files
 import java.nio.file.Path
@@ -19,8 +19,9 @@ data class BlenderInstallation(
 )
 
 object BlenderScanner {
-    private const val VERSION_CACHE_PREFIX = "com.sakurasedaia.blenderextensions.version."
     private var cachedInstallations: List<BlenderInstallation>? = null
+
+    fun getCachedInstallations(): List<BlenderInstallation>? = cachedInstallations
 
     fun scanSystemInstallations(
         force: Boolean = false,
@@ -29,7 +30,7 @@ object BlenderScanner {
         if (!force && cachedInstallations != null) return cachedInstallations!!
 
         val installations = mutableListOf<BlenderInstallation>()
-
+        
         when {
             SystemInfo.isWindows -> installations.addAll(scanWindows())
             SystemInfo.isMac -> installations.addAll(scanMac())
@@ -41,7 +42,7 @@ object BlenderScanner {
             if (path.exists()) {
                 val exe = if (path.isDirectory()) findBlenderExecutable(path) else path
                 if (exe != null && exe.exists()) {
-                    val version = tryGetVersion(exe.toString())
+                    val version = BlenderFinder.tryGetVersion(exe.toString())
                     installations.add(
                         BlenderInstallation(
                             LangManager.message("blender.installation.custom", version),
@@ -57,7 +58,7 @@ object BlenderScanner {
 
         val result = installations.distinctBy { it.path }.map {
             if (it.version == LangManager.message("blender.version.unknown")) {
-                it.copy(version = tryGetVersion(it.path))
+                it.copy(version = BlenderFinder.tryGetVersion(it.path))
             } else {
                 it
             }
@@ -83,33 +84,16 @@ object BlenderScanner {
         }
     }
 
-    private val versionRegex = Regex("Blender (\\d+\\.\\d+)")
-
-    fun tryGetVersion(path: String): String {
-        val cacheKey = VERSION_CACHE_PREFIX + path.hashCode()
-        val cachedVersion = PropertiesComponent.getInstance().getValue(cacheKey)
-        val unknown = LangManager.message("blender.version.unknown")
-        if (cachedVersion != null && cachedVersion != unknown) {
-            return cachedVersion
+    private fun addIfValid(list: MutableList<BlenderInstallation>, pathStr: String, suffix: String) {
+        val path = Path.of(pathStr)
+        if (path.exists() && Files.isExecutable(path)) {
+            val version = BlenderFinder.tryGetVersion(path.toString())
+            list.add(BlenderInstallation(LangManager.message("blender.installation.system", version), path.toString(), version))
         }
+    }
 
-        try {
-            val commandLine = com.intellij.execution.configurations.GeneralCommandLine(path, "--version")
-            val output = com.intellij.execution.util.ExecUtil.execAndGetOutput(commandLine)
-            if (output.exitCode != 0) return unknown
-            
-            // Output looks like "Blender 4.2.0\nbuild date: ..."
-            val match = versionRegex.find(output.stdout)
-            val version = match?.groupValues?.get(1) ?: unknown
-
-            if (version != unknown) {
-                PropertiesComponent.getInstance().setValue(cacheKey, version)
-            }
-
-            return version
-        } catch (e: Exception) {
-            return unknown
-        }
+    private fun tryWhich(exec: String): String? {
+        return BlenderFinder.tryWhich(exec)
     }
 
     private fun scanWindows(): List<BlenderInstallation> {
@@ -180,29 +164,6 @@ object BlenderScanner {
         }
 
         return installations
-    }
-
-    private fun addIfValid(list: MutableList<BlenderInstallation>, pathStr: String, suffix: String) {
-        val path = Path.of(pathStr)
-        if (path.exists() && Files.isExecutable(path)) {
-            val version = tryGetVersion(path.toString())
-            list.add(BlenderInstallation(LangManager.message("blender.installation.system", version), path.toString(), version))
-        }
-    }
-
-    private fun tryWhich(exec: String): String? {
-        return try {
-            val commandLine = com.intellij.execution.configurations.GeneralCommandLine("which", exec)
-            val output = com.intellij.execution.util.ExecUtil.execAndGetOutput(commandLine)
-            val result = output.stdout.trim()
-            if (output.exitCode == 0 && result.isNotEmpty() && !result.contains("not found")) {
-                result
-            } else {
-                null
-            }
-        } catch (e: Exception) {
-            null
-        }
     }
 }
 
