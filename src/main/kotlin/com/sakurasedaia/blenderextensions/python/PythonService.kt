@@ -1,6 +1,7 @@
 package com.sakurasedaia.blenderextensions.python
-
+ 
 import com.sakurasedaia.blenderextensions.system.ExternalProcessUtil
+import com.sakurasedaia.blenderextensions.LangManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.execution.configurations.GeneralCommandLine
@@ -15,8 +16,13 @@ class PythonService(private val project: Project) {
     fun installFakeBpyModule(blenderExePath: Path, version: String) =
         PythonLinterService.getInstance(project).installFakeBpyModule(blenderExePath, version)
 
-    fun getOrInstallPython(version: String): Path? =
-        PythonUtil.findSystemPython(version)
+    fun getOrInstallPython(version: String): Path? {
+        ensureVirtualEnvironment()
+        return PythonUtil.findSystemPython(version)
+    }
+
+    fun ensureVirtualEnvironment(): Path? =
+        PythonLinterService.getInstance(project).ensureVirtualEnvironment()?.homePath?.let { Path.of(it) }
 
     fun setupLinter(blenderExePath: String) =
         PythonLinterService.getInstance(project).setupLinter(blenderExePath)
@@ -35,7 +41,7 @@ class PythonService(private val project: Project) {
             }
             Pair("Unknown", false)
         } catch (e: Exception) {
-            Pair("Error: ${e.message}", false)
+            Pair(LangManager.message("blender.status.error") + ": ${e.message}", false)
         }
     }
 

@@ -10,6 +10,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.projectRoots.ProjectJdkTable
 import com.intellij.openapi.projectRoots.Sdk
+import com.intellij.openapi.projectRoots.SdkType
 import com.intellij.openapi.roots.OrderRootType
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.VirtualFileManager
@@ -21,7 +22,6 @@ import com.sakurasedaia.blenderextensions.system.ExternalProcessUtil
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.exists
-import kotlin.io.path.name
 
 @Service(Service.Level.PROJECT)
 class PythonLinterService(private val project: Project) {
@@ -33,6 +33,15 @@ class PythonLinterService(private val project: Project) {
                 BlenderNotification(project).sendError(
                     LangManager.message("toolwindow.managed.button.setup.linter"),
                     LangManager.message("toolwindow.managed.button.setup.linter.error", "Blender executable not found: $blenderExePath")
+                )
+                return
+            }
+
+            // Guardrail: Ensure project has a Virtual Environment SDK
+            if (ensureVirtualEnvironment() == null) {
+                BlenderNotification(project).sendError(
+                    LangManager.message("toolwindow.managed.button.setup.linter"),
+                    LangManager.message("log.python.venv.failed")
                 )
                 return
             }
@@ -49,11 +58,11 @@ class PythonLinterService(private val project: Project) {
             ProgressManager.getInstance().run(
                 object : Task.Backgroundable(project, "Installing linter for Blender $version", true) {
                     override fun run(indicator: ProgressIndicator) {
-                        val linterInstalled = installFakeBpyModule(version)
-                        if (!linterInstalled) {
+                        val result = installFakeBpyModule(version)
+                        if (!result.success) {
                             BlenderNotification(project).sendError(
                                 LangManager.message("toolwindow.managed.button.setup.linter"),
-                                LangManager.message("toolwindow.managed.button.setup.linter.error.pip")
+                                result.errorMessage ?: LangManager.message("toolwindow.managed.button.setup.linter.error.pip")
                             )
                             return
                         }
@@ -112,7 +121,9 @@ class PythonLinterService(private val project: Project) {
         installFakeBpyModule(version)
     }
 
-    fun installFakeBpyModule(version: String): Boolean {
+    data class InstallResult(val success: Boolean, val errorMessage: String? = null)
+
+    fun installFakeBpyModule(version: String): InstallResult {
         val logger = BlenderLogger.getInstance(project)
         val downloader = BlenderDownloader.getInstance(project)
         val lintDir = PythonUtil.getLintDirectory(version, project)
@@ -126,16 +137,25 @@ class PythonLinterService(private val project: Project) {
                 Files.createDirectories(lintDir)
             }
             
-            // Find a system Python to run pip
-            val pythonToUse = PythonUtil.findSystemPython("3") // Try to find any Python 3
-                ?: PythonUtil.findSystemPython("") // Fallback to any python
-            
-            if (pythonToUse == null) {
-                logger.log("Cannot install linter: No system Python found to run pip.")
-                return false
+            // Guardrail: Ensure project has a Virtual Environment SDK
+            val venvSdk = ensureVirtualEnvironment()
+            if (venvSdk == null) {
+                val error = LangManager.message("log.python.venv.failed")
+                logger.log(error)
+                return InstallResult(false, error)
             }
 
-            println("[DEBUG_LOG] installFakeBpyModule: Installing fake-bpy-module-$version into $lintDir using $pythonToUse")
+            val pythonToUse = venvSdk.homePath?.let { Path.of(it) }
+            if (pythonToUse == null) {
+                val error = LangManager.message("log.python.sdk.no.home")
+                logger.log(error)
+                return InstallResult(false, error)
+            }
+
+            // Ensure pip is available in the venv
+            val ensurePipCommand = GeneralCommandLine(pythonToUse.toString(), "-m", "ensurepip", "--upgrade")
+            ExternalProcessUtil.execAndGetOutput(ensurePipCommand)
+
             val command = GeneralCommandLine(
                 pythonToUse.toString(), "-m", "pip", "install", 
                 "fake-bpy-module-$version", "--target", lintDir.toString()
@@ -143,18 +163,84 @@ class PythonLinterService(private val project: Project) {
             
             val output = ExternalProcessUtil.execAndGetOutput(command)
             if (output.exitCode == 0) {
-                logger.log("Successfully installed fake-bpy-module-$version into $lintDir.")
-                return true
+                logger.log(LangManager.message("log.python.linter.install.success", version, lintDir.toString()))
+                return InstallResult(true)
             } else {
-                logger.log("Failed to install fake-bpy-module-$version into $lintDir: ${output.stderr}")
-                return false
+                val error = LangManager.message("log.python.linter.install.failed", version, lintDir.toString(), output.stderr)
+                logger.log(error)
+                return InstallResult(false, error)
             }
         } catch (e: Exception) {
-            logger.log("Failed to install fake-bpy-module for linting: ${e.message}")
-            return false
+            val error = LangManager.message("log.python.linter.install.error", e.message ?: "Unknown error")
+            logger.log(error)
+            return InstallResult(false, error)
         } finally {
             downloader.updateProgress(BlenderDownloader.DownloadProgress.None)
         }
+    }
+
+    fun ensureVirtualEnvironment(): Sdk? {
+        val projectSdk = ProjectRootManager.getInstance(project).projectSdk
+        if (projectSdk != null && isPythonSdk(projectSdk) && isVenv(projectSdk)) {
+            return projectSdk
+        }
+
+        val projectRoot = project.basePath?.let { Path.of(it) } ?: return null
+        val venvDir = projectRoot.resolve(".venv")
+        
+        if (!venvDir.exists()) {
+            val latestPython = PythonUtil.findSystemPython("3") ?: PythonUtil.findSystemPython("") ?: return null
+            val createVenvCommand = GeneralCommandLine(latestPython.toString(), "-m", "venv", venvDir.toString())
+            val output = ExternalProcessUtil.execAndGetOutput(createVenvCommand)
+            if (output.exitCode != 0) {
+                BlenderLogger.getInstance(project).log(LangManager.message("log.python.venv.create.failed", output.stderr))
+                return null
+            }
+        }
+
+        val pythonExe = if (SystemInfo.isWindows) venvDir.resolve("Scripts").resolve("python.exe") else venvDir.resolve("bin").resolve("python")
+        if (!pythonExe.exists()) {
+            BlenderLogger.getInstance(project).log(LangManager.message("log.python.venv.not.found", pythonExe.toString()))
+            return null
+        }
+
+        // Create or find existing SDK in the IDE
+        val sdkType = SdkType.getAllTypes().find { isPythonSdkTypeName(it.name) } ?: return null
+        val sdkName = "Python (BlenderExtensions .venv)"
+        
+        var sdk = ProjectJdkTable.getInstance().allJdks.find { it.homePath == pythonExe.toString() }
+        if (sdk == null) {
+            sdk = ProjectJdkTable.getInstance().createSdk(sdkName, sdkType)
+            val modificator = sdk.sdkModificator
+            modificator.homePath = pythonExe.toString()
+            val version = PythonUtil.getPythonVersion(pythonExe)
+            modificator.versionString = version?.let { if (it.startsWith("Python")) it else "Python $it" }
+            ApplicationManager.getApplication().runWriteAction {
+                modificator.commitChanges()
+                ProjectJdkTable.getInstance().addJdk(sdk!!)
+            }
+        }
+
+        // Set as project SDK
+        ApplicationManager.getApplication().runWriteAction {
+            ProjectRootManager.getInstance(project).projectSdk = sdk
+        }
+        
+        return sdk
+    }
+
+    private fun isVenv(sdk: Sdk): Boolean {
+        val homePath = sdk.homePath ?: return false
+        val path = Path.of(homePath)
+        return path.parent?.fileName?.toString() == "Scripts" || path.parent?.fileName?.toString() == "bin" || homePath.contains(".venv") || homePath.contains("venv") || homePath.contains("site-packages")
+    }
+
+    private fun isPythonSdk(sdk: Sdk): Boolean {
+        return isPythonSdkTypeName(sdk.sdkType.name) || sdk.sdkType.javaClass.simpleName.contains("Python", ignoreCase = true)
+    }
+
+    private fun isPythonSdkTypeName(name: String): Boolean {
+        return name == "Python SDK" || name == "Python"
     }
 
     companion object {
