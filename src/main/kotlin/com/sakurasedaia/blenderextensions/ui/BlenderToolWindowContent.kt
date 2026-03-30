@@ -171,14 +171,6 @@ class BlenderToolWindowContent(private val project: Project) {
 
     private fun handleSetupLinter() {
         val selected = versionComboBox.selectedItem as? String ?: return
-        val path = if (selected.contains("/") || selected.contains("\\")) {
-            selected
-        } else {
-            downloader.getOrDownloadBlenderPath(selected)
-        }
-
-        if (path != null) {
-            pythonService.setupLinter(path)
-        }
+        pythonService.setupLinter(selected)
     }
 }

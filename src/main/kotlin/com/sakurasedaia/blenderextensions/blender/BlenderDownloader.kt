@@ -109,8 +109,7 @@ class BlenderDownloader(private val project: Project) {
             logger.log(LangManager.message("log.blender.incompatible", e))
             return null
         }
-
-
+        
         // Check if already downloaded
         val executable = findBlenderExecutable(versionDir)
         if (executable != null) {
@@ -135,7 +134,7 @@ class BlenderDownloader(private val project: Project) {
         val finalExecutable = findBlenderExecutable(versionDir)
         if (finalExecutable != null) {
             logger.log(LangManager.message("log.blender.extracted", version, finalExecutable.absolutePathString()))
-            PythonService.getInstance(project).installFakeBpyModule(finalExecutable, version)
+            PythonService.getInstance(project).installFakeBpyModule(version)
         } else {
             logger.log(LangManager.message("log.blender.could.not.find.exec", versionDir.absolutePathString()))
         }

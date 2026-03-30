@@ -186,10 +186,8 @@ class BlenderConfigurable(private val project: Project) : SearchableConfigurable
 
         setupLinterButton.addActionListener {
             val version = managedTable.getSelectedVersion() ?: return@addActionListener
-            val path = service.getOrDownloadBlenderPath(version)
-            if (path != null) {
-                pythonService.setupLinter(path)
-            }
+            pythonService.setupLinter(version)
+            
         }
 
         updateManagedButtons()

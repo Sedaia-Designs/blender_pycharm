@@ -9,23 +9,12 @@ import java.nio.file.Path
 
 @Service(Service.Level.PROJECT)
 class PythonService(private val project: Project) {
-
-    fun getLinterSDKRoots(blenderExePath: String): List<Path> =
-        PythonLinterService.getInstance(project).getLinterSDKRoots(blenderExePath)
-
-    fun installFakeBpyModule(blenderExePath: Path, version: String) =
-        PythonLinterService.getInstance(project).installFakeBpyModule(blenderExePath, version)
-
-    fun getOrInstallPython(version: String): Path? {
-        ensureVirtualEnvironment()
-        return PythonUtil.findSystemPython(version)
-    }
-
-    fun ensureVirtualEnvironment(): Path? =
-        PythonLinterService.getInstance(project).ensureVirtualEnvironment()?.homePath?.let { Path.of(it) }
-
-    fun setupLinter(blenderExePath: String) =
-        PythonLinterService.getInstance(project).setupLinter(blenderExePath)
+    
+    fun installFakeBpyModule(version: String) =
+        PythonLinterService.getInstance(project).installFakeBpyModule(version)
+    
+    fun setupLinter(version: String) =
+        PythonLinterService.getInstance(project).setupLinter(version)
 
     fun getBlenderPythonInfo(blenderPath: String): Pair<String, Boolean> {
         return try {
