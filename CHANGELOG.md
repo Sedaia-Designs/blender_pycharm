@@ -3,7 +3,7 @@
 ## [0.5.0] - 2026-03-29
 ### Added
 - **Virtual Environment Guardrail**: Introduced a project-wide guardrail that automatically ensures all Python-related operations (linter setup, etc.) run within a dedicated virtual environment (`.venv`) at the project root. It creates one using the latest available system Python if it doesn't exist.
-- **Linter Setup Improvements**: 
+- **Linter Setup Improvements**:
   - Enhanced the "Setup Linter" process to explicitly use the virtual environment's `pip`. It now runs `ensurepip` to guarantee `pip` availability before installation.
   - Simplified the linter setup by ensuring only the Blender Major.Minor version is passed to the Linter from the UI, adding logic to automatically use the "Latest" option if the latest version of Blender is specified.
 
