@@ -196,26 +196,6 @@ class BlenderAddonProjectGenerator : DirectoryProjectGenerator<BlenderAddonProje
             } catch (_: Exception) {}
         }
 
-        // 4. Automatic Python Interpreter Setup
-        try {
-            val blenderPath = if (BlenderVersions.SUPPORTED_VERSIONS.any { it.majorMinor == selectedVersion }) {
-                BlenderDownloader.getInstance(project).getOrDownloadBlenderPath(selectedVersion)
-            } else {
-                // It's likely a custom path if not in SUPPORTED_VERSIONS
-                selectedVersion
-            }
-            
-            if (blenderPath != null && Files.exists(Path.of(blenderPath))) {
-                BlenderLogger.getInstance(project).log("Initiating Python SDK setup for Blender path: $blenderPath")
-                com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater {
-                    PythonService.getInstance(project).setupPythonInterpreter(blenderPath)
-                }
-            } else {
-                BlenderLogger.getInstance(project).log("Python SDK setup skipped: Blender path not found ($blenderPath)")
-            }
-        } catch (e: Exception) {
-            BlenderLogger.getInstance(project).error("Failed to initiate Python SDK setup during project generation", e)
-        }
     }
 }
 

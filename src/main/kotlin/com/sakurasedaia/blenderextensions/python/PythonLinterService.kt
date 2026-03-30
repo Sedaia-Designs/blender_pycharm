@@ -8,6 +8,11 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.SystemInfo
+import com.intellij.openapi.projectRoots.ProjectJdkTable
+import com.intellij.openapi.projectRoots.Sdk
+import com.intellij.openapi.roots.OrderRootType
+import com.intellij.openapi.roots.ProjectRootManager
+import com.intellij.openapi.vfs.VirtualFileManager
 import com.sakurasedaia.blenderextensions.LangManager
 import com.sakurasedaia.blenderextensions.blender.BlenderDownloader
 import com.sakurasedaia.blenderextensions.blender.BlenderLogger
@@ -16,6 +21,7 @@ import com.sakurasedaia.blenderextensions.system.ExternalProcessUtil
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.exists
+import kotlin.io.path.name
 
 @Service(Service.Level.PROJECT)
 class PythonLinterService(private val project: Project) {
@@ -25,8 +31,8 @@ class PythonLinterService(private val project: Project) {
             val path = Path.of(blenderExePath)
             if (!path.exists()) {
                 BlenderNotification(project).sendError(
-                    LangManager.message("toolwindow.setup.interpreter"),
-                    LangManager.message("toolwindow.setup.interpreter.error", "Blender executable not found: $blenderExePath")
+                    LangManager.message("toolwindow.managed.button.setup.linter"),
+                    LangManager.message("toolwindow.managed.button.setup.linter.error", "Blender executable not found: $blenderExePath")
                 )
                 return
             }
@@ -34,8 +40,8 @@ class PythonLinterService(private val project: Project) {
             val version = PythonUtil.getBlenderVersion(blenderExePath)
             if (version == "unknown") {
                 BlenderNotification(project).sendError(
-                    LangManager.message("toolwindow.setup.interpreter"),
-                    LangManager.message("toolwindow.setup.interpreter.error", "Could not determine Blender version for $blenderExePath")
+                    LangManager.message("toolwindow.managed.button.setup.linter"),
+                    LangManager.message("toolwindow.managed.button.setup.linter.error.version", blenderExePath)
                 )
                 return
             }
@@ -43,26 +49,20 @@ class PythonLinterService(private val project: Project) {
             ProgressManager.getInstance().run(
                 object : Task.Backgroundable(project, "Installing linter for Blender $version", true) {
                     override fun run(indicator: ProgressIndicator) {
-                        var interpreterConfigured = false
-                        ApplicationManager.getApplication().invokeAndWait {
-                            interpreterConfigured = PythonInterpreterService.getInstance(project).setupPythonInterpreter(blenderExePath)
-                        }
-                        if (!interpreterConfigured) return
-
                         val linterInstalled = installFakeBpyModule(version)
                         if (!linterInstalled) {
                             BlenderNotification(project).sendError(
                                 LangManager.message("toolwindow.managed.button.setup.linter"),
-                                LangManager.message("toolwindow.setup.interpreter.error", "Failed to install fake-bpy-module")
+                                LangManager.message("toolwindow.managed.button.setup.linter.error.pip")
                             )
                             return
                         }
 
                         ApplicationManager.getApplication().invokeLater {
-                            PythonInterpreterService.getInstance(project).setupPythonInterpreter(blenderExePath)
+                            addLinterToCurrentSdk(version)
                             BlenderNotification(project).sendInfo(
                                 LangManager.message("toolwindow.managed.button.setup.linter"),
-                                "Successfully installed fake-bpy-module."
+                                LangManager.message("toolwindow.managed.button.setup.linter.success", version)
                             )
                         }
                     }
@@ -70,34 +70,33 @@ class PythonLinterService(private val project: Project) {
             )
         } catch (e: Exception) {
             BlenderNotification(project).sendError(
-                LangManager.message("toolwindow.setup.interpreter"),
-                LangManager.message("toolwindow.setup.interpreter.error", e.message ?: "Unknown error")
+                LangManager.message("toolwindow.managed.button.setup.linter"),
+                LangManager.message("toolwindow.managed.button.setup.linter.error", e.message ?: "Unknown error")
             )
+        }
+    }
+
+    private fun addLinterToCurrentSdk(blenderVersion: String) {
+        val sdk = ProjectRootManager.getInstance(project).projectSdk ?: return
+        val lintDir = PythonUtil.getLintDirectory(blenderVersion, project)
+        if (!lintDir.exists()) return
+
+        ApplicationManager.getApplication().runWriteAction {
+            val sdkModificator = sdk.sdkModificator
+            val vFile = VirtualFileManager.getInstance().findFileByNioPath(lintDir)
+            if (vFile != null) {
+                // Check if already present
+                val currentRoots = sdkModificator.getRoots(OrderRootType.CLASSES)
+                if (currentRoots.none { it.path == vFile.path }) {
+                    sdkModificator.addRoot(vFile, OrderRootType.CLASSES)
+                    sdkModificator.commitChanges()
+                }
+            }
         }
     }
 
     fun getLinterSDKRoots(blenderExePath: String): List<Path> {
         val roots = mutableListOf<Path>()
-        val venvPath = Path.of(project.basePath ?: return emptyList(), ".venv")
-        val venvSitePackages = if (SystemInfo.isWindows) {
-            listOf(venvPath.resolve("Lib").resolve("site-packages"))
-        } else {
-            val libDir = venvPath.resolve("lib")
-            if (!libDir.exists()) emptyList() else {
-                try {
-                    Files.list(libDir).use { stream ->
-                        stream.filter { Files.isDirectory(it) && it.fileName.toString().startsWith("python") }
-                            .map { it.resolve("site-packages") }
-                            .filter { it.exists() }
-                            .toList()
-                    }
-                } catch (_: Exception) {
-                    emptyList()
-                }
-            }
-        }
-        roots.addAll(venvSitePackages)
-
         val version = PythonUtil.getBlenderVersion(blenderExePath)
         if (version != "unknown") {
             val lintDir = PythonUtil.getLintDirectory(version, project)
@@ -127,18 +126,18 @@ class PythonLinterService(private val project: Project) {
                 Files.createDirectories(lintDir)
             }
             
-            // Get the Python interpreter from the venv
-            val venvPath = Path.of(project.basePath ?: return false, ".venv")
-            val venvPython = if (SystemInfo.isWindows) venvPath.resolve("Scripts").resolve("python.exe") else venvPath.resolve("bin").resolve("python")
+            // Find a system Python to run pip
+            val pythonToUse = PythonUtil.findSystemPython("3") // Try to find any Python 3
+                ?: PythonUtil.findSystemPython("") // Fallback to any python
             
-            if (!venvPython.exists()) {
-                logger.log("Cannot install linter: venv python not found at $venvPython")
+            if (pythonToUse == null) {
+                logger.log("Cannot install linter: No system Python found to run pip.")
                 return false
             }
 
-            println("[DEBUG_LOG] installFakeBpyModule: Installing fake-bpy-module-$version into $lintDir using $venvPython")
+            println("[DEBUG_LOG] installFakeBpyModule: Installing fake-bpy-module-$version into $lintDir using $pythonToUse")
             val command = GeneralCommandLine(
-                venvPython.toString(), "-m", "pip", "install", 
+                pythonToUse.toString(), "-m", "pip", "install", 
                 "fake-bpy-module-$version", "--target", lintDir.toString()
             )
             

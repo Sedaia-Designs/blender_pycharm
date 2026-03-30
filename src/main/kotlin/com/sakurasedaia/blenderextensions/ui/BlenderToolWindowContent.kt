@@ -27,7 +27,7 @@ class BlenderToolWindowContent(private val project: Project) {
 
     private val versionComboBox = ComboBox<String>()
     private val downloadButton = JButton(LangManager.message("toolwindow.managed.button.download"))
-    private val setupInterpreterButton = JButton(LangManager.message("toolwindow.setup.interpreter"))
+    private val setupLinterButton = JButton(LangManager.message("toolwindow.managed.button.setup.linter"))
     private val clearSandboxButton = JButton(LangManager.message("toolwindow.sandbox.clear"))
 
     init {
@@ -107,10 +107,10 @@ class BlenderToolWindowContent(private val project: Project) {
         versionPanel.add(downloadButton, vGbc)
         vGbc.gridx = 1
         vGbc.gridwidth = 2
-        versionPanel.add(setupInterpreterButton, vGbc)
+        versionPanel.add(setupLinterButton, vGbc)
 
         downloadButton.addActionListener { handleDownload() }
-        setupInterpreterButton.addActionListener { handleSetupInterpreter() }
+        setupLinterButton.addActionListener { handleSetupLinter() }
         versionComboBox.addActionListener { updateButtonStates() }
 
         updateButtonStates()
@@ -149,11 +149,11 @@ class BlenderToolWindowContent(private val project: Project) {
         val isPath = selected.contains("/") || selected.contains("\\")
         if (isPath) {
             downloadButton.isEnabled = false
-            setupInterpreterButton.isEnabled = true
+            setupLinterButton.isEnabled = true
         } else {
             val isDownloaded = downloader.isDownloaded(selected)
             downloadButton.isEnabled = !isDownloaded
-            setupInterpreterButton.isEnabled = isDownloaded
+            setupLinterButton.isEnabled = isDownloaded
         }
     }
 
@@ -169,7 +169,7 @@ class BlenderToolWindowContent(private val project: Project) {
         })
     }
 
-    private fun handleSetupInterpreter() {
+    private fun handleSetupLinter() {
         val selected = versionComboBox.selectedItem as? String ?: return
         val path = if (selected.contains("/") || selected.contains("\\")) {
             selected
@@ -178,24 +178,7 @@ class BlenderToolWindowContent(private val project: Project) {
         }
 
         if (path != null) {
-            ProgressManager.getInstance().run(object : Task.Backgroundable(project, LangManager.message("toolwindow.setup.interpreter")) {
-                override fun run(indicator: ProgressIndicator) {
-                    // First set project interpreter (the SDK)
-                    pythonService.setProjectInterpreterForBlenderVersion(path)
-                    
-                    // Then setup venv and fake-bpy
-                    val success = pythonService.setupPythonInterpreter(path)
-                    
-                    ApplicationManager.getApplication().invokeLater {
-                        if (success) {
-                            BlenderNotification(project).sendInfo(
-                                LangManager.message("toolwindow.setup.interpreter"),
-                                LangManager.message("toolwindow.setup.interpreter.success", path)
-                            )
-                        }
-                    }
-                }
-            })
+            pythonService.setupLinter(path)
         }
     }
 }

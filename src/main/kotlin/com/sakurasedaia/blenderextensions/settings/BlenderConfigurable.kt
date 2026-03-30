@@ -18,11 +18,8 @@ import com.sakurasedaia.blenderextensions.LangManager
 import com.sakurasedaia.blenderextensions.blender.*
 import com.sakurasedaia.blenderextensions.icons.BlenderIcons
 import com.sakurasedaia.blenderextensions.notifications.BlenderNotification
-import com.sakurasedaia.blenderextensions.python.PythonInterpreterService
 import com.sakurasedaia.blenderextensions.python.PythonService
-import com.sakurasedaia.blenderextensions.python.PythonUtil
 import com.sakurasedaia.blenderextensions.ui.ManagedBlenderTable
-import com.sakurasedaia.blenderextensions.ui.ManagedPythonTable
 import com.sakurasedaia.blenderextensions.ui.SystemBlenderTable
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
@@ -40,18 +37,14 @@ class BlenderConfigurable(private val project: Project) : SearchableConfigurable
 
     private val managedTable = ManagedBlenderTable(project)
     private val systemTable = SystemBlenderTable(project)
-    private val pythonTable = ManagedPythonTable(project)
 
     private val managedActionButtons = JPanel(FlowLayout(FlowLayout.LEFT, 5, 0))
     private val downloadUninstallButton = JButton()
-    private val setupInterpreterButton = JButton(LangManager.message("toolwindow.setup.interpreter"), BlenderIcons.Python)
+    private val setupLinterButton = JButton(LangManager.message("toolwindow.managed.button.setup.linter"), BlenderIcons.Python)
 
     private val systemActionButtons = JPanel(FlowLayout(FlowLayout.LEFT, 5, 0))
-    private val systemSetupInterpreterButton = JButton(LangManager.message("toolwindow.setup.interpreter"), BlenderIcons.Python)
+    private val systemSetupLinterButton = JButton(LangManager.message("toolwindow.managed.button.setup.linter"), BlenderIcons.Python)
     private val systemRemoveButton = JButton("", BlenderIcons.Remove)
-
-    private val pythonActionButtons = JPanel(FlowLayout(FlowLayout.LEFT, 5, 0))
-    private val pythonDownloadUninstallButton = JButton()
 
     private val managedProgressPanel = JPanel(BorderLayout(5, 2))
     private val managedProgressBar = JProgressBar(0, 100)
@@ -83,7 +76,6 @@ class BlenderConfigurable(private val project: Project) : SearchableConfigurable
 
         setupManagedButtons()
         setupSystemButtons()
-        setupPythonButtons()
         setupListeners()
 
         managedProgressPanel.add(managedProgressBar, BorderLayout.CENTER)
@@ -110,10 +102,8 @@ class BlenderConfigurable(private val project: Project) : SearchableConfigurable
                 if (!project.isDisposed) {
                     managedTable.refresh()
                     systemTable.refresh()
-                    pythonTable.refresh()
                     updateManagedButtons()
                     updateSystemButtons()
-                    updatePythonButtons()
                 } else {
                     (it.source as Timer).stop()
                 }
@@ -152,14 +142,11 @@ class BlenderConfigurable(private val project: Project) : SearchableConfigurable
         systemTable.selectionModel.addListSelectionListener {
             if (!it.valueIsAdjusting) updateSystemButtons()
         }
-        pythonTable.selectionModel.addListSelectionListener {
-            if (!it.valueIsAdjusting) updatePythonButtons()
-        }
     }
 
     private fun setupManagedButtons() {
         managedActionButtons.add(downloadUninstallButton)
-        managedActionButtons.add(setupInterpreterButton)
+        managedActionButtons.add(setupLinterButton)
 
         downloadUninstallButton.addActionListener {
             val version = managedTable.getSelectedVersion() ?: return@addActionListener
@@ -197,16 +184,12 @@ class BlenderConfigurable(private val project: Project) : SearchableConfigurable
             }
         }
 
-        setupInterpreterButton.addActionListener {
+        setupLinterButton.addActionListener {
             val version = managedTable.getSelectedVersion() ?: return@addActionListener
-            ProgressManager.getInstance().run(object : Task.Backgroundable(project, LangManager.message("toolwindow.setup.interpreter")) {
-                override fun run(indicator: com.intellij.openapi.progress.ProgressIndicator) {
-                    val path = service.getOrDownloadBlenderPath(version)
-                    if (path != null) {
-                        pythonService.setupPythonInterpreter(path)
-                    }
-                }
-            })
+            val path = service.getOrDownloadBlenderPath(version)
+            if (path != null) {
+                pythonService.setupLinter(path)
+            }
         }
 
         updateManagedButtons()
@@ -216,7 +199,7 @@ class BlenderConfigurable(private val project: Project) : SearchableConfigurable
         val version = managedTable.getSelectedVersion()
         if (version == null) {
             downloadUninstallButton.isEnabled = false
-            setupInterpreterButton.isEnabled = false
+            setupLinterButton.isEnabled = false
             return
         }
 
@@ -227,20 +210,16 @@ class BlenderConfigurable(private val project: Project) : SearchableConfigurable
         else
             LangManager.message("toolwindow.managed.button.download")
 
-        setupInterpreterButton.isEnabled = isDownloaded
+        setupLinterButton.isEnabled = isDownloaded
     }
 
     private fun setupSystemButtons() {
-        systemActionButtons.add(systemSetupInterpreterButton)
+        systemActionButtons.add(systemSetupLinterButton)
         systemActionButtons.add(systemRemoveButton)
 
-        systemSetupInterpreterButton.addActionListener {
+        systemSetupLinterButton.addActionListener {
             val inst = systemTable.getSelectedInstallation() ?: return@addActionListener
-            ProgressManager.getInstance().run(object : Task.Backgroundable(project, LangManager.message("toolwindow.setup.interpreter")) {
-                override fun run(indicator: com.intellij.openapi.progress.ProgressIndicator) {
-                    pythonService.setupPythonInterpreter(inst.path)
-                }
-            })
+            pythonService.setupLinter(inst.path)
         }
 
         systemRemoveButton.addActionListener {
@@ -265,72 +244,13 @@ class BlenderConfigurable(private val project: Project) : SearchableConfigurable
     private fun updateSystemButtons() {
         val inst = systemTable.getSelectedInstallation()
         if (inst == null) {
-            systemSetupInterpreterButton.isEnabled = false
+            systemSetupLinterButton.isEnabled = false
             systemRemoveButton.isVisible = false
             return
         }
 
-        systemSetupInterpreterButton.isEnabled = true
+        systemSetupLinterButton.isEnabled = true
         systemRemoveButton.isVisible = inst.isCustom
-    }
-
-    private fun setupPythonButtons() {
-        pythonDownloadUninstallButton.addActionListener {
-            val version = pythonTable.getSelectedVersion() ?: return@addActionListener
-            val isDownloaded = pythonTable.isSelectedVersionDownloaded()
-
-            if (isDownloaded) {
-                val confirm = Messages.showYesNoDialog(
-                    project,
-                    LangManager.message("toolwindow.python.action.delete.description"),
-                    LangManager.message("toolwindow.python.action.delete.title", version),
-                    LangManager.message("toolwindow.table.action.remove"),
-                    LangManager.message("button.cancel"),
-                    Messages.getQuestionIcon()
-                )
-                if (confirm == Messages.YES) {
-                    val path = PythonUtil.getPythonInterpreterDirectory(version, project)
-                    com.intellij.openapi.util.io.FileUtil.delete(path.toFile())
-                    pythonTable.refresh()
-                    updatePythonButtons()
-                }
-            } else {
-                ProgressManager.getInstance().run(object : Task.Backgroundable(project, LangManager.message("log.blender.downloading.progress", "Python $version")) {
-                    override fun run(indicator: com.intellij.openapi.progress.ProgressIndicator) {
-                        val logger = com.sakurasedaia.blenderextensions.blender.BlenderLogger.getInstance(project)
-                        indicator.text2 = "Installing Python $version..."
-                        PythonInterpreterService.getInstance(project).installPythonToBlenderDir(version, logger)
-                        SwingUtilities.invokeLater {
-                            pythonTable.refresh()
-                            updatePythonButtons()
-                        }
-                    }
-                })
-            }
-        }
-
-        pythonActionButtons.add(pythonDownloadUninstallButton)
-        updatePythonButtons()
-    }
-
-    private fun updatePythonButtons() {
-        val version = pythonTable.getSelectedVersion()
-        if (version == null) {
-            pythonDownloadUninstallButton.isEnabled = false
-            pythonDownloadUninstallButton.text = LangManager.message("toolwindow.python.button.download")
-            pythonDownloadUninstallButton.icon = com.intellij.icons.AllIcons.Actions.Download
-            return
-        }
-
-        pythonDownloadUninstallButton.isEnabled = true
-        val isDownloaded = pythonTable.isSelectedVersionDownloaded()
-        if (isDownloaded) {
-            pythonDownloadUninstallButton.text = LangManager.message("toolwindow.python.button.uninstall")
-            pythonDownloadUninstallButton.icon = BlenderIcons.Remove
-        } else {
-            pythonDownloadUninstallButton.text = LangManager.message("toolwindow.python.button.download")
-            pythonDownloadUninstallButton.icon = com.intellij.icons.AllIcons.Actions.Download
-        }
     }
 
     private fun resetToDefaults() {
@@ -373,13 +293,6 @@ class BlenderConfigurable(private val project: Project) : SearchableConfigurable
         val systemVersionsHeader = JPanel(BorderLayout()).apply {
             add(systemVersionsLabel, BorderLayout.WEST)
             add(addCustomButton, BorderLayout.EAST)
-        }
-
-        val pythonVersionsLabel = JBLabel(LangManager.message("toolwindow.python.table.title")).apply {
-            font = font.deriveFont(Font.BOLD)
-        }
-        val pythonVersionsHeader = JPanel(BorderLayout()).apply {
-            add(pythonVersionsLabel, BorderLayout.WEST)
         }
 
         val sandboxLabel = JBLabel(LangManager.message("toolwindow.sandbox.management.label")).apply {
@@ -428,12 +341,6 @@ class BlenderConfigurable(private val project: Project) : SearchableConfigurable
             })
             .addComponent(systemActionButtons)
             .addComponent(systemProgressPanel)
-            .addVerticalGap(10)
-            .addComponent(pythonVersionsHeader)
-            .addComponent(JBScrollPane(pythonTable).apply {
-                preferredSize = Dimension(-1, 100)
-            })
-            .addComponent(pythonActionButtons)
             .addVerticalGap(10)
             .addComponent(sandboxLabel)
             .addComponent(clearSandboxButton)

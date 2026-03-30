@@ -40,16 +40,6 @@ object PythonUtil {
         return base.resolve("linter").resolve(version)
     }
 
-    fun getPythonInterpreterDirectory(version: String, project: com.intellij.openapi.project.Project? = null): Path {
-        val base = getDownloadsBaseDirectory(project)
-        return base.resolve("python").resolve(version)
-    }
-
-    fun getLegacyPythonInterpreterDirectory(version: String, project: com.intellij.openapi.project.Project? = null): Path {
-        val base = getDownloadsBaseDirectory(project)
-        return base.resolve("py_interpreter").resolve(version)
-    }
-
     fun findSystemPython(targetVersion: String): Path? {
         return PythonFinder.findSystemPython(targetVersion)
     }

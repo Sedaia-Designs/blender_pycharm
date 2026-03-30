@@ -46,22 +46,4 @@ class PythonUtilTest : BasePlatformTestCase() {
         val match3 = genericRegex.find("3.11.7\n")
         assertEquals("3.11.7", match3?.groupValues?.get(1))
     }
-
-    fun testPythonInterpreterDirectoryUsesPythonSubdirEvenForLegacyDownloadsPath() {
-        val settings = BlenderSettings.getInstance(project)
-        val originalDownloadsPath = settings.state.downloadsPath
-        val tempRoot = Files.createTempDirectory("legacy_downloads_root")
-        try {
-            settings.state.downloadsPath = tempRoot.resolve("py_interpreter").toString()
-            val expected = tempRoot.resolve("python").resolve("3.13")
-            val actual = PythonUtil.getPythonInterpreterDirectory("3.13", project)
-            assertEquals(expected, actual)
-
-            val legacy = PythonUtil.getLegacyPythonInterpreterDirectory("3.13", project)
-            assertEquals(tempRoot.resolve("py_interpreter").resolve("3.13"), legacy)
-        } finally {
-            settings.state.downloadsPath = originalDownloadsPath
-            tempRoot.toFile().deleteRecursively()
-        }
-    }
 }

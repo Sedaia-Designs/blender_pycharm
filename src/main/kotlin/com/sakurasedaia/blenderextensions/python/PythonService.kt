@@ -16,19 +16,10 @@ class PythonService(private val project: Project) {
         PythonLinterService.getInstance(project).installFakeBpyModule(blenderExePath, version)
 
     fun getOrInstallPython(version: String): Path? =
-        PythonInterpreterService.getInstance(project).getOrInstallPython(version)
-
-    fun setupPythonInterpreter(blenderExePath: String): Boolean =
-        PythonInterpreterService.getInstance(project).setupPythonInterpreter(blenderExePath)
-
-    fun setProjectInterpreterForBlenderVersion(blenderExePath: String): Boolean =
-        PythonInterpreterService.getInstance(project).setProjectInterpreterForBlenderVersion(blenderExePath)
+        PythonUtil.findSystemPython(version)
 
     fun setupLinter(blenderExePath: String) =
         PythonLinterService.getInstance(project).setupLinter(blenderExePath)
-
-    fun installPackage(packageName: String): Boolean =
-        PythonInterpreterService.getInstance(project).installPackage(packageName)
 
     fun getBlenderPythonInfo(blenderPath: String): Pair<String, Boolean> {
         return try {

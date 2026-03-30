@@ -39,41 +39,16 @@ intellijPlatform {
 		changeNotes = """
 			<b>Added</b>
 			<ul>
-				<li><b>VENV-based Python Setup</b>: Configures a Virtual Environment (VENV) based on Blender's bundled Python for a cleaner development environment.</li>
-				<li><b>Python Module Extraction</b>: Dedicated <code>python</code> package for improved modularity and reliability.</li>
+				<li><b>Integrated Linter Management</b>: Direct linter installation for the current project SDK.</li>
+				<li><b>Blender-to-Python Version Mapping</b>: Enhanced Blender version metadata for easier Python environment identification.</li>
 			</ul>
-			<b>Fixed</b>
+			<b>Removed</b>
 			<ul>
-				<li><b>Interpreter Paths</b>: Resolved issues where <code>site-packages</code> were lost during linter auto-setup.</li>
-			</ul>
-			<br>
-			<b>Previous version (0.4.0)</b>
-			<ul>
-				<li><b>Blender Status Bar Widget</b>: New indicator in the IDE status bar showing connection status to Blender.</li>
-				<li><b>Support for Multiple Source Folders</b>: Projects can now designate and manage multiple folders as Blender source directories.</li>
-				<li><b>Automatic Python Interpreter Setup</b>: Streamlined environment configuration for new projects.</li>
-				<li><b>Offline Telemetry</b>: Added local-only telemetry for debugging and error reporting.</li>
-				<li><b>Internationalization</b>: Full i18n support for 11 languages (Spanish, German, French, Italian, Japanese, Korean, Dutch, Polish, Portuguese, Russian, and Chinese).</li>
-				<li><b>Unit & Integration Testing</b>: Added a comprehensive test suite, including headless integration tests for TCP heartbeat and reload logic.</li>
-				<li><b>Sandbox Management</b>: New tool window for clearing and managing Blender sandboxed environments.</li>
-				<li><b>Bidirectional Heartbeat</b>: Implemented a more robust TCP client with bidirectional heartbeat and automatic retry logic.</li>
+				<li><b>Automated Python Setup</b>: Removed complex Python download and virtual environment management.</li>
 			</ul>
 			<b>Changed</b>
 			<ul>
-				<li><b>Localization Refactor</b>: Standardized all resource bundle keys and migrated from <code>BlenderBundle</code> to <code>LangManager</code> (extending <code>DynamicBundle</code>).</li>
-				<li><b>Improved Blender Downloader</b>: Refined extraction logic and updated the selectable version list to focus on LTS releases.</li>
-				<li><b>Path Resolution</b>: Centralized and improved cross-platform path handling using Kotlin NIO.2 (<code>java.nio.file.Path</code>) utilities.</li>
-				<li><b>Documentation Migration</b>: Moved comprehensive guides to a <a href="https://wiki.sakura-sedaia.com/docs/blender-development-pycharm/index.html">new Sphinx-based documentation site</a>.</li>
-				<li><b>License Change</b>: Updated project license to GNU GPL v3.</li>
-				<li><b>Configuration Discovery</b>: Switched to dynamic detection of Blender configuration subdirectories for improved OS compatibility.</li>
-			</ul>
-			<b>Fixed</b>
-			<ul>
-				<li><b>macOS Compatibility</b>: Prevented installation of Blender 5.0+ on Intel-based Macs and integrated <code>tryWhich</code> for better detection.</li>
-				<li><b>Manifest Validation</b>: Switched extension Manifest IDs to <code>snake_case</code> to comply with Blender requirements.</li>
-				<li><b>Run Configuration Stability</b>: Fixed absolute path handling for sandboxed installations and corrected CLI argument syntax.</li>
-				<li><b>UI Stability</b>: Resolved crashes in the version management tool window and improved New Project Wizard validation.</li>
-				<li><b>Logging</b>: Added log rotation for better disk usage management and expanded debug output.</li>
+				<li><b>Refined UI</b>: Simplified the tool window and settings UI by removing obsolete Python tables.</li>
 			</ul>
 		""".trimIndent()
 	}
