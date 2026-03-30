@@ -51,3 +51,4 @@ release_trigger.sh
 /.ai-logs/
 /.intellijPlatform/
 /.idea/
+/.hidden/
