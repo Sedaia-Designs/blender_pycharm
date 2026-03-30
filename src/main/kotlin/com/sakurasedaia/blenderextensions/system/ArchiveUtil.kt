@@ -1,6 +1,7 @@
 package com.sakurasedaia.blenderextensions.system
 
 import com.intellij.execution.configurations.GeneralCommandLine
+import com.sakurasedaia.blenderextensions.LangManager
 import com.sakurasedaia.blenderextensions.blender.BlenderLogger
 import java.nio.file.Files
 import java.nio.file.Path
@@ -49,6 +50,6 @@ object ArchiveUtil {
     }
 
     fun extractDmg(file: Path, targetDir: Path, version: String, logger: BlenderLogger? = null) {
-        logger?.log("DMG extraction is not supported")
+        logger?.log(LangManager.message("log.archive.dmg.unsupported"))
     }
 }

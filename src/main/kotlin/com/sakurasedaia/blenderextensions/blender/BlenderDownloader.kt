@@ -173,7 +173,7 @@ class BlenderDownloader(private val project: Project) {
             val best = matches.maxByOrNull { it.groupValues[1].toIntOrNull() ?: -1 }?.value
             if (best != null) return baseUrl + best
         } catch (e: Exception) {
-            logger.log("Error during online version detection: ${e.message}")
+            logger.log(LangManager.message("log.blender.online.version.error", e.message ?: "Unknown error"))
         }
         
         // Fallback to a safe default if online detection fails
@@ -232,15 +232,15 @@ class BlenderDownloader(private val project: Project) {
                 return targetFile
             } catch (e: Exception) {
                 if (e is com.intellij.openapi.progress.ProcessCanceledException) {
-                    logger.log("Download cancelled by user")
+                    logger.log(LangManager.message("log.blender.download.cancelled"))
                     throw e
                 } else {
-                    logger.log("Download failed: ${e.message}")
+                    logger.log(LangManager.message("log.blender.download.error", e.message ?: "Unknown error"))
                 }
                 return null
             }
         } else {
-            logger.log("Desired version already exists in cache, skipping download")
+            logger.log(LangManager.message("log.blender.cache.skip"))
             return targetFile
         }
     }
@@ -272,7 +272,7 @@ class BlenderDownloader(private val project: Project) {
         val isMac = osName.contains("mac")
 
         if (isMac) {
-            logger.log("Apple MacOS is not currently supported")
+            logger.log(LangManager.message("log.blender.macos.unsupported"))
             return false
         }
         return true

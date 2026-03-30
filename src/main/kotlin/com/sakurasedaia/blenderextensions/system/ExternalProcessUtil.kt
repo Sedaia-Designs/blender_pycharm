@@ -4,6 +4,7 @@ import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.ProcessCanceledException
+import com.sakurasedaia.blenderextensions.LangManager
 import com.sakurasedaia.blenderextensions.blender.BlenderLogger
 
 object ExternalProcessUtil {
@@ -17,16 +18,16 @@ object ExternalProcessUtil {
                     ProgressManager.checkCanceled()
                 }
                 if (handler.exitCode != 0 && !silentFailure) {
-                    logger?.log("Command failed with exit code ${handler.exitCode}: ${commandLine.commandLineString}")
+                    logger?.log(LangManager.message("log.external.command.failed", handler.exitCode ?: -1, commandLine.commandLineString))
                     break
                 }
             } catch (e: Exception) {
                 if (e is ProcessCanceledException) {
-                    logger?.log("Execution cancelled by user")
+                    logger?.log(LangManager.message("log.external.execution.cancelled"))
                     throw e
                 }
                 if (!silentFailure) {
-                    logger?.log("Failed to execute command: ${e.message}")
+                    logger?.log(LangManager.message("log.external.execution.failed", e.message ?: "Unknown error"))
                 }
                 break
             }
@@ -41,16 +42,16 @@ object ExternalProcessUtil {
                 ProgressManager.checkCanceled()
             }
             if (handler.exitCode != 0 && !silentFailure) {
-                logger?.log("Command failed with exit code ${handler.exitCode}: ${command.commandLineString}")
+                logger?.log(LangManager.message("log.external.command.failed", handler.exitCode ?: -1, command.commandLineString))
             }
             return handler.exitCode ?: -1
         } catch (e: Exception) {
             if (e is ProcessCanceledException) {
-                logger?.log("Execution cancelled by user")
+                logger?.log(LangManager.message("log.external.execution.cancelled"))
                 throw e
             }
             if (!silentFailure) {
-                logger?.log("Failed to execute command: ${e.message}")
+                logger?.log(LangManager.message("log.external.execution.failed", e.message ?: "Unknown error"))
             }
             return -1
         }
