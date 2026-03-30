@@ -1,17 +1,22 @@
 package com.sakurasedaia.blenderextensions.blender
 
+import com.sakurasedaia.blenderextensions.python.PythonVersions
+
 data class BlenderVersion(
     val majorMinor: String,
-    val fallbackPatch: String
+    val fallbackPatch: String,
+    val pythonVersion: String? = null
 )
 
 object BlenderVersions {
 
     private val STATIC_SUPPORTED_VERSIONS = listOf(
-        BlenderVersion("4.2", "18"),
-        BlenderVersion("4.3", "3"),
-        BlenderVersion("4.5", "8"),
-        BlenderVersion("5.1", "0")
+        BlenderVersion("4.2", "18", PythonVersions.getPythonVersionForBlender("4.2")),
+        BlenderVersion("4.3", "3", PythonVersions.getPythonVersionForBlender("4.3")),
+        BlenderVersion("4.4", "3", PythonVersions.getPythonVersionForBlender("4.4")),
+        BlenderVersion("4.5", "8", PythonVersions.getPythonVersionForBlender("4.5")),
+        BlenderVersion("5.0", "1", PythonVersions.getPythonVersionForBlender("5.0")),
+        BlenderVersion("5.1", "0", PythonVersions.getPythonVersionForBlender("5.1"))
     )
 
     fun getSupportedVersions(): List<BlenderVersion> {

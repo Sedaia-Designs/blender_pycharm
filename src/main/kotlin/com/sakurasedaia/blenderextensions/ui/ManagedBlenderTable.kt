@@ -19,7 +19,8 @@ class ManagedBlenderTable(private val project: Project) : JBTable() {
         selectionModel.selectionMode = ListSelectionModel.SINGLE_SELECTION
 
         columnModel.getColumn(0).preferredWidth = 100
-        columnModel.getColumn(1).preferredWidth = 400
+        columnModel.getColumn(1).preferredWidth = 100
+        columnModel.getColumn(2).preferredWidth = 300
 
         preferredViewportSize = java.awt.Dimension(-1, getRowHeight() * 5)
     }
@@ -49,6 +50,7 @@ class ManagedBlenderTable(private val project: Project) : JBTable() {
     private inner class ManagedBlenderTableModel : AbstractTableModel() {
         private val columnNames = arrayOf(
             LangManager.message("toolwindow.table.column.version"),
+            LangManager.message("toolwindow.managed.table.column.python"),
             LangManager.message("toolwindow.managed.table.column.status")
         )
         private val versions = BlenderVersions.SUPPORTED_VERSIONS
@@ -58,10 +60,12 @@ class ManagedBlenderTable(private val project: Project) : JBTable() {
         override fun getColumnName(column: Int): String = columnNames[column]
 
         override fun getValueAt(rowIndex: Int, columnIndex: Int): Any {
-            val version = versions[rowIndex].majorMinor
+            val versionInfo = versions[rowIndex]
+            val version = versionInfo.majorMinor
             return when (columnIndex) {
                 0 -> listOf("Blender", version).joinToString(" ")
-                1 -> if (downloader.isDownloaded(version))
+                1 -> versionInfo.pythonVersion?.let { "Python $it" } ?: ""
+                2 -> if (downloader.isDownloaded(version))
                     downloader.getVersionDirectory(version).toAbsolutePath().toString()
                 else
                     LangManager.message("toolwindow.managed.status.not.installed")
