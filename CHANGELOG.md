@@ -1,17 +1,19 @@
 # Changelog
 
-## [0.5.0] - 2026-03-29
+## [0.5.0-SNAPSHOT] - 2026-03-29
 ### Added
-- **Integrated Linter Management**: Replaced the automatic Python interpreter configuration with a streamlined "Setup Linter" action that installs `fake-bpy-module` and adds its paths to the existing project SDK.
-- **Blender-to-Python Version Mapping**: Added a dedicated "Python" column to the Managed Blender table, displaying the specific Python version (e.g., Python 3.11.7) associated with each Blender installation.
+- **Virtual Environment Guardrail**: Introduced a project-wide guardrail that automatically ensures all Python-related operations (linter setup, etc.) run within a dedicated virtual environment (`.venv`) at the project root. It creates one using the latest available system Python if it doesn't exist.
+- **Linter Setup Improvements**: Enhanced the "Setup Linter" process to explicitly use the virtual environment's `pip`. It now runs `ensurepip` to guarantee `pip` availability before installation.
+- **Shared Index Fix**: Standardized the Python SDK `versionString` with a "Python " prefix, ensuring compatibility with IntelliJ's Shared Index infrastructure and preventing "Skipped shared indexes" warnings.
+
+### Changed
+- **Refocused UI**: Simplified the Tool Window and Settings UI by removing the dedicated Python installations table and consolidating interpreter setup into a direct linter installation flow.
+- **Internationalization (i18n)**: Migrated all hardcoded strings in `logger.log` and notifications to the Language Bundle. Synchronized all supported languages (`de`, `es`, `fr`, `it`, `ja`, `ko`, `nl`, `pl`, `pt`, `ru`, `zh`) with the updated English keys.
+- **SDK Metadata Management**: Improved SDK creation to reliably identify virtual environments and correctly set the home path and version metadata.
 
 ### Removed
 - **Automated Python Installation**: Removed the plugin's capability to download, install, and manage system-level Python interpreters.
-- **Virtual Environment Management**: Deleted the `PythonInterpreterService` and all logic related to automated `.venv` creation and management.
-
-### Changed
-- **Refocused UI**: Simplified the Tool Window and Settings UI by removing the dedicated Python installations table and consolidated interpreter setup into a direct linter installation flow.
-- **Project Generators**: Removed automated Python SDK configuration from the Blender extension project creation process.
+- **Obsolete Python Tables**: Removed complex Python discovery tables from settings, replacing them with automatic project-level environment management.
 
 ## [0.4.0] - 2026-03-15
 ### Added

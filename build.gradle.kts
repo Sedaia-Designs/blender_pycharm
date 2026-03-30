@@ -39,16 +39,18 @@ intellijPlatform {
 		changeNotes = """
 			<b>Added</b>
 			<ul>
-				<li><b>Integrated Linter Management</b>: Direct linter installation for the current project SDK.</li>
-				<li><b>Blender-to-Python Version Mapping</b>: Enhanced Blender version metadata for easier Python environment identification.</li>
-			</ul>
-			<b>Removed</b>
-			<ul>
-				<li><b>Automated Python Setup</b>: Removed complex Python download and virtual environment management.</li>
+				<li><b>Virtual Environment Guardrail</b>: Automatic project-wide <code>.venv</code> management.</li>
+				<li><b>Linter Setup Improvements</b>: Explicit <code>pip</code> and <code>ensurepip</code> usage for more reliable installations.</li>
+				<li><b>Shared Index Fix</b>: Corrected SDK version string formatting for better IDE integration.</li>
 			</ul>
 			<b>Changed</b>
 			<ul>
-				<li><b>Refined UI</b>: Simplified the tool window and settings UI by removing obsolete Python tables.</li>
+				<li><b>Internationalization</b>: Complete localization of logs and synchronization of all language bundles.</li>
+				<li><b>Refined UI</b>: Simplified Tool Window and settings UI.</li>
+			</ul>
+			<b>Removed</b>
+			<ul>
+				<li><b>Automated Python Download</b>: Removed complex external interpreter management.</li>
 			</ul>
 		""".trimIndent()
 	}
