@@ -30,7 +30,9 @@ class BlenderService(private val project: Project) {
     private val hasError = AtomicBoolean(false)
 
     init {
-        telemetryService.collectAndLogTelemetry()
+        ApplicationManager.getApplication().executeOnPooledThread {
+            telemetryService.collectAndLogTelemetry()
+        }
     }
 
     fun isRunning(): Boolean = isRunning.get()
@@ -76,12 +78,14 @@ class BlenderService(private val project: Project) {
         val projectPath = project.basePath ?: return null
 
         val handler = if (!blenderCommand.isNullOrBlank()) {
-            telemetryService.collectAndLogTelemetry(
-                context = "Blender Process Start (Custom Command)",
-                options = runOptions,
-                blenderPath = blenderPath,
-                blenderVersion = blenderVersion
-            )
+            ApplicationManager.getApplication().executeOnPooledThread {
+                telemetryService.collectAndLogTelemetry(
+                    context = "Blender Process Start (Custom Command)",
+                    options = runOptions,
+                    blenderPath = blenderPath,
+                    blenderVersion = blenderVersion
+                )
+            }
             launcher.startBlenderProcess(
                 blenderPath = blenderPath,
                 additionalArgs = additionalArgs,
@@ -112,12 +116,14 @@ class BlenderService(private val project: Project) {
             val port = communicationService.startServer()
             val script = scriptGenerator.createStartupScript(port, repoDir, currentExtensionName)
 
-            telemetryService.collectAndLogTelemetry(
-                context = "Blender Process Start (Extension Development)",
-                options = runOptions,
-                blenderPath = blenderPath,
-                blenderVersion = blenderVersion
-            )
+            ApplicationManager.getApplication().executeOnPooledThread {
+                telemetryService.collectAndLogTelemetry(
+                    context = "Blender Process Start (Extension Development)",
+                    options = runOptions,
+                    blenderPath = blenderPath,
+                    blenderVersion = blenderVersion
+                )
+            }
             launcher.startBlenderProcess(
                 blenderPath = blenderPath,
                 scriptPath = script,
