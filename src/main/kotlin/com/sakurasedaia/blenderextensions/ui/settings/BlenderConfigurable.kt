@@ -12,7 +12,9 @@ import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
-import com.intellij.util.ui.FormBuilder
+import com.intellij.ui.dsl.builder.AlignX
+import com.intellij.ui.dsl.builder.AlignY
+import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.sakurasedaia.blenderextensions.blender.model.*
@@ -45,27 +47,26 @@ class BlenderConfigurable(private val project: Project) : SearchableConfigurable
     private val managedTable = ManagedBlenderTable(project)
     private val systemTable = SystemBlenderTable(project)
 
-    private val managedActionButtons = JPanel(FlowLayout(FlowLayout.LEFT, 5, 0))
     private val downloadUninstallButton = JButton()
     private val setupLinterButton = JButton(LangManager.message("toolwindow.managed.button.setup.linter"), BlenderIcons.Python)
 
-    private val systemActionButtons = JPanel(FlowLayout(FlowLayout.LEFT, 5, 0))
     private val systemSetupLinterButton = JButton(LangManager.message("toolwindow.managed.button.setup.linter"), BlenderIcons.Python)
     private val systemRemoveButton = JButton("", BlenderIcons.Remove)
 
-    private val managedProgressPanel = JPanel(BorderLayout(5, 2))
     private val managedProgressBar = JProgressBar(0, 100)
     private val managedStatusLabel = JBLabel().apply {
         font = font.deriveFont(11f)
         foreground = JBUI.CurrentTheme.Label.disabledForeground()
     }
 
-    private val systemProgressPanel = JPanel(BorderLayout(5, 2))
     private val systemProgressBar = JProgressBar(0, 100)
     private val systemStatusLabel = JBLabel().apply {
         font = font.deriveFont(11f)
         foreground = JBUI.CurrentTheme.Label.disabledForeground()
     }
+
+    private lateinit var managedProgressRow: com.intellij.ui.dsl.builder.Row
+    private lateinit var systemProgressRow: com.intellij.ui.dsl.builder.Row
 
     private val cs = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var timer: Timer? = null
@@ -84,14 +85,6 @@ class BlenderConfigurable(private val project: Project) : SearchableConfigurable
         setupManagedButtons()
         setupSystemButtons()
         setupListeners()
-
-        managedProgressPanel.add(managedProgressBar, BorderLayout.CENTER)
-        managedProgressPanel.add(managedStatusLabel, BorderLayout.SOUTH)
-        managedProgressPanel.isVisible = false
-
-        systemProgressPanel.add(systemProgressBar, BorderLayout.CENTER)
-        systemProgressPanel.add(systemStatusLabel, BorderLayout.SOUTH)
-        systemProgressPanel.isVisible = false
 
         val downloader = BlenderDownloader.getInstance(project)
         cs.launch {
@@ -126,20 +119,20 @@ class BlenderConfigurable(private val project: Project) : SearchableConfigurable
 
     private fun updateProgress(progress: DownloadProgress) {
         if (!progress.isDownloading) {
-            managedProgressPanel.isVisible = false
-            systemProgressPanel.isVisible = false
+            if (::managedProgressRow.isInitialized) managedProgressRow.visible(false)
+            if (::systemProgressRow.isInitialized) systemProgressRow.visible(false)
             return
         }
 
         val inManaged = managedTable.containsVersion(progress.version)
         val progressBar = if (inManaged) managedProgressBar else systemProgressBar
         val statusLabel = if (inManaged) managedStatusLabel else systemStatusLabel
-        val panel = if (inManaged) managedProgressPanel else systemProgressPanel
+        val row = if (inManaged) managedProgressRow else systemProgressRow
 
         progressBar.isIndeterminate = progress.progress <= 0
         progressBar.value = (progress.progress * 100).toInt()
         statusLabel.text = progress.statusText
-        panel.isVisible = true
+        row.visible(true)
     }
 
     private fun setupListeners() {
@@ -152,9 +145,6 @@ class BlenderConfigurable(private val project: Project) : SearchableConfigurable
     }
 
     private fun setupManagedButtons() {
-        managedActionButtons.add(downloadUninstallButton)
-        managedActionButtons.add(setupLinterButton)
-
         downloadUninstallButton.addActionListener {
             val version = managedTable.getSelectedVersion() ?: return@addActionListener
             val isDownloaded = managedTable.isSelectedVersionDownloaded()
@@ -219,9 +209,6 @@ class BlenderConfigurable(private val project: Project) : SearchableConfigurable
     }
 
     private fun setupSystemButtons() {
-        systemActionButtons.add(systemSetupLinterButton)
-        systemActionButtons.add(systemRemoveButton)
-
         systemSetupLinterButton.addActionListener {
             val inst = systemTable.getSelectedInstallation() ?: return@addActionListener
             pythonService.setupLinter(inst.path)
@@ -268,89 +255,97 @@ class BlenderConfigurable(private val project: Project) : SearchableConfigurable
     override fun getId(): String = "com.sakurasedaia.blenderextensions.ui.settings.BlenderConfigurable"
 
     override fun createComponent(): JComponent {
-        val resetPanel = JPanel(FlowLayout(FlowLayout.LEFT))
-        resetPanel.add(myResetButton)
+        startTimer()
 
-        val managedVersionsLabel = JBLabel(LangManager.message("toolwindow.managed.table.title")).apply {
-            font = font.deriveFont(Font.BOLD)
-        }
-        val managedVersionsHeader = JPanel(BorderLayout()).apply {
-            add(managedVersionsLabel, BorderLayout.WEST)
-        }
-
-        val systemVersionsLabel = JBLabel(LangManager.message("toolwindow.system.table.title")).apply {
-            font = font.deriveFont(Font.BOLD)
-        }
-        val addCustomButton = JButton("", BlenderIcons.Add).apply {
-            toolTipText = LangManager.message("toolwindow.system.table.add.custom.tooltip")
-            addActionListener {
-                val descriptor = FileChooserDescriptorFactory.createSingleFileOrFolderDescriptor()
-                    .withTitle(LangManager.message("toolwindow.system.modal.select.title"))
-                    .withDescription(LangManager.message("toolwindow.system.modal.select.description"))
-
-                val file = FileChooser.chooseFile(descriptor, project, null)
-                if (file != null) {
-                    BlenderSettings.getInstance(project).addCustomBlenderPath(file.path)
-                    systemTable.refresh()
-                }
+        return panel {
+            row {
+                cell(myAutoReloadCheckbox)
             }
-        }
-        val systemVersionsHeader = JPanel(BorderLayout()).apply {
-            add(systemVersionsLabel, BorderLayout.WEST)
-            add(addCustomButton, BorderLayout.EAST)
-        }
+            row(LangManager.message("settings.downloads.dir.label")) {
+                cell(myDownloadsDirField).align(AlignX.FILL)
+            }
+            row {
+                cell(myResetButton)
+            }
 
-        val sandboxLabel = JBLabel(LangManager.message("toolwindow.sandbox.management.label")).apply {
-            font = font.deriveFont(Font.BOLD)
-        }
-        val clearSandboxButton = JButton(LangManager.message("toolwindow.sandbox.clear"), BlenderIcons.Remove).apply {
-            addActionListener {
-                val confirm = Messages.showYesNoDialog(
-                    project,
-                    LangManager.message("toolwindow.sandbox.clear.warning"),
-                    LangManager.message("toolwindow.sandbox.clear"),
-                    LangManager.message("toolwindow.sandbox.clear.confirm"),
-                    LangManager.message("button.cancel"),
-                    Messages.getQuestionIcon()
-                )
-                if (confirm == Messages.YES) {
-                    if (!commService.isConnected()) {
-                        service.clearSandbox()
-                        Messages.showInfoMessage(
+            group(LangManager.message("toolwindow.managed.table.title")) {
+                row {
+                    cell(JBScrollPane(managedTable)).align(AlignX.FILL).resizableColumn()
+                }.resizableRow()
+                row {
+                    cell(downloadUninstallButton)
+                    cell(setupLinterButton)
+                }
+                managedProgressRow = row {
+                    panel {
+                        row { cell(managedProgressBar).align(AlignX.FILL) }
+                        row { cell(managedStatusLabel) }
+                    }.align(AlignX.FILL)
+                }.visible(false)
+            }
+
+            group(LangManager.message("toolwindow.system.table.title")) {
+                row {
+                    cell(JBLabel(LangManager.message("toolwindow.system.table.title"))).applyToComponent {
+                        font = font.deriveFont(Font.BOLD)
+                    }
+                    button("") {
+                        val descriptor = FileChooserDescriptorFactory.createSingleFileOrFolderDescriptor()
+                            .withTitle(LangManager.message("toolwindow.system.modal.select.title"))
+                            .withDescription(LangManager.message("toolwindow.system.modal.select.description"))
+
+                        val file = FileChooser.chooseFile(descriptor, project, null)
+                        if (file != null) {
+                            BlenderSettings.getInstance(project).addCustomBlenderPath(file.path)
+                            systemTable.refresh()
+                        }
+                    }.applyToComponent {
+                        icon = BlenderIcons.Add
+                        toolTipText = LangManager.message("toolwindow.system.table.add.custom.tooltip")
+                    }.align(AlignX.RIGHT)
+                }
+                row {
+                    cell(JBScrollPane(systemTable)).align(AlignX.FILL).resizableColumn()
+                }.resizableRow()
+                row {
+                    cell(systemSetupLinterButton)
+                    cell(systemRemoveButton)
+                }
+                systemProgressRow = row {
+                    panel {
+                        row { cell(systemProgressBar).align(AlignX.FILL) }
+                        row { cell(systemStatusLabel) }
+                    }.align(AlignX.FILL)
+                }.visible(false)
+            }
+
+            group(LangManager.message("toolwindow.sandbox.management.label")) {
+                row {
+                    button(LangManager.message("toolwindow.sandbox.clear")) {
+                        val confirm = Messages.showYesNoDialog(
                             project,
-                            LangManager.message("toolwindow.sandbox.clear.success"),
-                            LangManager.message("toolwindow.sandbox.clear.success.title")
+                            LangManager.message("toolwindow.sandbox.clear.warning"),
+                            LangManager.message("toolwindow.sandbox.clear"),
+                            LangManager.message("toolwindow.sandbox.clear.confirm"),
+                            LangManager.message("button.cancel"),
+                            Messages.getQuestionIcon()
                         )
+                        if (confirm == Messages.YES) {
+                            if (!commService.isConnected()) {
+                                service.clearSandbox()
+                                Messages.showInfoMessage(
+                                    project,
+                                    LangManager.message("toolwindow.sandbox.clear.success"),
+                                    LangManager.message("toolwindow.sandbox.clear.success.title")
+                                )
+                            }
+                        }
+                    }.applyToComponent {
+                        icon = BlenderIcons.Remove
                     }
                 }
             }
         }
-
-        startTimer()
-
-        return FormBuilder.createFormBuilder()
-            .addComponent(myAutoReloadCheckbox)
-            .addLabeledComponent(LangManager.message("settings.downloads.dir.label"), myDownloadsDirField)
-            .addComponent(resetPanel)
-            .addVerticalGap(10)
-            .addComponent(managedVersionsHeader)
-            .addComponent(JBScrollPane(managedTable).apply {
-                preferredSize = Dimension(-1, 150)
-            })
-            .addComponent(managedActionButtons)
-            .addComponent(managedProgressPanel)
-            .addVerticalGap(10)
-            .addComponent(systemVersionsHeader)
-            .addComponent(JBScrollPane(systemTable).apply {
-                preferredSize = Dimension(-1, 100)
-            })
-            .addComponent(systemActionButtons)
-            .addComponent(systemProgressPanel)
-            .addVerticalGap(10)
-            .addComponent(sandboxLabel)
-            .addComponent(clearSandboxButton)
-            .addComponentFillVertically(JPanel(), 0)
-            .panel
     }
 
     override fun disposeUIResources() {

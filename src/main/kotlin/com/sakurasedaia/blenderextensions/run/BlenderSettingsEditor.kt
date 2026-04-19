@@ -11,16 +11,15 @@ import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.ui.LabeledComponent
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBTextField
-import com.intellij.util.ui.FormBuilder
+import com.intellij.ui.dsl.builder.AlignX
+import com.intellij.ui.dsl.builder.panel
 import com.sakurasedaia.blenderextensions.blender.services.BlenderDownloader
 import com.sakurasedaia.blenderextensions.blender.model.BlenderVersions
 import com.sakurasedaia.blenderextensions.icons.BlenderIcons
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
-import java.awt.BorderLayout
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JButton
 import javax.swing.JComponent
-import javax.swing.JPanel
 import javax.swing.SwingUtilities
 
 class BlenderSettingsEditor(private val project: Project) : SettingsEditor<BlenderRunConfiguration>() {
@@ -108,19 +107,29 @@ class BlenderSettingsEditor(private val project: Project) : SettingsEditor<Blend
             )
         )
 
-        val versionPanel = JPanel(BorderLayout())
-        versionPanel.add(myBlenderVersionComboBox, BorderLayout.CENTER)
-        versionPanel.add(myDownloadButton, BorderLayout.EAST)
-
-        return FormBuilder.createFormBuilder()
-            .addLabeledComponent("${LangManager.message("run.configuration.form.version")}:", versionPanel)
-            .addComponent(myBlenderCommandComponent)
-            .addComponent(myIsSandboxedCheckBox)
-            .addComponent(myImportUserConfigCheckBox)
-            .addComponent(myAddonSymlinkComponent)
-            .addComponent(myAddonSourceDirComponent)
-            .addComponent(myArgumentsComponent)
-            .addComponentFillVertically(JPanel(), 0)
-            .panel
+        return panel {
+            row("${LangManager.message("run.configuration.form.version")}:") {
+                cell(myBlenderVersionComboBox).align(AlignX.FILL).resizableColumn()
+                cell(myDownloadButton)
+            }
+            row {
+                cell(myBlenderCommandComponent).align(AlignX.FILL)
+            }
+            row {
+                cell(myIsSandboxedCheckBox)
+            }
+            row {
+                cell(myImportUserConfigCheckBox)
+            }
+            row {
+                cell(myAddonSymlinkComponent).align(AlignX.FILL)
+            }
+            row {
+                cell(myAddonSourceDirComponent).align(AlignX.FILL)
+            }
+            row {
+                cell(myArgumentsComponent).align(AlignX.FILL)
+            }
+        }
     }
 }

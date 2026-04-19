@@ -8,18 +8,17 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.Messages
 import com.intellij.util.ui.JBUI
+import com.intellij.ui.dsl.builder.AlignX
+import com.intellij.ui.dsl.builder.panel
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.sakurasedaia.blenderextensions.blender.services.BlenderDownloader
 import com.sakurasedaia.blenderextensions.blender.services.BlenderService
 import com.sakurasedaia.blenderextensions.blender.model.BlenderVersions
 import com.sakurasedaia.blenderextensions.notifications.BlenderNotification
 import com.sakurasedaia.blenderextensions.python.PythonService
-import java.awt.BorderLayout
-import java.awt.FlowLayout
-import java.awt.GridBagConstraints
-import java.awt.GridBagLayout
 import javax.swing.*
 import com.sakurasedaia.blenderextensions.ui.settings.BlenderConfigurable
+import com.sakurasedaia.blenderextensions.icons.BlenderIcons
 
 class BlenderToolWindowContent(private val project: Project) {
     private val blenderService = BlenderService.getInstance(project)
@@ -36,96 +35,60 @@ class BlenderToolWindowContent(private val project: Project) {
     }
 
     fun getContent(): JComponent {
-        val mainPanel = JPanel(GridBagLayout())
-        val gbc = GridBagConstraints()
-        gbc.fill = GridBagConstraints.HORIZONTAL
-        gbc.weightx = 1.0
-        gbc.insets = JBUI.insets(5)
-
-        // --- Settings Link ---
-        gbc.gridx = 0
-        gbc.gridy = 0
-        val settingsPanel = JPanel(FlowLayout(FlowLayout.RIGHT))
-        val openSettingsButton = JButton(com.intellij.icons.AllIcons.General.Settings)
-        openSettingsButton.toolTipText = LangManager.message("toolwindow.open.settings")
-        openSettingsButton.addActionListener {
-            com.intellij.openapi.options.ShowSettingsUtil.getInstance().showSettingsDialog(project, com.sakurasedaia.blenderextensions.ui.settings.BlenderConfigurable::class.java)
-        }
-        settingsPanel.add(openSettingsButton)
-        mainPanel.add(settingsPanel, gbc)
-
-        // Sandbox Management
-        gbc.gridy++
-        val sandboxPanel = JPanel(BorderLayout())
-        sandboxPanel.border = JBUI.Borders.compound(
-            BorderFactory.createTitledBorder(LangManager.message("toolwindow.sandbox.management.label")),
-            JBUI.Borders.empty(5)
-        )
-        
-        clearSandboxButton.addActionListener {
-            val result = Messages.showYesNoDialog(
-                project,
-                LangManager.message("toolwindow.sandbox.clear.warning"),
-                LangManager.message("toolwindow.sandbox.clear"),
-                LangManager.message("toolwindow.sandbox.clear.confirm"),
-                LangManager.message("button.cancel"),
-                Messages.getQuestionIcon()
-            )
-            if (result == Messages.YES) {
-                blenderService.clearSandbox()
-                Messages.showInfoMessage(
-                    project,
-                    LangManager.message("toolwindow.sandbox.clear.success"),
-                    LangManager.message("toolwindow.sandbox.clear.success.title")
-                )
-            }
-        }
-        sandboxPanel.add(clearSandboxButton, BorderLayout.CENTER)
-        mainPanel.add(sandboxPanel, gbc)
-
-        // Blender Version Selector
-        gbc.gridy++
-        val versionPanel = JPanel(GridBagLayout())
-        versionPanel.border = JBUI.Borders.compound(
-            BorderFactory.createTitledBorder(LangManager.message("toolwindow.table.column.version")),
-            JBUI.Borders.empty(5)
-        )
-        val vGbc = GridBagConstraints()
-        vGbc.fill = GridBagConstraints.HORIZONTAL
-        vGbc.weightx = 1.0
-        vGbc.insets = JBUI.insets(2)
-
         refreshVersions()
-        
-        vGbc.gridx = 0
-        vGbc.gridy = 0
-        vGbc.gridwidth = 3
-        versionPanel.add(versionComboBox, vGbc)
-
-        vGbc.gridy++
-        vGbc.gridwidth = 1
-        vGbc.gridx = 0
-        versionPanel.add(downloadButton, vGbc)
-        vGbc.gridx = 1
-        vGbc.gridwidth = 2
-        versionPanel.add(setupLinterButton, vGbc)
-
-        downloadButton.addActionListener { handleDownload() }
-        setupLinterButton.addActionListener { handleSetupLinter() }
-        versionComboBox.addActionListener { updateButtonStates() }
-
         updateButtonStates()
 
-        mainPanel.add(versionPanel, gbc)
+        return panel {
+            row {
+                button("") {
+                    com.intellij.openapi.options.ShowSettingsUtil.getInstance().showSettingsDialog(project, BlenderConfigurable::class.java)
+                }.applyToComponent {
+                    icon = com.intellij.icons.AllIcons.General.Settings
+                    toolTipText = LangManager.message("toolwindow.open.settings")
+                }.align(AlignX.RIGHT)
+            }
 
-        // Add spacer to push everything to top
-        gbc.gridy++
-        gbc.weighty = 1.0
-        mainPanel.add(JPanel(), gbc)
+            group(LangManager.message("toolwindow.sandbox.management.label")) {
+                row {
+                    cell(clearSandboxButton).applyToComponent {
+                        addActionListener {
+                            val result = Messages.showYesNoDialog(
+                                project,
+                                LangManager.message("toolwindow.sandbox.clear.warning"),
+                                LangManager.message("toolwindow.sandbox.clear"),
+                                LangManager.message("toolwindow.sandbox.clear.confirm"),
+                                LangManager.message("button.cancel"),
+                                Messages.getQuestionIcon()
+                            )
+                            if (result == Messages.YES) {
+                                blenderService.clearSandbox()
+                                Messages.showInfoMessage(
+                                    project,
+                                    LangManager.message("toolwindow.sandbox.clear.success"),
+                                    LangManager.message("toolwindow.sandbox.clear.success.title")
+                                )
+                            }
+                        }
+                    }.align(com.intellij.ui.dsl.builder.AlignX.FILL)
+                }
+            }
 
-        val wrapper = JPanel(BorderLayout())
-        wrapper.add(mainPanel, BorderLayout.NORTH)
-        return wrapper
+            group(LangManager.message("toolwindow.table.column.version")) {
+                row {
+                    cell(versionComboBox).align(com.intellij.ui.dsl.builder.AlignX.FILL).applyToComponent {
+                        addActionListener { updateButtonStates() }
+                    }
+                }
+                row {
+                    cell(downloadButton).applyToComponent {
+                        addActionListener { handleDownload() }
+                    }
+                    cell(setupLinterButton).applyToComponent {
+                        addActionListener { handleSetupLinter() }
+                    }
+                }
+            }
+        }
     }
 
     private fun refreshVersions() {
