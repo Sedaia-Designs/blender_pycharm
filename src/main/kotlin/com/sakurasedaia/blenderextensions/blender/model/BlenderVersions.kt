@@ -14,12 +14,12 @@ data class BlenderVersion(
 object BlenderVersions {
     
     private val STATIC_SUPPORTED_VERSIONS = listOf(
-        BlenderVersion("4.2", "18", "3.11.7"),
-        BlenderVersion("4.3", "3", "3.11.9"),
-        BlenderVersion("4.4", "3", "3.11.11"),
-        BlenderVersion("4.5", "8", "3.11.11"),
-        BlenderVersion("5.0", "1", "3.11.13"),
-        BlenderVersion("5.1", "0", "3.13.9")
+        BlenderVersion("4.2", "19", "3.11.7"),
+        BlenderVersion("4.3", "2", "3.11.9"),
+        BlenderVersion("4.4", "3", "3.12.7"),
+        BlenderVersion("4.5", "8", "3.12.7"),
+        BlenderVersion("5.0", "1", "3.12.9"),
+        BlenderVersion("5.1", "1", "3.13.9")
     )
 
     fun getSupportedVersions(): List<BlenderVersion> {
