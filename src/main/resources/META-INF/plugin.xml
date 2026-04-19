@@ -80,16 +80,18 @@
                     icon="com.sakurasedaia.blenderextensions.icons.BlenderIcons.Refresh">
                 <keyboard-shortcut keymap="$default" first-keystroke="control alt R"/>
             </action>
-            <action id="com.sakurasedaia.blenderextensions.actions.MarkAsBlenderSourceAction"
-                    class="com.sakurasedaia.blenderextensions.actions.MarkAsBlenderSourceAction">
-                <add-to-group group-id="ProjectViewPopupMenu" anchor="after" relative-to-action="MarkRootGroup"/>
-            </action>
         </group>
 
         <action id="com.sakurasedaia.blenderextensions.actions.CreateBlenderFileAction"
                 class="com.sakurasedaia.blenderextensions.actions.CreateBlenderFileAction"
                 icon="com.sakurasedaia.blenderextensions.icons.BlenderIcons.Blender">
             <add-to-group group-id="NewGroup" anchor="after" relative-to-action="NewFile"/>
+        </action>
+
+        <action id="com.sakurasedaia.blenderextensions.actions.BlenderCreateModuleAction"
+                class="com.sakurasedaia.blenderextensions.actions.BlenderCreateModuleAction"
+                icon="com.sakurasedaia.blenderextensions.icons.BlenderIcons.Blender">
+            <add-to-group group-id="NewGroup" anchor="after" relative-to-action="com.sakurasedaia.blenderextensions.actions.CreateBlenderFileAction"/>
         </action>
     </actions>
 
