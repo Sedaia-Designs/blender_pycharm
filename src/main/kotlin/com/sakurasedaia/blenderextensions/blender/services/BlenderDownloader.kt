@@ -1,12 +1,14 @@
-package com.sakurasedaia.blenderextensions.blender
+package com.sakurasedaia.blenderextensions.blender.services
 
-import com.sakurasedaia.blenderextensions.system.ArchiveUtil
+import com.sakurasedaia.blenderextensions.common.utils.ArchiveUtil
+import com.sakurasedaia.blenderextensions.blender.utils.BlenderHelper
+import com.sakurasedaia.blenderextensions.blender.utils.BlenderPathUtil
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.util.io.HttpRequests
-import com.sakurasedaia.blenderextensions.LangManager
-import com.sakurasedaia.blenderextensions.settings.BlenderSettings
+import com.sakurasedaia.blenderextensions.common.utils.LangManager
+import com.sakurasedaia.blenderextensions.ui.settings.BlenderSettings
 import com.sakurasedaia.blenderextensions.python.PythonService
 import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,30 +17,18 @@ import kotlinx.coroutines.flow.asStateFlow
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.*
+import com.sakurasedaia.blenderextensions.blender.model.BlenderVersions
+import com.sakurasedaia.blenderextensions.blender.model.DownloadProgress
+import com.sakurasedaia.blenderextensions.blender.model.ProgressType
+import com.sakurasedaia.blenderextensions.blender.utils.toBlenderHandler
 
 @Service(Service.Level.PROJECT)
 class BlenderDownloader(private val project: Project) {
     private val logger = BlenderLogger.getInstance(project)
     private val isDownloadedCache = mutableMapOf<String?, Boolean>()
 
-    private val _downloadProgress = MutableStateFlow<DownloadProgress>(DownloadProgress.None)
+    private val _downloadProgress = MutableStateFlow(DownloadProgress())
     val downloadProgress: StateFlow<DownloadProgress> = _downloadProgress.asStateFlow()
-
-    data class DownloadProgress(
-        val isDownloading: Boolean = false,
-        val progress: Double = 0.0,
-        val statusText: String = "",
-        val version: String = "",
-        val type: ProgressType = ProgressType.NONE
-    ) {
-        companion object {
-            val None = DownloadProgress()
-        }
-    }
-
-    enum class ProgressType {
-        NONE, DOWNLOAD, LINTER
-    }
 
     fun updateProgress(progress: DownloadProgress) {
         _downloadProgress.value = progress
@@ -60,7 +50,7 @@ class BlenderDownloader(private val project: Project) {
     fun isDownloaded(version: String?): Boolean {
         return isDownloadedCache.getOrPut(version) {
             val downloadDir = getVersionDirectory(version)
-            findBlenderExecutable(downloadDir) != null
+            BlenderPathUtil.findBlenderExecutable(downloadDir) != null
         }
     }
 
@@ -90,11 +80,6 @@ class BlenderDownloader(private val project: Project) {
     }
 
     private fun getOrDownloadBlenderPathInternal(version: String): String? {
-        val osName = System.getProperty("os.name").lowercase()
-        val arch = System.getProperty("os.arch").lowercase()
-        val isWindows = osName.contains("win")
-        val isLinux = !isWindows
-
         val baseDir = getBaseDownloadDirectory()
         val appDir = getAppDirectory()
         val versionDir = getVersionDirectory(version)
@@ -112,14 +97,14 @@ class BlenderDownloader(private val project: Project) {
         }
         
         // Check if already downloaded
-        val executable = findBlenderExecutable(versionDir)
+        val executable = BlenderPathUtil.findBlenderExecutable(versionDir)
         if (executable != null) {
             logger.log(LangManager.message("log.blender.using.cached", version, executable.absolutePathString()))
             return executable.absolutePathString()
         }
 
         // If not, download it
-        val downloadUrl = getDownloadUrl(version, isWindows, isLinux, arch)
+        val downloadUrl = getDownloadUrl(version)
         
         logger.log(LangManager.message("log.blender.downloading", version))
         val downloadedFile = downloadFile(downloadUrl, baseDir) ?: run {
@@ -132,7 +117,7 @@ class BlenderDownloader(private val project: Project) {
         extractFile(downloadedFile, appDir, version)
 
         clearCache()
-        val finalExecutable = findBlenderExecutable(versionDir)
+        val finalExecutable = BlenderPathUtil.findBlenderExecutable(versionDir)
         if (finalExecutable != null) {
             logger.log(LangManager.message("log.blender.extracted", version, finalExecutable.absolutePathString()))
             PythonService.getInstance(project).installFakeBpyModule(version)
@@ -142,48 +127,27 @@ class BlenderDownloader(private val project: Project) {
         return finalExecutable?.absolutePathString()
     }
 
-    private fun findBlenderExecutable(directory: Path): Path? {
-        if (!directory.exists() || !directory.isDirectory()) return null
+    internal fun getDownloadUrl(
+        version: String,
+        osName: String = BlenderHelper.getOsName(),
+        archType: String = BlenderHelper.getArchName()
+    ): String {
+        /*
+         * Utility to fetch the download URL from the Blender Website, an update will need to be made to
+         * BlenderVersions to handle automatic Blender updates
+         * */
 
-        val osName = System.getProperty("os.name").lowercase()
-        val isWindows = osName.contains("win")
+        val extension = when (osName) {
+            "windows" -> "zip"
+            "linux" -> "tar.xz"
+            "macos" -> "dmg"
+            else -> {
+                throw (IllegalArgumentException("OS is not supported"))
+            }
+        }
 
-        val executableName = if (isWindows) "blender.exe" else "blender"
-        
-        // Walk the directory to find the executable, limited depth for performance
-        Files.walk(directory, 3).use { stream ->
-            return stream.filter { path ->
-                path.name == executableName && path.isRegularFile() && (isWindows || Files.isExecutable(path))
-            }.findFirst().orElse(null)
-        }
-    }
-
-    private fun getDownloadUrl(version: String, isWindows: Boolean, isLinux: Boolean, arch: String): String {
-        // TODO: Refactor this function to include a checker for Windows ARM
-        val baseUrl = "https://download.blender.org/release/Blender$version/"
-        val platformSuffix = when {
-            isWindows -> "windows-x64\\.zip"
-            isLinux -> "linux-x64\\.tar\\.xz"
-            else -> throw Exception("Unsupported platform: $arch")
-        }
-        
-        val regex = Regex("blender-$version\\.(\\d+)-$platformSuffix")
-        try {
-            val html = HttpRequests.request(baseUrl).readString()
-            val matches = regex.findAll(html).toList()
-            val best = matches.maxByOrNull { it.groupValues[1].toIntOrNull() ?: -1 }?.value
-            if (best != null) return baseUrl + best
-        } catch (e: Exception) {
-            logger.log(LangManager.message("log.blender.online.version.error", e.message ?: "Unknown error"))
-        }
-        
-        // Fallback to a safe default if online detection fails
-        val fallbackPatch = BlenderVersions.SUPPORTED_VERSIONS.find { it.majorMinor == version }?.fallbackPatch ?: "0"
-        val suffix = when {
-            isWindows -> "windows-x64.zip"
-            else -> "linux-x64.tar.xz"
-        }
-        return "${baseUrl}blender-$version.$fallbackPatch-$suffix"
+        val fullVersion = BlenderVersions.getFullVersion(version) ?: "$version.0"
+        return "https://download.blender.org/release/Blender$version/blender-$fullVersion-$osName-$archType.$extension"
     }
 
     private fun downloadFile(url: String, targetDir: Path): Path? {
@@ -192,43 +156,15 @@ class BlenderDownloader(private val project: Project) {
 	      logger.log("Downloading to: ${targetFile.absolutePathString()}")
         val indicator = ProgressManager.getInstance().progressIndicator
         val statusText = LangManager.message("log.blender.downloading.progress", fileName)
-        indicator?.text = statusText
-        indicator?.text2 = url
-        
         val version = _downloadProgress.value.version
-
+        val handler = indicator.toBlenderHandler(this, version, statusText)
+        handler.text2 = url
+        
         if (!targetFile.exists()) {
             try {
                 HttpRequests.request(url)
                     .connect { request ->
-                        val progressIndicator = indicator ?: com.intellij.openapi.progress.EmptyProgressIndicator()
-                        request.saveToFile(targetFile, object : com.intellij.openapi.progress.ProgressIndicator {
-                            override fun setFraction(fraction: Double) {
-                                progressIndicator.fraction = fraction
-                                _downloadProgress.value = DownloadProgress(true, fraction, statusText, version, ProgressType.DOWNLOAD)
-                            }
-
-                            override fun isPopupWasShown() = progressIndicator.isPopupWasShown
-                            override fun isShowing() = progressIndicator.isShowing
-                            override fun isModal() = progressIndicator.isModal
-                            override fun getModalityState() = progressIndicator.modalityState
-                            override fun setModalityProgress(modalityProgress: com.intellij.openapi.progress.ProgressIndicator?) { progressIndicator.setModalityProgress(modalityProgress) }
-                            override fun setIndeterminate(indeterminate: Boolean) { progressIndicator.isIndeterminate = indeterminate }
-                            override fun isIndeterminate() = progressIndicator.isIndeterminate
-                            override fun checkCanceled() = progressIndicator.checkCanceled()
-                            override fun start() = progressIndicator.start()
-                            override fun stop() = progressIndicator.stop()
-                            override fun isRunning() = progressIndicator.isRunning
-                            override fun cancel() = progressIndicator.cancel()
-                            override fun isCanceled() = progressIndicator.isCanceled
-                            override fun setText(text: String?) { progressIndicator.text = text }
-                            override fun getText() = progressIndicator.text
-                            override fun setText2(text: String?) { progressIndicator.text2 = text }
-                            override fun getText2() = progressIndicator.text2
-                            override fun getFraction() = progressIndicator.fraction
-                            override fun pushState() = progressIndicator.pushState()
-                            override fun popState() = progressIndicator.popState()
-                        })
+                        request.saveToFile(targetFile, handler)
                     }
                 return targetFile
             } catch (e: Exception) {
@@ -247,13 +183,10 @@ class BlenderDownloader(private val project: Project) {
     }
 
     private fun extractFile(file: Path, targetDir: Path, version: String) {
-        val indicator = ProgressManager.getInstance().progressIndicator
         val statusText = LangManager.message("log.blender.extracting.progress", file.name)
-        indicator?.text = statusText
-        indicator?.text2 = file.name
-        indicator?.isIndeterminate = true
-        
-        _downloadProgress.value = DownloadProgress(true, -1.0, statusText, version, ProgressType.DOWNLOAD)
+        val handler = ProgressManager.getInstance().progressIndicator.toBlenderHandler(this, version, statusText)
+        handler.text2 = file.name
+        handler.isIndeterminate = true
         
         val fileName = file.name
         try {

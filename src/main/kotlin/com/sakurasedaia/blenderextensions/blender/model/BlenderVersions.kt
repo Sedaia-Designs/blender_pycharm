@@ -1,13 +1,18 @@
-package com.sakurasedaia.blenderextensions.blender
+package com.sakurasedaia.blenderextensions.blender.model
+import com.sakurasedaia.blenderextensions.blender.services.BlenderScanner
+
 
 data class BlenderVersion(
     val majorMinor: String,
     val fallbackPatch: String,
     val pythonVersion: String? = null
-)
+) {
+    val fullVersion: String
+        get() = "$majorMinor.$fallbackPatch"
+}
 
 object BlenderVersions {
-
+    
     private val STATIC_SUPPORTED_VERSIONS = listOf(
         BlenderVersion("4.2", "18", "3.11.7"),
         BlenderVersion("4.3", "3", "3.11.9"),
@@ -36,6 +41,10 @@ object BlenderVersions {
 
     fun getSupportedVersionsWithCustom(): Array<String> {
         return getSupportedVersionsSafe().map { it.majorMinor }.toTypedArray()
+    }
+
+    fun getFullVersion(majorMinor: String): String? {
+        return getSupportedVersionsSafe().find { it.majorMinor == majorMinor }?.fullVersion
     }
 
     /**
