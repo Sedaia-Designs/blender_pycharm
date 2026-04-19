@@ -10,7 +10,8 @@ import com.intellij.platform.ProjectGeneratorPeer
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBTextField
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
-import com.intellij.util.ui.FormBuilder
+import com.intellij.ui.dsl.builder.AlignX
+import com.intellij.ui.dsl.builder.panel
 import com.sakurasedaia.blenderextensions.icons.BlenderIcons
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.intellij.ui.DocumentAdapter
@@ -41,12 +42,23 @@ import com.sakurasedaia.blenderextensions.blender.services.BlenderScanner
 
 
 internal fun formatToId(name: String, allowCapitals: Boolean = false): String {
-    val replaced = name.replace(Regex("\\s+"), "_")
-    return if (allowCapitals) {
-        replaced.replace(Regex("[^a-zA-Z0-9_]"), "")
-    } else {
-        replaced.lowercase().replace(Regex("[^a-z0-9_]"), "")
+    val sb = StringBuilder()
+    var lastWasSpace = false
+    for (char in name) {
+        if (char.isWhitespace()) {
+            if (!lastWasSpace && sb.isNotEmpty()) {
+                sb.append('_')
+                lastWasSpace = true
+            }
+        } else {
+            val processedChar = if (allowCapitals) char else char.lowercaseChar()
+            if (processedChar.isLetterOrDigit() || processedChar == '_') {
+                sb.append(processedChar)
+                lastWasSpace = false
+            }
+        }
     }
+    return sb.toString().trim('_')
 }
 
 class BlenderAddonProjectGenerator : DirectoryProjectGenerator<BlenderAddonProjectSettings> {
@@ -509,44 +521,91 @@ internal class BlenderAddonProjectPeer : ProjectGeneratorPeer<BlenderAddonProjec
             permissionMicrophoneReasonField
         ).forEach { enforceMax64(it) }
 
-        val builder = FormBuilder.createFormBuilder()
-            .addComponent(autoLoadCheckbox)
-            .addComponent(includeAgentGuidelines)
-            .addComponent(createGitRepoCheckbox)
-            .addComponent(sandboxEnvironment)
-            .addSeparator()
-            .addLabeledComponent("Project name:", projectNameField)
-            .addLabeledComponent("Addon ID:", addonIdField)
-            .addLabeledComponent("Tagline:", addonTaglineField)
-            .addLabeledComponent("Maintainer:", addonMaintainerField)
-            .addLabeledComponent("Website (Optional):", addonWebsiteField)
-            .addLabeledComponent("Tags (comma separated, Optional):", addonTagsField)
-            
-        val versionPanel = JPanel(java.awt.BorderLayout())
-        versionPanel.add(blenderVersionComboBox, java.awt.BorderLayout.CENTER)
-        versionPanel.add(blenderDownloadButton, java.awt.BorderLayout.EAST)
-        
-        builder.addLabeledComponent("Blender version:", versionPanel)
-        builder.addLabeledComponent("Min blender version:", blenderVersionMinField)
-        builder.addLabeledComponent("Max blender version (optional):", blenderVersionMaxField)
+        panel = panel {
+            row {
+                cell(autoLoadCheckbox)
+            }
+            row {
+                cell(includeAgentGuidelines)
+            }
+            row {
+                cell(createGitRepoCheckbox)
+            }
+            row {
+                cell(sandboxEnvironment)
+            }
+            separator()
+            row("Project name:") {
+                cell(projectNameField).align(AlignX.FILL)
+            }
+            row("Addon ID:") {
+                cell(addonIdField).align(AlignX.FILL)
+            }
+            row("Tagline:") {
+                cell(addonTaglineField).align(AlignX.FILL)
+            }
+            row("Maintainer:") {
+                cell(addonMaintainerField).align(AlignX.FILL)
+            }
+            row("Website (Optional):") {
+                cell(addonWebsiteField).align(AlignX.FILL)
+            }
+            row("Tags (comma separated, Optional):") {
+                cell(addonTagsField).align(AlignX.FILL)
+            }
 
-        panel = builder.addLabeledComponent("Platforms (comma separated, optional):", addonPlatformsField)
-            .addSeparator()
-            .addLabeledComponent("Permissions (optional):", JPanel()) // Placeholder for header
-            .addComponent(permissionNetworkCheckbox)
-            .addLabeledComponent("  Reason (required if checked, max 64 chars):", permissionNetworkReasonField)
-            .addComponent(permissionFilesCheckbox)
-            .addLabeledComponent("  Reason (required if checked, max 64 chars):", permissionFilesReasonField)
-            .addComponent(permissionClipboardCheckbox)
-            .addLabeledComponent("  Reason (required if checked, max 64 chars):", permissionClipboardReasonField)
-            .addComponent(permissionCameraCheckbox)
-            .addLabeledComponent("  Reason (required if checked, max 64 chars):", permissionCameraReasonField)
-            .addComponent(permissionMicrophoneCheckbox)
-            .addLabeledComponent("  Reason (required if checked, max 64 chars):", permissionMicrophoneReasonField)
-            .addSeparator()
-            .addLabeledComponent("Build exclude patterns (optional):", buildPathsExcludePatternField)
-            .addComponentFillVertically(JPanel(), 0)
-            .panel
+            row("Blender version:") {
+                cell(blenderVersionComboBox).align(AlignX.FILL).resizableColumn()
+                cell(blenderDownloadButton)
+            }
+            row("Min blender version:") {
+                cell(blenderVersionMinField).align(AlignX.FILL)
+            }
+            row("Max blender version (optional):") {
+                cell(blenderVersionMaxField).align(AlignX.FILL)
+            }
+            row("Platforms (comma separated, optional):") {
+                cell(addonPlatformsField).align(AlignX.FILL)
+            }
+
+            separator()
+            group("Permissions (optional)") {
+                row {
+                    cell(permissionNetworkCheckbox)
+                }
+                row("  Reason (required if checked, max 64 chars):") {
+                    cell(permissionNetworkReasonField).align(AlignX.FILL)
+                }
+                row {
+                    cell(permissionFilesCheckbox)
+                }
+                row("  Reason (required if checked, max 64 chars):") {
+                    cell(permissionFilesReasonField).align(AlignX.FILL)
+                }
+                row {
+                    cell(permissionClipboardCheckbox)
+                }
+                row("  Reason (required if checked, max 64 chars):") {
+                    cell(permissionClipboardReasonField).align(AlignX.FILL)
+                }
+                row {
+                    cell(permissionCameraCheckbox)
+                }
+                row("  Reason (required if checked, max 64 chars):") {
+                    cell(permissionCameraReasonField).align(AlignX.FILL)
+                }
+                row {
+                    cell(permissionMicrophoneCheckbox)
+                }
+                row("  Reason (required if checked, max 64 chars):") {
+                    cell(permissionMicrophoneReasonField).align(AlignX.FILL)
+                }
+            }
+            separator()
+            row("Build exclude patterns (optional):") {
+                cell(buildPathsExcludePatternField).align(AlignX.FILL)
+            }
+        }
 
         // Tooltips/Hints
         addonIdField.toolTipText = "Kebab-case, alphanumeric, 3-32 characters"
@@ -641,8 +700,7 @@ internal class BlenderAddonProjectPeer : ProjectGeneratorPeer<BlenderAddonProjec
         if (id.isEmpty()) {
             return ValidationInfo("Addon ID cannot be empty.", addonIdField)
         }
-        val idRegex = Regex("^[a-z0-9_]{3,32}$")
-        if (!idRegex.matches(id)) {
+        if (id.length !in 3..32 || !id.all { it.isLowerCase() || it.isDigit() || it == '_' }) {
             if (id.length < 3) return ValidationInfo("Addon ID is too short (min 3 characters).", addonIdField)
             if (id.length > 32) return ValidationInfo("Addon ID is too long (max 32 characters).", addonIdField)
             return ValidationInfo("Addon ID must be snake-case (lowercase letters, underscores only).", addonIdField)
@@ -654,26 +712,27 @@ internal class BlenderAddonProjectPeer : ProjectGeneratorPeer<BlenderAddonProjec
             return ValidationInfo("Please select a Blender version.", blenderVersionComboBox)
         }
 
-        val semver = Regex("^\\d+\\.\\d+\\.\\d+")
-
         val minVer = blenderVersionMinField.text?.trim().orEmpty()
         if (minVer.isEmpty()) {
             return ValidationInfo("Minimum Blender version cannot be empty.", blenderVersionMinField)
         }
-        if (!semver.matches(minVer)) {
+        val minVerParts = minVer.split(".")
+        if (minVerParts.size < 3 || minVerParts.take(3).any { p -> p.isEmpty() || !p.all { it.isDigit() } }) {
             return ValidationInfo("Minimum Blender version must be in format x.y.z (e.g., 5.0.0).", blenderVersionMinField)
         }
 
         val maxVer = blenderVersionMaxField.text?.trim().orEmpty()
-        if (maxVer.isNotEmpty() && !semver.matches(maxVer)) {
-            return ValidationInfo("Maximum Blender version must be in format x.y.z (e.g., 5.0.0).", blenderVersionMaxField)
+        if (maxVer.isNotEmpty()) {
+            val maxVerParts = maxVer.split(".")
+            if (maxVerParts.size < 3 || maxVerParts.take(3).any { p -> p.isEmpty() || !p.all { it.isDigit() } }) {
+                return ValidationInfo("Maximum Blender version must be in format x.y.z (e.g., 5.0.0).", blenderVersionMaxField)
+            }
         }
 
         // 4. Website URL
         val website = addonWebsiteField.text?.trim().orEmpty()
         if (website.isNotEmpty()) {
-            val urlRegex = Regex("^(https?://)?[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}(/.*)?$")
-            if (!urlRegex.matches(website)) {
+            if (!website.contains(".") || website.contains(" ") || website.length < 4) {
                 return ValidationInfo("Please enter a valid URL (e.g., https://example.com).", addonWebsiteField)
             }
         }

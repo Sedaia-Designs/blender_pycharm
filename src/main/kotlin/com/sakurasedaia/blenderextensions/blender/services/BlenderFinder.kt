@@ -10,7 +10,6 @@ import kotlin.io.path.exists
 
 object BlenderFinder {
     private const val VERSION_CACHE_PREFIX = "blender_version_"
-    private val versionRegex = Regex("Blender (\\d+\\.\\d+)")
 
     fun tryGetVersion(path: String): String {
         val cacheKey = VERSION_CACHE_PREFIX + path.hashCode()
@@ -25,14 +24,20 @@ object BlenderFinder {
             val output = ExecUtil.execAndGetOutput(commandLine)
             if (output.exitCode != 0) return unknown
             
-            val match = versionRegex.find(output.stdout)
-            val version = match?.groupValues?.get(1) ?: unknown
-
-            if (version != unknown) {
-                PropertiesComponent.getInstance().setValue(cacheKey, version)
+            val stdout = output.stdout
+            val blenderPrefix = "Blender "
+            val index = stdout.indexOf(blenderPrefix, ignoreCase = true)
+            if (index != -1) {
+                val versionPart = stdout.substring(index + blenderPrefix.length).trim()
+                val parts = versionPart.split(".")
+                if (parts.size >= 2) {
+                    val majorMinor = "${parts[0]}.${parts[1]}"
+                    PropertiesComponent.getInstance().setValue(cacheKey, majorMinor)
+                    return majorMinor
+                }
             }
-
-            return version
+            
+            return unknown
         } catch (e: Exception) {
             return unknown
         }

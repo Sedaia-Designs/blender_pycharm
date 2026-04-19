@@ -9,8 +9,6 @@ import java.nio.file.Path
 import kotlin.io.path.exists
 
 object PythonFinder {
-    private val pythonVersionRegex = Regex("Python (\\d+\\.\\d+(?:\\.\\d+)?)")
-    private val genericPythonVersionRegex = Regex("(\\d+\\.\\d+(?:\\.\\d+)?)")
 
     fun getPythonVersion(pythonExe: Path, project: Project? = null): String? {
         if (!pythonExe.exists()) {
@@ -25,16 +23,21 @@ object PythonFinder {
                 return null
             }
             
-            val match = pythonVersionRegex.find(output.stdout) ?: pythonVersionRegex.find(output.stderr)
-            if (match != null) {
-                val version = match.groupValues[1]
+            val combinedOutput = (output.stdout + output.stderr).trim()
+            if (combinedOutput.isEmpty()) return null
+
+            val version = if (combinedOutput.startsWith("Python ", ignoreCase = true)) {
+                combinedOutput.substring(7).trim().split(" ").firstOrNull()
+            } else {
+                combinedOutput.split(" ").firstOrNull()
+            }
+            
+            if (version != null && version.all { it.isDigit() || it == '.' }) {
                 BlenderLogger.log(project, "[DEBUG_LOG] getPythonVersion: $pythonExe version is $version")
                 return version
             }
-
-            val genericMatch = genericPythonVersionRegex.find(output.stdout) ?: genericPythonVersionRegex.find(output.stderr)
-            val version = genericMatch?.groupValues?.get(1)
-            BlenderLogger.log(project, "[DEBUG_LOG] getPythonVersion: $pythonExe version (generic) is ${version ?: "unknown"}")
+            
+            BlenderLogger.log(project, "[DEBUG_LOG] getPythonVersion: $pythonExe version (extracted) is ${version ?: "unknown"}")
             return version
         } catch (e: Exception) {
             BlenderLogger.log(project, "[DEBUG_LOG] getPythonVersion: Error getting version for $pythonExe: ${e.message}")
