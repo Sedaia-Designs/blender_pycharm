@@ -76,6 +76,7 @@ class BlenderService(private val project: Project) {
     ): OSProcessHandler? {
         if (isRunning.get()) return processHandler
         hasError.set(false)
+        var startupScript: Path? = null
 
         val projectPath = project.basePath ?: return null
 
@@ -116,7 +117,7 @@ class BlenderService(private val project: Project) {
             val repoDir = linker.getExtensionsRepoDir(isSandboxed)
 
             val port = communicationService.startServer()
-            val script = scriptGenerator.createStartupScript(port, repoDir, currentExtensionName)
+            startupScript = scriptGenerator.createStartupScript(port, repoDir, currentExtensionName)
 
             ApplicationManager.getApplication().executeOnPooledThread {
                 telemetryService.collectAndLogTelemetry(
@@ -128,7 +129,7 @@ class BlenderService(private val project: Project) {
             }
             launcher.startBlenderProcess(
                 blenderPath = blenderPath,
-                scriptPath = script,
+                scriptPath = startupScript,
                 additionalArgs = additionalArgs,
                 isSandboxed = isSandboxed,
                 importUserConfig = importUserConfig,
@@ -141,6 +142,7 @@ class BlenderService(private val project: Project) {
             if (blenderCommand.isNullOrBlank()) {
                 communicationService.stopServer()
             }
+            scriptGenerator.cleanupStartupScript(startupScript)
 
             BlenderNotification(project).sendError(
                 LangManager.message("notification.failed.start.blender.title"),
@@ -155,6 +157,7 @@ class BlenderService(private val project: Project) {
             override fun processTerminated(event: ProcessEvent) {
                 isRunning.set(false)
                 communicationService.stopServer()
+                scriptGenerator.cleanupStartupScript(startupScript)
             }
         })
 

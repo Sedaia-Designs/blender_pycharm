@@ -302,6 +302,15 @@ class BlenderScriptGenerator {
         return tempFile
     }
 
+    fun cleanupStartupScript(scriptPath: Path?) {
+        if (scriptPath == null) return
+        try {
+            Files.deleteIfExists(scriptPath)
+        } catch (_: Exception) {
+            // Best effort cleanup: script file may already be gone or still locked by the OS.
+        }
+    }
+
     companion object {
         fun getInstance(): BlenderScriptGenerator = com.intellij.openapi.application.ApplicationManager.getApplication().getService(BlenderScriptGenerator::class.java)
     }
