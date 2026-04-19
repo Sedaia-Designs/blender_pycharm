@@ -1,10 +1,11 @@
-package com.sakurasedaia.blenderextensions.blender
+package com.sakurasedaia.blenderextensions.telemetry
 
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.sakurasedaia.blenderextensions.python.PythonService
 import com.sakurasedaia.blenderextensions.python.PythonUtil
 import com.sakurasedaia.blenderextensions.run.BlenderRunConfigurationOptions
+import com.sun.management.OperatingSystemMXBean
 import java.lang.management.ManagementFactory
 import java.nio.file.Path
 import kotlin.io.path.exists
@@ -14,10 +15,10 @@ class BlenderTelemetryService(private val project: Project) {
     private val logger = BlenderLogger.getInstance(project)
 
     fun collectAndLogTelemetry(
-        context: String = "Startup",
-        options: BlenderRunConfigurationOptions? = null,
-        blenderPath: String? = null,
-        blenderVersion: String? = null
+	    context: String = "Startup",
+	    options: BlenderRunConfigurationOptions? = null,
+	    blenderPath: String? = null,
+	    blenderVersion: String? = null
     ) {
         val osName = System.getProperty("os.name")
         val osVersion = System.getProperty("os.version")
@@ -25,7 +26,7 @@ class BlenderTelemetryService(private val project: Project) {
         val javaVersion = System.getProperty("java.version")
         
         val ramGb = try {
-            val osBean = ManagementFactory.getOperatingSystemMXBean() as com.sun.management.OperatingSystemMXBean
+            val osBean = ManagementFactory.getOperatingSystemMXBean() as OperatingSystemMXBean
             val totalMemory = osBean.totalPhysicalMemorySize
             totalMemory / (1024 * 1024 * 1024)
         } catch (e: Exception) {

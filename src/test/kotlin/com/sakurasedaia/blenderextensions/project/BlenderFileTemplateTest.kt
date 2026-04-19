@@ -7,7 +7,7 @@ import org.junit.Test
 class BlenderFileTemplateTest {
     @Test
     fun testAddonFileTemplateExists() {
-        val resource = javaClass.getResource("/fileTemplates/internal/Blender Add-on.py.ft")
+        val resource = javaClass.getResource("/fileTemplates/internal/Blender Component.py.ft")
         assertNotNull("Add-on file template should exist in resources", resource)
         val content = resource!!.readText()
         assertTrue("Add-on template should contain bl_info", content.contains("bl_info = {"))
@@ -17,7 +17,7 @@ class BlenderFileTemplateTest {
 
     @Test
     fun testModuleFileTemplateExists() {
-        val resource = javaClass.getResource("/fileTemplates/internal/Blender Module.py.ft")
+        val resource = javaClass.getResource("/fileTemplates/internal/Module.py.ft")
         assertNotNull("Module file template should exist in resources", resource)
         val content = resource!!.readText()
         assertTrue("Module template should contain register", content.contains("def register():"))

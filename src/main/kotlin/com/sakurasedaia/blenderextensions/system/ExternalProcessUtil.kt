@@ -5,7 +5,7 @@ import com.intellij.execution.process.OSProcessHandler
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.sakurasedaia.blenderextensions.LangManager
-import com.sakurasedaia.blenderextensions.blender.BlenderLogger
+import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
 
 object ExternalProcessUtil {
 

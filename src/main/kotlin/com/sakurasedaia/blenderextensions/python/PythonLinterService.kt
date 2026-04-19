@@ -16,7 +16,7 @@ import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.sakurasedaia.blenderextensions.LangManager
 import com.sakurasedaia.blenderextensions.blender.BlenderDownloader
-import com.sakurasedaia.blenderextensions.blender.BlenderLogger
+import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
 import com.sakurasedaia.blenderextensions.blender.BlenderVersions
 import com.sakurasedaia.blenderextensions.notifications.BlenderNotification
 import com.sakurasedaia.blenderextensions.system.ExternalProcessUtil

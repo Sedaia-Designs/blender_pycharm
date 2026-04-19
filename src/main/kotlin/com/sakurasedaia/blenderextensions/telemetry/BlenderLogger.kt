@@ -1,9 +1,10 @@
-package com.sakurasedaia.blenderextensions.blender
+package com.sakurasedaia.blenderextensions.telemetry
 
+import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.application.PathManager
+import java.nio.file.Files
 import java.nio.file.Path
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -27,8 +28,8 @@ class BlenderLogger(private val project: Project) {
 
         val logPath = scratchPath.resolve(".logs")
         
-        if (!logPath.exists()) { 
-            java.nio.file.Files.createDirectories(logPath)
+        if (!logPath.exists()) {
+            Files.createDirectories(logPath)
         }
 
         // Custom file logging in scratches/.logs

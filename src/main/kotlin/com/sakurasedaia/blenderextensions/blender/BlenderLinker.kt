@@ -5,6 +5,7 @@ import com.sakurasedaia.blenderextensions.system.ExternalProcessUtil
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
+import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.exists

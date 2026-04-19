@@ -8,6 +8,7 @@ import com.intellij.util.io.HttpRequests
 import com.sakurasedaia.blenderextensions.LangManager
 import com.sakurasedaia.blenderextensions.settings.BlenderSettings
 import com.sakurasedaia.blenderextensions.python.PythonService
+import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

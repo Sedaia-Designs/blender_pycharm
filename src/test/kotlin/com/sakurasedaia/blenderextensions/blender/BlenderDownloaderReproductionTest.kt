@@ -1,6 +1,7 @@
 package com.sakurasedaia.blenderextensions.blender
 
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
 import kotlin.io.path.createTempDirectory
 
 class BlenderDownloaderReproductionTest : BasePlatformTestCase() {

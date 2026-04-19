@@ -1,12 +1,12 @@
 package com.sakurasedaia.blenderextensions.blender
 
-import com.sakurasedaia.blenderextensions.settings.BlenderSettings
 import com.sakurasedaia.blenderextensions.LangManager
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
+import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths

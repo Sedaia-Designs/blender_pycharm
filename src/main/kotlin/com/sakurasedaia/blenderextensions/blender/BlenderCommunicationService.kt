@@ -9,6 +9,7 @@ import java.io.PrintWriter
 import java.net.ServerSocket
 import java.net.Socket
 import com.sakurasedaia.blenderextensions.LangManager
+import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
 
 @Service(Service.Level.PROJECT)
 class BlenderCommunicationService(private val project: Project) {

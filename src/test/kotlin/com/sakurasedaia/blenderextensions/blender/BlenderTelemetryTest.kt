@@ -2,11 +2,9 @@ package com.sakurasedaia.blenderextensions.blender
 
 import com.sakurasedaia.blenderextensions.python.PythonUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import java.nio.file.Path
+import com.sakurasedaia.blenderextensions.telemetry.BlenderTelemetryService
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import kotlin.io.path.exists
-import kotlin.io.path.readText
 
 class BlenderTelemetryTest : BasePlatformTestCase() {
 
