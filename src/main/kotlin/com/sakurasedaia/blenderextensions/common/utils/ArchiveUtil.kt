@@ -1,10 +1,11 @@
-package com.sakurasedaia.blenderextensions.system
+package com.sakurasedaia.blenderextensions.common.utils
 
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.*
+import com.sakurasedaia.blenderextensions.blender.utils.BlenderHelper
 
 object ArchiveUtil {
     fun extractFile(file: Path, targetDir: Path, logger: BlenderLogger? = null, version: String = "", override: Boolean = true) {
@@ -24,18 +25,18 @@ object ArchiveUtil {
             logger?.log("Purged existing $targetDir")
         }
         
-        val fName = file.name.lowercase()
         val result = try {
             when {
-                fName.endsWith(".zip") -> extractZip(file, targetDir, version, logger)
-                fName.endsWith(".tar.xz") -> extractTar(file, targetDir, version, logger)
-                fName.endsWith(".dmg") -> extractDmg(file, targetDir, version, logger)
+                BlenderHelper.isZip(file) -> extractZip(file, targetDir, version, logger)
+                BlenderHelper.isTarXz(file) -> extractTar(file, targetDir, version, logger)
+                BlenderHelper.isDmg(file) -> extractDmg(file, targetDir, version, logger)
                 else -> {
-                    logger?.error("Unsupported archive format: $fName")
+                    logger?.error("Unsupported archive format: ${file.name}")
+                    -1
                 }
             }
         } catch (e: Exception) {
-            logger?.error("Failed to extract $fName", e)
+            logger?.error("Failed to extract ${file.name}", e)
             -1
         }
         
@@ -64,26 +65,29 @@ object ArchiveUtil {
     }
     
     private fun extractZip(file: Path, targetDir: Path, version: String, logger: BlenderLogger? = null): Int {
-        // Handles the extraction of ZIP files on Windows
-        
-        // TODO: Write a renaming function to automatically rename the Blender Version. Current Implementation left unreachable on purpose
-        logger?.log("ZIP extraction is not currently implemented: ${file.name}")
-        return -1
-        
-        /*
-        logger?.log("Extracting ${file.name}")
-        val command = GeneralCommandLine(
-            "powershell",
-            "Expand-Archive",
-            "-Path",
-            file.absolutePathString(),
-            "-DestinationPath",
-            targetDir.absolutePathString(),
-            "-Force"
-        )
-        
-        return ExternalProcessUtil.executeCommand(command, logger = logger)
-        */
+        // Blender only distributes Zip files for Window builds of the software
+        if (!BlenderHelper.isWindows()) {
+            logger?.error("ZIP extraction is only supported on Windows. Blender only distributes Zip files for Windows builds.")
+            return -1
+        }
+
+        try {
+            val targetPath: Path = targetDir.resolve(version)
+            Files.createDirectories(targetPath)
+            logger?.log("Created $targetPath")
+
+            val command = GeneralCommandLine(
+                "powershell",
+                "-Command",
+                "Expand-Archive -Path '${file.absolutePathString()}' -DestinationPath '${targetPath.absolutePathString()}' -Force"
+            )
+
+            logger?.log("Extracting ${file.name}: Running command $command")
+            return ExternalProcessUtil.executeCommand(command, logger = logger)
+        } catch (e: Exception) {
+            logger?.error("Failed to extract ZIP ${file.name}", e)
+            return -1
+        }
     }
     
     private fun extractDmg(file: Path, targetDir: Path, version: String, logger: BlenderLogger? = null): Int {

@@ -1,17 +1,23 @@
-package com.sakurasedaia.blenderextensions.blender
+package com.sakurasedaia.blenderextensions.blender.services
 
-import com.sakurasedaia.blenderextensions.LangManager
+import com.sakurasedaia.blenderextensions.common.utils.LangManager
+import com.sakurasedaia.blenderextensions.common.utils.FileUtil
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.progress.ProgressIndicator
 import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 import kotlin.io.path.*
+import com.sakurasedaia.blenderextensions.blender.utils.BlenderPathUtil
+import com.sakurasedaia.blenderextensions.blender.utils.toBlenderHandler
+import com.sakurasedaia.blenderextensions.blender.model.ProgressType
+import com.sakurasedaia.blenderextensions.blender.model.DownloadProgress
 
 @Service(Service.Level.PROJECT)
 class BlenderLauncher(private val project: Project) {
@@ -24,15 +30,34 @@ class BlenderLauncher(private val project: Project) {
         isSandboxed: Boolean = false,
         blenderCommand: String? = null,
         importUserConfig: Boolean = false,
-        blenderVersion: String? = null
+        blenderVersion: String? = null,
+        indicator: ProgressIndicator? = null
     ): OSProcessHandler? {
-        val blenderFile = Paths.get(blenderPath)
+        val downloader = BlenderDownloader.getInstance(project)
+        
+        // Use updated downloader logic to resolve path if it doesn't exist
+        val actualPath = if (blenderVersion != null && (blenderPath.isBlank() || !Paths.get(blenderPath).exists())) {
+            downloader.getOrDownloadBlenderPath(blenderVersion) ?: blenderPath
+        } else {
+            blenderPath
+        }
+
+        var blenderFile = Paths.get(actualPath)
+        
+        // Use updated discovery logic: if it's a directory, find the executable
+        if (blenderFile.exists() && blenderFile.isDirectory()) {
+            val executable = BlenderPathUtil.findBlenderExecutable(blenderFile)
+            if (executable != null) {
+                blenderFile = executable
+            }
+        }
+
         if (!blenderFile.exists()) {
-            logger.log(LangManager.message("log.service.exec.not.found", blenderPath))
+            logger.log(LangManager.message("log.service.exec.not.found", actualPath))
             return null
         }
 
-        val commandLine = GeneralCommandLine(blenderPath)
+        val commandLine = GeneralCommandLine(blenderFile.absolutePathString())
         commandLine.workDirectory = project.basePath?.let { java.io.File(it) }
         
         if (!blenderCommand.isNullOrBlank()) {
@@ -43,7 +68,7 @@ class BlenderLauncher(private val project: Project) {
         }
         
         if (isSandboxed) {
-            setupSandbox(commandLine, importUserConfig, blenderVersion, blenderCommand)
+            setupSandbox(commandLine, importUserConfig, blenderVersion, blenderCommand, indicator)
         }
         
         if (!additionalArgs.isNullOrBlank()) {
@@ -58,40 +83,49 @@ class BlenderLauncher(private val project: Project) {
         commandLine: GeneralCommandLine,
         importUserConfig: Boolean,
         blenderVersion: String?,
-        blenderCommand: String?
+        blenderCommand: String?,
+        indicator: ProgressIndicator? = null
     ) {
-        logger.log(LangManager.message("log.launcher.using.sandbox"))
-        val projectPath = project.basePath ?: return
-        val sandboxDir = Paths.get(projectPath, ".venv", "blender_sandbox")
-        val configDir = sandboxDir.resolve("config")
-        val scriptsDir = sandboxDir.resolve("scripts")
+        val downloader = BlenderDownloader.getInstance(project)
+        val statusText = LangManager.message("log.launcher.using.sandbox")
+        val handler = indicator.toBlenderHandler(downloader, blenderVersion ?: "unknown", statusText, ProgressType.SANDBOX)
         
-        configDir.createDirectories()
-        scriptsDir.createDirectories()
-        
-        if (importUserConfig) {
-            importBlenderConfig(configDir, blenderVersion)
-        }
+        try {
+            logger.log(statusText)
+            val projectPath = project.basePath ?: return
+            val sandboxDir = Paths.get(projectPath, ".venv", "blender_sandbox")
+            val configDir = sandboxDir.resolve("config")
+            val scriptsDir = sandboxDir.resolve("scripts")
+            
+            configDir.createDirectories()
+            scriptsDir.createDirectories()
+            
+            if (importUserConfig) {
+                importBlenderConfig(configDir, blenderVersion)
+            }
 
-        // Create a simple app template
-        val templatesDir = scriptsDir.resolve("startup/bl_app_templates/pycharm")
-        templatesDir.createDirectories()
-        val initFile = templatesDir.resolve("__init__.py")
-        if (!initFile.exists()) {
-            initFile.writeText("\"\"\"\n# Blender Extension Development App Template\n# Created by the Blender Extension Development for PyCharm plugin.\n\"\"\"\ndef register():\n    pass\n\ndef unregister():\n    pass\n")
-        }
+            // Create a simple app template
+            val templatesDir = scriptsDir.resolve("startup/bl_app_templates/pycharm")
+            templatesDir.createDirectories()
+            val initFile = templatesDir.resolve("__init__.py")
+            if (!initFile.exists()) {
+                initFile.writeText("\"\"\"\n# Blender Extension Development App Template\n# Created by the Blender Extension Development for PyCharm plugin.\n\"\"\"\ndef register():\n    pass\n\ndef unregister():\n    pass\n")
+            }
 
-        handleSandboxSplashScreen(templatesDir)
-        
-        commandLine.withEnvironment("BLENDER_USER_CONFIG", configDir.absolutePathString())
-        commandLine.withEnvironment("BLENDER_USER_SCRIPTS", scriptsDir.absolutePathString())
+            handleSandboxSplashScreen(templatesDir)
+            
+            commandLine.withEnvironment("BLENDER_USER_CONFIG", configDir.absolutePathString())
+            commandLine.withEnvironment("BLENDER_USER_SCRIPTS", scriptsDir.absolutePathString())
 
-        val isExtensionCommand = blenderCommand?.contains("extension") == true
+            val isExtensionCommand = blenderCommand?.contains("extension") == true
 
-        if (!isExtensionCommand) {
-            commandLine.addParameters("--app-template", "pycharm")
-        } else {
-            logger.log(LangManager.message("log.launcher.extension.command"))
+            if (!isExtensionCommand) {
+                commandLine.addParameters("--app-template", "pycharm")
+            } else {
+                logger.log(LangManager.message("log.launcher.extension.command"))
+            }
+        } finally {
+            downloader.updateProgress(DownloadProgress.None)
         }
     }
 
@@ -123,21 +157,10 @@ class BlenderLauncher(private val project: Project) {
         sourceConfigDir.listDirectoryEntries().filter { it.isDirectory() }.forEach { sourceDir ->
             val dirName = sourceDir.name
             try {
-                copyDirectory(sourceDir, targetConfigDir.resolve(dirName))
+                FileUtil.copyDirectory(sourceDir, targetConfigDir.resolve(dirName))
                 logger.log(LangManager.message("log.launcher.imported.folder", dirName))
             } catch (e: Exception) {
                 logger.log(LangManager.message("log.launcher.failed.import.folder", dirName, e.message ?: ""))
-            }
-        }
-    }
-
-    private fun copyDirectory(source: Path, target: Path) {
-        source.walk().forEach { sourcePath ->
-            val targetPath = target.resolve(source.relativize(sourcePath))
-            if (sourcePath.isDirectory()) {
-                targetPath.createDirectories()
-            } else {
-                sourcePath.copyTo(targetPath, overwrite = true)
             }
         }
     }
