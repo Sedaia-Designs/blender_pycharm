@@ -52,3 +52,4 @@ release_trigger.sh
 /.intellijPlatform/
 /.idea/
 /.hidden/
+/.output.txt
