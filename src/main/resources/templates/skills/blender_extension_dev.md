@@ -18,6 +18,7 @@
 ## Validation & Submitting
 - **Validation**: Before submitting, verify that the code complies with the `blender_manifest.toml` and that all class names follow the project's naming standards.
 - **CLI Check**: Run `blender --command extension validate` (if available) to ensure the code runs without errors.
+- **NO REGEX**: Avoid using Regular Expressions unless absolutely necessary. Prefer standard string methods or dedicated parsers.
 - **Cleanup**: Remove unused variables, redundant parentheses, and debug print statements (use `self.report()` instead).
 
 ## Import & BPY

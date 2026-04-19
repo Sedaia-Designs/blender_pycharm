@@ -31,3 +31,6 @@
   - **MAJOR**: Breaking changes (UI reworks, breaking API changes).
   - **MINOR**: New backward-compatible functionality.
   - **PATCH**: Bug fixes and minor internal changes.
+
+## Specialized Rule: NO REGEX
+As per the [Main Guidelines](../agent-guidelines.md), **avoid Regex**. Use standard string manipulation or custom logic instead.

@@ -1,19 +1,15 @@
 # AI Workflow Skill
 
-## Objectives
-- Standardize AI agent behavior and environmental management.
-- Ensure consistent session handling and safety protocols.
+This document standardizes AI agent behavior and environmental management.
 
-## Session & Environment Management
-- **Initial Context**: At session start, review `.agent/` files and specialized skills in `.agent/skills/` to align with current architecture and standards.
-- **Logging**: Maintain local-only chat session logs in the Windows scratch directory: `C:\Users\Sakura\AppData\Roaming\JetBrains\IntelliJIdea2025.3\scratches\`, organized by date. These are for personal reference and MUST NOT be committed to the repository.
-- **Summaries**: When asked for a "context summary", write `summary_YYYY-MM-DD.md` in the IDE's scratch directory with highlights.
-- **Versioning**: NEVER bump the plugin version (e.g., in `build.gradle.kts`) unless explicitly instructed by the User.
-- **Resource Management**: Download external assets locally (avoid CDNs) for reliability and offline availability.
-- **SSH/Passphrase Handling**: If a process (e.g., Git) requires a passphrase, use the `ask_user` tool to request it.
+## Session Management
+- **Initial Context**: Review [`.agent/guidelines.md`](../guidelines.md) at the start of every session.
+- **Project Map**: Refer to [`.agent/project.md`](../project.md) for current task status and architecture.
+- **Resource Management**: Download external assets locally for reliability and offline availability.
+- **SSH/Passphrase Handling**: If a process (e.g., Git) requires a passphrase, use the `ask_user` tool.
 
 ## Role Definition
-- **.agent/project.md**: Authoritative "Project Map" for goals, architecture, and current state.
-- **.agent/context.md**: Focuses on language-specific coding styles (Kotlin, Python).
-- **.agent/guidelines.md**: Entry point and high-level workflow summary.
-- **.agent/skills/**: Modular, procedural instructions for specific domains (Git, Docs, etc.).
+- **.agent/guidelines.md**: The authoritative "Source of Truth" for behavior.
+- **.agent/project.md**: Current goals and state.
+- **.agent/context.md**: Coding styles (Kotlin, Python).
+- **.agent/skills/**: Specialized, domain-specific instructions.

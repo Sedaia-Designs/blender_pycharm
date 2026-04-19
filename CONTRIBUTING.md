@@ -77,7 +77,7 @@ Commit your changes using the following standardized Conventional Commits prefix
 
 ```bash
 git add .
-git commit -m "Feat(blender): add detailed description" --trailer "Co-authored-by: Junie <junie@jetbrains.com>"
+git commit -m "Feat(blender): add detailed description"
 git push origin feature/your-feature-name
 ```
 
@@ -88,6 +88,7 @@ Submit a Pull Request on GitHub. Provide a clear description of the changes and 
 
 - Use **Kotlin** for all plugin logic.
 - Follow the official [Kotlin Style Guide](https://kotlinlang.org/docs/coding-conventions.html).
+- **NO REGEX**: Avoid using Regular Expressions unless absolutely necessary. Prefer standard string methods (`contains`, `startsWith`, `split`, etc.) or dedicated parsers.
 - Keep the UI consistent with IntelliJ Platform guidelines.
 - Use Swing and `FormBuilder` for configuration UIs.
 - **Icon Management**: Declare all icons in `BlenderIcons.kt` and reference them as `BlenderIcons.Icon` across the codebase.
@@ -111,6 +112,7 @@ The [Jacques Lucke VS-Code extension](https://github.com/JacquesLucke/blender_vs
 This project uses AI agents (like Junie) to maintain high-quality code and documentation. When contributing using an AI agent:
 
 - **Initial Context**: At session start, review `.agent/` files and specialized skills in `.agent/skills/` to align with current architecture and standards.
+- **NO REGEX**: Avoid using Regular Expressions unless absolutely necessary. Prefer standard string methods or dedicated parsers.
 - **Role Definition**:
   - `.agent/project.md`: Authoritative "Project Map" for goals, architecture, and current state.
   - `.agent/context.md`: Language-specific coding styles (Kotlin, Python).
