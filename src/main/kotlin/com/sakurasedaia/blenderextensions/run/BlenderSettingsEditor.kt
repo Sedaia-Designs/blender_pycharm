@@ -12,10 +12,10 @@ import com.intellij.openapi.ui.LabeledComponent
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.FormBuilder
-import com.sakurasedaia.blenderextensions.blender.BlenderDownloader
-import com.sakurasedaia.blenderextensions.blender.BlenderVersions
+import com.sakurasedaia.blenderextensions.blender.services.BlenderDownloader
+import com.sakurasedaia.blenderextensions.blender.model.BlenderVersions
 import com.sakurasedaia.blenderextensions.icons.BlenderIcons
-import com.sakurasedaia.blenderextensions.LangManager
+import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import java.awt.BorderLayout
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JButton

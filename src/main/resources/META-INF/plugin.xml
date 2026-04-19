@@ -45,8 +45,8 @@
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
         <projectConfigurable
-                instance="com.sakurasedaia.blenderextensions.settings.BlenderConfigurable"
-                id="com.sakurasedaia.blenderextensions.settings.BlenderConfigurable"
+                instance="com.sakurasedaia.blenderextensions.ui.settings.BlenderConfigurable"
+                id="com.sakurasedaia.blenderextensions.ui.settings.BlenderConfigurable"
                 key="settings.display.name"
                 nonDefaultProject="true"/>
 
@@ -58,12 +58,12 @@
         
         <toolWindow id="MBVS"
                     anchor="right" 
-                    factoryClass="com.sakurasedaia.blenderextensions.ui.BlenderToolWindowFactory" 
+                    factoryClass="com.sakurasedaia.blenderextensions.ui.toolwindow.BlenderToolWindowFactory" 
                     icon="com.sakurasedaia.blenderextensions.icons.BlenderIcons.Blender"/>
 
         <fileTemplateGroup implementation="com.sakurasedaia.blenderextensions.actions.BlenderTemplateGroupFactory"/>
         
-        <statusBarWidgetFactory implementation="com.sakurasedaia.blenderextensions.ui.BlenderStatusBarWidgetFactory"
+        <statusBarWidgetFactory implementation="com.sakurasedaia.blenderextensions.ui.statusbar.BlenderStatusBarWidgetFactory"
                                 id="BlenderStatus"/>
 
         <notificationGroup id="Blender Development"

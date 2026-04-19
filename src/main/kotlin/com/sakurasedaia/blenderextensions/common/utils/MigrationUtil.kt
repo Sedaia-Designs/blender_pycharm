@@ -1,11 +1,12 @@
-package com.sakurasedaia.blenderextensions.system
+package com.sakurasedaia.blenderextensions.common.utils
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.io.FileUtil
-import com.sakurasedaia.blenderextensions.LangManager
+import com.sakurasedaia.blenderextensions.common.utils.LangManager
+import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
 import java.io.File
 
 object MigrationUtil {
@@ -86,7 +87,7 @@ object MigrationUtil {
                         }
                     } catch (e: Exception) {
                         // Log error or notify user
-                        println("[DEBUG_LOG] Migration failed for ${file.name}: ${e.message}")
+                        BlenderLogger.getInstance(project).error("Migration failed for ${file.name}", e)
                     }
                 }
                 

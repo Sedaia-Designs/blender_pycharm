@@ -1,15 +1,18 @@
 package com.sakurasedaia.blenderextensions.python
 
-import com.sakurasedaia.blenderextensions.system.PythonFinder
-import com.sakurasedaia.blenderextensions.LangManager
-import com.sakurasedaia.blenderextensions.blender.BlenderScanner
-import com.sakurasedaia.blenderextensions.settings.BlenderSettings
+import com.sakurasedaia.blenderextensions.python.PythonFinder
+import com.sakurasedaia.blenderextensions.common.utils.LangManager
+import com.sakurasedaia.blenderextensions.blender.services.BlenderScanner
+import com.sakurasedaia.blenderextensions.ui.settings.BlenderSettings
 import com.intellij.openapi.application.PathManager
-import com.intellij.openapi.util.SystemInfo
+import com.sakurasedaia.blenderextensions.blender.utils.BlenderHelper
+import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
+import com.intellij.openapi.project.Project
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.exists
 import kotlin.io.path.name
+import com.sakurasedaia.blenderextensions.blender.services.BlenderFinder
 
 object PythonUtil {
 
@@ -31,7 +34,7 @@ object PythonUtil {
         return if (blenderExePath.contains("blender_downloads")) {
             path.parent.name
         } else {
-            com.sakurasedaia.blenderextensions.system.BlenderFinder.tryGetVersion(blenderExePath).takeIf { it != LangManager.message("blender.version.unknown") } ?: "unknown"
+            com.sakurasedaia.blenderextensions.blender.services.BlenderFinder.tryGetVersion(blenderExePath).takeIf { it != LangManager.message("blender.version.unknown") } ?: "unknown"
         }
     }
 
@@ -40,15 +43,15 @@ object PythonUtil {
         return base.resolve("linter").resolve(version)
     }
 
-    fun findSystemPython(targetVersion: String): Path? {
-        return PythonFinder.findSystemPython(targetVersion)
+    fun findSystemPython(targetVersion: String, project: Project? = null): Path? {
+        return PythonFinder.findSystemPython(targetVersion, project)
     }
     
-    fun findPythonExecutable(blenderExePath: Path): Path? {
-        println("[DEBUG_LOG] findPythonExecutable: Searching for bundled Python in $blenderExePath")
+    fun findPythonExecutable(blenderExePath: Path, project: Project? = null): Path? {
+        BlenderLogger.log(project, "[DEBUG_LOG] findPythonExecutable: Searching for bundled Python in $blenderExePath")
         val blenderDir = getBlenderInternalDir(blenderExePath) ?: return null
         if (!blenderDir.exists()) {
-            println("[DEBUG_LOG] findPythonExecutable: Blender internal directory does not exist: $blenderDir")
+            BlenderLogger.log(project, "[DEBUG_LOG] findPythonExecutable: Blender internal directory does not exist: $blenderDir")
             return null
         }
 
@@ -59,43 +62,43 @@ object PythonUtil {
                 }
                     .toList()
             }
-            println("[DEBUG_LOG] findPythonExecutable: Found versioned directories in Blender: $versionDirs")
+            BlenderLogger.log(project, "[DEBUG_LOG] findPythonExecutable: Found versioned directories in Blender: $versionDirs")
 
             // First try versioned Blender paths: <root>/<version>/python/bin
             for (versionDir in versionDirs) {
-                println("[DEBUG_LOG] findPythonExecutable: Checking versioned dir: $versionDir")
+                BlenderLogger.log(project, "[DEBUG_LOG] findPythonExecutable: Checking versioned dir: $versionDir")
                 findPythonInDirectory(versionDir.resolve("python").resolve("bin"))?.let {
-                    println("[DEBUG_LOG] findPythonExecutable: Found bundled Python at $it")
+                    BlenderLogger.log(project, "[DEBUG_LOG] findPythonExecutable: Found bundled Python at $it")
                     return it
                 }
                 findPythonInDirectory(versionDir.resolve("python"))?.let {
-                    println("[DEBUG_LOG] findPythonExecutable: Found bundled Python at $it")
+                    BlenderLogger.log(project, "[DEBUG_LOG] findPythonExecutable: Found bundled Python at $it")
                     return it
                 }
             }
 
             // Then try non-versioned layout fallbacks: <root>/python/bin
-            println("[DEBUG_LOG] findPythonExecutable: Checking non-versioned layout fallbacks in $blenderDir")
+            BlenderLogger.log(project, "[DEBUG_LOG] findPythonExecutable: Checking non-versioned layout fallbacks in $blenderDir")
             findPythonInDirectory(blenderDir.resolve("python").resolve("bin"))?.let {
-                println("[DEBUG_LOG] findPythonExecutable: Found bundled Python at $it")
+                BlenderLogger.log(project, "[DEBUG_LOG] findPythonExecutable: Found bundled Python at $it")
                 return it
             }
             findPythonInDirectory(blenderDir.resolve("python"))?.let {
-                println("[DEBUG_LOG] findPythonExecutable: Found bundled Python at $it")
+                BlenderLogger.log(project, "[DEBUG_LOG] findPythonExecutable: Found bundled Python at $it")
                 return it
             }
         } catch (e: Exception) {
-            println("[DEBUG_LOG] findPythonExecutable: Error searching for bundled Python: ${e.message}")
+            BlenderLogger.log(project, "[DEBUG_LOG] findPythonExecutable: Error searching for bundled Python: ${e.message}")
             return null
         }
-        println("[DEBUG_LOG] findPythonExecutable: No bundled Python found in $blenderExePath")
+        BlenderLogger.log(project, "[DEBUG_LOG] findPythonExecutable: No bundled Python found in $blenderExePath")
         return null
     }
 
     private fun findPythonInDirectory(directory: Path): Path? {
         if (!directory.exists() || !Files.isDirectory(directory)) return null
 
-        if (SystemInfo.isWindows) {
+        if (BlenderHelper.isWindows()) {
             val candidate = directory.resolve("python.exe")
             return candidate.takeIf { it.exists() }
         }
@@ -114,8 +117,8 @@ object PythonUtil {
         }
     }
 
-    fun getPythonVersion(pythonExe: Path): String? {
-        return PythonFinder.getPythonVersion(pythonExe)
+    fun getPythonVersion(pythonExe: Path, project: Project? = null): String? {
+        return PythonFinder.getPythonVersion(pythonExe, project)
     }
 
 

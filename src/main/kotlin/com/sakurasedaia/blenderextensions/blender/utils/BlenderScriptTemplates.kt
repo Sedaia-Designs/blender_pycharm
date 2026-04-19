@@ -1,26 +1,14 @@
-package com.sakurasedaia.blenderextensions.blender
+package com.sakurasedaia.blenderextensions.blender.utils
 
-import com.intellij.openapi.components.Service
-import com.intellij.openapi.application.PathManager
-import java.nio.file.Files
-import java.nio.file.Path
-
-@Service
-class BlenderScriptGenerator {
-
-    fun generateStartupScriptContent(port: Int, extensionName: String?): String {
+object BlenderScriptTemplates {
+    fun getReloadScript(port: Int): String {
         return """
-            import bpy
-            import socket
-            import json
-            import traceback
-            import time
-            import sys
-            
             def listen_for_reload():
                 import json
                 import sys
                 import time
+                import socket
+                import traceback
                 
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 max_retries = 5
@@ -57,6 +45,7 @@ class BlenderScriptGenerator {
                                 
                                 def do_reload():
                                     try:
+                                        import bpy
                                         module_name = f"bl_ext.blender_pycharm.{extension_name}"
                                         
                                         # 1. Disable if enabled
@@ -82,6 +71,7 @@ class BlenderScriptGenerator {
                                     return None # Don't repeat the timer
                                 
                                 # Use timer to run on main thread
+                                import bpy
                                 if hasattr(bpy.app, 'timers'):
                                     bpy.app.timers.register(do_reload)
                                 else:
@@ -100,17 +90,12 @@ class BlenderScriptGenerator {
         """.trimIndent()
     }
 
-    fun createStartupScript(port: Int, repoDir: Path?, extensionName: String?): Path {
-        val repoPath = repoDir?.toAbsolutePath()?.toString()?.replace("\\", "\\\\") ?: ""
-        val extName = extensionName ?: ""
-        val scriptContent = """
-            import bpy
-            import socket
-            import threading
-            import os
-            import traceback
-
+    fun getRepoSetupScript(repoName: String, repoPath: String): String {
+        return """
             def ensure_extension_repo_exists(repo_name, repo_path):
+                import bpy
+                import os
+                import traceback
                 if bpy.app.version < (4, 2, 0):
                     return
                 if not repo_path or not os.path.exists(repo_path):
@@ -186,82 +171,12 @@ class BlenderScriptGenerator {
                     print(f"Failed to create extensions repository: {e}")
                     traceback.print_exc()
 
-            def listen_for_reload():
-                import json
-                import sys
-                import time
-                
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                max_retries = 5
-                retry_count = 0
-                connected = False
-                
-                while retry_count < max_retries:
-                    try:
-                        s.connect(('127.0.0.1', $port))
-                        connected = True
-                        break
-                    except Exception as e:
-                        retry_count += 1
-                        print(f"Connection attempt {retry_count} failed: {e}. Retrying in 1s...")
-                        time.sleep(1)
-                
-                if not connected:
-                    print(f"Failed to connect to IntelliJ after {max_retries} attempts.")
-                    return
+            ensure_extension_repo_exists("$repoName", "$repoPath")
+        """.trimIndent()
+    }
 
-                try:
-                    # Send ready message
-                    s.sendall(json.dumps({"type": "ready"}).encode() + b"\n")
-                    print(f"Connected to IntelliJ for extension reloading on port $port")
-                    while True:
-                        data = s.recv(1024)
-                        if not data:
-                            break
-                        try:
-                            message = json.loads(data.decode().strip())
-                            if message.get('type') == 'reload':
-                                extension_name = message.get('name')
-                                print(f"Received reload command for: {extension_name}")
-                                
-                                def do_reload():
-                                    try:
-                                        module_name = f"bl_ext.blender_pycharm.{extension_name}"
-                                        
-                                        # 1. Disable if enabled
-                                        if module_name in bpy.context.preferences.addons:
-                                            bpy.ops.preferences.addon_disable(module=module_name)
-                                        
-                                        # 2. Refresh repositories to pick up file changes
-                                        if hasattr(bpy.ops.extensions, 'repo_refresh_all'):
-                                            bpy.ops.extensions.repo_refresh_all()
-                                        
-                                        # 3. Purge from sys.modules to force re-import
-                                        for m in list(sys.modules.keys()):
-                                            if m == module_name or m.startswith(module_name + "."):
-                                                del sys.modules[m]
-                                        
-                                        # 4. Re-enable
-                                        bpy.ops.preferences.addon_enable(module=module_name)
-                                        print(f"Successfully reloaded extension: {module_name}")
-                                        
-                                    except Exception as e:
-                                        print(f"Error during reload of {extension_name}: {e}")
-                                        traceback.print_exc()
-                                    return None # Don't repeat the timer
-                                
-                                # Use timer to run on main thread
-                                if hasattr(bpy.app, 'timers'):
-                                    bpy.app.timers.register(do_reload)
-                                else:
-                                    do_reload()
-                        except Exception as e:
-                            print(f"Error parsing reload message: {e}")
-                except Exception as e:
-                    print(f"Error in listen_for_reload: {e}")
-                finally:
-                    s.close()
-            
+    fun getAutoEnableScript(extensionName: String): String {
+        return """
             def ensure_extension_enabled(extension_name):
                 if not extension_name:
                     return
@@ -278,40 +193,10 @@ class BlenderScriptGenerator {
                         print(f"Failed to auto-enable {module_name}: {e}")
                 return None
 
-            ensure_extension_repo_exists("blender_pycharm", r"$repoPath")
             if hasattr(bpy.app, 'timers'):
-                bpy.app.timers.register(lambda: ensure_extension_enabled("$extName"), first_interval=1.0)
+                bpy.app.timers.register(lambda: ensure_extension_enabled("$extensionName"), first_interval=1.0)
             else:
-                ensure_extension_enabled("$extName")
-            threading.Thread(target=listen_for_reload, daemon=True).start()
+                ensure_extension_enabled("$extensionName")
         """.trimIndent()
-        
-        val scratchPath = Path.of(PathManager.getConfigPath(), "scratches")
-        val scratchDir = if (Files.exists(scratchPath)) {
-            scratchPath
-        } else {
-            Path.of("/home/sakura/.config/JetBrains/IntelliJIdea2025.3/scratches/")
-        }
-        
-        if (!Files.exists(scratchDir)) {
-            Files.createDirectories(scratchDir)
-        }
-        
-        val tempFile = Files.createTempFile(scratchDir, "blender_start", ".py")
-        Files.writeString(tempFile, scriptContent)
-        return tempFile
-    }
-
-    fun cleanupStartupScript(scriptPath: Path?) {
-        if (scriptPath == null) return
-        try {
-            Files.deleteIfExists(scriptPath)
-        } catch (_: Exception) {
-            // Best effort cleanup: script file may already be gone or still locked by the OS.
-        }
-    }
-
-    companion object {
-        fun getInstance(): BlenderScriptGenerator = com.intellij.openapi.application.ApplicationManager.getApplication().getService(BlenderScriptGenerator::class.java)
     }
 }

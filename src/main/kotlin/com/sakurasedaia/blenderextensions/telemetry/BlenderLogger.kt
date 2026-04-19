@@ -28,15 +28,15 @@ class BlenderLogger(private val project: Project) {
 
         val logPath = scratchPath.resolve(".logs")
         
-        if (!logPath.exists()) {
-            Files.createDirectories(logPath)
-        }
-
-        // Custom file logging in scratches/.logs
-        val date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-        val logFile = logPath.resolve("blender_plugin_$date.log")
-        val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
         try {
+            if (!logPath.exists()) {
+                Files.createDirectories(logPath)
+            }
+
+            // Custom file logging in scratches/.logs
+            val date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+            val logFile = logPath.resolve("blender_plugin_$date.log")
+            val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
             logFile.appendText("[$timestamp] $message\n")
         } catch (_: Exception) {
             // Silently ignore logging errors
@@ -50,5 +50,13 @@ class BlenderLogger(private val project: Project) {
 
     companion object {
         fun getInstance(project: Project): BlenderLogger = project.getService(BlenderLogger::class.java)
+
+        fun log(project: Project?, message: String) {
+            project?.let { getInstance(it).log(message) } ?: Logger.getInstance(BlenderLogger::class.java).info(message)
+        }
+
+        fun error(project: Project?, message: String, e: Throwable? = null) {
+            project?.let { getInstance(it).error(message, e) } ?: Logger.getInstance(BlenderLogger::class.java).error(message, e)
+        }
     }
 }

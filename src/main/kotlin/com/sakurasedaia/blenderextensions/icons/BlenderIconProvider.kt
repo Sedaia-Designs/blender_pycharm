@@ -4,7 +4,7 @@ import com.intellij.ide.IconProvider
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiDirectory
-import com.sakurasedaia.blenderextensions.settings.BlenderSettings
+import com.sakurasedaia.blenderextensions.ui.settings.BlenderSettings
 import javax.swing.Icon
 
 class BlenderIconProvider : IconProvider() {

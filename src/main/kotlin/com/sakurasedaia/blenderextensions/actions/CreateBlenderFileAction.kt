@@ -5,7 +5,7 @@ import com.intellij.ide.actions.CreateFileFromTemplateDialog
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDirectory
-import com.sakurasedaia.blenderextensions.LangManager
+import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.sakurasedaia.blenderextensions.icons.BlenderIcons
 
 class CreateBlenderFileAction : CreateFileFromTemplateAction(

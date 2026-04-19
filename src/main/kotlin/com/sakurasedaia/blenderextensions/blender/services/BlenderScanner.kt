@@ -1,13 +1,14 @@
-package com.sakurasedaia.blenderextensions.blender
+package com.sakurasedaia.blenderextensions.blender.services
 
-import com.sakurasedaia.blenderextensions.LangManager
-import com.sakurasedaia.blenderextensions.system.BlenderFinder
-import com.intellij.openapi.util.SystemInfo
+import com.sakurasedaia.blenderextensions.common.utils.LangManager
+import com.sakurasedaia.blenderextensions.blender.services.BlenderFinder
+import com.sakurasedaia.blenderextensions.blender.utils.BlenderHelper
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.exists
 import kotlin.io.path.isDirectory
 import kotlin.io.path.name
+import com.sakurasedaia.blenderextensions.blender.utils.BlenderPathUtil
 
 data class BlenderInstallation(
     val name: String,
@@ -32,8 +33,9 @@ object BlenderScanner {
         val installations = mutableListOf<BlenderInstallation>()
         
         when {
-            SystemInfo.isWindows -> installations.addAll(scanWindows())
-            SystemInfo.isLinux -> installations.addAll(scanLinux())
+            BlenderHelper.isWindows() -> installations.addAll(scanWindows())
+            BlenderHelper.isLinux() -> installations.addAll(scanLinux())
+            BlenderHelper.isMac() -> installations.addAll(scanMac())
         }
 
         customPaths.forEach { (pathStr, customName) ->
@@ -74,7 +76,7 @@ object BlenderScanner {
         // Deep search if not immediately found in root
         try {
             Files.walk(path, 3).use { stream ->
-                return stream.filter { it.name == (if (SystemInfo.isWindows) "blender.exe" else "blender") && !it.isDirectory() }
+                return stream.filter { it.name == (if (BlenderHelper.isWindows()) "blender.exe" else "blender") && !it.isDirectory() }
                     .findFirst()
                     .orElse(null)
             }
@@ -125,7 +127,7 @@ object BlenderScanner {
         tryWhich("blender")?.let { addIfValid(installations, it, LangManager.message("blender.installation.manual")) }
 
         // 2. Common binaries in PATH
-        listOf("/usr/bin/blender", "/usr/local/bin/blender", System.getProperty("user.home") + "/bin/blender")
+        listOf("/usr/bin/blender", "/usr/local/bin/blender", BlenderHelper.getUserHome() + "/bin/blender")
             .forEach { addIfValid(installations, it, "System") }
 
         // Check /opt
@@ -140,6 +142,19 @@ object BlenderScanner {
             }
         }
 
+        return installations
+    }
+
+    private fun scanMac(): List<BlenderInstallation> {
+        val installations = mutableListOf<BlenderInstallation>()
+        val appPath = Path.of("/Applications/Blender.app")
+        if (appPath.exists()) {
+            val exe = appPath.resolve("Contents/MacOS/Blender")
+            if (exe.exists()) {
+                val version = BlenderFinder.tryGetVersion(exe.toString())
+                installations.add(BlenderInstallation(LangManager.message("blender.installation.system", version), exe.toString(), version))
+            }
+        }
         return installations
     }
 }

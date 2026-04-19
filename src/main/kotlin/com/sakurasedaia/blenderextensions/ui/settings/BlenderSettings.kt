@@ -1,4 +1,4 @@
-package com.sakurasedaia.blenderextensions.settings
+package com.sakurasedaia.blenderextensions.ui.settings
 
 import com.intellij.openapi.components.*
 import com.intellij.openapi.project.Project

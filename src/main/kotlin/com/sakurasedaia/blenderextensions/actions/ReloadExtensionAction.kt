@@ -2,8 +2,8 @@ package com.sakurasedaia.blenderextensions.actions
 
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.sakurasedaia.blenderextensions.LangManager
-import com.sakurasedaia.blenderextensions.blender.BlenderService
+import com.sakurasedaia.blenderextensions.common.utils.LangManager
+import com.sakurasedaia.blenderextensions.blender.services.BlenderService
 import com.sakurasedaia.blenderextensions.icons.BlenderIcons
 
 class ReloadExtensionAction : AnAction(

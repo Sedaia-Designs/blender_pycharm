@@ -5,8 +5,8 @@ import com.intellij.openapi.fileEditor.FileDocumentManagerListener
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.roots.ProjectFileIndex
-import com.sakurasedaia.blenderextensions.blender.BlenderService
-import com.sakurasedaia.blenderextensions.settings.BlenderSettings
+import com.sakurasedaia.blenderextensions.blender.services.BlenderService
+import com.sakurasedaia.blenderextensions.ui.settings.BlenderSettings
 
 class BlenderFileSaveListener : FileDocumentManagerListener {
     override fun beforeDocumentSaving(document: Document) {

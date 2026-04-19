@@ -10,8 +10,11 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
-import com.sakurasedaia.blenderextensions.LangManager
-import com.sakurasedaia.blenderextensions.blender.BlenderService
+import com.sakurasedaia.blenderextensions.common.utils.LangManager
+import com.sakurasedaia.blenderextensions.blender.services.BlenderService
+import com.sakurasedaia.blenderextensions.blender.model.BlenderVersions
+import com.sakurasedaia.blenderextensions.blender.services.BlenderFinder
+import com.sakurasedaia.blenderextensions.blender.services.BlenderScanner
 
 class BlenderRunProfileState(
     private val project: Project,
@@ -25,7 +28,7 @@ class BlenderRunProfileState(
         val version = options.blenderVersion ?: "5.0"
         var detectedVersion: String? = null
         val blenderPath = when {
-            com.sakurasedaia.blenderextensions.blender.BlenderVersions.SUPPORTED_VERSIONS.any { it.majorMinor == version } -> {
+            com.sakurasedaia.blenderextensions.blender.model.BlenderVersions.SUPPORTED_VERSIONS.any { it.majorMinor == version } -> {
                 service.log(LangManager.message("run.configuration.managed", version))
                 detectedVersion = version
                 ProgressManager.getInstance().run(object : Task.WithResult<String?, ExecutionException>(project, LangManager.message("run.configuration.downloading", version), true) {
@@ -37,7 +40,7 @@ class BlenderRunProfileState(
             else -> {
                 service.log(LangManager.message("run.configuration.system", version))
                 // version is a path. Let's find its version for config import.
-                val inst = com.sakurasedaia.blenderextensions.blender.BlenderScanner.scanSystemInstallations().find { it.path == version }
+                val inst = com.sakurasedaia.blenderextensions.blender.services.BlenderScanner.scanSystemInstallations().find { it.path == version }
                 detectedVersion = inst?.version?.takeIf { it != "Unknown" }
                 version // It's a path
             }
@@ -49,7 +52,7 @@ class BlenderRunProfileState(
 
         // If version is still unknown, try a quick scan of the path itself if it's a path
         if (detectedVersion == null && (blenderPath.contains("/") || blenderPath.contains("\\"))) {
-             detectedVersion = com.sakurasedaia.blenderextensions.system.BlenderFinder.tryGetVersion(blenderPath)
+             detectedVersion = com.sakurasedaia.blenderextensions.blender.services.BlenderFinder.tryGetVersion(blenderPath)
              if (detectedVersion == "Unknown") {
                  val match = Regex("(\\d+\\.\\d+)").find(blenderPath)
                  detectedVersion = match?.groupValues?.get(1)
@@ -65,7 +68,8 @@ class BlenderRunProfileState(
             blenderCommand = options.blenderCommand,
             importUserConfig = options.importUserConfig,
             blenderVersion = detectedVersion,
-            runOptions = options
+            runOptions = options,
+            indicator = ProgressManager.getInstance().progressIndicator
         ) ?: throw ExecutionException(LangManager.message("run.configuration.error.start"))
         
         val consoleBuilder = TextConsoleBuilderFactory.getInstance().createBuilder(project)

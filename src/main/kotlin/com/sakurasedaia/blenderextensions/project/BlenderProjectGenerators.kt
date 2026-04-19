@@ -12,18 +12,20 @@ import com.intellij.ui.components.JBTextField
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.util.ui.FormBuilder
 import com.sakurasedaia.blenderextensions.icons.BlenderIcons
-import com.sakurasedaia.blenderextensions.LangManager
+import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.intellij.ui.DocumentAdapter
 import com.intellij.util.ui.UIUtil
 import javax.swing.event.DocumentEvent
 import javax.swing.SwingUtilities
 import com.intellij.execution.RunManager
 import com.intellij.execution.configurations.ConfigurationTypeUtil
-import com.sakurasedaia.blenderextensions.blender.*
-import com.sakurasedaia.blenderextensions.system.*
+import com.sakurasedaia.blenderextensions.blender.model.*
+import com.sakurasedaia.blenderextensions.blender.services.*
+import com.sakurasedaia.blenderextensions.blender.utils.*
+import com.sakurasedaia.blenderextensions.common.utils.*
 import com.sakurasedaia.blenderextensions.run.*
 import com.sakurasedaia.blenderextensions.python.PythonService
-import com.sakurasedaia.blenderextensions.settings.BlenderSettings
+import com.sakurasedaia.blenderextensions.ui.settings.BlenderSettings
 import com.intellij.openapi.roots.OrderRootType
 import com.intellij.openapi.vfs.VirtualFileManager
 import java.nio.file.Files
@@ -32,6 +34,10 @@ import javax.swing.Icon
 import javax.swing.JPanel
 import java.lang.ref.WeakReference
 import kotlin.io.path.writeText
+import com.sakurasedaia.blenderextensions.blender.model.BlenderVersions
+import com.sakurasedaia.blenderextensions.blender.services.BlenderDownloader
+import com.sakurasedaia.blenderextensions.blender.services.BlenderFinder
+import com.sakurasedaia.blenderextensions.blender.services.BlenderScanner
 
 
 internal fun formatToId(name: String, allowCapitals: Boolean = false): String {

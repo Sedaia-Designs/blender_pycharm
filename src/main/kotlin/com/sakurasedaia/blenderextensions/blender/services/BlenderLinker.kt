@@ -1,15 +1,18 @@
-package com.sakurasedaia.blenderextensions.blender
+package com.sakurasedaia.blenderextensions.blender.services
 
-import com.sakurasedaia.blenderextensions.LangManager
-import com.sakurasedaia.blenderextensions.system.ExternalProcessUtil
+import com.sakurasedaia.blenderextensions.common.utils.LangManager
+import com.sakurasedaia.blenderextensions.common.utils.ExternalProcessUtil
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
+import com.sakurasedaia.blenderextensions.blender.utils.BlenderHelper
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.exists
 import kotlin.io.path.name
+import com.sakurasedaia.blenderextensions.blender.utils.BlenderPathUtil
+import com.sakurasedaia.blenderextensions.ui.settings.BlenderSettings
 
 @Service(Service.Level.PROJECT)
 class BlenderLinker(private val project: Project) {
@@ -36,7 +39,7 @@ class BlenderLinker(private val project: Project) {
                 logger.log(LangManager.message("log.linker.source.not.found", sourcePath.toString()))
             }
         } else {
-            val settings = com.sakurasedaia.blenderextensions.settings.BlenderSettings.getInstance(project)
+            val settings = com.sakurasedaia.blenderextensions.ui.settings.BlenderSettings.getInstance(project)
             val markedSources = settings.getSourceFolders()
             if (markedSources.isNotEmpty()) {
                 markedSources.forEach { pathStr ->
@@ -71,7 +74,7 @@ class BlenderLinker(private val project: Project) {
                 logger.log(LangManager.message("log.linker.created.link", targetLink.toString(), sourcePath.toString()))
             } catch (e: Exception) {
                 logger.log(LangManager.message("log.linker.failed.link", sourcePath.toString(), e.message ?: ""))
-                if (System.getProperty("os.name").lowercase().contains("win")) {
+                if (BlenderHelper.isWindows()) {
                     createWindowsJunction(targetLink, sourcePath)
                 }
             }

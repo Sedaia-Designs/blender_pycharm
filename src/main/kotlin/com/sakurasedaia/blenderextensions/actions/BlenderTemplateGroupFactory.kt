@@ -2,7 +2,7 @@ package com.sakurasedaia.blenderextensions.actions
 
 import com.intellij.ide.fileTemplates.FileTemplateGroupDescriptor
 import com.intellij.ide.fileTemplates.FileTemplateGroupDescriptorFactory
-import com.sakurasedaia.blenderextensions.LangManager
+import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.sakurasedaia.blenderextensions.icons.BlenderIcons
 
 class BlenderTemplateGroupFactory : FileTemplateGroupDescriptorFactory {

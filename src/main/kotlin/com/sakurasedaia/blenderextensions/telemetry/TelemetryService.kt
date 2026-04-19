@@ -2,6 +2,7 @@ package com.sakurasedaia.blenderextensions.telemetry
 
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
+import com.sakurasedaia.blenderextensions.blender.utils.BlenderHelper
 import com.sakurasedaia.blenderextensions.python.PythonService
 import com.sakurasedaia.blenderextensions.python.PythonUtil
 import com.sakurasedaia.blenderextensions.run.BlenderRunConfigurationOptions
@@ -20,9 +21,9 @@ class BlenderTelemetryService(private val project: Project) {
 	    blenderPath: String? = null,
 	    blenderVersion: String? = null
     ) {
-        val osName = System.getProperty("os.name")
-        val osVersion = System.getProperty("os.version")
-        val osArch = System.getProperty("os.arch")
+        val osName = BlenderHelper.getRawOsName()
+        val osVersion = BlenderHelper.getOsVersion()
+        val osArch = BlenderHelper.getRawArchName()
         val javaVersion = System.getProperty("java.version")
         
         val ramGb = try {

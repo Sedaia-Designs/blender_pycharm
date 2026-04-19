@@ -1,10 +1,10 @@
-package com.sakurasedaia.blenderextensions.ui
+package com.sakurasedaia.blenderextensions.ui.components
 
 import com.intellij.openapi.project.Project
 import com.intellij.ui.table.JBTable
-import com.sakurasedaia.blenderextensions.LangManager
-import com.sakurasedaia.blenderextensions.blender.BlenderDownloader
-import com.sakurasedaia.blenderextensions.blender.BlenderVersions
+import com.sakurasedaia.blenderextensions.common.utils.LangManager
+import com.sakurasedaia.blenderextensions.blender.services.BlenderDownloader
+import com.sakurasedaia.blenderextensions.blender.model.BlenderVersions
 import javax.swing.JTable
 import javax.swing.ListSelectionModel
 import javax.swing.table.AbstractTableModel

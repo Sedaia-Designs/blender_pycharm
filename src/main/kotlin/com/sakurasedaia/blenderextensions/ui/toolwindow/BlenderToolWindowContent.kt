@@ -1,4 +1,4 @@
-package com.sakurasedaia.blenderextensions.ui
+package com.sakurasedaia.blenderextensions.ui.toolwindow
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.progress.ProgressIndicator
@@ -8,10 +8,10 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.Messages
 import com.intellij.util.ui.JBUI
-import com.sakurasedaia.blenderextensions.LangManager
-import com.sakurasedaia.blenderextensions.blender.BlenderDownloader
-import com.sakurasedaia.blenderextensions.blender.BlenderService
-import com.sakurasedaia.blenderextensions.blender.BlenderVersions
+import com.sakurasedaia.blenderextensions.common.utils.LangManager
+import com.sakurasedaia.blenderextensions.blender.services.BlenderDownloader
+import com.sakurasedaia.blenderextensions.blender.services.BlenderService
+import com.sakurasedaia.blenderextensions.blender.model.BlenderVersions
 import com.sakurasedaia.blenderextensions.notifications.BlenderNotification
 import com.sakurasedaia.blenderextensions.python.PythonService
 import java.awt.BorderLayout
@@ -19,6 +19,7 @@ import java.awt.FlowLayout
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
 import javax.swing.*
+import com.sakurasedaia.blenderextensions.ui.settings.BlenderConfigurable
 
 class BlenderToolWindowContent(private val project: Project) {
     private val blenderService = BlenderService.getInstance(project)
@@ -48,7 +49,7 @@ class BlenderToolWindowContent(private val project: Project) {
         val openSettingsButton = JButton(com.intellij.icons.AllIcons.General.Settings)
         openSettingsButton.toolTipText = LangManager.message("toolwindow.open.settings")
         openSettingsButton.addActionListener {
-            com.intellij.openapi.options.ShowSettingsUtil.getInstance().showSettingsDialog(project, com.sakurasedaia.blenderextensions.settings.BlenderConfigurable::class.java)
+            com.intellij.openapi.options.ShowSettingsUtil.getInstance().showSettingsDialog(project, com.sakurasedaia.blenderextensions.ui.settings.BlenderConfigurable::class.java)
         }
         settingsPanel.add(openSettingsButton)
         mainPanel.add(settingsPanel, gbc)

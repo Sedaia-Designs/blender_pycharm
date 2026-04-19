@@ -1,9 +1,10 @@
-package com.sakurasedaia.blenderextensions.system
+package com.sakurasedaia.blenderextensions.blender.services
 
+import com.sakurasedaia.blenderextensions.blender.utils.BlenderHelper
 import com.intellij.execution.util.ExecUtil
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.ide.util.PropertiesComponent
-import com.sakurasedaia.blenderextensions.LangManager
+import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import java.nio.file.Path
 import kotlin.io.path.exists
 
@@ -39,7 +40,7 @@ object BlenderFinder {
 
     fun tryWhich(exec: String): String? {
         return try {
-            val commandLine = GeneralCommandLine(if (System.getProperty("os.name").lowercase().contains("win")) "where" else "which", exec)
+            val commandLine = GeneralCommandLine(if (BlenderHelper.isWindows()) "where" else "which", exec)
             val output = ExecUtil.execAndGetOutput(commandLine)
             val result = output.stdoutLines.firstOrNull()?.trim()
             if (output.exitCode == 0 && !result.isNullOrEmpty() && !result.contains("not found")) {

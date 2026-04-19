@@ -1,14 +1,14 @@
-package com.sakurasedaia.blenderextensions.ui
+package com.sakurasedaia.blenderextensions.ui.components
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.ui.table.JBTable
-import com.sakurasedaia.blenderextensions.LangManager
-import com.sakurasedaia.blenderextensions.blender.BlenderInstallation
-import com.sakurasedaia.blenderextensions.blender.BlenderScanner
-import com.sakurasedaia.blenderextensions.blender.BlenderService
+import com.sakurasedaia.blenderextensions.common.utils.LangManager
+import com.sakurasedaia.blenderextensions.blender.services.BlenderInstallation
+import com.sakurasedaia.blenderextensions.blender.services.BlenderScanner
+import com.sakurasedaia.blenderextensions.blender.services.BlenderService
 import com.sakurasedaia.blenderextensions.icons.BlenderIcons
-import com.sakurasedaia.blenderextensions.settings.BlenderSettings
+import com.sakurasedaia.blenderextensions.ui.settings.BlenderSettings
 import java.awt.Component
 import javax.swing.*
 import javax.swing.table.AbstractTableModel

@@ -1,10 +1,10 @@
-package com.sakurasedaia.blenderextensions.system
+package com.sakurasedaia.blenderextensions.common.utils
 
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.ProcessCanceledException
-import com.sakurasedaia.blenderextensions.LangManager
+import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
 
 object ExternalProcessUtil {

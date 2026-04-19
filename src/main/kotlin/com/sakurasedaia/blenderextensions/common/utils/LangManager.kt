@@ -1,4 +1,4 @@
-package com.sakurasedaia.blenderextensions
+package com.sakurasedaia.blenderextensions.common.utils
 
 import com.intellij.DynamicBundle
 import org.jetbrains.annotations.PropertyKey

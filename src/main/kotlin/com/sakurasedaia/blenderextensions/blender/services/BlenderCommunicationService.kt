@@ -1,4 +1,4 @@
-package com.sakurasedaia.blenderextensions.blender
+package com.sakurasedaia.blenderextensions.blender.services
 
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
@@ -8,7 +8,7 @@ import java.io.InputStreamReader
 import java.io.PrintWriter
 import java.net.ServerSocket
 import java.net.Socket
-import com.sakurasedaia.blenderextensions.LangManager
+import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
 
 @Service(Service.Level.PROJECT)

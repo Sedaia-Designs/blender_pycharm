@@ -1,12 +1,12 @@
-package com.sakurasedaia.blenderextensions.ui
+package com.sakurasedaia.blenderextensions.ui.statusbar
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.StatusBar
 import com.intellij.openapi.wm.StatusBarWidget
 import com.intellij.util.Alarm
-import com.sakurasedaia.blenderextensions.LangManager
-import com.sakurasedaia.blenderextensions.blender.BlenderCommunicationService
-import com.sakurasedaia.blenderextensions.blender.BlenderService
+import com.sakurasedaia.blenderextensions.common.utils.LangManager
+import com.sakurasedaia.blenderextensions.blender.services.BlenderCommunicationService
+import com.sakurasedaia.blenderextensions.blender.services.BlenderService
 import com.sakurasedaia.blenderextensions.icons.BlenderIcons
 import javax.swing.Icon
 
