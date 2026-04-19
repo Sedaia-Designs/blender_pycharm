@@ -33,6 +33,7 @@ class BlenderLauncher(private val project: Project) {
         blenderVersion: String? = null,
         indicator: ProgressIndicator? = null
     ): OSProcessHandler? {
+        logger.log("BlenderLauncher.startBlenderProcess: Resolving executable for path '$blenderPath' and version '${blenderVersion ?: "Unknown"}'")
         val downloader = BlenderDownloader.getInstance(project)
         
         // Use updated downloader logic to resolve path if it doesn't exist
@@ -46,9 +47,13 @@ class BlenderLauncher(private val project: Project) {
         
         // Use updated discovery logic: if it's a directory, find the executable
         if (blenderFile.exists() && blenderFile.isDirectory()) {
+            logger.log("Path '$actualPath' is a directory, searching for Blender executable...")
             val executable = BlenderPathUtil.findBlenderExecutable(blenderFile)
             if (executable != null) {
                 blenderFile = executable
+                logger.log("Found Blender executable: ${blenderFile.absolutePathString()}")
+            } else {
+                logger.log("Could not find $executable in directory: $actualPath")
             }
         }
 
@@ -91,9 +96,10 @@ class BlenderLauncher(private val project: Project) {
         val handler = indicator.toBlenderHandler(downloader, blenderVersion ?: "unknown", statusText, ProgressType.SANDBOX)
         
         try {
-            logger.log(statusText)
+            logger.log("$statusText (Version: ${blenderVersion ?: "Unknown"})")
             val projectPath = project.basePath ?: return
             val sandboxDir = Paths.get(projectPath, ".venv", "blender_sandbox")
+            logger.log("Sandbox directory: ${sandboxDir.absolutePathString()}")
             val configDir = sandboxDir.resolve("config")
             val scriptsDir = sandboxDir.resolve("scripts")
             

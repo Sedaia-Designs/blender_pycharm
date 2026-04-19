@@ -2,7 +2,8 @@ package com.sakurasedaia.blenderextensions.blender.utils
 
 import com.intellij.openapi.project.Project
 import com.sakurasedaia.blenderextensions.ui.settings.BlenderSettings
-import com.sakurasedaia.blenderextensions.blender.utils.BlenderHelper
+import com.sakurasedaia.blenderextensions.blender.model.BlenderVersions
+import com.sakurasedaia.blenderextensions.blender.services.BlenderFinder
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -64,16 +65,47 @@ object BlenderPathUtil {
     }
 
     fun findBlenderExecutable(directory: Path): Path? {
-        if (!directory.exists() || !directory.isDirectory()) return null
+        if (!directory.exists()) return null
+        if (!directory.isDirectory()) return null
 
         val executableName = getBlenderExecutableName()
         val isWindows = BlenderHelper.isWindows()
 
         // Walk the directory to find the executable, limited depth for performance
-        Files.walk(directory, 3).use { stream ->
-            return stream.filter { path ->
-                path.name == executableName && path.isRegularFile() && (isWindows || Files.isExecutable(path))
+        val found = Files.walk(directory, 5).use { stream ->
+            stream.filter { path ->
+                val matchesName = path.name == executableName
+                val isFile = path.isRegularFile()
+                val isExec = isWindows || Files.isExecutable(path)
+                matchesName && isFile && isExec
             }.findFirst().orElse(null)
         }
+        return found
+    }
+
+    fun extractVersionFromPath(path: String): String? {
+        // Search for any of our supported versions in the path
+        return BlenderVersions.SUPPORTED_VERSIONS.find {
+            path.contains(it.majorMinor)
+        }?.majorMinor
+    }
+
+    fun detectVersion(project: Project?, path: String): String? {
+        val version = BlenderFinder.tryGetVersion(path)
+        if (version != "Unknown" && version.isNotBlank()) {
+            return version
+        }
+
+        // Check managed versions first if we have a project
+        if (project != null) {
+            for (v in BlenderVersions.SUPPORTED_VERSIONS) {
+                val managedDir = getVersionDirectory(project, v.majorMinor)
+                if (path.startsWith(managedDir.toString())) {
+                    return v.majorMinor
+                }
+            }
+        }
+
+        return extractVersionFromPath(path)
     }
 }

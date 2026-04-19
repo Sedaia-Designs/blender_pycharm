@@ -9,8 +9,7 @@ import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
 import com.sakurasedaia.blenderextensions.blender.utils.BlenderHelper
 import java.nio.file.Files
 import java.nio.file.Path
-import kotlin.io.path.exists
-import kotlin.io.path.name
+import kotlin.io.path.*
 import com.sakurasedaia.blenderextensions.blender.utils.BlenderPathUtil
 import com.sakurasedaia.blenderextensions.ui.settings.BlenderSettings
 
@@ -19,7 +18,11 @@ class BlenderLinker(private val project: Project) {
     private val logger = BlenderLogger.getInstance(project)
 
     fun linkExtensionSource(addonSourceDir: String?, addonSymlinkName: String?, isSandboxed: Boolean = false) {
-        val userRepoDir = getExtensionsRepoDir(isSandboxed) ?: return
+        val userRepoDir = getExtensionsRepoDir(isSandboxed) ?: run {
+            logger.log("BlenderLinker: Could not determine extensions repository directory (Sandboxed: $isSandboxed)")
+            return
+        }
+        logger.log("BlenderLinker: Linking extension source to: ${userRepoDir.absolutePathString()}")
         
         if (!userRepoDir.exists()) {
             Files.createDirectories(userRepoDir)
@@ -111,9 +114,14 @@ class BlenderLinker(private val project: Project) {
                 Files.isDirectory(path) && path.name.all { it.isDigit() || it == '.' }
             }.toList()
         }
-        val latestVersion = versions.maxByOrNull { it.name } ?: return null
-
-        return latestVersion.resolve("extensions").resolve("blender_pycharm")
+        val latestVersion = versions.maxByOrNull { it.name } ?: run {
+            logger.log("BlenderLinker: No versioned configuration directories found in ${blenderConfigDir.absolutePathString()}")
+            return null
+        }
+        
+        val repoDir = latestVersion.resolve("extensions").resolve("blender_pycharm")
+        logger.log("BlenderLinker: Detected latest Blender config version: ${latestVersion.name}, repo path: ${repoDir.absolutePathString()}")
+        return repoDir
     }
 
     companion object {

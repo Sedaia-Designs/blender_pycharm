@@ -14,8 +14,7 @@ import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
 import com.sakurasedaia.blenderextensions.telemetry.BlenderTelemetryService
 import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.io.path.exists
-import kotlin.io.path.name
+import kotlin.io.path.*
 import com.sakurasedaia.blenderextensions.blender.utils.BlenderScriptGenerator
 
 @Service(Service.Level.PROJECT)
@@ -53,6 +52,7 @@ class BlenderService(private val project: Project) {
         val projectPath = project.basePath ?: return
         val sandboxDir = Path.of(projectPath, ".venv", "blender_sandbox")
         if (sandboxDir.exists()) {
+            logger.log("Clearing Blender sandbox at: $sandboxDir")
             com.intellij.openapi.util.io.FileUtil.delete(sandboxDir.toFile())
             logger.log(LangManager.message("log.service.cleared.sandbox", sandboxDir.toString()))
         }
@@ -60,7 +60,7 @@ class BlenderService(private val project: Project) {
 
     fun scanInstallations() {
         ApplicationManager.getApplication().executeOnPooledThread {
-            BlenderScanner.scanSystemInstallations(force = true)
+            BlenderScanner.scanSystemInstallations(project = project, force = true)
         }
     }
 
@@ -83,6 +83,7 @@ class BlenderService(private val project: Project) {
         val projectPath = project.basePath ?: return null
 
         val handler = if (!blenderCommand.isNullOrBlank()) {
+            logger.log("Starting Blender with custom command: $blenderCommand (Path: $blenderPath, Version: ${blenderVersion ?: "Unknown"})")
             ApplicationManager.getApplication().executeOnPooledThread {
                 telemetryService.collectAndLogTelemetry(
                     context = "Blender Process Start (Custom Command)",
@@ -115,6 +116,8 @@ class BlenderService(private val project: Project) {
 
             val symlinkName = if (!addonSymlinkName.isNullOrEmpty()) addonSymlinkName else sourcePath.name
             currentExtensionName = symlinkName
+            logger.log("Starting Blender for extension development: $symlinkName (Path: $blenderPath, Version: ${blenderVersion ?: "Unknown"})")
+            logger.log("Linking extension source: ${sourcePath.absolutePathString()} -> $symlinkName (Sandboxed: $isSandboxed)")
 
             linker.linkExtensionSource(addonSourceDir, addonSymlinkName, isSandboxed)
             val repoDir = linker.getExtensionsRepoDir(isSandboxed)
