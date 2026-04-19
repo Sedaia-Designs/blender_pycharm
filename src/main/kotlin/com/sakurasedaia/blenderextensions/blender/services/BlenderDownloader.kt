@@ -68,6 +68,17 @@ class BlenderDownloader(private val project: Project) {
     }
 
     fun getOrDownloadBlenderPath(version: String): String? {
+        logger.log("BlenderDownloader.getOrDownloadBlenderPath: version=$version")
+        
+        // Check if already downloaded before showing progress
+        val versionDir = getVersionDirectory(version)
+        val executable = BlenderPathUtil.findBlenderExecutable(versionDir)
+        if (executable != null) {
+            logger.log("Blender $version found at: ${executable.absolutePathString()}")
+            logger.log(LangManager.message("log.blender.using.cached", version, executable.absolutePathString()))
+            return executable.absolutePathString()
+        }
+
         _downloadProgress.value = DownloadProgress(isDownloading = true, version = version, statusText = LangManager.message("log.blender.downloading", version), type = ProgressType.DOWNLOAD)
         try {
             val result = getOrDownloadBlenderPathInternal(version)
@@ -87,6 +98,7 @@ class BlenderDownloader(private val project: Project) {
         if (!appDir.exists()) {
             Files.createDirectories(appDir)
         }
+
         try {
             if (!isSysCompatible()) {
                 throw Exception("System compatibility check failed")
@@ -95,18 +107,10 @@ class BlenderDownloader(private val project: Project) {
             logger.log(LangManager.message("log.blender.incompatible", e))
             return null
         }
-        
-        // Check if already downloaded
-        val executable = BlenderPathUtil.findBlenderExecutable(versionDir)
-        if (executable != null) {
-            logger.log(LangManager.message("log.blender.using.cached", version, executable.absolutePathString()))
-            return executable.absolutePathString()
-        }
 
         // If not, download it
         val downloadUrl = getDownloadUrl(version)
-        
-        logger.log(LangManager.message("log.blender.downloading", version))
+        logger.log("Blender $version not found in cache. Starting download from: $downloadUrl")
         val downloadedFile = downloadFile(downloadUrl, baseDir) ?: run {
             logger.log(LangManager.message("log.blender.download.failed", version, "Download failed"))
             return null
@@ -114,7 +118,16 @@ class BlenderDownloader(private val project: Project) {
         
         // Extract it
         logger.log(LangManager.message("log.blender.extracting", downloadedFile.name, versionDir.absolutePathString()))
-        extractFile(downloadedFile, appDir, version)
+        val result = extractFile(downloadedFile, appDir, version)
+        if (result != 0) {
+            logger.log("Extraction failed with code: $result. Deleting potentially corrupted archive: ${downloadedFile.absolutePathString()}")
+            try {
+                Files.deleteIfExists(downloadedFile)
+            } catch (e: Exception) {
+                logger.log("Failed to delete corrupted archive: ${e.message}")
+            }
+            return null
+        }
 
         clearCache()
         val finalExecutable = BlenderPathUtil.findBlenderExecutable(versionDir)
@@ -123,6 +136,21 @@ class BlenderDownloader(private val project: Project) {
             PythonService.getInstance(project).installFakeBpyModule(version)
         } else {
             logger.log(LangManager.message("log.blender.could.not.find.exec", versionDir.absolutePathString()))
+            if (versionDir.exists()) {
+                logger.log("Listing contents of ${versionDir.absolutePathString()} (recursive):")
+                try {
+                    Files.walk(versionDir, 3).use { stream ->
+                        stream.forEach { path ->
+                            val relative = versionDir.relativize(path)
+                            logger.log(" - $relative (${if (path.isDirectory()) "dir" else "file"}, ${if (Files.isExecutable(path)) "exec" else "noexec"})")
+                        }
+                    }
+                } catch (e: Exception) {
+                    logger.log("Error listing directory: ${e.message}")
+                }
+            } else {
+                logger.log("Directory ${versionDir.absolutePathString()} does not exist after extraction!")
+            }
         }
         return finalExecutable?.absolutePathString()
     }
@@ -182,18 +210,18 @@ class BlenderDownloader(private val project: Project) {
         }
     }
 
-    private fun extractFile(file: Path, targetDir: Path, version: String) {
+    private fun extractFile(file: Path, targetDir: Path, version: String): Int {
         val statusText = LangManager.message("log.blender.extracting.progress", file.name)
         val handler = ProgressManager.getInstance().progressIndicator.toBlenderHandler(this, version, statusText)
         handler.text2 = file.name
         handler.isIndeterminate = true
         
         val fileName = file.name
-        try {
+        return try {
             ArchiveUtil.extractFile(file, targetDir, logger, version)
         } catch (e: Exception) {
             logger.log(LangManager.message("log.blender.extraction.failed", fileName, e.message ?: ""))
-            throw e
+            -1
         }
     }
 

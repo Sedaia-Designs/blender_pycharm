@@ -8,7 +8,7 @@ import kotlin.io.path.*
 import com.sakurasedaia.blenderextensions.blender.utils.BlenderHelper
 
 object ArchiveUtil {
-    fun extractFile(file: Path, targetDir: Path, logger: BlenderLogger? = null, version: String = "", override: Boolean = true) {
+    fun extractFile(file: Path, targetDir: Path, logger: BlenderLogger? = null, version: String = "", override: Boolean = true): Int {
         /*
         * Function is the entrypoint for extracting files from the downloaded Blender distribution.
         *
@@ -16,13 +16,14 @@ object ArchiveUtil {
         * can be supported if they change the packaging methods.
         * */
         
-        if (Files.exists(targetDir)) {
+        val versionDir = targetDir.resolve(version)
+        if (Files.exists(versionDir)) {
             if (!override) {
-                logger?.log("Target directory already exists, skipping extraction: $targetDir")
-                return
+                logger?.log("Target directory already exists, skipping extraction: $versionDir")
+                return 0
             }
-            targetDir.toFile().deleteRecursively()
-            logger?.log("Purged existing $targetDir")
+            versionDir.toFile().deleteRecursively()
+            logger?.log("Purged existing $versionDir")
         }
         
         val result = try {
@@ -41,14 +42,15 @@ object ArchiveUtil {
         }
         
         when (result) {
-            0 -> logger?.log("Successfully extracted ${file.name} to $targetDir")
+            0 -> logger?.log("Successfully extracted ${file.name} to ${targetDir.resolve(version)}")
             1 -> logger?.log("User canceled extraction of ${file.name}")
             else -> logger?.error("Failed to extract ${file.name}")
         }
+        return result
     }
     
     private fun extractTar(file: Path, targetDir: Path, version: String, logger: BlenderLogger? = null): Int {
-        val targetPath: Path = Path.of("${targetDir.absolutePathString()}/$version")
+        val targetPath: Path = targetDir.resolve(version)
         Files.createDirectories(targetPath)
         logger?.log("Created $targetPath")
         val command = GeneralCommandLine(
