@@ -1,6 +1,6 @@
-package com.sakurasedaia.blenderextensions.blender
+package com.sakurasedaia.blenderextensions.blender.services
 
-import com.sakurasedaia.blenderextensions.LangManager
+import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.execution.process.ProcessListener
@@ -9,13 +9,14 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.sakurasedaia.blenderextensions.notifications.BlenderNotification
 import com.sakurasedaia.blenderextensions.python.PythonService
-import com.sakurasedaia.blenderextensions.settings.BlenderSettings
+import com.sakurasedaia.blenderextensions.ui.settings.BlenderSettings
 import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
 import com.sakurasedaia.blenderextensions.telemetry.BlenderTelemetryService
 import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.io.path.exists
 import kotlin.io.path.name
+import com.sakurasedaia.blenderextensions.blender.utils.BlenderScriptGenerator
 
 @Service(Service.Level.PROJECT)
 class BlenderService(private val project: Project) {
@@ -72,7 +73,8 @@ class BlenderService(private val project: Project) {
         blenderCommand: String? = null,
         importUserConfig: Boolean = false,
         blenderVersion: String? = null,
-        runOptions: com.sakurasedaia.blenderextensions.run.BlenderRunConfigurationOptions? = null
+        runOptions: com.sakurasedaia.blenderextensions.run.BlenderRunConfigurationOptions? = null,
+        indicator: com.intellij.openapi.progress.ProgressIndicator? = null
     ): OSProcessHandler? {
         if (isRunning.get()) return processHandler
         hasError.set(false)
@@ -95,7 +97,8 @@ class BlenderService(private val project: Project) {
                 isSandboxed = isSandboxed,
                 blenderCommand = blenderCommand,
                 importUserConfig = importUserConfig,
-                blenderVersion = blenderVersion
+                blenderVersion = blenderVersion,
+                indicator = indicator
             )
         } else {
             val sourcePath = if (!addonSourceDir.isNullOrEmpty()) {
@@ -133,7 +136,8 @@ class BlenderService(private val project: Project) {
                 additionalArgs = additionalArgs,
                 isSandboxed = isSandboxed,
                 importUserConfig = importUserConfig,
-                blenderVersion = blenderVersion
+                blenderVersion = blenderVersion,
+                indicator = indicator
             )
         }
 

@@ -1,7 +1,7 @@
 package com.sakurasedaia.blenderextensions.python
  
-import com.sakurasedaia.blenderextensions.system.ExternalProcessUtil
-import com.sakurasedaia.blenderextensions.LangManager
+import com.sakurasedaia.blenderextensions.common.utils.ExternalProcessUtil
+import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.execution.configurations.GeneralCommandLine
@@ -10,8 +10,8 @@ import java.nio.file.Path
 @Service(Service.Level.PROJECT)
 class PythonService(private val project: Project) {
     
-    fun installFakeBpyModule(version: String) =
-        PythonLinterService.getInstance(project).installFakeBpyModule(version)
+    fun installFakeBpyModule(version: String, indicator: com.intellij.openapi.progress.ProgressIndicator? = null) =
+        PythonLinterService.getInstance(project).installFakeBpyModule(version, indicator)
     
     fun setupLinter(version: String) =
         PythonLinterService.getInstance(project).setupLinter(version)
