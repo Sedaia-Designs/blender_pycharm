@@ -11,8 +11,12 @@ bl_info = {
 }
 
 import bpy
+import bpy.types as T
+import bpy.props as P
+import bpy.ops as O
+import bpy.utils as U
 
-class SIMPLE_OT_operator(bpy.types.Operator):
+class SIMPLE_OT_operator(T.Operator):
     """Simple Operator Tooltip"""
     bl_idname = "object.simple_operator"
     bl_label = "Simple Operator"
@@ -26,18 +30,21 @@ def menu_func(self, context):
     self.layout.operator(SIMPLE_OT_operator.bl_idname, text=SIMPLE_OT_operator.bl_label)
 
 # Register and unregister classes
+
 classes = (
     SIMPLE_OT_operator,
 )
 
 def register():
     for cls in classes:
-        bpy.utils.register_class(cls)
+        U.register_class(cls)
+
     bpy.types.VIEW3D_MT_object.append(menu_func)
 
 def unregister():
     for cls in reversed(classes):
-        bpy.utils.unregister_class(cls)
+        U.unregister_class(cls)
+
     bpy.types.VIEW3D_MT_object.remove(menu_func)
 
 if __name__ == "__main__":
