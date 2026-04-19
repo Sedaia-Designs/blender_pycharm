@@ -129,7 +129,7 @@ class BlenderDownloader(private val project: Project) {
         
         // Extract it
         logger.log(LangManager.message("log.blender.extracting", downloadedFile.name, versionDir.absolutePathString()))
-        extractFile(downloadedFile, versionDir, version)
+        extractFile(downloadedFile, appDir, version)
 
         clearCache()
         val finalExecutable = findBlenderExecutable(versionDir)
@@ -159,6 +159,7 @@ class BlenderDownloader(private val project: Project) {
     }
 
     private fun getDownloadUrl(version: String, isWindows: Boolean, isLinux: Boolean, arch: String): String {
+        // TODO: Refactor this function to include a checker for Windows ARM
         val baseUrl = "https://download.blender.org/release/Blender$version/"
         val platformSuffix = when {
             isWindows -> "windows-x64\\.zip"
@@ -188,7 +189,7 @@ class BlenderDownloader(private val project: Project) {
     private fun downloadFile(url: String, targetDir: Path): Path? {
         val fileName = url.substringAfterLast("/")
         val targetFile = targetDir.resolve(fileName)
-        
+	      logger.log("Downloading to: ${targetFile.absolutePathString()}")
         val indicator = ProgressManager.getInstance().progressIndicator
         val statusText = LangManager.message("log.blender.downloading.progress", fileName)
         indicator?.text = statusText
@@ -256,11 +257,7 @@ class BlenderDownloader(private val project: Project) {
         
         val fileName = file.name
         try {
-            when {
-                fileName.endsWith(".zip") -> ArchiveUtil.extractZip(file, targetDir, true, logger)
-                fileName.endsWith(".tar.xz") -> ArchiveUtil.extractTarXz(file, getVersionDirectory(version), getAppDirectory(), logger)
-                else -> logger.log(LangManager.message("log.blender.unsupported.format", fileName))
-            }
+            ArchiveUtil.extractFile(file, targetDir, logger, version)
         } catch (e: Exception) {
             logger.log(LangManager.message("log.blender.extraction.failed", fileName, e.message ?: ""))
             throw e
