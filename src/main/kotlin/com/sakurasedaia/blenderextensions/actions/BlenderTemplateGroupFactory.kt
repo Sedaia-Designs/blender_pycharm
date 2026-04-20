@@ -8,8 +8,8 @@ import com.sakurasedaia.blenderextensions.icons.BlenderIcons
 class BlenderTemplateGroupFactory : FileTemplateGroupDescriptorFactory {
     override fun getFileTemplatesDescriptor(): FileTemplateGroupDescriptor {
         val group = FileTemplateGroupDescriptor(LangManager.message("action.blender.menu.text"), BlenderIcons.Blender)
-        group.addTemplate(FileTemplateGroupDescriptor("Component", BlenderIcons.Blender))
-        group.addTemplate(FileTemplateGroupDescriptor("Module", BlenderIcons.Blender))
+        group.addTemplate(FileTemplateGroupDescriptor("Blender Component", BlenderIcons.Blender))
+        group.addTemplate(FileTemplateGroupDescriptor("Blender Package", BlenderIcons.Blender))
         return group
     }
 }

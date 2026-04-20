@@ -62,7 +62,9 @@
                     icon="com.sakurasedaia.blenderextensions.icons.BlenderIcons.Blender"/>
 
         <fileTemplateGroup implementation="com.sakurasedaia.blenderextensions.actions.BlenderTemplateGroupFactory"/>
-        
+        <internalFileTemplate name="Blender Component"/>
+        <internalFileTemplate name="Blender Package"/>
+        <internalFileTemplate name="Add-on"/>
         <statusBarWidgetFactory implementation="com.sakurasedaia.blenderextensions.ui.statusbar.BlenderStatusBarWidgetFactory"
                                 id="BlenderStatus"/>
 
@@ -88,8 +90,8 @@
             <add-to-group group-id="NewGroup" anchor="after" relative-to-action="NewFile"/>
         </action>
 
-        <action id="com.sakurasedaia.blenderextensions.actions.BlenderCreateModuleAction"
-                class="com.sakurasedaia.blenderextensions.actions.BlenderCreateModuleAction"
+        <action id="com.sakurasedaia.blenderextensions.actions.BlenderCreatePackageAction"
+                class="com.sakurasedaia.blenderextensions.actions.BlenderCreatePackageAction"
                 icon="com.sakurasedaia.blenderextensions.icons.BlenderIcons.Blender">
             <add-to-group group-id="NewGroup" anchor="after" relative-to-action="com.sakurasedaia.blenderextensions.actions.CreateBlenderFileAction"/>
         </action>

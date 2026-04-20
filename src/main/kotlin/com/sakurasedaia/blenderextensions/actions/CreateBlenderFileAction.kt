@@ -16,7 +16,7 @@ class CreateBlenderFileAction : CreateFileFromTemplateAction(
     override fun buildDialog(project: Project, directory: PsiDirectory, builder: CreateFileFromTemplateDialog.Builder) {
         builder
             .setTitle(LangManager.message("dialog.title.new.blender.file"))
-            .addKind("Component", BlenderIcons.Blender, "Component")
+            .addKind("Blender Component", BlenderIcons.Blender, "Blender Component")
     }
 
     override fun getActionName(directory: PsiDirectory?, newName: String, templateName: String?): String = 

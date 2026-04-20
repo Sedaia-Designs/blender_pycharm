@@ -11,19 +11,19 @@ import com.intellij.psi.PsiFile
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.sakurasedaia.blenderextensions.icons.BlenderIcons
 
-class BlenderCreateModuleAction : CreateFileFromTemplateAction(
-    LangManager.messagePointer("action.create.blender.module.text"),
-    LangManager.messagePointer("action.create.blender.module.description"),
+class BlenderCreatePackageAction : CreateFileFromTemplateAction(
+    LangManager.messagePointer("action.create.blender.package.text"),
+    LangManager.messagePointer("action.create.blender.package.description"),
     BlenderIcons.Blender
 ), DumbAware {
     override fun buildDialog(project: Project, directory: PsiDirectory, builder: CreateFileFromTemplateDialog.Builder) {
         builder
-            .setTitle(LangManager.message("dialog.title.new.blender.module"))
-            .addKind("Module", BlenderIcons.Blender, "Module")
+            .setTitle(LangManager.message("dialog.title.new.blender.package"))
+            .addKind("Blender Package", BlenderIcons.Blender, "Blender Package")
     }
 
     override fun getActionName(directory: PsiDirectory?, newName: String, templateName: String?): String =
-        LangManager.message("action.create.blender.module.text")
+        LangManager.message("action.create.blender.package.text")
 
     override fun createFile(name: String, templateName: String, dir: PsiDirectory): PsiFile? {
         val project = dir.project
