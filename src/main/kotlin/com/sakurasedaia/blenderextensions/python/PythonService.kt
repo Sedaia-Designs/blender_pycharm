@@ -32,14 +32,17 @@ class PythonService(private val project: Project) {
             val path = Paths.get(blenderPath)
             FileUtil.makeExecutable(path)
             
-            val restriction = FileUtil.getExecutionRestrictionMessage(path)
-            if (restriction != null) {
-                return Pair(restriction, false)
-            }
-            
             val script = "import sys; import importlib.util; has_fake = importlib.util.find_spec('bpy') is not null; print(f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}|{has_fake}')"
             val commandLine = GeneralCommandLine(blenderPath, "--background", "--python-expr", script)
-            val output = ExternalProcessUtil.execAndGetOutput(commandLine)
+            val output = try {
+                ExternalProcessUtil.execAndGetOutput(commandLine)
+            } catch (e: Exception) {
+                val restriction = FileUtil.getExecutionRestrictionMessage(path)
+                if (restriction != null) {
+                    return Pair(restriction, false)
+                }
+                throw e
+            }
             if (output.exitCode == 0) {
                 val lastLine = output.stdoutLines.lastOrNull { it.contains("|") }
                 if (lastLine != null) {

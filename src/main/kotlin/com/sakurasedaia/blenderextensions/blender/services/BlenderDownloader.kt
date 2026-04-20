@@ -73,8 +73,6 @@ class BlenderDownloader(private val project: Project) {
         val executable = BlenderPathUtil.findBlenderExecutable(versionDir)
         if (executable != null) {
             FileUtil.makeExecutable(executable)
-            val restriction = FileUtil.getExecutionRestrictionMessage(executable)
-            if (restriction != null) logger.error(restriction)
             
             logger.log("Blender $version found at: ${executable.absolutePathString()}")
             logger.log(LangManager.message("log.blender.using.cached", version, executable.absolutePathString()))
@@ -122,8 +120,6 @@ class BlenderDownloader(private val project: Project) {
         val finalExecutable = BlenderPathUtil.findBlenderExecutable(versionDir)
         if (finalExecutable != null) {
             FileUtil.makeExecutable(finalExecutable)
-            val restriction = FileUtil.getExecutionRestrictionMessage(finalExecutable)
-            if (restriction != null) logger.error(restriction)
             
             logger.log(LangManager.message("log.blender.extracted", version, finalExecutable.absolutePathString()))
             PythonService.getInstance(project).installFakeBpyModule(version)

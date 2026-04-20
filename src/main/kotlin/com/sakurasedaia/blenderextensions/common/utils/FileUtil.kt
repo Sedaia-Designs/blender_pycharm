@@ -30,16 +30,14 @@ object FileUtil {
         }
     }
 
+    private const val WIKI_EXEC_URL = "https://wiki.sakura-sedaia.com/blender-development-pycharm/usage/linux-execution-guide.html"
+
     /**
      * Validates if a binary can be executed at the given path, checking for filesystem-level restrictions.
      * Returns a descriptive error message if execution is likely to fail, or null if it seems okay.
      */
     fun getExecutionRestrictionMessage(path: Path): String? {
         if (!com.intellij.openapi.util.SystemInfo.isLinux) return null
-        
-        if (!BlenderHelper.isLinux()) {
-            return "Not a Linux partition"
-        }
         
         try {
             val absolutePath = path.toAbsolutePath().toString()
@@ -62,7 +60,7 @@ object FileUtil {
                 }
                 
                 if (optionsStr.split(",").contains("noexec")) {
-                    return "The filesystem at $bestMountPoint is currently mounted with the 'noexec' flag, which prevents binary execution."
+                    return LangManager.message("log.error.noexec.mount", bestMountPoint, WIKI_EXEC_URL)
                 }
             }
 
@@ -83,7 +81,7 @@ object FileUtil {
                         val hasNoExec = options.contains("noexec")
                         
                         if (hasNoExec || (hasUser && !hasExec)) {
-                            return "The filesystem at $mountPoint is configured in /etc/fstab with options that imply 'noexec' (e.g., 'users' without 'exec')."
+                            return LangManager.message("log.error.noexec.fstab", mountPoint, WIKI_EXEC_URL)
                         }
                     }
                 }

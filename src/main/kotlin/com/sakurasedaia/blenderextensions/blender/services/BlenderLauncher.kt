@@ -66,12 +66,6 @@ class BlenderLauncher(private val project: Project) {
         // Ensure execution permission on Unix-like systems
         FileUtil.makeExecutable(blenderFile)
 
-        val restrictionMessage = FileUtil.getExecutionRestrictionMessage(blenderFile)
-        if (restrictionMessage != null) {
-            logger.error(restrictionMessage)
-            throw ExecutionException(restrictionMessage)
-        }
-
         val commandLine = GeneralCommandLine(blenderFile.absolutePathString())
         commandLine.workDirectory = project.basePath?.let { java.io.File(it) }
         
@@ -91,7 +85,19 @@ class BlenderLauncher(private val project: Project) {
         }
         
         logger.log(LangManager.message("log.launcher.executing", commandLine.commandLineString))
-        return OSProcessHandler(commandLine)
+        try {
+            return OSProcessHandler(commandLine)
+        } catch (e: ExecutionException) {
+            val message = e.message ?: ""
+            if (message.contains("Permission denied") || message.contains("error=13")) {
+                val restrictionMessage = FileUtil.getExecutionRestrictionMessage(blenderFile)
+                if (restrictionMessage != null) {
+                    logger.error(restrictionMessage)
+                    throw ExecutionException(restrictionMessage, e)
+                }
+            }
+            throw e
+        }
     }
 
     private fun setupSandbox(
