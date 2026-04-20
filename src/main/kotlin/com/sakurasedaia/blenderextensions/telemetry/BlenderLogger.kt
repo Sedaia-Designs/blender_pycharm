@@ -19,27 +19,28 @@ class BlenderLogger(private val project: Project) {
         // Platform logging
         platformLogger.info(message)
 
-        // Create Log Directory using IDE scratch path
-        val scratchPath = Path.of(PathManager.getConfigPath(), "scratches")
-        
-        if (!scratchPath.exists()) {
-            return // Skip file logging if scratches doesn't exist to avoid hardcoding home paths
-        }
-
-        val logPath = scratchPath.resolve(".logs")
+        // Use official IntelliJ log directory
+        val logPath = Path.of(PathManager.getLogPath()).resolve("blender-plugin")
         
         try {
             if (!logPath.exists()) {
                 Files.createDirectories(logPath)
             }
 
-            // Custom file logging in scratches/.logs
+            // Custom file logging
             val date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
             val logFile = logPath.resolve("blender_plugin_$date.log")
             val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
             logFile.appendText("[$timestamp] $message\n")
         } catch (_: Exception) {
             // Silently ignore logging errors
+        }
+    }
+
+    fun debug(message: String) {
+        platformLogger.debug(message)
+        if (platformLogger.isDebugEnabled) {
+            log("DEBUG: $message")
         }
     }
 
@@ -53,6 +54,10 @@ class BlenderLogger(private val project: Project) {
 
         fun log(project: Project?, message: String) {
             project?.let { getInstance(it).log(message) } ?: Logger.getInstance(BlenderLogger::class.java).info(message)
+        }
+
+        fun debug(project: Project?, message: String) {
+            project?.let { getInstance(it).debug(message) } ?: Logger.getInstance(BlenderLogger::class.java).debug(message)
         }
 
         fun error(project: Project?, message: String, e: Throwable? = null) {

@@ -48,10 +48,10 @@ object PythonUtil {
     }
     
     fun findPythonExecutable(blenderExePath: Path, project: Project? = null): Path? {
-        BlenderLogger.log(project, "[DEBUG_LOG] findPythonExecutable: Searching for bundled Python in $blenderExePath")
+        BlenderLogger.debug(project, "findPythonExecutable: Searching for bundled Python in $blenderExePath")
         val blenderDir = getBlenderInternalDir(blenderExePath) ?: return null
         if (!blenderDir.exists()) {
-            BlenderLogger.log(project, "[DEBUG_LOG] findPythonExecutable: Blender internal directory does not exist: $blenderDir")
+            BlenderLogger.debug(project, "findPythonExecutable: Blender internal directory does not exist: $blenderDir")
             return null
         }
 
@@ -62,36 +62,36 @@ object PythonUtil {
                 }
                     .toList()
             }
-            BlenderLogger.log(project, "[DEBUG_LOG] findPythonExecutable: Found versioned directories in Blender: $versionDirs")
+            BlenderLogger.debug(project, "findPythonExecutable: Found versioned directories in Blender: $versionDirs")
 
             // First try versioned Blender paths: <root>/<version>/python/bin
             for (versionDir in versionDirs) {
-                BlenderLogger.log(project, "[DEBUG_LOG] findPythonExecutable: Checking versioned dir: $versionDir")
+                BlenderLogger.debug(project, "findPythonExecutable: Checking versioned dir: $versionDir")
                 findPythonInDirectory(versionDir.resolve("python").resolve("bin"))?.let {
-                    BlenderLogger.log(project, "[DEBUG_LOG] findPythonExecutable: Found bundled Python at $it")
+                    BlenderLogger.debug(project, "findPythonExecutable: Found bundled Python at $it")
                     return it
                 }
                 findPythonInDirectory(versionDir.resolve("python"))?.let {
-                    BlenderLogger.log(project, "[DEBUG_LOG] findPythonExecutable: Found bundled Python at $it")
+                    BlenderLogger.debug(project, "findPythonExecutable: Found bundled Python at $it")
                     return it
                 }
             }
 
             // Then try non-versioned layout fallbacks: <root>/python/bin
-            BlenderLogger.log(project, "[DEBUG_LOG] findPythonExecutable: Checking non-versioned layout fallbacks in $blenderDir")
+            BlenderLogger.debug(project, "findPythonExecutable: Checking non-versioned layout fallbacks in $blenderDir")
             findPythonInDirectory(blenderDir.resolve("python").resolve("bin"))?.let {
-                BlenderLogger.log(project, "[DEBUG_LOG] findPythonExecutable: Found bundled Python at $it")
+                BlenderLogger.debug(project, "findPythonExecutable: Found bundled Python at $it")
                 return it
             }
             findPythonInDirectory(blenderDir.resolve("python"))?.let {
-                BlenderLogger.log(project, "[DEBUG_LOG] findPythonExecutable: Found bundled Python at $it")
+                BlenderLogger.debug(project, "findPythonExecutable: Found bundled Python at $it")
                 return it
             }
         } catch (e: Exception) {
-            BlenderLogger.log(project, "[DEBUG_LOG] findPythonExecutable: Error searching for bundled Python: ${e.message}")
+            BlenderLogger.debug(project, "findPythonExecutable: Error searching for bundled Python: ${e.message}")
             return null
         }
-        BlenderLogger.log(project, "[DEBUG_LOG] findPythonExecutable: No bundled Python found in $blenderExePath")
+        BlenderLogger.debug(project, "findPythonExecutable: No bundled Python found in $blenderExePath")
         return null
     }
 

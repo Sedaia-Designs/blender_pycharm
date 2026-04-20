@@ -12,14 +12,14 @@ object PythonFinder {
 
     fun getPythonVersion(pythonExe: Path, project: Project? = null): String? {
         if (!pythonExe.exists()) {
-            BlenderLogger.log(project, "[DEBUG_LOG] getPythonVersion: Executable does not exist: $pythonExe")
+            BlenderLogger.debug(project, "getPythonVersion: Executable does not exist: $pythonExe")
             return null
         }
         try {
             val commandLine = GeneralCommandLine(pythonExe.toString(), "--version")
             val output = ExecUtil.execAndGetOutput(commandLine)
             if (output.exitCode != 0) {
-                BlenderLogger.log(project, "[DEBUG_LOG] getPythonVersion: --version failed for $pythonExe (exit code: ${output.exitCode})")
+                BlenderLogger.debug(project, "getPythonVersion: --version failed for $pythonExe (exit code: ${output.exitCode})")
                 return null
             }
             
@@ -33,20 +33,20 @@ object PythonFinder {
             }
             
             if (version != null && version.all { it.isDigit() || it == '.' }) {
-                BlenderLogger.log(project, "[DEBUG_LOG] getPythonVersion: $pythonExe version is $version")
+                BlenderLogger.debug(project, "getPythonVersion: $pythonExe version is $version")
                 return version
             }
             
-            BlenderLogger.log(project, "[DEBUG_LOG] getPythonVersion: $pythonExe version (extracted) is ${version ?: "unknown"}")
+            BlenderLogger.debug(project, "getPythonVersion: $pythonExe version (extracted) is ${version ?: "unknown"}")
             return version
         } catch (e: Exception) {
-            BlenderLogger.log(project, "[DEBUG_LOG] getPythonVersion: Error getting version for $pythonExe: ${e.message}")
+            BlenderLogger.debug(project, "getPythonVersion: Error getting version for $pythonExe: ${e.message}")
             return null
         }
     }
 
     fun findSystemPython(targetVersion: String, project: Project? = null): Path? {
-        BlenderLogger.log(project, "[DEBUG_LOG] findSystemPython: Searching for system Python $targetVersion")
+        BlenderLogger.debug(project, "findSystemPython: Searching for system Python $targetVersion")
         val executableNames = if (BlenderHelper.isWindows()) {
             listOf("python.exe")
         } else {
@@ -55,7 +55,7 @@ object PythonFinder {
 
         val pathEnv = System.getenv("PATH")
         if (pathEnv == null) {
-            BlenderLogger.log(project, "[DEBUG_LOG] findSystemPython: PATH environment variable is null")
+            BlenderLogger.debug(project, "findSystemPython: PATH environment variable is null")
             return null
         }
         val separator = if (BlenderHelper.isWindows()) ";" else ":"
@@ -79,7 +79,7 @@ object PythonFinder {
                         }
                     }
                 } catch (e: Exception) {
-                    BlenderLogger.log(project, "[DEBUG_LOG] findSystemPython: Error calling py.exe: ${e.message}")
+                    BlenderLogger.debug(project, "findSystemPython: Error calling py.exe: ${e.message}")
                 }
             }
         }

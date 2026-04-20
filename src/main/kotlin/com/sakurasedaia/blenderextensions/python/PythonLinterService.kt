@@ -73,8 +73,8 @@ class PythonLinterService(private val project: Project) {
 
     private fun addLinterToCurrentSdk(blenderVersion: String) {
         val logger = BlenderLogger.getInstance(project)
-        logger.log("[DEBUG_LOG] Adding linter to current SDK")
-        logger.log("[DEBUG_LOG] Blender version: $blenderVersion")
+        logger.debug("Adding linter to current SDK")
+        logger.debug("Blender version: $blenderVersion")
         val sdk = ProjectRootManager.getInstance(project).projectSdk ?: return
         val lintDir = PythonUtil.getLintDirectory(blenderVersion, project)
         if (!lintDir.exists()) return
@@ -83,7 +83,7 @@ class PythonLinterService(private val project: Project) {
             val sdkModificator = sdk.sdkModificator
             val vFile = VirtualFileManager.getInstance().findFileByNioPath(lintDir)
             if (vFile != null) {
-                logger.log("[DEBUG_LOG] Linter directory found: ${vFile.path}")
+                logger.debug("Linter directory found: ${vFile.path}")
                 // Check if already present
                 val currentRoots = sdkModificator.getRoots(OrderRootType.CLASSES)
                 if (currentRoots.none { it.path == vFile.path }) {
@@ -105,15 +105,15 @@ class PythonLinterService(private val project: Project) {
         
         var bpyVersion: String
         val latest: String = BlenderVersions.getSupportedVersions().last().majorMinor
-        logger.log("[DEBUG_LOG] Latest Blender version: $latest")
-        logger.log("[DEBUG_LOG] Requested Blender version: $version")
+        logger.debug("Latest Blender version: $latest")
+        logger.debug("Requested Blender version: $version")
         
         if (version == latest) {
             bpyVersion = "latest"
         } else {
             bpyVersion = version
         }
-        logger.log("[DEBUG_LOG] Using Blender version: $bpyVersion")
+        logger.debug("Using Blender version: $bpyVersion")
         
         try {
             // Ensure linter directory exists
@@ -145,7 +145,7 @@ class PythonLinterService(private val project: Project) {
                 "pip", "install", "fake-bpy-module-$bpyVersion",
                 "--target", lintDir.toString()
             )
-            logger.log("[DEBUG_LOG] Installing linter for Blender $bpyVersion: ${command.commandLineString}")
+            logger.debug("Installing linter for Blender $bpyVersion: ${command.commandLineString}")
             
             
             val output = ExternalProcessUtil.execAndGetOutput(command)
