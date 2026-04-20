@@ -52,10 +52,18 @@ This document is the **authoritative Source of Truth** for Junie (the AI agent).
 ### 3.2 Documentation
 - **CHANGELOG.md**: Update for every feature or fix using existing categories.
 - **README.md / CONTRIBUTING.md**: Update if features or workflows change.
+- **Project Wiki**: Whenever significant features or architectural changes are made, you MUST update the corresponding documentation in the project wiki (located at `/mnt/data/PycharmProjects/SakuraProjectWiki/docs/blender-development-pycharm/`).
 
 ---
 
-## 4. Git & Commits
+## 4. AI Prompt Aliases
+
+### 4.1 No Edit:
+- When this prefix is used, no code changes shall be made.
+
+---
+
+## 5. Git & Commits
 
 ### 4.1 Commit Format
 - **Format**: `Type(scope): Description`
@@ -70,7 +78,7 @@ When Junie performs a commit, the command MUST include the following trailer:
 
 ---
 
-## 5. Specialized Skills
+## 6. Specialized Skills
 For domain-specific procedures, refer to:
 - [Git Management](skills/git_management.md)
 - [Development Standards](skills/development_standards.md) (Deep dive)
