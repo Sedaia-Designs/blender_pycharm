@@ -38,39 +38,48 @@ class BlenderRunProfileState(
         service.log("--- Starting Blender Run Configuration: ${environment.runProfile.name} ---")
         service.log("Requested version/path: $version")
         
-        // --- STEP 1 & 2: RESOLVE BLENDER PATH AND VERSION ---
         var detectedVersion: String? = null
-        val blenderPath = resolveBlenderPath(service, version) { detectedVersion = it }
-            ?: throw ExecutionException(LangManager.message("run.configuration.error.start"))
+        var blenderPath: String? = null
+        var handler: com.intellij.execution.process.OSProcessHandler? = null
 
-        service.log("Final Startup Parameters - Path: $blenderPath, Version: $detectedVersion, Sandboxed: ${options.isSandboxed}")
-        
-        // --- STEP 3: START BLENDER PROCESS ---
-        val handler = service.startBlenderProcess(
-            blenderPath = blenderPath,
-            addonSourceDir = options.addonSourceDirectory,
-            addonSymlinkName = options.addonSymlinkName,
-            additionalArgs = options.additionalArguments,
-            isSandboxed = options.isSandboxed,
-            blenderCommand = options.blenderCommand,
-            importUserConfig = options.importUserConfig,
-            blenderVersion = detectedVersion,
-            runOptions = options,
-            indicator = ProgressManager.getInstance().progressIndicator
-        ) ?: throw ExecutionException(LangManager.message("run.configuration.error.start"))
+        ProgressManager.getInstance().runProcessWithProgressSynchronously({
+            val indicator = ProgressManager.getInstance().progressIndicator
+            // --- STEP 1 & 2: RESOLVE BLENDER PATH AND VERSION ---
+            blenderPath = resolveBlenderPathInternal(service, version) { detectedVersion = it }
+            
+            if (blenderPath == null) return@runProcessWithProgressSynchronously
+
+            service.log("Final Startup Parameters - Path: $blenderPath, Version: $detectedVersion, Sandboxed: ${options.isSandboxed}")
+
+            // --- STEP 3: START BLENDER PROCESS ---
+            handler = service.startBlenderProcess(
+                blenderPath = blenderPath!!,
+                addonSourceDir = options.addonSourceDirectory,
+                addonSymlinkName = options.addonSymlinkName,
+                additionalArgs = options.additionalArguments,
+                isSandboxed = options.isSandboxed,
+                blenderCommand = options.blenderCommand,
+                importUserConfig = options.importUserConfig,
+                blenderVersion = detectedVersion,
+                runOptions = options,
+                indicator = indicator
+            )
+        }, LangManager.message("run.configuration.starting", environment.runProfile.name), true, project)
+
+        val finalHandler = handler ?: throw ExecutionException(LangManager.message("run.configuration.error.start"))
         
         // --- STEP 4: ATTACH CONSOLE ---
         val consoleBuilder = TextConsoleBuilderFactory.getInstance().createBuilder(project)
         val console = consoleBuilder.console
-        console.attachToProcess(handler)
+        console.attachToProcess(finalHandler)
         
-        return com.intellij.execution.DefaultExecutionResult(console, handler)
+        return com.intellij.execution.DefaultExecutionResult(console, finalHandler)
     }
 
     /**
      * Resolves the Blender path based on whether it's a managed version or a direct path.
      */
-    private fun resolveBlenderPath(
+    private fun resolveBlenderPathInternal(
         service: BlenderService,
         rawVersion: String,
         onVersionDetected: (String?) -> Unit
@@ -79,12 +88,7 @@ class BlenderRunProfileState(
             BlenderVersions.SUPPORTED_VERSIONS.any { it.majorMinor == rawVersion } -> {
                 service.log("Using managed Blender version: $rawVersion")
                 onVersionDetected(rawVersion)
-                
-                var result: String? = null
-                ProgressManager.getInstance().runProcessWithProgressSynchronously({
-                    result = service.getOrDownloadBlenderPath(rawVersion)
-                }, LangManager.message("run.configuration.downloading", rawVersion), true, project)
-                result
+                service.getOrDownloadBlenderPath(rawVersion)
             }
             else -> {
                 service.log("Using system Blender path: $rawVersion")

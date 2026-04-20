@@ -109,7 +109,7 @@ class SystemBlenderTable(private val project: Project) : JBTable() {
 
         fun refresh() {
             val customPaths = BlenderSettings.getInstance(project).getCustomBlenderPaths()
-            val newInstallations = BlenderScanner.getCachedInstallations() ?: emptyList()
+            val newInstallations = BlenderScanner.scanSystemInstallations(project, force = false, customPaths = customPaths)
             installations = newInstallations
             fireTableDataChanged()
         }

@@ -103,11 +103,11 @@ class BlenderAddonProjectGenerator : DirectoryProjectGenerator<BlenderAddonProje
         BlenderSettings.getInstance(project).addSourceFolder(srcDir.toAbsolutePath().toString().replace("\\", "/"))
 
         val permissionsMap = mutableMapOf<String, String>()
-        if (settings.permissionNetwork && !settings.permissionNetworkReason.isNullOrBlank()) permissionsMap["network"] = settings.permissionNetworkReason!!
-        if (settings.permissionFiles && !settings.permissionFilesReason.isNullOrBlank()) permissionsMap["files"] = settings.permissionFilesReason!!
-        if (settings.permissionClipboard && !settings.permissionClipboardReason.isNullOrBlank()) permissionsMap["clipboard"] = settings.permissionClipboardReason!!
-        if (settings.permissionCamera && !settings.permissionCameraReason.isNullOrBlank()) permissionsMap["camera"] = settings.permissionCameraReason!!
-        if (settings.permissionMicrophone && !settings.permissionMicrophoneReason.isNullOrBlank()) permissionsMap["microphone"] = settings.permissionMicrophoneReason!!
+        if (settings.permissionNetwork) settings.permissionNetworkReason?.let { permissionsMap["network"] = it }
+        if (settings.permissionFiles) settings.permissionFilesReason?.let { permissionsMap["files"] = it }
+        if (settings.permissionClipboard) settings.permissionClipboardReason?.let { permissionsMap["clipboard"] = it }
+        if (settings.permissionCamera) settings.permissionCameraReason?.let { permissionsMap["camera"] = it }
+        if (settings.permissionMicrophone) settings.permissionMicrophoneReason?.let { permissionsMap["microphone"] = it }
 
         val manifestSettings = BlenderManifestSettings(
             id = addonId,
@@ -624,7 +624,7 @@ internal class BlenderAddonProjectPeer : ProjectGeneratorPeer<BlenderAddonProjec
         val name = projectNameField.text.trim()
         if (name.isEmpty() || projectLocation == null) return
 
-        val path = try { Path.of(projectLocation!!) } catch (_: Exception) { return }
+        val path = try { Path.of(projectLocation ?: return) } catch (_: Exception) { return }
         val parent = path.parent ?: return
         val newPath = parent.resolve(name).toAbsolutePath().toString()
 
