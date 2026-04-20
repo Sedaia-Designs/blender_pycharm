@@ -1,6 +1,7 @@
 package com.sakurasedaia.blenderextensions.blender.services
 
 import com.sakurasedaia.blenderextensions.common.utils.ArchiveUtil
+import com.sakurasedaia.blenderextensions.common.utils.FileUtil
 import com.sakurasedaia.blenderextensions.blender.utils.BlenderHelper
 import com.sakurasedaia.blenderextensions.blender.utils.BlenderPathUtil
 import com.intellij.openapi.components.Service
@@ -8,7 +9,6 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.util.io.HttpRequests
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
-import com.sakurasedaia.blenderextensions.ui.settings.BlenderSettings
 import com.sakurasedaia.blenderextensions.python.PythonService
 import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +22,17 @@ import com.sakurasedaia.blenderextensions.blender.model.DownloadProgress
 import com.sakurasedaia.blenderextensions.blender.model.ProgressType
 import com.sakurasedaia.blenderextensions.blender.utils.toBlenderHandler
 
+/**
+ * Service for downloading and extracting Blender versions.
+ * 
+ * The download progression follows these steps:
+ * 1. [isDownloaded] checks if the requested version is already available in the local cache.
+ * 2. [getOrDownloadBlenderPath] triggers the download if not found.
+ * 3. [getDownloadUrl] determines the correct URL based on the user's OS and architecture.
+ * 4. [downloadFile] fetches the archive from download.blender.org.
+ * 5. [ArchiveUtil.extractFile] extracts the archive to the plugin's dedicated Blender directory.
+ * 6. [PythonService] installs fake-bpy modules for better IDE integration after extraction.
+ */
 @Service(Service.Level.PROJECT)
 class BlenderDownloader(private val project: Project) {
     private val logger = BlenderLogger.getInstance(project)
@@ -34,22 +45,9 @@ class BlenderDownloader(private val project: Project) {
         _downloadProgress.value = progress
     }
 
-    fun getBaseDownloadDirectory(): Path {
-        val path = BlenderSettings.getInstance(project).state.downloadsPath
-        return Path.of(path)
-    }
-
-    fun getAppDirectory(): Path {
-        return getBaseDownloadDirectory().resolve("app")
-    }
-
-    fun getVersionDirectory(version: String?): Path {
-        return getAppDirectory().resolve(version ?: "unknown")
-    }
-    
     fun isDownloaded(version: String?): Boolean {
         return isDownloadedCache.getOrPut(version) {
-            val downloadDir = getVersionDirectory(version)
+            val downloadDir = BlenderPathUtil.getVersionDirectory(project, version)
             BlenderPathUtil.findBlenderExecutable(downloadDir) != null
         }
     }
@@ -59,7 +57,7 @@ class BlenderDownloader(private val project: Project) {
     }
 
     fun deleteVersion(version: String) {
-        val downloadDir = getVersionDirectory(version)
+        val downloadDir = BlenderPathUtil.getVersionDirectory(project, version)
         if (downloadDir.exists()) {
             downloadDir.toFile().deleteRecursively()
             logger.log(LangManager.message("log.blender.deleted.version", version, downloadDir.absolutePathString()))
@@ -71,9 +69,13 @@ class BlenderDownloader(private val project: Project) {
         logger.log("BlenderDownloader.getOrDownloadBlenderPath: version=$version")
         
         // Check if already downloaded before showing progress
-        val versionDir = getVersionDirectory(version)
+        val versionDir = BlenderPathUtil.getVersionDirectory(project, version)
         val executable = BlenderPathUtil.findBlenderExecutable(versionDir)
         if (executable != null) {
+            FileUtil.makeExecutable(executable)
+            val restriction = FileUtil.getExecutionRestrictionMessage(executable)
+            if (restriction != null) logger.error(restriction)
+            
             logger.log("Blender $version found at: ${executable.absolutePathString()}")
             logger.log(LangManager.message("log.blender.using.cached", version, executable.absolutePathString()))
             return executable.absolutePathString()
@@ -91,66 +93,42 @@ class BlenderDownloader(private val project: Project) {
     }
 
     private fun getOrDownloadBlenderPathInternal(version: String): String? {
-        val baseDir = getBaseDownloadDirectory()
-        val appDir = getAppDirectory()
-        val versionDir = getVersionDirectory(version)
-
-        if (!appDir.exists()) {
-            Files.createDirectories(appDir)
-        }
-
-        try {
-            if (!isSysCompatible()) {
-                throw Exception("System compatibility check failed")
-            }
-        } catch (e: Exception) {
-            logger.log(LangManager.message("log.blender.incompatible", e))
+        if (!isSysCompatible()) {
             return null
         }
+
+        val baseDir = BlenderPathUtil.getBaseDownloadDirectory(project)
+        val appDir = BlenderPathUtil.getAppDirectory(project).also { if (!it.exists()) Files.createDirectories(it) }
+        val versionDir = BlenderPathUtil.getVersionDirectory(project, version)
 
         // If not, download it
         val downloadUrl = getDownloadUrl(version)
         logger.log("Blender $version not found in cache. Starting download from: $downloadUrl")
-        val downloadedFile = downloadFile(downloadUrl, baseDir) ?: run {
-            logger.log(LangManager.message("log.blender.download.failed", version, "Download failed"))
-            return null
-        }
+        val downloadedFile = downloadFile(downloadUrl, baseDir) ?: return null
         
         // Extract it
         logger.log(LangManager.message("log.blender.extracting", downloadedFile.name, versionDir.absolutePathString()))
-        val result = extractFile(downloadedFile, appDir, version)
+        val statusText = LangManager.message("log.blender.extracting.progress", downloadedFile.name)
+        val handler = ProgressManager.getInstance().progressIndicator.toBlenderHandler(this, version, statusText, ProgressType.EXTRACT)
+        
+        val result = ArchiveUtil.extractFile(downloadedFile, appDir, logger, version, progressIndicator = handler)
         if (result != 0) {
             logger.log("Extraction failed with code: $result. Deleting potentially corrupted archive: ${downloadedFile.absolutePathString()}")
-            try {
-                Files.deleteIfExists(downloadedFile)
-            } catch (e: Exception) {
-                logger.log("Failed to delete corrupted archive: ${e.message}")
-            }
+            downloadedFile.deleteIfExists()
             return null
         }
 
         clearCache()
         val finalExecutable = BlenderPathUtil.findBlenderExecutable(versionDir)
         if (finalExecutable != null) {
+            FileUtil.makeExecutable(finalExecutable)
+            val restriction = FileUtil.getExecutionRestrictionMessage(finalExecutable)
+            if (restriction != null) logger.error(restriction)
+            
             logger.log(LangManager.message("log.blender.extracted", version, finalExecutable.absolutePathString()))
             PythonService.getInstance(project).installFakeBpyModule(version)
         } else {
             logger.log(LangManager.message("log.blender.could.not.find.exec", versionDir.absolutePathString()))
-            if (versionDir.exists()) {
-                logger.log("Listing contents of ${versionDir.absolutePathString()} (recursive):")
-                try {
-                    Files.walk(versionDir, 3).use { stream ->
-                        stream.forEach { path ->
-                            val relative = versionDir.relativize(path)
-                            logger.log(" - $relative (${if (path.isDirectory()) "dir" else "file"}, ${if (Files.isExecutable(path)) "exec" else "noexec"})")
-                        }
-                    }
-                } catch (e: Exception) {
-                    logger.log("Error listing directory: ${e.message}")
-                }
-            } else {
-                logger.log("Directory ${versionDir.absolutePathString()} does not exist after extraction!")
-            }
         }
         return finalExecutable?.absolutePathString()
     }
@@ -160,20 +138,7 @@ class BlenderDownloader(private val project: Project) {
         osName: String = BlenderHelper.getOsName(),
         archType: String = BlenderHelper.getArchName()
     ): String {
-        /*
-         * Utility to fetch the download URL from the Blender Website, an update will need to be made to
-         * BlenderVersions to handle automatic Blender updates
-         * */
-
-        val extension = when (osName) {
-            "windows" -> "zip"
-            "linux" -> "tar.xz"
-            "macos" -> "dmg"
-            else -> {
-                throw (IllegalArgumentException("OS is not supported"))
-            }
-        }
-
+        val extension = BlenderHelper.getExtensionByOs(osName)
         val fullVersion = BlenderVersions.getFullVersion(version) ?: "$version.0"
         return "https://download.blender.org/release/Blender$version/blender-$fullVersion-$osName-$archType.$extension"
     }
@@ -210,29 +175,18 @@ class BlenderDownloader(private val project: Project) {
         }
     }
 
-    private fun extractFile(file: Path, targetDir: Path, version: String): Int {
-        val statusText = LangManager.message("log.blender.extracting.progress", file.name)
-        val handler = ProgressManager.getInstance().progressIndicator.toBlenderHandler(this, version, statusText)
-        handler.text2 = file.name
-        handler.isIndeterminate = true
-        
-        val fileName = file.name
-        return try {
-            ArchiveUtil.extractFile(file, targetDir, logger, version)
-        } catch (e: Exception) {
-            logger.log(LangManager.message("log.blender.extraction.failed", fileName, e.message ?: ""))
-            -1
-        }
-    }
 
     private fun isSysCompatible(): Boolean {
-        val osName = System.getProperty("os.name").lowercase()
-        val isMac = osName.contains("mac")
-
-        if (isMac) {
+        if (BlenderHelper.isMac()) {
             logger.log(LangManager.message("log.blender.macos.unsupported"))
             return false
         }
+        
+        if (!BlenderHelper.isOSCompatible()) {
+            logger.log(LangManager.message("log.blender.incompatible", "System architecture is not supported"))
+            return false
+        }
+        
         return true
     }
     

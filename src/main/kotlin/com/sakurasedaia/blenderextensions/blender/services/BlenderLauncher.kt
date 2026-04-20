@@ -3,6 +3,7 @@ package com.sakurasedaia.blenderextensions.blender.services
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.sakurasedaia.blenderextensions.common.utils.FileUtil
 import com.intellij.execution.configurations.GeneralCommandLine
+import com.intellij.execution.ExecutionException
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
@@ -60,6 +61,15 @@ class BlenderLauncher(private val project: Project) {
         if (!blenderFile.exists()) {
             logger.log(LangManager.message("log.service.exec.not.found", actualPath))
             return null
+        }
+
+        // Ensure execution permission on Unix-like systems
+        FileUtil.makeExecutable(blenderFile)
+
+        val restrictionMessage = FileUtil.getExecutionRestrictionMessage(blenderFile)
+        if (restrictionMessage != null) {
+            logger.error(restrictionMessage)
+            throw ExecutionException(restrictionMessage)
         }
 
         val commandLine = GeneralCommandLine(blenderFile.absolutePathString())

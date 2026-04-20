@@ -50,4 +50,13 @@ object BlenderHelper {
     fun getOsVersion(): String = System.getProperty("os.version")
     fun getRawOsName(): String = System.getProperty("os.name")
     fun getRawArchName(): String = System.getProperty("os.arch")
+
+    fun getExtensionByOs(osName: String = getOsName()): String {
+        return when (osName) {
+            "windows" -> "zip"
+            "linux" -> "tar.xz"
+            "macos" -> "dmg"
+            else -> throw (IllegalArgumentException("OS is not supported"))
+        }
+    }
 }
