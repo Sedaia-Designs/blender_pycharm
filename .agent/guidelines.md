@@ -68,7 +68,8 @@ This document is the **authoritative Source of Truth** for Junie (the AI agent).
 ### 4.1 Commit Format
 - **Format**: `Type(scope): Description`
 - **Capitalization**: The `Type` MUST start with a capital letter.
-- **Approved Types**: `Feat`, `Fix`, `Docs`, `Style`, `Refactor`, `Test`, `Chore`, `I18n`, `Build`, `Ci`, `Perf`.
+- **Approved Types**: `[Feat]`, `[Fix]`, `[Docs]`, `[Style]`, `[Refactor]`, `[Test]`, `[Chore]`, `[I18n]`, `[Build]`, `[Ci]`, `[Perf]`.
+- **Module Type Suffix**: If Necessary, for commits focusing on a single module, add a suffix wrapped in () noting the module
 - **Atomic Commits**: Max 1-2 features per commit. Each commit must be a single logical unit.
 - **Message Length**: Max 2 sentences (excluding prefix and trailer).
 
