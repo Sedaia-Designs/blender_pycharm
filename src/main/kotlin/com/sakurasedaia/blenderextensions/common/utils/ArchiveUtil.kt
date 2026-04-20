@@ -3,6 +3,7 @@ package com.sakurasedaia.blenderextensions.common.utils
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.util.io.Decompressor
 import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
 import java.nio.file.Files
 import java.nio.file.Path
@@ -97,14 +98,22 @@ object ArchiveUtil {
             Files.createDirectories(targetPath)
             logger?.log("Created $targetPath")
 
-            val command = GeneralCommandLine(
-                "powershell",
-                "-Command",
-                "Expand-Archive -Path '${file.absolutePathString()}' -DestinationPath '${targetPath.absolutePathString()}' -Force"
-            )
+            logger?.log("Extracting ${file.name} using IntelliJ Decompressor")
+            Decompressor.Zip(file).extract(targetPath)
 
-            logger?.log("Extracting ${file.name}: Running command $command")
-            return ExternalProcessUtil.executeCommand(command, logger = logger)
+            // Post-processing: if there is only one directory inside targetPath, move its content up (equivalent to --strip-components=1)
+            val contents = Files.list(targetPath).use { it.toList() }
+            if (contents.size == 1 && Files.isDirectory(contents[0])) {
+                val subDir = contents[0]
+                Files.list(subDir).use { subContents ->
+                    subContents.forEach {
+                        Files.move(it, targetPath.resolve(it.fileName))
+                    }
+                }
+                Files.delete(subDir)
+            }
+
+            return 0
         } catch (e: Exception) {
             logger?.error("Failed to extract ZIP ${file.name}", e)
             return -1
