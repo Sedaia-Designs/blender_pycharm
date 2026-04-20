@@ -22,8 +22,13 @@ import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.SwingUtilities
 
+/**
+ * UI for editing Blender run configurations.
+ */
 class BlenderSettingsEditor(private val project: Project) : SettingsEditor<BlenderRunConfiguration>() {
     private val downloader = BlenderDownloader.getInstance(project)
+    
+    // UI Components
     private val myBlenderVersionComboBox = ComboBox<String>()
     private val myBlenderCommandField = JBTextField()
     private val myIsSandboxedCheckBox = JBCheckBox(LangManager.message("run.configuration.setting.sandboxed"))
@@ -33,15 +38,18 @@ class BlenderSettingsEditor(private val project: Project) : SettingsEditor<Blend
     private val myAdditionalArgumentsField = JBTextField()
     private val myDownloadButton = JButton(LangManager.message("run.configuration.button.download"), BlenderIcons.Install)
 
+    // Labeled Components
     private val myBlenderCommandComponent = LabeledComponent.create(myBlenderCommandField, "${LangManager.message("run.configuration.setting.cli.args")}:")
     private val myAddonSymlinkComponent = LabeledComponent.create(myAddonSymlinkNameField, "${LangManager.message("run.configuration.setting.symlink.name")}:")
     private val myAddonSourceDirComponent = LabeledComponent.create(myAddonSourceDirectoryField, "${LangManager.message("run.configuration.setting.src")}:")
     private val myArgumentsComponent = LabeledComponent.create(myAdditionalArgumentsField, "${LangManager.message("run.configuration.setting.cli.args")}:")
 
     init {
+        // Initialize version combo box
         val versions = BlenderVersions.getAllSelectableVersions()
         myBlenderVersionComboBox.model = DefaultComboBoxModel(versions.toTypedArray())
         
+        // Setup download button action
         myDownloadButton.addActionListener {
             val selected = myBlenderVersionComboBox.selectedItem as? String ?: return@addActionListener
             if (!downloader.isDownloaded(selected)) {
@@ -57,11 +65,18 @@ class BlenderSettingsEditor(private val project: Project) : SettingsEditor<Blend
         }
     }
 
+    /**
+     * Updates the visibility of the download button based on whether the selected version is already downloaded.
+     */
     private fun updateDownloadButtonVisibility() {
         val selected = myBlenderVersionComboBox.selectedItem as? String
         myDownloadButton.isVisible = !downloader.isDownloaded(selected)
     }
 
+    /**
+     * Resets the editor UI from the given run configuration settings.
+     * Also handles visibility of fields based on the configuration factory type.
+     */
     override fun resetEditorFrom(s: BlenderRunConfiguration) {
         val options = s.getOptions()
         myBlenderVersionComboBox.selectedItem = options.blenderVersion ?: "5.0"
@@ -73,6 +88,7 @@ class BlenderSettingsEditor(private val project: Project) : SettingsEditor<Blend
         myAddonSourceDirectoryField.text = options.addonSourceDirectory ?: ""
         myAdditionalArgumentsField.text = options.additionalArguments ?: ""
 
+        // Adjust visibility based on the factory type
         val factory = s.factory
         val isTesting = factory is BlenderStartBlenderConfigurationFactory
         val isCommand = factory is BlenderCommandConfigurationFactory
@@ -88,6 +104,9 @@ class BlenderSettingsEditor(private val project: Project) : SettingsEditor<Blend
         myBlenderCommandField.isEnabled = isCommand
     }
 
+    /**
+     * Applies the current UI state to the run configuration settings.
+     */
     override fun applyEditorTo(s: BlenderRunConfiguration) {
         val options = s.getOptions()
         options.blenderVersion = myBlenderVersionComboBox.selectedItem as? String
@@ -99,6 +118,9 @@ class BlenderSettingsEditor(private val project: Project) : SettingsEditor<Blend
         options.additionalArguments = myAdditionalArgumentsField.text
     }
 
+    /**
+     * Creates the main editor panel.
+     */
     override fun createEditor(): JComponent {
         myAddonSourceDirectoryField.addBrowseFolderListener(
             com.intellij.openapi.ui.TextBrowseFolderListener(
