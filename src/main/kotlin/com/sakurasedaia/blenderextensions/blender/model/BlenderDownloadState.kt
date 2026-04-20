@@ -3,6 +3,7 @@ package com.sakurasedaia.blenderextensions.blender.model
 enum class ProgressType {
     NONE,
     DOWNLOAD,
+    EXTRACT,
     LINTER,
     SANDBOX
 }

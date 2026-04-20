@@ -13,6 +13,15 @@ import kotlin.io.path.*
 import com.sakurasedaia.blenderextensions.blender.utils.BlenderPathUtil
 import com.sakurasedaia.blenderextensions.ui.settings.BlenderSettings
 
+/**
+ * Service responsible for linking extension sources to Blender.
+ * 
+ * The linking process follows this progression:
+ * 1. [getExtensionsRepoDir] determines the correct directory in the latest Blender config.
+ * 2. [linkExtensionSource] identifies the source folders to link (custom, marked, or root).
+ * 3. [Files.createSymbolicLink] creates a link from the source to the Blender extension repo.
+ * 4. [createWindowsJunction] fallback for Windows if symbolic link fails.
+ */
 @Service(Service.Level.PROJECT)
 class BlenderLinker(private val project: Project) {
     private val logger = BlenderLogger.getInstance(project)

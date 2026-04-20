@@ -76,8 +76,7 @@ object BlenderPathUtil {
             stream.filter { path ->
                 val matchesName = path.name == executableName
                 val isFile = path.isRegularFile()
-                val isExec = isWindows || Files.isExecutable(path)
-                matchesName && isFile && isExec
+                matchesName && isFile
             }.findFirst().orElse(null)
         }
         return found

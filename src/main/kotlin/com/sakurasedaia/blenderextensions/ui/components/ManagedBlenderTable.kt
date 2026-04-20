@@ -5,6 +5,7 @@ import com.intellij.ui.table.JBTable
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.sakurasedaia.blenderextensions.blender.services.BlenderDownloader
 import com.sakurasedaia.blenderextensions.blender.model.BlenderVersions
+import com.sakurasedaia.blenderextensions.blender.utils.BlenderPathUtil
 import javax.swing.JTable
 import javax.swing.ListSelectionModel
 import javax.swing.table.AbstractTableModel
@@ -66,7 +67,7 @@ class ManagedBlenderTable(private val project: Project) : JBTable() {
                 0 -> listOf("Blender", version).joinToString(" ")
                 1 -> versionInfo.pythonVersion?.let { "Python $it" } ?: ""
                 2 -> if (downloader.isDownloaded(version))
-                    downloader.getVersionDirectory(version).toAbsolutePath().toString()
+                    BlenderPathUtil.getVersionDirectory(project, version).toAbsolutePath().toString()
                 else
                     LangManager.message("toolwindow.managed.status.not.installed")
                 else -> ""

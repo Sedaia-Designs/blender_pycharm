@@ -2,6 +2,7 @@ package com.sakurasedaia.blenderextensions.blender.services
 
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.intellij.execution.process.OSProcessHandler
+import com.intellij.execution.ExecutionException
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.execution.process.ProcessListener
 import com.intellij.execution.process.ProcessEvent
@@ -17,6 +18,16 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.io.path.*
 import com.sakurasedaia.blenderextensions.blender.utils.BlenderScriptGenerator
 
+/**
+ * Central service for managing Blender instances and extension development.
+ * 
+ * The Blender management module follows this progression:
+ * 1. [BlenderScanner] & [BlenderFinder] locate existing Blender installations on the system.
+ * 2. [BlenderDownloader] handles downloading and extracting specific Blender versions if not found.
+ * 3. [BlenderLinker] links the extension source code to the appropriate Blender extensions directory.
+ * 4. [BlenderLauncher] starts the Blender process with the necessary arguments and startup scripts.
+ * 5. [BlenderCommunicationService] establishes a connection with Blender for commands like reloading.
+ */
 @Service(Service.Level.PROJECT)
 class BlenderService(private val project: Project) {
     private val logger = BlenderLogger.getInstance(project)
@@ -64,6 +75,17 @@ class BlenderService(private val project: Project) {
         }
     }
 
+    /**
+     * Entry point for starting a Blender process.
+     * 
+     * The startup process follows these steps:
+     * 1. Check if Blender is already running.
+     * 2. Determine if it's a custom command or a standard extension development start.
+     * 3. (For extensions) Link source code to Blender's extensions repo using [BlenderLinker].
+     * 4. (For extensions) Generate a startup script via [BlenderScriptGenerator] and start the communication server.
+     * 5. Start the process via [BlenderLauncher].
+     * 6. Attach process listeners for cleanup on termination.
+     */
     fun startBlenderProcess(
         blenderPath: String,
         addonSourceDir: String? = null,
@@ -82,66 +104,75 @@ class BlenderService(private val project: Project) {
 
         val projectPath = project.basePath ?: return null
 
-        val handler = if (!blenderCommand.isNullOrBlank()) {
-            logger.log("Starting Blender with custom command: $blenderCommand (Path: $blenderPath, Version: ${blenderVersion ?: "Unknown"})")
-            ApplicationManager.getApplication().executeOnPooledThread {
-                telemetryService.collectAndLogTelemetry(
-                    context = "Blender Process Start (Custom Command)",
-                    options = runOptions,
+        val handler = try {
+            if (!blenderCommand.isNullOrBlank()) {
+                logger.log("Starting Blender with custom command: $blenderCommand (Path: $blenderPath, Version: ${blenderVersion ?: "Unknown"})")
+                ApplicationManager.getApplication().executeOnPooledThread {
+                    telemetryService.collectAndLogTelemetry(
+                        context = "Blender Process Start (Custom Command)",
+                        options = runOptions,
+                        blenderPath = blenderPath,
+                        blenderVersion = blenderVersion
+                    )
+                }
+                launcher.startBlenderProcess(
                     blenderPath = blenderPath,
-                    blenderVersion = blenderVersion
+                    additionalArgs = additionalArgs,
+                    isSandboxed = isSandboxed,
+                    blenderCommand = blenderCommand,
+                    importUserConfig = importUserConfig,
+                    blenderVersion = blenderVersion,
+                    indicator = indicator
                 )
-            }
-            launcher.startBlenderProcess(
-                blenderPath = blenderPath,
-                additionalArgs = additionalArgs,
-                isSandboxed = isSandboxed,
-                blenderCommand = blenderCommand,
-                importUserConfig = importUserConfig,
-                blenderVersion = blenderVersion,
-                indicator = indicator
-            )
-        } else {
-            val sourcePath = if (!addonSourceDir.isNullOrEmpty()) {
-                Path.of(addonSourceDir)
             } else {
-                val markedSource = BlenderSettings.getInstance(project).getSourceFolders().firstOrNull()
-                if (markedSource != null) Path.of(markedSource) else Path.of(projectPath)
-            }
+                val sourcePath = if (!addonSourceDir.isNullOrEmpty()) {
+                    Path.of(addonSourceDir)
+                } else {
+                    val markedSource = BlenderSettings.getInstance(project).getSourceFolders().firstOrNull()
+                    if (markedSource != null) Path.of(markedSource) else Path.of(projectPath)
+                }
 
-            if (!sourcePath.exists()) {
-                logger.log(LangManager.message("log.linker.source.not.found", sourcePath.toString()))
-                return null
-            }
+                if (!sourcePath.exists()) {
+                    logger.log(LangManager.message("log.linker.source.not.found", sourcePath.toString()))
+                    return null
+                }
 
-            val symlinkName = if (!addonSymlinkName.isNullOrEmpty()) addonSymlinkName else sourcePath.name
-            currentExtensionName = symlinkName
-            logger.log("Starting Blender for extension development: $symlinkName (Path: $blenderPath, Version: ${blenderVersion ?: "Unknown"})")
-            logger.log("Linking extension source: ${sourcePath.absolutePathString()} -> $symlinkName (Sandboxed: $isSandboxed)")
+                val symlinkName = if (!addonSymlinkName.isNullOrEmpty()) addonSymlinkName else sourcePath.name
+                currentExtensionName = symlinkName
+                logger.log("Starting Blender for extension development: $symlinkName (Path: $blenderPath, Version: ${blenderVersion ?: "Unknown"})")
+                logger.log("Linking extension source: ${sourcePath.absolutePathString()} -> $symlinkName (Sandboxed: $isSandboxed)")
 
-            linker.linkExtensionSource(addonSourceDir, addonSymlinkName, isSandboxed)
-            val repoDir = linker.getExtensionsRepoDir(isSandboxed)
+                linker.linkExtensionSource(addonSourceDir, addonSymlinkName, isSandboxed)
+                val repoDir = linker.getExtensionsRepoDir(isSandboxed)
 
-            val port = communicationService.startServer()
-            startupScript = scriptGenerator.createStartupScript(port, repoDir, currentExtensionName)
+                val port = communicationService.startServer()
+                startupScript = scriptGenerator.createStartupScript(port, repoDir, currentExtensionName)
 
-            ApplicationManager.getApplication().executeOnPooledThread {
-                telemetryService.collectAndLogTelemetry(
-                    context = "Blender Process Start (Extension Development)",
-                    options = runOptions,
+                ApplicationManager.getApplication().executeOnPooledThread {
+                    telemetryService.collectAndLogTelemetry(
+                        context = "Blender Process Start (Extension Development)",
+                        options = runOptions,
+                        blenderPath = blenderPath,
+                        blenderVersion = blenderVersion
+                    )
+                }
+                launcher.startBlenderProcess(
                     blenderPath = blenderPath,
-                    blenderVersion = blenderVersion
+                    scriptPath = startupScript,
+                    additionalArgs = additionalArgs,
+                    isSandboxed = isSandboxed,
+                    importUserConfig = importUserConfig,
+                    blenderVersion = blenderVersion,
+                    indicator = indicator
                 )
             }
-            launcher.startBlenderProcess(
-                blenderPath = blenderPath,
-                scriptPath = startupScript,
-                additionalArgs = additionalArgs,
-                isSandboxed = isSandboxed,
-                importUserConfig = importUserConfig,
-                blenderVersion = blenderVersion,
-                indicator = indicator
+        } catch (e: ExecutionException) {
+            logger.error(LangManager.message("log.launcher.failed.start", e.message ?: ""))
+            BlenderNotification(project).sendError(
+                LangManager.message("notification.failed.start.blender.title"),
+                e.message ?: LangManager.message("notification.failed.start.blender.message")
             )
+            null
         }
 
         if (handler == null) {

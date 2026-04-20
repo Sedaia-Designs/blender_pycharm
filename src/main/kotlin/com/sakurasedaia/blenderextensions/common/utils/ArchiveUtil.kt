@@ -1,6 +1,8 @@
 package com.sakurasedaia.blenderextensions.common.utils
 
 import com.intellij.execution.configurations.GeneralCommandLine
+import com.intellij.openapi.progress.ProcessCanceledException
+import com.intellij.openapi.progress.ProgressIndicator
 import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
 import java.nio.file.Files
 import java.nio.file.Path
@@ -8,14 +10,27 @@ import kotlin.io.path.*
 import com.sakurasedaia.blenderextensions.blender.utils.BlenderHelper
 
 object ArchiveUtil {
-    fun extractFile(file: Path, targetDir: Path, logger: BlenderLogger? = null, version: String = "", override: Boolean = true): Int {
+    fun extractFile(
+        file: Path,
+        targetDir: Path,
+        logger: BlenderLogger? = null,
+        version: String = "",
+        override: Boolean = true,
+        progressIndicator: ProgressIndicator? = null
+    ): Int {
         /*
         * Function is the entrypoint for extracting files from the downloaded Blender distribution.
         *
         * This entire function needs to be easily modifiable to ensure that future Blender distributions
         * can be supported if they change the packaging methods.
         * */
-        
+
+        progressIndicator?.let {
+            it.text = LangManager.message("log.blender.extracting.progress", file.name)
+            it.text2 = file.name
+            it.isIndeterminate = true
+        }
+
         val versionDir = targetDir.resolve(version)
         if (Files.exists(versionDir)) {
             if (!override) {
@@ -25,26 +40,30 @@ object ArchiveUtil {
             versionDir.toFile().deleteRecursively()
             logger?.log("Purged existing $versionDir")
         }
-        
+
         val result = try {
             when {
                 BlenderHelper.isZip(file) -> extractZip(file, targetDir, version, logger)
                 BlenderHelper.isTarXz(file) -> extractTar(file, targetDir, version, logger)
                 BlenderHelper.isDmg(file) -> extractDmg(file, targetDir, version, logger)
                 else -> {
-                    logger?.error("Unsupported archive format: ${file.name}")
+                    logger?.error(LangManager.message("log.blender.unsupported.format", file.name))
                     -1
                 }
             }
         } catch (e: Exception) {
-            logger?.error("Failed to extract ${file.name}", e)
+            if (e is ProcessCanceledException) {
+                logger?.log(LangManager.message("log.external.execution.cancelled"))
+                throw e
+            }
+            logger?.error(LangManager.message("log.blender.extraction.failed", version, e.message ?: ""), e)
             -1
         }
-        
+
         when (result) {
-            0 -> logger?.log("Successfully extracted ${file.name} to ${targetDir.resolve(version)}")
-            1 -> logger?.log("User canceled extraction of ${file.name}")
-            else -> logger?.error("Failed to extract ${file.name}")
+            0 -> logger?.log(LangManager.message("log.blender.extracted", version, targetDir.resolve(version)))
+            1 -> logger?.log(LangManager.message("log.external.execution.cancelled"))
+            else -> logger?.error(LangManager.message("log.blender.extraction.failed", version, "Unknown error"))
         }
         return result
     }
@@ -101,7 +120,7 @@ object ArchiveUtil {
         * 3. Unmount the dmg file
         * 4. Adjust the startup script to point to the correct **binary** path (Path is `Blender-${Major.Minor}.app/Contents/MacOS/Blender`)
         * */
-        logger?.log("DMG extraction is not currently implemented: ${file.name}")
+        logger?.log(LangManager.message("log.archive.dmg.unsupported"))
         return -1
     }
 }

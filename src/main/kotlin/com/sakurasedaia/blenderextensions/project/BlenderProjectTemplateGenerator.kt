@@ -14,6 +14,17 @@ data class BlenderManifestSettings(
     val buildPathsExcludePattern: List<String>? = null
 )
 
+/**
+ * Generator for Blender extension project templates.
+ * 
+ * The project creation module follows this progression:
+ * 1. [BlenderProjectGenerators] (UI) collects user input and settings.
+ * 2. [BlenderManifestSettings] stores the metadata for the `blender_manifest.toml`.
+ * 3. [generateManifest] creates the TOML configuration file based on user input.
+ * 4. [generateSimpleInit] or [generateAutoLoadInit] creates the main Python entry point.
+ * 5. [generateReadme], [generateLicense], and [generateGitignore] create boilerplate files.
+ * 6. (Optional) Agent-related files like guidelines and skills are generated for AI assistance.
+ */
 class BlenderProjectTemplateGenerator {
     companion object {
         fun generateManifest(settings: BlenderManifestSettings): String {
