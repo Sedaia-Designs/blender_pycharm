@@ -10,6 +10,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.progress.ProgressIndicator
 import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
+import com.intellij.util.execution.ParametersListUtil
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -71,7 +72,7 @@ class BlenderLauncher(private val project: Project) {
         
         if (!blenderCommand.isNullOrBlank()) {
             commandLine.addParameters("--command")
-            commandLine.addParameters(blenderCommand.split(" "))
+            commandLine.addParameters(ParametersListUtil.parse(blenderCommand))
         } else if (scriptPath != null) {
             commandLine.addParameters("--python", scriptPath.absolutePathString())
         }
@@ -81,7 +82,7 @@ class BlenderLauncher(private val project: Project) {
         }
         
         if (!additionalArgs.isNullOrBlank()) {
-            commandLine.addParameters(additionalArgs.split(" "))
+            commandLine.addParameters(ParametersListUtil.parse(additionalArgs))
         }
         
         logger.log(LangManager.message("log.launcher.executing", commandLine.commandLineString))

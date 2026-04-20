@@ -71,7 +71,8 @@ class BlenderService(private val project: Project) {
 
     fun scanInstallations() {
         ApplicationManager.getApplication().executeOnPooledThread {
-            BlenderScanner.scanSystemInstallations(project = project, force = true)
+            val customPaths = BlenderSettings.getInstance(project).getCustomBlenderPaths()
+            BlenderScanner.scanSystemInstallations(project = project, force = true, customPaths = customPaths)
         }
     }
 

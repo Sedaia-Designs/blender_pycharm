@@ -1,8 +1,11 @@
 package com.sakurasedaia.blenderextensions.blender.services
 
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
+import kotlinx.coroutines.*
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.PrintWriter
@@ -22,7 +25,7 @@ import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
  * 5. [stopServer] cleans up the sockets on project close or process termination.
  */
 @Service(Service.Level.PROJECT)
-class BlenderCommunicationService(private val project: Project) {
+class BlenderCommunicationService(private val project: Project, private val cs: CoroutineScope) : Disposable {
     private val logger = BlenderLogger.getInstance(project)
     private var serverSocket: ServerSocket? = null
     private var blenderClient: Socket? = null
@@ -33,9 +36,9 @@ class BlenderCommunicationService(private val project: Project) {
         val port = server.localPort
         project.putUserData(BLENDER_PORT_KEY, port)
 
-        Thread {
+        cs.launch(Dispatchers.IO) {
             try {
-                while (!server.isClosed) {
+                while (isActive && !server.isClosed) {
                     val client = try {
                         server.accept()
                     } catch (e: Exception) {
@@ -44,7 +47,7 @@ class BlenderCommunicationService(private val project: Project) {
                     if (client != null) {
                         try {
                             val reader = BufferedReader(InputStreamReader(client.getInputStream()))
-                            val firstLine = reader.readLine()
+                            val firstLine = withContext(Dispatchers.IO) { reader.readLine() }
                             if (firstLine != null && firstLine.contains("\"type\": \"ready\"")) {
                                 logger.log(LangManager.message("log.blender.connected", port))
                                 blenderClient = client
@@ -53,7 +56,9 @@ class BlenderCommunicationService(private val project: Project) {
                                 client.close()
                             }
                         } catch (e: Exception) {
-                            logger.log(LangManager.message("log.blender.handshake.error", e.message ?: ""))
+                            if (isActive) {
+                                logger.log(LangManager.message("log.blender.handshake.error", e.message ?: ""))
+                            }
                             client.close()
                         }
                     }
@@ -61,8 +66,12 @@ class BlenderCommunicationService(private val project: Project) {
             } catch (e: Exception) {
                 // Server closed or error
             }
-        }.start()
+        }
         return port
+    }
+
+    override fun dispose() {
+        stopServer()
     }
 
     fun stopServer() {

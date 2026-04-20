@@ -20,32 +20,37 @@ data class BlenderInstallation(
 )
 
 object BlenderScanner {
-    private var cachedInstallations: List<BlenderInstallation>? = null
+    private var cachedSystemInstallations: List<BlenderInstallation>? = null
 
-    fun getCachedInstallations(): List<BlenderInstallation>? = cachedInstallations
+    fun getCachedInstallations(): List<BlenderInstallation>? = cachedSystemInstallations
 
     fun scanSystemInstallations(
         project: Project? = null,
         force: Boolean = false,
         customPaths: Map<String, String> = emptyMap()
     ): List<BlenderInstallation> {
-        if (!force && cachedInstallations != null) return cachedInstallations!!
-
-        val installations = mutableListOf<BlenderInstallation>()
-        
-        when {
-            BlenderHelper.isWindows() -> installations.addAll(scanWindows(project))
-            BlenderHelper.isLinux() -> installations.addAll(scanLinux(project))
-            BlenderHelper.isMac() -> installations.addAll(scanMac(project))
+        val systemInstallations = if (!force && cachedSystemInstallations != null) {
+            cachedSystemInstallations!!
+        } else {
+            val installations = mutableListOf<BlenderInstallation>()
+            when {
+                BlenderHelper.isWindows() -> installations.addAll(scanWindows(project))
+                BlenderHelper.isLinux() -> installations.addAll(scanLinux(project))
+                BlenderHelper.isMac() -> installations.addAll(scanMac(project))
+            }
+            cachedSystemInstallations = installations
+            installations
         }
 
+        val allInstallations = systemInstallations.toMutableList()
+        
         customPaths.forEach { (pathStr, _) ->
             val path = Path.of(pathStr)
             if (path.exists()) {
                 val exe = if (path.isDirectory()) BlenderPathUtil.findBlenderExecutable(path) else path
                 if (exe != null && exe.exists()) {
                     val version = BlenderPathUtil.detectVersion(project, exe.toString()) ?: LangManager.message("blender.version.unknown")
-                    installations.add(
+                    allInstallations.add(
                         BlenderInstallation(
                             LangManager.message("blender.installation.custom", version),
                             exe.toString(),
@@ -58,14 +63,13 @@ object BlenderScanner {
             }
         }
 
-        val result = installations.distinctBy { it.path }.map {
+        val result = allInstallations.distinctBy { it.path }.map {
             if (it.version == LangManager.message("blender.version.unknown")) {
                 it.copy(version = BlenderPathUtil.detectVersion(project, it.path) ?: LangManager.message("blender.version.unknown"))
             } else {
                 it
             }
         }
-        cachedInstallations = result
         return result
     }
 
