@@ -10,11 +10,15 @@
 - **Version Updates**: Updated supported Blender and Python version metadata to include the latest releases.
 
 ### Changed
+- **Process Management**: Refactored Blender process launching to use `KillableProcessHandler` for improved process management and more responsive termination.
+- **UI Modernization**: Improved the Blender Tool Window layout and added descriptive text to the settings button.
 - **Reactive Error Handling**: Refactored permission checks to be reactive, triggering detailed diagnostics only when a "Permission denied" error is encountered during process startup.
 - **Refactored Service Layer**: Enhanced `BlenderService` and related components (`BlenderLinker`, `BlenderCommunicationService`) for better project lifecycle management and UI integration.
 - **Run Configuration Flow**: Improved path resolution and validation within Blender Run Configurations to ensure managed versions are correctly handled before launch.
 
 ### Fixed
+- **Cancellation Responsiveness**: Added `checkCanceled()` calls and improved exception handling to ensure the IDE remains responsive and the startup process can be aborted by the user.
+- **Process State Race Condition**: Resolved a race condition in `BlenderService` where the process state could be incorrectly reported during startup.
 - **Permission Denied (Error 13)**: Resolved issues where Blender would fail to launch on Linux partitions mounted with restrictive flags by providing clear diagnostic feedback.
 - **Downloader Extraction**: Fixed various edge cases in the extraction logic that could lead to corrupted or incomplete Blender installations.
 
