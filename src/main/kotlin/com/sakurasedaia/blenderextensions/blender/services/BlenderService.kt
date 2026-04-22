@@ -191,6 +191,7 @@ class BlenderService(private val project: Project) {
             return null
         }
 
+        isRunning.set(true)
         processHandler = handler
         handler.addProcessListener(object : ProcessListener {
             override fun processTerminated(event: ProcessEvent) {
@@ -201,7 +202,6 @@ class BlenderService(private val project: Project) {
         })
 
         handler.startNotify()
-        isRunning.set(true)
         return handler
     }
 

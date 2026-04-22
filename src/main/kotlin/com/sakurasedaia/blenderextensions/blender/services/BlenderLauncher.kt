@@ -4,6 +4,7 @@ import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.sakurasedaia.blenderextensions.common.utils.FileUtil
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.ExecutionException
+import com.intellij.execution.process.KillableProcessHandler
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
@@ -55,7 +56,7 @@ class BlenderLauncher(private val project: Project) {
                 blenderFile = executable
                 logger.log("Found Blender executable: ${blenderFile.absolutePathString()}")
             } else {
-                logger.log("Could not find $executable in directory: $actualPath")
+                logger.log("Could not find Blender executable in directory: $actualPath")
             }
         }
 
@@ -87,7 +88,7 @@ class BlenderLauncher(private val project: Project) {
         
         logger.log(LangManager.message("log.launcher.executing", commandLine.commandLineString))
         try {
-            return OSProcessHandler(commandLine)
+            return KillableProcessHandler(commandLine)
         } catch (e: ExecutionException) {
             val message = e.message ?: ""
             if (message.contains("Permission denied") || message.contains("error=13")) {
@@ -110,9 +111,10 @@ class BlenderLauncher(private val project: Project) {
     ) {
         val downloader = BlenderDownloader.getInstance(project)
         val statusText = LangManager.message("log.launcher.using.sandbox")
-        val handler = indicator.toBlenderHandler(downloader, blenderVersion ?: "unknown", statusText, ProgressType.SANDBOX)
+        val progressHandler = indicator.toBlenderHandler(downloader, blenderVersion ?: "unknown", statusText, ProgressType.SANDBOX)
         
         try {
+            indicator?.checkCanceled()
             logger.log("$statusText (Version: ${blenderVersion ?: "Unknown"})")
             val projectPath = project.basePath ?: return
             val sandboxDir = Paths.get(projectPath, ".venv", "blender_sandbox")
@@ -124,7 +126,7 @@ class BlenderLauncher(private val project: Project) {
             scriptsDir.createDirectories()
             
             if (importUserConfig) {
-                importBlenderConfig(configDir, blenderVersion)
+                importBlenderConfig(configDir, blenderVersion, indicator)
             }
 
             // Create a simple app template
@@ -152,7 +154,7 @@ class BlenderLauncher(private val project: Project) {
         }
     }
 
-    private fun importBlenderConfig(targetConfigDir: Path, version: String?) {
+    private fun importBlenderConfig(targetConfigDir: Path, version: String?, indicator: ProgressIndicator? = null) {
         val versionToUse = version ?: "5.0" // Fallback to 5.0
         val sourceConfigDir = findSystemBlenderConfigDir(versionToUse)
         
@@ -165,6 +167,7 @@ class BlenderLauncher(private val project: Project) {
         val filesToCopy = listOf("userpref.blend", "startup.blend", "bookmarks.txt", "recent-files.txt", "recent-searches.txt")
         
         for (fileName in filesToCopy) {
+            indicator?.checkCanceled()
             val sourceFile = sourceConfigDir.resolve(fileName)
             if (sourceFile.exists()) {
                 try {
@@ -178,6 +181,7 @@ class BlenderLauncher(private val project: Project) {
         
         // Dynamically detect and copy special directories from the config folder
         sourceConfigDir.listDirectoryEntries().filter { it.isDirectory() }.forEach { sourceDir ->
+            indicator?.checkCanceled()
             val dirName = sourceDir.name
             try {
                 FileUtil.copyDirectory(sourceDir, targetConfigDir.resolve(dirName))

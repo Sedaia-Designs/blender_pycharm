@@ -42,29 +42,33 @@ class BlenderRunProfileState(
         var blenderPath: String? = null
         var handler: com.intellij.execution.process.OSProcessHandler? = null
 
-        ProgressManager.getInstance().runProcessWithProgressSynchronously({
-            val indicator = ProgressManager.getInstance().progressIndicator
-            // --- STEP 1 & 2: RESOLVE BLENDER PATH AND VERSION ---
-            blenderPath = resolveBlenderPathInternal(service, version) { detectedVersion = it }
-            
-            if (blenderPath == null) return@runProcessWithProgressSynchronously
-
-            service.log("Final Startup Parameters - Path: $blenderPath, Version: $detectedVersion, Sandboxed: ${options.isSandboxed}")
-
-            // --- STEP 3: START BLENDER PROCESS ---
-            handler = service.startBlenderProcess(
-                blenderPath = blenderPath!!,
-                addonSourceDir = options.addonSourceDirectory,
-                addonSymlinkName = options.addonSymlinkName,
-                additionalArgs = options.additionalArguments,
-                isSandboxed = options.isSandboxed,
-                blenderCommand = options.blenderCommand,
-                importUserConfig = options.importUserConfig,
-                blenderVersion = detectedVersion,
-                runOptions = options,
-                indicator = indicator
-            )
-        }, LangManager.message("run.configuration.starting", environment.runProfile.name), true, project)
+        try {
+            ProgressManager.getInstance().runProcessWithProgressSynchronously({
+                val indicator = ProgressManager.getInstance().progressIndicator
+                // --- STEP 1 & 2: RESOLVE BLENDER PATH AND VERSION ---
+                blenderPath = resolveBlenderPathInternal(service, version) { detectedVersion = it }
+                
+                if (blenderPath == null) return@runProcessWithProgressSynchronously
+    
+                service.log("Final Startup Parameters - Path: $blenderPath, Version: $detectedVersion, Sandboxed: ${options.isSandboxed}")
+    
+                // --- STEP 3: START BLENDER PROCESS ---
+                handler = service.startBlenderProcess(
+                    blenderPath = blenderPath!!,
+                    addonSourceDir = options.addonSourceDirectory,
+                    addonSymlinkName = options.addonSymlinkName,
+                    additionalArgs = options.additionalArguments,
+                    isSandboxed = options.isSandboxed,
+                    blenderCommand = options.blenderCommand,
+                    importUserConfig = options.importUserConfig,
+                    blenderVersion = detectedVersion,
+                    runOptions = options,
+                    indicator = indicator
+                )
+            }, LangManager.message("run.configuration.starting", environment.runProfile.name), true, project)
+        } catch (e: com.intellij.openapi.progress.ProcessCanceledException) {
+            return null
+        }
 
         val finalHandler = handler ?: throw ExecutionException(LangManager.message("run.configuration.error.start"))
         
