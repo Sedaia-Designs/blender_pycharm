@@ -40,7 +40,7 @@ class BlenderToolWindowContent(private val project: Project) {
 
         return panel {
             row {
-                button("") {
+                button("Open Settings") {
                     com.intellij.openapi.options.ShowSettingsUtil.getInstance().showSettingsDialog(project, BlenderConfigurable::class.java)
                 }.applyToComponent {
                     icon = com.intellij.icons.AllIcons.General.Settings
@@ -69,13 +69,13 @@ class BlenderToolWindowContent(private val project: Project) {
                                 )
                             }
                         }
-                    }.align(com.intellij.ui.dsl.builder.AlignX.FILL)
+                    }.align(AlignX.FILL)
                 }
             }
 
             group(LangManager.message("toolwindow.table.column.version")) {
                 row {
-                    cell(versionComboBox).align(com.intellij.ui.dsl.builder.AlignX.FILL).applyToComponent {
+                    cell(versionComboBox).align(AlignX.FILL).applyToComponent {
                         addActionListener { updateButtonStates() }
                     }
                 }
@@ -88,7 +88,7 @@ class BlenderToolWindowContent(private val project: Project) {
                     }
                 }
             }
-        }
+        }.apply { border = JBUI.Borders.empty(0, 10, 0, 10) }
     }
 
     private fun refreshVersions() {
