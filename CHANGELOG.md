@@ -2,8 +2,9 @@
 
 ## [0.6.0] - 2026-04-22
 ### Added
+- **Background Task Management**: Centralized all UI-blocking operations (linter setup, downloads, reloads) into a new `BlenderTaskManager` to ensure a smooth IDE experience and prevent freezes.
+- **User Permission Prompt**: Implemented explicit confirmation dialogs before the plugin performs invasive operations such as Python SDK management.
 - **Semantic Versioning**: Implemented semantic version comparison for detecting the latest Blender configuration directory, ensuring that "4.10" is correctly identified as newer than "4.9".
-- **Agent Guidelines**: Added a new section for temporary guidelines in the Agent Guidelines for focused work and completion tagging.
 - **Execution Validation**: Implemented proactive and reactive detection of filesystem execution restrictions (e.g., `noexec` on Linux). The plugin now identifies when a partition prevents binary execution and provides user-friendly error messages with direct links to troubleshooting guides.
 - **UI Modernization**: Updated the Tool Window, Settings, and Run Configuration editors with modern Kotlin DSL components for a cleaner and more responsive user experience.
 - **Enhanced Blender Discovery**: Improved the `BlenderScanner` and `BlenderPathUtil` to more reliably detect system-wide Blender installations across Linux and macOS, including better support for custom paths.
@@ -20,11 +21,12 @@
 - **Run Configuration Flow**: Improved path resolution and validation within Blender Run Configurations to ensure managed versions are correctly handled before launch.
 
 ### Fixed
+- **Thread Safety**: Implemented thread-safe access to shared Blender installation and download caches to prevent `ConcurrentModificationException` and race conditions.
+- **Startup Synchronization**: Added a synchronization lock in `BlenderService` to prevent multiple simultaneous Blender process startups and ensure atomicity during initialization.
 - **Linter Setup**: Ensured that the linter setup process always uses a valid Blender version string instead of a file path, improving reliability across system-wide installations.
 - **Project Wizard**: Corrected the project generation logic to respect the user's sandbox toggle when creating default run configurations.
 - **Reload Command Safety**: Implemented robust JSON serialization for extension reload commands to ensure extension names with special characters are correctly escaped.
 - **Cancellation Responsiveness**: Added `checkCanceled()` calls and improved exception handling to ensure the IDE remains responsive and the startup process can be aborted by the user.
-- **Process State Race Condition**: Resolved a race condition in `BlenderService` where the process state could be incorrectly reported during startup.
 - **Permission Denied (Error 13)**: Resolved issues where Blender would fail to launch on Linux partitions mounted with restrictive flags by providing clear diagnostic feedback.
 - **Downloader Extraction**: Fixed various edge cases in the extraction logic that could lead to corrupted or incomplete Blender installations.
 
