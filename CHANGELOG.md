@@ -21,6 +21,7 @@
 - **Run Configuration Flow**: Improved path resolution and validation within Blender Run Configurations to ensure managed versions are correctly handled before launch.
 
 ### Fixed
+- **Command Template Safety**: Ensured that generated Blender command templates (build, validate) correctly handle project paths with spaces by implementing proper shell-style quoting for source directories.
 - **Thread Safety**: Implemented thread-safe access to shared Blender installation and download caches to prevent `ConcurrentModificationException` and race conditions.
 - **Startup Synchronization**: Added a synchronization lock in `BlenderService` to prevent multiple simultaneous Blender process startups and ensure atomicity during initialization.
 - **Linter Setup**: Ensured that the linter setup process always uses a valid Blender version string instead of a file path, improving reliability across system-wide installations.

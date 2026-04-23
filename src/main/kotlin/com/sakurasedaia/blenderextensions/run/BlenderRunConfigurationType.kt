@@ -3,6 +3,7 @@ package com.sakurasedaia.blenderextensions.run
 import com.intellij.execution.configurations.ConfigurationFactory
 import com.intellij.execution.configurations.ConfigurationType
 import com.intellij.execution.configurations.RunConfiguration
+import com.intellij.util.execution.ParametersListUtil
 import com.intellij.openapi.components.BaseState
 import com.intellij.openapi.project.Project
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
@@ -64,7 +65,8 @@ class BlenderBuildConfigurationFactory(type: ConfigurationType) : ConfigurationF
     
     override fun createTemplateConfiguration(project: Project): RunConfiguration {
         val config = BlenderRunConfiguration(project, this, configName)
-        config.options.blenderCommand = "extension build --source-dir ${getSrcPath(project)}"
+        val srcPath = getSrcPath(project)
+        config.options.blenderCommand = "extension build --source-dir ${ParametersListUtil.join(listOf(srcPath))}"
         return config
     }
 
@@ -82,7 +84,8 @@ class BlenderValidateConfigurationFactory(type: ConfigurationType) : Configurati
     
     override fun createTemplateConfiguration(project: Project): RunConfiguration {
         val config = BlenderRunConfiguration(project, this, configName)
-        config.options.blenderCommand = "extension validate ${getSrcPath(project)}"
+        val srcPath = getSrcPath(project)
+        config.options.blenderCommand = "extension validate ${ParametersListUtil.join(listOf(srcPath))}"
         return config
     }
 
