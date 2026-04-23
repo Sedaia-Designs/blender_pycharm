@@ -24,8 +24,8 @@ class PythonService(private val project: Project) {
     fun installFakeBpyModule(version: String, indicator: com.intellij.openapi.progress.ProgressIndicator? = null) =
         PythonLinterService.getInstance(project).installFakeBpyModule(version, indicator)
     
-    fun setupLinter(version: String) =
-        PythonLinterService.getInstance(project).setupLinter(version)
+    fun setupLinter(versionOrPath: String) =
+        PythonLinterService.getInstance(project).setupLinter(versionOrPath)
 
     fun getBlenderPythonInfo(blenderPath: String): Pair<String, Boolean> {
         return try {

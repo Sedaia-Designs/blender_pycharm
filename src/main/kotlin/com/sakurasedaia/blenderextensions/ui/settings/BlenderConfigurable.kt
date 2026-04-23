@@ -221,7 +221,7 @@ class BlenderConfigurable(private val project: Project) : SearchableConfigurable
     private fun setupSystemButtons() {
         systemSetupLinterButton.addActionListener {
             val inst = systemTable.getSelectedInstallation() ?: return@addActionListener
-            pythonService.setupLinter(inst.path)
+            pythonService.setupLinter(inst.version)
         }
 
         systemRemoveButton.addActionListener {

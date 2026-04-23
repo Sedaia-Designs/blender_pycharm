@@ -16,6 +16,7 @@ import com.sakurasedaia.blenderextensions.blender.services.BlenderService
 import com.sakurasedaia.blenderextensions.blender.model.BlenderVersions
 import com.sakurasedaia.blenderextensions.notifications.BlenderNotification
 import com.sakurasedaia.blenderextensions.python.PythonService
+import com.sakurasedaia.blenderextensions.blender.services.BlenderFinder
 import javax.swing.*
 import com.sakurasedaia.blenderextensions.ui.settings.BlenderConfigurable
 import com.sakurasedaia.blenderextensions.icons.BlenderIcons
@@ -135,6 +136,17 @@ class BlenderToolWindowContent(private val project: Project) {
 
     private fun handleSetupLinter() {
         val selected = versionComboBox.selectedItem as? String ?: return
-        pythonService.setupLinter(selected)
+        val isPath = selected.contains("/") || selected.contains("\\")
+        val version = if (isPath) BlenderFinder.tryGetVersion(selected) else selected
+        
+        if (version == LangManager.message("blender.version.unknown")) {
+            BlenderNotification(project).sendError(
+                LangManager.message("toolwindow.managed.button.setup.linter"),
+                LangManager.message("blender.version.unknown")
+            )
+            return
+        }
+        
+        pythonService.setupLinter(version)
     }
 }

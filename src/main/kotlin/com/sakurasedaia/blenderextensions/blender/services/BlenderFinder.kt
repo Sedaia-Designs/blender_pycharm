@@ -25,22 +25,28 @@ object BlenderFinder {
             if (output.exitCode != 0) return unknown
             
             val stdout = output.stdout
-            val blenderPrefix = "Blender "
-            val index = stdout.indexOf(blenderPrefix, ignoreCase = true)
-            if (index != -1) {
-                val versionPart = stdout.substring(index + blenderPrefix.length).trim()
-                val parts = versionPart.split(".")
-                if (parts.size >= 2) {
-                    val majorMinor = "${parts[0]}.${parts[1]}"
-                    PropertiesComponent.getInstance().setValue(cacheKey, majorMinor)
-                    return majorMinor
-                }
+            val result = parseVersionOutput(stdout)
+            if (result != unknown) {
+                PropertiesComponent.getInstance().setValue(cacheKey, result)
             }
-            
-            return unknown
+            return result
         } catch (e: Exception) {
             return unknown
         }
+    }
+
+    fun parseVersionOutput(stdout: String): String {
+        val unknown = LangManager.message("blender.version.unknown")
+        val blenderPrefix = "Blender "
+        val index = stdout.indexOf(blenderPrefix, ignoreCase = true)
+        if (index != -1) {
+            val versionPart = stdout.substring(index + blenderPrefix.length).trim()
+            val parts = versionPart.split(".")
+            if (parts.size >= 2) {
+                return "${parts[0]}.${parts[1]}"
+            }
+        }
+        return unknown
     }
 
     fun tryWhich(exec: String): String? {

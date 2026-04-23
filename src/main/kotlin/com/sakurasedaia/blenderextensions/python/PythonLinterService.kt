@@ -16,6 +16,7 @@ import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.sakurasedaia.blenderextensions.blender.services.BlenderDownloader
+import com.sakurasedaia.blenderextensions.blender.services.BlenderFinder
 import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
 import com.sakurasedaia.blenderextensions.blender.model.BlenderVersions
 import com.sakurasedaia.blenderextensions.blender.model.DownloadProgress
@@ -30,7 +31,21 @@ import kotlin.io.path.exists
 @Service(Service.Level.PROJECT)
 class PythonLinterService(private val project: Project) {
 
-    fun setupLinter(version: String) {
+    fun setupLinter(versionOrPath: String) {
+        val version = if (versionOrPath.contains("/") || versionOrPath.contains("\\")) {
+            BlenderFinder.tryGetVersion(versionOrPath)
+        } else {
+            versionOrPath
+        }
+
+        if (version == LangManager.message("blender.version.unknown")) {
+            BlenderNotification(project).sendError(
+                LangManager.message("toolwindow.managed.button.setup.linter"),
+                LangManager.message("blender.version.unknown")
+            )
+            return
+        }
+
         try {
             // Guardrail: Ensure project has a Virtual Environment SDK
             if (ensureVirtualEnvironment() == null) {
