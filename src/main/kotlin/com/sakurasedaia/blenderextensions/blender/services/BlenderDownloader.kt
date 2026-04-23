@@ -147,32 +147,46 @@ class BlenderDownloader(private val project: Project) {
     private fun downloadFile(url: String, targetDir: Path): Path? {
         val fileName = url.substringAfterLast("/")
         val targetFile = targetDir.resolve(fileName)
-	      logger.log("Downloading to: ${targetFile.absolutePathString()}")
+        logger.log("Downloading to: ${targetFile.absolutePathString()}")
         val indicator = ProgressManager.getInstance().progressIndicator
         val statusText = LangManager.message("log.blender.downloading.progress", fileName)
         val version = _downloadProgress.value.version
         val handler = indicator.toBlenderHandler(this, version, statusText)
         handler.text2 = url
         
-        if (!targetFile.exists()) {
+        if (targetFile.exists()) {
             try {
-                HttpRequests.request(url)
-                    .connect { request ->
-                        request.saveToFile(targetFile, handler)
-                    }
-                return targetFile
-            } catch (e: Exception) {
-                if (e is com.intellij.openapi.progress.ProcessCanceledException) {
-                    logger.log(LangManager.message("log.blender.download.cancelled"))
-                    throw e
+                val remoteSize = HttpRequests.request(url).connect { it.connection.contentLengthLong }
+                if (remoteSize > 0 && targetFile.fileSize() == remoteSize) {
+                    logger.log(LangManager.message("log.blender.cache.skip"))
+                    return targetFile
+                } else if (remoteSize > 0) {
+                    logger.log("Cached file size mismatch for $fileName (local: ${targetFile.fileSize()}, remote: $remoteSize). Re-downloading.")
+                    targetFile.deleteIfExists()
                 } else {
-                    logger.log(LangManager.message("log.blender.download.error", e.message ?: "Unknown error"))
+                    logger.log("Could not verify $fileName via content-length. Using cached file.")
+                    return targetFile
                 }
-                return null
+            } catch (e: Exception) {
+                logger.log("Verification failed for $fileName: ${e.message}. Using cached file.")
+                return targetFile
             }
-        } else {
-            logger.log(LangManager.message("log.blender.cache.skip"))
+        }
+
+        try {
+            HttpRequests.request(url)
+                .connect { request ->
+                    request.saveToFile(targetFile, handler)
+                }
             return targetFile
+        } catch (e: Exception) {
+            if (e is com.intellij.openapi.progress.ProcessCanceledException) {
+                logger.log(LangManager.message("log.blender.download.cancelled"))
+                throw e
+            } else {
+                logger.log(LangManager.message("log.blender.download.error", e.message ?: "Unknown error"))
+            }
+            return null
         }
     }
 

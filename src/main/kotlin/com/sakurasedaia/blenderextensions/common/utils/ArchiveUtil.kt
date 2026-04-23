@@ -71,19 +71,30 @@ object ArchiveUtil {
     
     private fun extractTar(file: Path, targetDir: Path, version: String, logger: BlenderLogger? = null): Int {
         val targetPath: Path = targetDir.resolve(version)
-        Files.createDirectories(targetPath)
-        logger?.log("Created $targetPath")
-        val command = GeneralCommandLine(
-            "tar",
-            "-xJf",
-            file.absolutePathString(),
-            "-C",
-            targetPath.absolutePathString(),
-            "--strip-components=1"
-        )
-        
-        logger?.log("Extracting ${file.name}: Running command $command")
-        return ExternalProcessUtil.executeCommand(command, logger = logger)
+        val tempDir = Files.createTempDirectory(targetDir, "blender-extract-tar-")
+        try {
+            val command = GeneralCommandLine(
+                "tar",
+                "-xJf",
+                file.absolutePathString(),
+                "-C",
+                tempDir.absolutePathString()
+            )
+            
+            logger?.log("Extracting ${file.name} to temporary directory $tempDir: Running command $command")
+            val result = ExternalProcessUtil.executeCommand(command, logger = logger)
+            if (result != 0) {
+                logger?.error("Tar extraction failed with exit code $result")
+                return result
+            }
+
+            return moveStrippedContent(tempDir, targetPath, logger)
+        } catch (e: Exception) {
+            logger?.error("Failed to extract TAR ${file.name}", e)
+            return -1
+        } finally {
+            tempDir.toFile().deleteRecursively()
+        }
     }
     
     private fun extractZip(file: Path, targetDir: Path, version: String, logger: BlenderLogger? = null): Int {
@@ -93,29 +104,46 @@ object ArchiveUtil {
             return -1
         }
 
+        val targetPath: Path = targetDir.resolve(version)
+        val tempDir = Files.createTempDirectory(targetDir, "blender-extract-zip-")
         try {
-            val targetPath: Path = targetDir.resolve(version)
-            Files.createDirectories(targetPath)
-            logger?.log("Created $targetPath")
+            logger?.log("Extracting ${file.name} to temporary directory $tempDir using IntelliJ Decompressor")
+            Decompressor.Zip(file).extract(tempDir)
 
-            logger?.log("Extracting ${file.name} using IntelliJ Decompressor")
-            Decompressor.Zip(file).extract(targetPath)
-
-            // Post-processing: if there is only one directory inside targetPath, move its content up (equivalent to --strip-components=1)
-            val contents = Files.list(targetPath).use { it.toList() }
-            if (contents.size == 1 && Files.isDirectory(contents[0])) {
-                val subDir = contents[0]
-                Files.list(subDir).use { subContents ->
-                    subContents.forEach {
-                        Files.move(it, targetPath.resolve(it.fileName))
-                    }
-                }
-                Files.delete(subDir)
-            }
-
-            return 0
+            return moveStrippedContent(tempDir, targetPath, logger)
         } catch (e: Exception) {
             logger?.error("Failed to extract ZIP ${file.name}", e)
+            return -1
+        } finally {
+            tempDir.toFile().deleteRecursively()
+        }
+    }
+
+    internal fun moveStrippedContent(tempDir: Path, target: Path, logger: BlenderLogger?): Int {
+        try {
+            val topLevelItems = Files.list(tempDir).use { it.toList() }
+            if (topLevelItems.isEmpty()) {
+                logger?.error("Extracted archive is empty")
+                return -1
+            }
+
+            if (topLevelItems.size == 1 && Files.isDirectory(topLevelItems[0])) {
+                val sourceDir = topLevelItems[0]
+                logger?.log("Detected single top-level directory ${sourceDir.name}, stripping it and moving to $target")
+                Files.move(sourceDir, target)
+            } else {
+                logger?.log("Multiple top-level items detected or no directory, moving all items to $target")
+                Files.createDirectories(target)
+                Files.list(tempDir).use { stream ->
+                    stream.forEach { path ->
+                        Files.move(path, target.resolve(path.fileName))
+                    }
+                }
+            }
+            return 0
+        } catch (e: Exception) {
+            logger?.error("Failed to move extracted content to $target: ${e.message}", e)
+            target.toFile().deleteRecursively()
             return -1
         }
     }

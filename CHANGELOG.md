@@ -21,6 +21,9 @@
 - **Run Configuration Flow**: Improved path resolution and validation within Blender Run Configurations to ensure managed versions are correctly handled before launch.
 
 ### Fixed
+- **Archive Extraction**: Implemented robust extraction using temporary directories and atomic moves to prevent corrupted or incomplete installations.
+- **Directory Stripping**: Added a more reliable top-level directory stripper for ZIP and TAR archives.
+- **Download Integrity**: Added file size verification for cached Blender downloads to detect and recover from corrupted files.
 - **Command Template Safety**: Ensured that generated Blender command templates (build, validate) correctly handle project paths with spaces by implementing proper shell-style quoting for source directories.
 - **Thread Safety**: Implemented thread-safe access to shared Blender installation and download caches to prevent `ConcurrentModificationException` and race conditions.
 - **Startup Synchronization**: Added a synchronization lock in `BlenderService` to prevent multiple simultaneous Blender process startups and ensure atomicity during initialization.
