@@ -111,7 +111,7 @@ class BlenderLinker(private val project: Project) {
     fun getExtensionsRepoDir(isSandboxed: Boolean = false): Path? {
         if (isSandboxed) {
             val projectPath = project.basePath ?: return null
-            return Path.of(projectPath, ".venv", "blender_sandbox", "extensions", "blender_pycharm")
+            return Path.of(projectPath, ".venv", "blender_sandbox", "scripts", "extensions", "blender_pycharm")
         }
         
         val blenderConfigDir = BlenderPathUtil.getBlenderRootConfigDir() ?: return null

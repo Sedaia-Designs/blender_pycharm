@@ -34,4 +34,17 @@ class BlenderLinkerTest : BasePlatformTestCase() {
         assertEquals(1, BlenderHelper.compareVersions(listOf(4, 10, 1), listOf(4, 10)))
         assertEquals(-1, BlenderHelper.compareVersions(listOf(4, 10), listOf(4, 10, 1)))
     }
+
+    @Test
+    fun testGetExtensionsRepoDirSandboxed() {
+        val linker = BlenderLinker.getInstance(project)
+        val repoDir = linker.getExtensionsRepoDir(isSandboxed = true)
+        
+        assertNotNull(repoDir)
+        val projectPath = project.basePath
+        assertNotNull(projectPath)
+        
+        val expectedPath = Path.of(projectPath!!, ".venv", "blender_sandbox", "scripts", "extensions", "blender_pycharm")
+        assertEquals(expectedPath.toAbsolutePath().toString(), repoDir!!.toAbsolutePath().toString())
+    }
 }
