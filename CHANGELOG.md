@@ -27,6 +27,7 @@
 - **Linter Setup**: Ensured that the linter setup process always uses a valid Blender version string instead of a file path, improving reliability across system-wide installations.
 - **Project Wizard**: Corrected the project generation logic to respect the user's sandbox toggle when creating default run configurations.
 - **Reload Command Safety**: Implemented robust JSON serialization for extension reload commands to ensure extension names with special characters are correctly escaped.
+- **Communication Server Leak**: Implemented a synchronization and cleanup mechanism in `BlenderCommunicationService` to ensure only one Blender client is active at a time and resources are properly released upon reconnection.
 - **Sandbox Extension Path**: Resolved a mismatch where Blender would fail to load linked extensions in sandbox mode by aligning the linker path with the `BLENDER_USER_SCRIPTS` environment variable.
 - **Cancellation Responsiveness**: Added `checkCanceled()` calls and improved exception handling to ensure the IDE remains responsive and the startup process can be aborted by the user.
 - **Permission Denied (Error 13)**: Resolved issues where Blender would fail to launch on Linux partitions mounted with restrictive flags by providing clear diagnostic feedback.

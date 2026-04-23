@@ -29,6 +29,7 @@ import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
 class BlenderCommunicationService(private val project: Project, private val cs: CoroutineScope) : Disposable {
     private val gson = Gson()
     private val logger = BlenderLogger.getInstance(project)
+    private val clientLock = Any()
     private var serverSocket: ServerSocket? = null
     private var blenderClient: Socket? = null
 
@@ -52,7 +53,10 @@ class BlenderCommunicationService(private val project: Project, private val cs: 
                             val firstLine = withContext(Dispatchers.IO) { reader.readLine() }
                             if (firstLine != null && firstLine.contains("\"type\": \"ready\"")) {
                                 logger.log(LangManager.message("log.blender.connected", port))
-                                blenderClient = client
+                                synchronized(clientLock) {
+                                    blenderClient?.close()
+                                    blenderClient = client
+                                }
                             } else {
                                 logger.log(LangManager.message("log.blender.handshake.failed"))
                                 client.close()
@@ -79,16 +83,21 @@ class BlenderCommunicationService(private val project: Project, private val cs: 
     fun stopServer() {
         try {
             serverSocket?.close()
-            blenderClient?.close()
+            synchronized(clientLock) {
+                blenderClient?.close()
+                blenderClient = null
+            }
         } catch (e: Exception) {
             // Ignore
         }
     }
 
-    fun isConnected(): Boolean = blenderClient?.let { !it.isClosed } ?: false
+    fun isConnected(): Boolean = synchronized(clientLock) {
+        blenderClient?.let { !it.isClosed } ?: false
+    }
 
     fun sendReloadCommand(extensionName: String) {
-        val client = blenderClient
+        val client = synchronized(clientLock) { blenderClient }
         if (client == null || client.isClosed) {
             logger.log(LangManager.message("log.blender.cannot.reload"))
             return
