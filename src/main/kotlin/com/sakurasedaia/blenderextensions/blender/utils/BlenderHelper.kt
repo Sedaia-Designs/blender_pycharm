@@ -59,4 +59,22 @@ object BlenderHelper {
             else -> throw (IllegalArgumentException("OS is not supported"))
         }
     }
+
+    fun parseVersion(version: String): List<Int> {
+        return try {
+            version.split('.').mapNotNull { it.toIntOrNull() }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    fun compareVersions(v1: List<Int>, v2: List<Int>): Int {
+        val size = maxOf(v1.size, v2.size)
+        for (i in 0 until size) {
+            val p1 = if (i < v1.size) v1[i] else 0
+            val p2 = if (i < v2.size) v2[i] else 0
+            if (p1 != p2) return p1.compareTo(p2)
+        }
+        return 0
+    }
 }

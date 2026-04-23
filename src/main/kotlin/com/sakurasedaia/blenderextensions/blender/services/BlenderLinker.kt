@@ -107,7 +107,7 @@ class BlenderLinker(private val project: Project) {
             logger.log(LangManager.message("log.linker.junction.error", e.message ?: ""))
         }
     }
-
+    
     fun getExtensionsRepoDir(isSandboxed: Boolean = false): Path? {
         if (isSandboxed) {
             val projectPath = project.basePath ?: return null
@@ -123,7 +123,12 @@ class BlenderLinker(private val project: Project) {
                 Files.isDirectory(path) && path.name.all { it.isDigit() || it == '.' }
             }.toList()
         }
-        val latestVersion = versions.maxByOrNull { it.name } ?: run {
+        val latestVersion = versions.maxWithOrNull { p1, p2 ->
+            BlenderHelper.compareVersions(
+                BlenderHelper.parseVersion(p1.name),
+                BlenderHelper.parseVersion(p2.name)
+            )
+        } ?: run {
             logger.log("BlenderLinker: No versioned configuration directories found in ${blenderConfigDir.absolutePathString()}")
             return null
         }
