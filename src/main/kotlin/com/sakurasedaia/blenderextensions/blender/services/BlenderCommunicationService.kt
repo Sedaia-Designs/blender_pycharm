@@ -1,5 +1,6 @@
 package com.sakurasedaia.blenderextensions.blender.services
 
+import com.google.gson.Gson
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
@@ -26,6 +27,7 @@ import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
  */
 @Service(Service.Level.PROJECT)
 class BlenderCommunicationService(private val project: Project, private val cs: CoroutineScope) : Disposable {
+    private val gson = Gson()
     private val logger = BlenderLogger.getInstance(project)
     private var serverSocket: ServerSocket? = null
     private var blenderClient: Socket? = null
@@ -94,7 +96,8 @@ class BlenderCommunicationService(private val project: Project, private val cs: 
 
         try {
             val out = PrintWriter(client.getOutputStream(), true)
-            out.println("{\"type\": \"reload\", \"name\": \"$extensionName\"}")
+            val payload = mapOf("type" to "reload", "name" to extensionName)
+            out.println(gson.toJson(payload))
             logger.log(LangManager.message("log.blender.sent.reload", extensionName))
         } catch (e: Exception) {
             logger.log(LangManager.message("log.blender.failed.reload", e.message ?: ""))
