@@ -438,14 +438,12 @@ internal class BlenderAddonProjectPeer : ProjectGeneratorPeer<BlenderAddonProjec
         blenderDownloadButton.addActionListener {
             val selected = blenderVersionComboBox.selectedItem as? String ?: return@addActionListener
             if (!downloader.isDownloaded(selected)) {
-                com.intellij.openapi.progress.ProgressManager.getInstance().run(object : com.intellij.openapi.progress.Task.Backgroundable(null, LangManager.message("action.download.blender.task", selected)) {
-                    override fun run(indicator: com.intellij.openapi.progress.ProgressIndicator) {
-                        downloader.getOrDownloadBlenderPath(selected)
-                        SwingUtilities.invokeLater {
-                            updateDownloadButtonVisibility()
-                        }
+                BlenderTaskManager.getInstance().run(null, LangManager.message("action.download.blender.task", selected)) {
+                    downloader.getOrDownloadBlenderPath(selected)
+                    SwingUtilities.invokeLater {
+                        updateDownloadButtonVisibility()
                     }
-                })
+                }
             }
         }
         updateDownloadButtonVisibility()

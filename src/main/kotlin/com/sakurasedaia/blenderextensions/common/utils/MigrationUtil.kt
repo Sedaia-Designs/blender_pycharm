@@ -6,6 +6,7 @@ import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.io.FileUtil
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
+import com.sakurasedaia.blenderextensions.common.utils.BlenderTaskManager
 import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
 import java.io.File
 
@@ -66,40 +67,38 @@ object MigrationUtil {
             return
         }
 
-        object : Task.Backgroundable(project, LangManager.message("migration.progress.title"), true) {
-            override fun run(indicator: ProgressIndicator) {
-                val files = sourceDir.listFiles() ?: return
-                val total = files.size
+        BlenderTaskManager.getInstance().run(project, LangManager.message("migration.progress.title"), true) { indicator ->
+            val files = sourceDir.listFiles() ?: return@run
+            val total = files.size
+            
+            files.forEachIndexed { index, file ->
+                indicator.checkCanceled()
+                indicator.fraction = (index.toDouble() / total)
+                indicator.text = LangManager.message("migration.progress.file", file.name)
                 
-                files.forEachIndexed { index, file ->
-                    indicator.checkCanceled()
-                    indicator.fraction = (index.toDouble() / total)
-                    indicator.text = LangManager.message("migration.progress.file", file.name)
-                    
-                    try {
-                        val destination = File(targetDir, file.name)
-                        if (file.isDirectory) {
-                            FileUtil.copyDir(file, destination)
-                            FileUtil.delete(file)
-                        } else {
-                            FileUtil.copy(file, destination)
-                            FileUtil.delete(file)
-                        }
-                    } catch (e: Exception) {
-                        // Log error or notify user
-                        BlenderLogger.getInstance(project).error("Migration failed for ${file.name}", e)
+                try {
+                    val destination = File(targetDir, file.name)
+                    if (file.isDirectory) {
+                        FileUtil.copyDir(file, destination)
+                        FileUtil.delete(file)
+                    } else {
+                        FileUtil.copy(file, destination)
+                        FileUtil.delete(file)
                     }
-                }
-                
-                // Try to delete the old directory if it's empty
-                if (sourceDir.list()?.isEmpty() == true) {
-                    sourceDir.delete()
-                }
-
-                ApplicationManager.getApplication().invokeLater {
-                    onComplete(finalNewPath)
+                } catch (e: Exception) {
+                    // Log error or notify user
+                    BlenderLogger.getInstance(project).error("Migration failed for ${file.name}", e)
                 }
             }
-        }.queue()
+            
+            // Try to delete the old directory if it's empty
+            if (sourceDir.list()?.isEmpty() == true) {
+                sourceDir.delete()
+            }
+
+            ApplicationManager.getApplication().invokeLater {
+                onComplete(finalNewPath)
+            }
+        }
     }
 }

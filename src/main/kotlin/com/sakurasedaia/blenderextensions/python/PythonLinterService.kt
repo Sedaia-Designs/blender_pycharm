@@ -2,6 +2,7 @@ package com.sakurasedaia.blenderextensions.python
 
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
@@ -15,6 +16,7 @@ import com.intellij.openapi.roots.OrderRootType
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
+import com.sakurasedaia.blenderextensions.common.utils.BlenderTaskManager
 import com.sakurasedaia.blenderextensions.blender.services.BlenderDownloader
 import com.sakurasedaia.blenderextensions.blender.services.BlenderFinder
 import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
@@ -46,43 +48,47 @@ class PythonLinterService(private val project: Project) {
             return
         }
 
-        try {
-            // Guardrail: Ensure project has a Virtual Environment SDK
-            if (ensureVirtualEnvironment() == null) {
+        val permission = Messages.showYesNoDialog(
+            project,
+            LangManager.message("dialog.permission.python.sdk.message"),
+            LangManager.message("dialog.permission.python.sdk.title"),
+            Messages.getQuestionIcon()
+        )
+        if (permission != Messages.YES) return
+
+        BlenderTaskManager.getInstance().run(project, LangManager.message("action.setup.linter.task", version)) { indicator ->
+            try {
+                // Guardrail: Ensure project has a Virtual Environment SDK
+                if (ensureVirtualEnvironment() == null) {
+                    BlenderNotification(project).sendError(
+                        LangManager.message("toolwindow.managed.button.setup.linter"),
+                        LangManager.message("log.python.venv.failed")
+                    )
+                    return@run
+                }
+
+                val result = installFakeBpyModule(version, indicator)
+                if (!result.success) {
+                    BlenderNotification(project).sendError(
+                        LangManager.message("toolwindow.managed.button.setup.linter"),
+                        result.errorMessage ?: LangManager.message("toolwindow.managed.button.setup.linter.error.pip")
+                    )
+                    return@run
+                }
+
+                ApplicationManager.getApplication().invokeLater {
+                    addLinterToCurrentSdk(version)
+                    BlenderNotification(project).sendInfo(
+                        LangManager.message("toolwindow.managed.button.setup.linter"),
+                        LangManager.message("toolwindow.managed.button.setup.linter.success", version)
+                    )
+                }
+            } catch (e: Exception) {
                 BlenderNotification(project).sendError(
                     LangManager.message("toolwindow.managed.button.setup.linter"),
-                    LangManager.message("log.python.venv.failed")
+                    LangManager.message("toolwindow.managed.button.setup.linter.error", e.message ?: "Unknown error")
                 )
-                return
             }
-
-            ProgressManager.getInstance().run(
-                object : Task.Backgroundable(project, "Installing linter for Blender $version", true) {
-                    override fun run(indicator: ProgressIndicator) {
-                        val result = installFakeBpyModule(version, indicator)
-                        if (!result.success) {
-                            BlenderNotification(project).sendError(
-                                LangManager.message("toolwindow.managed.button.setup.linter"),
-                                result.errorMessage ?: LangManager.message("toolwindow.managed.button.setup.linter.error.pip")
-                            )
-                            return
-                        }
-
-                        ApplicationManager.getApplication().invokeLater {
-                            addLinterToCurrentSdk(version)
-                            BlenderNotification(project).sendInfo(
-                                LangManager.message("toolwindow.managed.button.setup.linter"),
-                                LangManager.message("toolwindow.managed.button.setup.linter.success", version)
-                            )
-                        }
-                    }
-                }
-            )
-        } catch (e: Exception) {
-            BlenderNotification(project).sendError(
-                LangManager.message("toolwindow.managed.button.setup.linter"),
-                LangManager.message("toolwindow.managed.button.setup.linter.error", e.message ?: "Unknown error")
-            )
         }
     }
 

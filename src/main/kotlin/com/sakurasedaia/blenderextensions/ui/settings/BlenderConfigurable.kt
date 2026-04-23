@@ -17,6 +17,7 @@ import com.intellij.ui.dsl.builder.AlignY
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
+import com.sakurasedaia.blenderextensions.common.utils.BlenderTaskManager
 import com.sakurasedaia.blenderextensions.blender.model.*
 import com.sakurasedaia.blenderextensions.blender.services.*
 import com.sakurasedaia.blenderextensions.blender.utils.*
@@ -179,15 +180,13 @@ class BlenderConfigurable(private val project: Project) : SearchableConfigurable
                     }
                 }
             } else {
-                ProgressManager.getInstance().run(object : Task.Backgroundable(project, LangManager.message("action.download.blender.task", version)) {
-                    override fun run(indicator: com.intellij.openapi.progress.ProgressIndicator) {
-                        service.getOrDownloadBlenderPath(version)
-                        SwingUtilities.invokeLater {
-                            managedTable.refresh()
-                            updateManagedButtons()
-                        }
+                BlenderTaskManager.getInstance().run(project, LangManager.message("action.download.blender.task", version)) {
+                    service.getOrDownloadBlenderPath(version)
+                    SwingUtilities.invokeLater {
+                        managedTable.refresh()
+                        updateManagedButtons()
                     }
-                })
+                }
             }
         }
 

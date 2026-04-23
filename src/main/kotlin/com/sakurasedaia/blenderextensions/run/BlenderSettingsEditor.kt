@@ -17,6 +17,7 @@ import com.sakurasedaia.blenderextensions.blender.services.BlenderDownloader
 import com.sakurasedaia.blenderextensions.blender.model.BlenderVersions
 import com.sakurasedaia.blenderextensions.icons.BlenderIcons
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
+import com.sakurasedaia.blenderextensions.common.utils.BlenderTaskManager
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JButton
 import javax.swing.JComponent
@@ -53,14 +54,12 @@ class BlenderSettingsEditor(private val project: Project) : SettingsEditor<Blend
         myDownloadButton.addActionListener {
             val selected = myBlenderVersionComboBox.selectedItem as? String ?: return@addActionListener
             if (!downloader.isDownloaded(selected)) {
-                ProgressManager.getInstance().run(object : Task.Backgroundable(project, LangManager.message("action.download.blender.task", selected)) {
-                    override fun run(indicator: ProgressIndicator) {
-                        downloader.getOrDownloadBlenderPath(selected)
-                        SwingUtilities.invokeLater {
-                            updateDownloadButtonVisibility()
-                        }
+                BlenderTaskManager.getInstance().run(project, LangManager.message("action.download.blender.task", selected)) {
+                    downloader.getOrDownloadBlenderPath(selected)
+                    SwingUtilities.invokeLater {
+                        updateDownloadButtonVisibility()
                     }
-                })
+                }
             }
         }
     }

@@ -11,6 +11,7 @@ import com.intellij.util.ui.JBUI
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
+import com.sakurasedaia.blenderextensions.common.utils.BlenderTaskManager
 import com.sakurasedaia.blenderextensions.blender.services.BlenderDownloader
 import com.sakurasedaia.blenderextensions.blender.services.BlenderService
 import com.sakurasedaia.blenderextensions.blender.model.BlenderVersions
@@ -124,14 +125,12 @@ class BlenderToolWindowContent(private val project: Project) {
 
     private fun handleDownload() {
         val version = versionComboBox.selectedItem as? String ?: return
-        ProgressManager.getInstance().run(object : Task.Backgroundable(project, LangManager.message("action.download.blender.task", version)) {
-            override fun run(indicator: ProgressIndicator) {
-                downloader.getOrDownloadBlenderPath(version)
-                ApplicationManager.getApplication().invokeLater {
-                    updateButtonStates()
-                }
+        BlenderTaskManager.getInstance().run(project, LangManager.message("action.download.blender.task", version)) {
+            downloader.getOrDownloadBlenderPath(version)
+            ApplicationManager.getApplication().invokeLater {
+                updateButtonStates()
             }
-        })
+        }
     }
 
     private fun handleSetupLinter() {

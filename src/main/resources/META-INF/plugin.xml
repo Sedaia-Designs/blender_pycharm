@@ -71,6 +71,8 @@
         <notificationGroup id="Blender Development"
                            displayType="Balloon"
                            key="notification.group.name" />
+
+        <applicationService serviceImplementation="com.sakurasedaia.blenderextensions.common.utils.BlenderTaskManager"/>
     </extensions>
 
     <actions>

@@ -1,6 +1,7 @@
 package com.sakurasedaia.blenderextensions.blender.services
 
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
+import com.sakurasedaia.blenderextensions.common.utils.BlenderTaskManager
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.ExecutionException
 import com.intellij.openapi.application.ApplicationManager
@@ -43,7 +44,7 @@ class BlenderService(private val project: Project) {
     private val hasError = AtomicBoolean(false)
 
     init {
-        ApplicationManager.getApplication().executeOnPooledThread {
+        BlenderTaskManager.getInstance().execute {
             telemetryService.collectAndLogTelemetry()
         }
     }
@@ -70,7 +71,7 @@ class BlenderService(private val project: Project) {
     }
 
     fun scanInstallations() {
-        ApplicationManager.getApplication().executeOnPooledThread {
+        BlenderTaskManager.getInstance().execute {
             val customPaths = BlenderSettings.getInstance(project).getCustomBlenderPaths()
             BlenderScanner.scanSystemInstallations(project = project, force = true, customPaths = customPaths)
         }
@@ -207,14 +208,16 @@ class BlenderService(private val project: Project) {
 
     fun reloadExtension() {
         val extensionName = currentExtensionName ?: "unknown"
-        try {
-            communicationService.sendReloadCommand(extensionName)
-        } catch (e: Exception) {
-            BlenderNotification(project).sendWarning(
-                LangManager.message("notification.reload.failed.title"),
-                LangManager.message("notification.reload.failed.message", e.message ?: "")
-            )
-            logger.log(LangManager.message("log.blender.failed.reload", e.message ?: ""))
+        BlenderTaskManager.getInstance().execute {
+            try {
+                communicationService.sendReloadCommand(extensionName)
+            } catch (e: Exception) {
+                BlenderNotification(project).sendWarning(
+                    LangManager.message("notification.reload.failed.title"),
+                    LangManager.message("notification.reload.failed.message", e.message ?: "")
+                )
+                logger.log(LangManager.message("log.blender.failed.reload", e.message ?: ""))
+            }
         }
     }
 
