@@ -86,3 +86,13 @@ For domain-specific procedures, refer to:
 - [Blender Extension Dev](skills/blender_extension_dev.md)
 - [Documentation & Wiki](skills/documentation.md)
 - [Wiki Specifics](wiki_guidelines.md)
+
+---
+
+## 7. Temporary Guidelines
+
+### 7.1 Action Mandates
+- **Focus**: Do not act on any findings in `Combined_Audit_Report.md` unless they are explicitly referenced in the current mandate or feedback.
+- **Finding Completion**: When a finding is acted on, add a `[Completed]` tag to the front of the Finding Header in `Combined_Audit_Report.md`.
+- **Commit Changes**: Once a Finding has been resolved/completed, perform a commit with a single-sentence summary of the changes.
+- **Audit Document**: The Audit Document is a private, offline file, do not commit this file.
