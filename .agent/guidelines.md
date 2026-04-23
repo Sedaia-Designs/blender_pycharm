@@ -50,7 +50,7 @@ This document is the **authoritative Source of Truth** for Junie (the AI agent).
 - **Verification**: Clearly state how you verified your changes (tests, linting, manual checks).
 
 ### 3.2 Documentation
-- **CHANGELOG.md**: Update for every feature or fix using existing categories.
+- **CHANGELOG.md**: Update for every feature or fix using existing categories. **NEVER** bump the version number unless explicitly told
 - **README.md / CONTRIBUTING.md**: Update if features or workflows change.
 - **Project Wiki**: Whenever significant features or architectural changes are made, you MUST update the corresponding documentation in the project wiki (located at `/mnt/data/PycharmProjects/SakuraProjectWiki/docs/blender-development-pycharm/`).
 
@@ -96,3 +96,4 @@ For domain-specific procedures, refer to:
 - **Finding Completion**: When a finding is acted on, add a `[Completed]` tag to the front of the Finding Header in `Combined_Audit_Report.md`.
 - **Commit Changes**: Once a Finding has been resolved/completed, perform a commit with a single-sentence summary of the changes.
 - **Audit Document**: The Audit Document is a private, offline file, do not commit this file.
+- **Changelog Updates**: Update the changelog for the latest version with an update note.
