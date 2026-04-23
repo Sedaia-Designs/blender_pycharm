@@ -1,7 +1,7 @@
 package com.sakurasedaia.blenderextensions.blender.services
 
 import com.sakurasedaia.blenderextensions.blender.utils.BlenderHelper
-import com.intellij.execution.util.ExecUtil
+import com.sakurasedaia.blenderextensions.common.utils.ExternalProcessUtil
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.ide.util.PropertiesComponent
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
@@ -21,7 +21,7 @@ object BlenderFinder {
 
         try {
             val commandLine = GeneralCommandLine(path, "--version")
-            val output = ExecUtil.execAndGetOutput(commandLine)
+            val output = ExternalProcessUtil.execAndGetOutput(commandLine)
             if (output.exitCode != 0) return unknown
             
             val stdout = output.stdout
@@ -52,7 +52,7 @@ object BlenderFinder {
     fun tryWhich(exec: String): String? {
         return try {
             val commandLine = GeneralCommandLine(if (BlenderHelper.isWindows()) "where" else "which", exec)
-            val output = ExecUtil.execAndGetOutput(commandLine)
+            val output = ExternalProcessUtil.execAndGetOutput(commandLine)
             val result = output.stdoutLines.firstOrNull()?.trim()
             if (output.exitCode == 0 && !result.isNullOrEmpty() && !result.contains("not found")) {
                 result

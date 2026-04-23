@@ -1,6 +1,6 @@
 package com.sakurasedaia.blenderextensions.python
 
-import com.intellij.execution.util.ExecUtil
+import com.sakurasedaia.blenderextensions.common.utils.ExternalProcessUtil
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
 import com.intellij.openapi.project.Project
@@ -17,7 +17,7 @@ object PythonFinder {
         }
         try {
             val commandLine = GeneralCommandLine(pythonExe.toString(), "--version")
-            val output = ExecUtil.execAndGetOutput(commandLine)
+            val output = ExternalProcessUtil.execAndGetOutput(commandLine)
             if (output.exitCode != 0) {
                 BlenderLogger.debug(project, "getPythonVersion: --version failed for $pythonExe (exit code: ${output.exitCode})")
                 return null
@@ -69,7 +69,7 @@ object PythonFinder {
             
             if (pyExe != null) {
                 try {
-                    val output = ExecUtil.execAndGetOutput(
+                    val output = ExternalProcessUtil.execAndGetOutput(
                         GeneralCommandLine(pyExe.toString(), "-$targetVersion", "-c", "import sys; print(sys.executable)")
                     )
                     if (output.exitCode == 0) {

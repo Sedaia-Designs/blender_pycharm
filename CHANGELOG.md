@@ -28,6 +28,7 @@
 - **Thread Safety**: Implemented thread-safe access to shared Blender installation and download caches to prevent `ConcurrentModificationException` and race conditions.
 - **Startup Synchronization**: Added a synchronization lock in `BlenderService` to prevent multiple simultaneous Blender process startups and ensure atomicity during initialization.
 - **Linter Setup**: Ensured that the linter setup process always uses a valid Blender version string instead of a file path, improving reliability across system-wide installations.
+- **Process Execution**: Replaced inefficient busy-wait loops in external process execution with a listener-based approach and improved cancellation handling to prevent resource leaks.
 - **Project Wizard**: Corrected the project generation logic to respect the user's sandbox toggle when creating default run configurations.
 - **Reload Command Safety**: Implemented robust JSON serialization for extension reload commands to ensure extension names with special characters are correctly escaped.
 - **Communication Server Leak**: Implemented a synchronization and cleanup mechanism in `BlenderCommunicationService` to ensure only one Blender client is active at a time and resources are properly released upon reconnection.
