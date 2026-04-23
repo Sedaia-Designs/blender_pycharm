@@ -20,26 +20,30 @@ data class BlenderInstallation(
 )
 
 object BlenderScanner {
+    @Volatile
     private var cachedSystemInstallations: List<BlenderInstallation>? = null
+    private val lock = Any()
 
-    fun getCachedInstallations(): List<BlenderInstallation>? = cachedSystemInstallations
+    fun getCachedInstallations(): List<BlenderInstallation>? = synchronized(lock) { cachedSystemInstallations }
 
     fun scanSystemInstallations(
         project: Project? = null,
         force: Boolean = false,
         customPaths: Map<String, String> = emptyMap()
     ): List<BlenderInstallation> {
-        val systemInstallations = if (!force && cachedSystemInstallations != null) {
-            cachedSystemInstallations!!
-        } else {
-            val installations = mutableListOf<BlenderInstallation>()
-            when {
-                BlenderHelper.isWindows() -> installations.addAll(scanWindows(project))
-                BlenderHelper.isLinux() -> installations.addAll(scanLinux(project))
-                BlenderHelper.isMac() -> installations.addAll(scanMac(project))
+        val systemInstallations = synchronized(lock) {
+            if (!force && cachedSystemInstallations != null) {
+                cachedSystemInstallations!!
+            } else {
+                val installations = mutableListOf<BlenderInstallation>()
+                when {
+                    BlenderHelper.isWindows() -> installations.addAll(scanWindows(project))
+                    BlenderHelper.isLinux() -> installations.addAll(scanLinux(project))
+                    BlenderHelper.isMac() -> installations.addAll(scanMac(project))
+                }
+                cachedSystemInstallations = installations
+                installations
             }
-            cachedSystemInstallations = installations
-            installations
         }
 
         val allInstallations = systemInstallations.toMutableList()

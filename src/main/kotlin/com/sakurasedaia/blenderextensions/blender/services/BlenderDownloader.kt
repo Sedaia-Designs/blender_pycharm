@@ -37,6 +37,7 @@ import com.sakurasedaia.blenderextensions.blender.utils.toBlenderHandler
 class BlenderDownloader(private val project: Project) {
     private val logger = BlenderLogger.getInstance(project)
     private val isDownloadedCache = mutableMapOf<String?, Boolean>()
+    private val cacheLock = Any()
 
     private val _downloadProgress = MutableStateFlow(DownloadProgress())
     val downloadProgress: StateFlow<DownloadProgress> = _downloadProgress.asStateFlow()
@@ -46,14 +47,18 @@ class BlenderDownloader(private val project: Project) {
     }
 
     fun isDownloaded(version: String?): Boolean {
-        return isDownloadedCache.getOrPut(version) {
-            val downloadDir = BlenderPathUtil.getVersionDirectory(project, version)
-            BlenderPathUtil.findBlenderExecutable(downloadDir) != null
+        synchronized(cacheLock) {
+            return isDownloadedCache.getOrPut(version) {
+                val downloadDir = BlenderPathUtil.getVersionDirectory(project, version)
+                BlenderPathUtil.findBlenderExecutable(downloadDir) != null
+            }
         }
     }
 
     fun clearCache() {
-        isDownloadedCache.clear()
+        synchronized(cacheLock) {
+            isDownloadedCache.clear()
+        }
     }
 
     fun deleteVersion(version: String) {
