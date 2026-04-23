@@ -180,7 +180,7 @@ class BlenderAddonProjectGenerator : DirectoryProjectGenerator<BlenderAddonProje
             val runConfig = runSettings.configuration as BlenderRunConfiguration
             val options = runConfig.getOptions()
             options.blenderVersion = selectedVersion
-            options.isSandboxed = true
+            options.isSandboxed = settings.sandbox
             options.addonSourceDirectory = srcDir.toAbsolutePath().toString()
             options.addonSymlinkName = addonId
             runManager.addConfiguration(runSettings)
