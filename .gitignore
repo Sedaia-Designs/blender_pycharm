@@ -46,6 +46,8 @@ release_trigger.sh
 
 ### Mac OS ###
 .DS_Store
+
+### EXTRAS
 /.reference/
 /.blender-docs/
 /.ai-logs/
@@ -54,3 +56,4 @@ release_trigger.sh
 /.hidden/
 /.output.txt
 /Combined_Audit_Report.md
+/blender_vscode/

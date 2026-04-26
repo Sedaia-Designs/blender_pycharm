@@ -18,7 +18,7 @@
         <p><b>Blender Development</b> seamlessly integrates professional Blender extension development into the PyCharm IDE. This project is licensed under the <b>GNU GPL v3</b>.</p>
         <p>This plugin provides a powerful suite of tools designed to streamline the entire lifecycle of creating, testing, and deploying Blender extensions (v4.2+) using modern development practices.</p>
 
-        <p><i><b>Note:</b> This plugin is currently in active development. Please report bugs or feature requests at the <a href="https://github.com/SakuraSedaia/blender_pycharm/issues">GitHub Repository</a>.</i></p>
+        <p><i><b>Note:</b> This plugin is currently in active development. Please report bugs or feature requests at the <a href="https://codeberg.org/SakuraSedaia/blender_pycharm/issues">Codeberg Repository</a>.</i></p>
 
         <h3>Key Capabilities:</h3>
         <ul>
@@ -30,7 +30,7 @@
             <li><b>Customizable Developer Experience:</b> Supports custom splash screens for sandboxed sessions, flexible path management, and automatic detection of system Blender installations.</li>
         </ul>
 
-        <p>Inspired by the <a href="https://github.com/JacquesLucke/blender_vscode">Blender Development extension for Visual Studio Code</a> by <b>Jacques Lucke</b> and optimized for the PyCharm ecosystem.</p>
+        <p>Inspired by the <a href="https://codeberg.org/SakuraSedaia/blender_pycharm">Blender Development extension</a> by <b>Sakura Sedaia</b> and optimized for the PyCharm ecosystem.</p>
 
         <p><small><i>Blender is a registered trademark of the Blender Foundation. This plugin is an independent project and is not affiliated with, endorsed by, or sponsored by the Blender Foundation. The Blender logo is used under nominative fair use to denote compatibility.</i></small></p>
     ]]></description>

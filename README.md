@@ -29,14 +29,14 @@ Blender Development for PyCharm is a comprehensive plugin that streamlines the c
 
 ### Option 1: Install Prebuilt Binary (Recommended)
 
-1. Download the latest plugin ZIP file from the [GitHub Releases](https://github.com/Sakura-Sedaia/BlenderExtensions/releases) page.
+1. Download the latest plugin ZIP file from the [Codeberg Releases](https://codeberg.org/SakuraSedaia/blender_pycharm/releases) page.
 2. In PyCharm, go to **Settings** > **Plugins**.
 3. Click ⚙️ > **Install Plugin from Disk...**.
 4. Select the downloaded ZIP and restart PyCharm.
 
 ### Option 2: Build from Source
 
-1. Clone the repository: `git clone --depth 1 https://github.com/Sakura-Sedaia/BlenderExtensions.git`
+1. Clone the repository: `git clone --depth 1 https://codeberg.org/SakuraSedaia/blender_pycharm.git`
 2. Run build:
    - **Windows**: `.\gradlew.bat buildPlugin`
    - **macOS/Linux**: `./gradlew buildPlugin`

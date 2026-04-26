@@ -255,7 +255,7 @@ class BlenderProjectTemplateGenerator {
                 - [Blender User Manual](https://docs.blender.org/manual/en/latest/)
                 - [Blender Extension Platform](https://extensions.blender.org/)
                 
-                Extension Template Generated using [Blender Development Tools by Sakura Sedaia](https://github.com/SakuraSedaia/blender_pycharm)
+                Extension Template Generated using [Blender Development Tools by Sakura Sedaia](https://codeberg.org/SakuraSedaia/blender_pycharm)
             """.trimIndent()
         }
 

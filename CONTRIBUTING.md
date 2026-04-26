@@ -15,8 +15,8 @@ Thank you for your interest in contributing to this project! We welcome all cont
 
 1. **Fork and Clone** the repository:
    ```bash
-   git clone https://github.com/your-username/BlenderExtensions.git
-   cd BlenderExtensions
+   git clone https://codeberg.org/SakuraSedaia/blender_pycharm.git
+   cd blender_pycharm
    ```
 2. **Open the project** in IntelliJ IDEA.
 3. **Configure the JDK**: Go to `File > Project Structure > Project` and ensure the Project SDK is set to JDK 21+.
@@ -82,7 +82,7 @@ git push origin feature/your-feature-name
 ```
 
 ### 5. Open a Pull Request
-Submit a Pull Request on GitHub. Provide a clear description of the changes and any related issues.
+Submit a Pull Request on Codeberg. Provide a clear description of the changes and any related issues.
 
 ## Code Style
 
@@ -123,7 +123,7 @@ This project uses AI agents (like Junie) to maintain high-quality code and docum
 
 ## Reporting Issues
 
-If you find a bug or have a feature request, please [open an issue](https://github.com/Sakura-Sedaia/BlenderExtensions/issues) with:
+If you find a bug or have a feature request, please [open an issue](https://codeberg.org/SakuraSedaia/blender_pycharm/issues) with:
 - A clear title and description.
 - Steps to reproduce the bug.
 - Your OS, PyCharm version, and Blender version.
@@ -131,7 +131,7 @@ If you find a bug or have a feature request, please [open an issue](https://gith
 
 ## Communication
 
-For questions or discussions, feel free to use GitHub Discussions or open an issue.
+For questions or discussions, feel free to use Codeberg Discussions or open an issue.
 
 For legal notices, AI disclosures, and trademark information, please see [NOTICE.md](docs/NOTICE.md). For detailed architecture, see [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 

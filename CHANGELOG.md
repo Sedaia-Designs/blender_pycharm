@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.6.0] - 2026-04-26
+### Changed
+- **Repository Migration**: Migrated the project repository from GitHub to Codeberg (`https://codeberg.org/SakuraSedaia/blender_pycharm.git`). Updated all internal links and references in documentation and generated templates.
+
 ## [0.6.0] - 2026-04-22
 ### Added
 - **Background Task Management**: Centralized all UI-blocking operations (linter setup, downloads, reloads) into a new `BlenderTaskManager` to ensure a smooth IDE experience and prevent freezes.
