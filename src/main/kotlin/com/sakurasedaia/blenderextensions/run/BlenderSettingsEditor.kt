@@ -23,9 +23,6 @@ import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.SwingUtilities
 
-/**
- * UI for editing Blender run configurations.
- */
 class BlenderSettingsEditor(private val project: Project) : SettingsEditor<BlenderRunConfiguration>() {
     private val downloader = BlenderDownloader.getInstance(project)
     
@@ -64,18 +61,11 @@ class BlenderSettingsEditor(private val project: Project) : SettingsEditor<Blend
         }
     }
 
-    /**
-     * Updates the visibility of the download button based on whether the selected version is already downloaded.
-     */
     private fun updateDownloadButtonVisibility() {
         val selected = myBlenderVersionComboBox.selectedItem as? String
         myDownloadButton.isVisible = !downloader.isDownloaded(selected)
     }
 
-    /**
-     * Resets the editor UI from the given run configuration settings.
-     * Also handles visibility of fields based on the configuration factory type.
-     */
     override fun resetEditorFrom(s: BlenderRunConfiguration) {
         val options = s.getOptions()
         myBlenderVersionComboBox.selectedItem = options.blenderVersion ?: "5.0"
@@ -103,9 +93,6 @@ class BlenderSettingsEditor(private val project: Project) : SettingsEditor<Blend
         myBlenderCommandField.isEnabled = isCommand
     }
 
-    /**
-     * Applies the current UI state to the run configuration settings.
-     */
     override fun applyEditorTo(s: BlenderRunConfiguration) {
         val options = s.getOptions()
         options.blenderVersion = myBlenderVersionComboBox.selectedItem as? String
@@ -117,9 +104,6 @@ class BlenderSettingsEditor(private val project: Project) : SettingsEditor<Blend
         options.additionalArguments = myAdditionalArgumentsField.text
     }
 
-    /**
-     * Creates the main editor panel.
-     */
     override fun createEditor(): JComponent {
         myAddonSourceDirectoryField.addBrowseFolderListener(
             com.intellij.openapi.ui.TextBrowseFolderListener(

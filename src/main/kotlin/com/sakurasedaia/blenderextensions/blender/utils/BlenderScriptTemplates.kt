@@ -9,6 +9,7 @@ object BlenderScriptTemplates {
                 import time
                 import socket
                 import traceback
+                import bpy
                 
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 max_retries = 5
@@ -45,7 +46,6 @@ object BlenderScriptTemplates {
                                 
                                 def do_reload():
                                     try:
-                                        import bpy
                                         module_name = f"bl_ext.blender_pycharm.{extension_name}"
                                         
                                         # 1. Disable if enabled

@@ -13,24 +13,11 @@ import com.sakurasedaia.blenderextensions.blender.services.BlenderService
 import com.sakurasedaia.blenderextensions.blender.model.BlenderVersions
 import com.sakurasedaia.blenderextensions.blender.utils.BlenderPathUtil
 
-/**
- * Handles the actual execution of a Blender run configuration.
- */
 class BlenderRunProfileState(
     private val project: Project,
     private val options: BlenderRunConfigurationOptions,
     private val environment: ExecutionEnvironment
 ) : RunProfileState {
-    
-    /**
-     * Executes the run configuration.
-     * 
-     * The execution follows these steps:
-     * 1. Resolve the Blender path (managed or system installation).
-     * 2. Detect the Blender version from the path if unknown.
-     * 3. Start the Blender process with the configured arguments.
-     * 4. Attach a console to the process for logging.
-     */
     override fun execute(executor: Executor, runner: ProgramRunner<*>): com.intellij.execution.ExecutionResult? {
         val service = BlenderService.getInstance(project)
         val version = options.blenderVersion ?: "5.0"
@@ -80,9 +67,6 @@ class BlenderRunProfileState(
         return com.intellij.execution.DefaultExecutionResult(console, finalHandler)
     }
 
-    /**
-     * Resolves the Blender path based on whether it's a managed version or a direct path.
-     */
     private fun resolveBlenderPathInternal(
         service: BlenderService,
         rawVersion: String,

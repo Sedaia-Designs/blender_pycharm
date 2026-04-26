@@ -15,17 +15,6 @@ import kotlin.io.path.pathString
 private fun getSrcPath(project: Project): String = 
     Path.of(project.basePath ?: "", "src").toAbsolutePath().pathString
 
-/**
- * Entry point for Blender run configurations.
- * 
- * The run configuration module follows this progression:
- * 1. [BlenderRunConfigurationType] defines the type and available factories.
- * 2. [ConfigurationFactory] implementations create specific presets (Start, Build, etc.).
- * 3. [BlenderRunConfiguration] holds the actual configuration instance.
- * 4. [BlenderRunConfigurationOptions] stores the persistent settings.
- * 5. [BlenderSettingsEditor] provides the UI to edit those settings.
- * 6. [BlenderRunProfileState] handles the execution logic when the configuration is run.
- */
 class BlenderRunConfigurationType : ConfigurationType {
     override fun getDisplayName(): String = LangManager.message("run.configuration.name")
     override fun getConfigurationTypeDescription(): String = LangManager.message("run.configuration.description")
@@ -40,11 +29,6 @@ class BlenderRunConfigurationType : ConfigurationType {
 }
 
 // --- Configuration Factories ---
-
-/**
- * Factory for the default "Start Blender" configuration.
- * This is used for general Blender usage and testing.
- */
 class BlenderStartBlenderConfigurationFactory(type: ConfigurationType) : ConfigurationFactory(type) {
     val configName = LangManager.message("run.configuration.preset.start")
     
@@ -56,10 +40,6 @@ class BlenderStartBlenderConfigurationFactory(type: ConfigurationType) : Configu
     override fun getOptionsClass(): Class<out BaseState> = BlenderRunConfigurationOptions::class.java
 }
 
-/**
- * Factory for the "Build Extension" configuration.
- * Pre-fills the command to build the Blender extension.
- */
 class BlenderBuildConfigurationFactory(type: ConfigurationType) : ConfigurationFactory(type) {
     val configName = LangManager.message("run.configuration.preset.build")
     
@@ -75,10 +55,6 @@ class BlenderBuildConfigurationFactory(type: ConfigurationType) : ConfigurationF
     override fun getOptionsClass(): Class<out BaseState> = BlenderRunConfigurationOptions::class.java
 }
 
-/**
- * Factory for the "Validate Extension" configuration.
- * Pre-fills the command to validate the Blender extension.
- */
 class BlenderValidateConfigurationFactory(type: ConfigurationType) : ConfigurationFactory(type) {
     val configName = LangManager.message("run.configuration.preset.validate")
     
@@ -94,10 +70,6 @@ class BlenderValidateConfigurationFactory(type: ConfigurationType) : Configurati
     override fun getOptionsClass(): Class<out BaseState> = BlenderRunConfigurationOptions::class.java
 }
 
-/**
- * Factory for a custom Blender command configuration.
- * Allows users to specify any Blender CLI command.
- */
 class BlenderCommandConfigurationFactory(type: ConfigurationType) : ConfigurationFactory(type) {
     val configName = LangManager.message("run.configuration.preset.command")
     

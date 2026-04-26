@@ -204,9 +204,6 @@ class BlenderService(private val project: Project) {
         }
     }
 
-    fun setupLinter(blenderExePath: String) =
-        PythonService.getInstance(project).setupLinter(blenderExePath)
-
     companion object {
         fun getInstance(project: Project): BlenderService = project.getService(BlenderService::class.java)
     }
