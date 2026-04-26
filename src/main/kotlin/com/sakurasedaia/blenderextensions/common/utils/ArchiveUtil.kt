@@ -149,15 +149,72 @@ object ArchiveUtil {
     }
     
     private fun extractDmg(file: Path, targetDir: Path, version: String, logger: BlenderLogger? = null): Int {
-        /* This function is empty on purpose and is here merely to serve as a placeholder for the MacOS extraction process.
-        * The current plan for this function is the following.
-        *
-        * 1. Mount the dmg file
-        * 2. Extract the .app directory from the mounted dmg and rename it to `Blender-${Major.Minor}.app`
-        * 3. Unmount the dmg file
-        * 4. Adjust the startup script to point to the correct **binary** path (Path is `Blender-${Major.Minor}.app/Contents/MacOS/Blender`)
-        * */
-        logger?.log(LangManager.message("log.archive.dmg.unsupported"))
-        return -1
+        if (!BlenderHelper.isMac()) {
+            logger?.error("DMG extraction is only supported on macOS.")
+            return -1
+        }
+
+        val targetPath: Path = targetDir.resolve(version)
+        var mountPoint: Path? = null
+
+        try {
+            // 1. Mount the DMG
+            logger?.log("Mounting DMG: ${file.name}")
+            val mountCommand = GeneralCommandLine("hdiutil", "attach", "-plist", "-nobrowse", file.absolutePathString())
+            val mountOutput = ExternalProcessUtil.execAndGetOutput(mountCommand)
+
+            if (mountOutput.exitCode != 0) {
+                logger?.error("Failed to mount DMG: ${mountOutput.stderr}")
+                return mountOutput.exitCode
+            }
+
+            // Extract mount point from plist output (looking for <string>/Volumes/...</string>)
+            val mountPointMatch = "/Volumes/[^<]+".toRegex().find(mountOutput.stdout)
+            if (mountPointMatch == null) {
+                logger?.error("Could not determine mount point from hdiutil output")
+                return -1
+            }
+            mountPoint = Path.of(mountPointMatch.value)
+            logger?.log("DMG mounted at $mountPoint")
+
+            // 2. Find .app and Copy using ditto
+            val appBundle = Files.list(mountPoint).use { stream ->
+                stream.filter { it.extension == "app" && it.isDirectory() }.findFirst().orElse(null)
+            }
+
+            if (appBundle == null) {
+                logger?.error("No .app bundle found in mounted DMG")
+                return -1
+            }
+
+            val appTargetName = "Blender-${version}.app"
+            val finalAppPath = targetPath.resolve(appTargetName)
+            Files.createDirectories(targetPath)
+
+            logger?.log("Copying $appBundle to $finalAppPath using ditto")
+            val copyCommand = GeneralCommandLine("ditto", appBundle.absolutePathString(), finalAppPath.absolutePathString())
+            val copyResult = ExternalProcessUtil.executeCommand(copyCommand, logger = logger)
+            if (copyResult != 0) {
+                logger?.error("Failed to copy .app bundle")
+                return copyResult
+            }
+
+            // 3. Clear quarantine attributes
+            logger?.log("Clearing quarantine attributes from $finalAppPath")
+            val xattrCommand = GeneralCommandLine("xattr", "-rd", "com.apple.quarantine", finalAppPath.absolutePathString())
+            ExternalProcessUtil.executeCommand(xattrCommand, silentFailure = true, logger = logger)
+
+            return 0
+        } catch (e: Exception) {
+            logger?.error("Failed to extract DMG ${file.name}: ${e.message}", e)
+            return -1
+        } finally {
+            // 4. Always unmount
+            mountPoint?.let {
+                logger?.log("Unmounting DMG from $it")
+                val unmountCommand = GeneralCommandLine("hdiutil", "detach", it.absolutePathString(), "-force")
+                ExternalProcessUtil.executeCommand(unmountCommand, silentFailure = true, logger = logger)
+            }
+        }
     }
 }

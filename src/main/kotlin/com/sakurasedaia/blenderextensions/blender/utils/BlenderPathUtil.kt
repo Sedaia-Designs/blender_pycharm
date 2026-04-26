@@ -64,9 +64,30 @@ object BlenderPathUtil {
         }
     }
 
+    private fun findMacExecutable(directory: Path): Path? {
+        // macOS structure: Blender.app/Contents/MacOS/Blender
+        if (directory.extension == "app") {
+            val internalPath = directory.resolve("Contents/MacOS/Blender")
+            if (internalPath.exists() && internalPath.isRegularFile()) {
+                return internalPath
+            }
+        }
+
+        // If directory is not .app, search for .app inside it
+        val appBundle = Files.walk(directory, 2).use { stream ->
+            stream.filter { it.extension == "app" && it.isDirectory() }.findFirst().orElse(null)
+        }
+
+        return appBundle?.let { findMacExecutable(it) }
+    }
+
     fun findBlenderExecutable(directory: Path): Path? {
         if (!directory.exists()) return null
         if (!directory.isDirectory()) return null
+
+        if (BlenderHelper.isMac()) {
+            return findMacExecutable(directory)
+        }
 
         val executableName = getBlenderExecutableName()
         val isWindows = BlenderHelper.isWindows()
