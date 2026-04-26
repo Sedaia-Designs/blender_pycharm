@@ -59,4 +59,23 @@ class PythonService(private val project: Project) {
     companion object {
         fun getInstance(project: Project): PythonService = project.getService(PythonService::class.java)
     }
+
+    fun ensureDebugpyInstalled(blenderPath: String, indicator: com.intellij.openapi.progress.ProgressIndicator? = null): Boolean {
+        val script = "import importlib.util; print(importlib.util.find_spec('debugpy') is not None)"
+        val checkCommand = GeneralCommandLine(blenderPath, "--background", "--python-expr", script)
+        val checkOutput = ExternalProcessUtil.execAndGetOutput(checkCommand)
+        
+        if (checkOutput.exitCode == 0 && checkOutput.stdout.trim().endsWith("True")) {
+            // Check version if possible, but for now just assume true if present
+            return true
+        }
+
+        indicator?.text = "Installing debugpy into Blender..."
+        // Request version 1.8.0 or newer for PyCharm 2025 compatibility
+        val installScript = "import subprocess; import sys; subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'debugpy>=1.8.0'])"
+        val installCommand = GeneralCommandLine(blenderPath, "--background", "--python-expr", installScript)
+        val installExitCode = ExternalProcessUtil.executeCommand(installCommand)
+        
+        return installExitCode == 0
+    }
 }

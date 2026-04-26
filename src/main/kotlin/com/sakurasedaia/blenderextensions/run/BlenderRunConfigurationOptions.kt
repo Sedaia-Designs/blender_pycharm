@@ -39,4 +39,9 @@ class BlenderRunConfigurationOptions : RunConfigurationOptions() {
     var blenderCommand: String?
         get() = blenderCommandProperty.getValue(this)
         set(value) = blenderCommandProperty.setValue(this, value)
+
+    private val isDebugModeProperty = property(false).provideDelegate(this, "isDebugMode")
+    var isDebugMode: Boolean
+        get() = isDebugModeProperty.getValue(this)
+        set(value) = isDebugModeProperty.setValue(this, value)
 }

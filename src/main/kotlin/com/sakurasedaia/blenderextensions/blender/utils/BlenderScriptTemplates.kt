@@ -1,15 +1,39 @@
 package com.sakurasedaia.blenderextensions.blender.utils
 
 object BlenderScriptTemplates {
-    fun getReloadScript(port: Int): String {
+    fun getReloadScript(port: Int, isDebug: Boolean = false): String {
+        val debugSetup = if (isDebug) {
+            """
+                try:
+                    import debugpy
+                    # Use 127.0.0.1 for maximum compatibility with PyCharm's default listener
+                    debugpy.listen(('127.0.0.1', 5678))
+                    print("Debugpy listening on 127.0.0.1:5678 (DAP)")
+                except Exception as e:
+                    print(f"Failed to start debugpy: {e}")
+            """.trimIndent()
+        } else ""
+
+        val enhancedLogging = """
+            print(f"--- Blender Python Environment ---")
+            print(f"Python Version: {sys.version}")
+            print(f"Executable: {sys.executable}")
+            print(f"Path: {sys.path}")
+            print(f"----------------------------------")
+        """.trimIndent()
+
         return """
+            import json
+            import sys
+            import time
+            import socket
+            import traceback
+            import bpy
+
+            $enhancedLogging
+            $debugSetup
+
             def listen_for_reload():
-                import json
-                import sys
-                import time
-                import socket
-                import traceback
-                import bpy
                 
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 max_retries = 5
