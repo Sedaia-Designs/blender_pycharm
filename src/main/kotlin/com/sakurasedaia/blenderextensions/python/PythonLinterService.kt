@@ -48,12 +48,25 @@ class PythonLinterService(private val project: Project) {
             return
         }
 
-        val permission = Messages.showYesNoDialog(
-            project,
-            LangManager.message("dialog.permission.python.sdk.message"),
-            LangManager.message("dialog.permission.python.sdk.title"),
-            Messages.getQuestionIcon()
-        )
+        val permission = if (ApplicationManager.getApplication().isDispatchThread) {
+            Messages.showYesNoDialog(
+                project,
+                LangManager.message("dialog.permission.python.sdk.message"),
+                LangManager.message("dialog.permission.python.sdk.title"),
+                Messages.getQuestionIcon()
+            )
+        } else {
+            var result = Messages.NO
+            ApplicationManager.getApplication().invokeAndWait {
+                result = Messages.showYesNoDialog(
+                    project,
+                    LangManager.message("dialog.permission.python.sdk.message"),
+                    LangManager.message("dialog.permission.python.sdk.title"),
+                    Messages.getQuestionIcon()
+                )
+            }
+            result
+        }
         if (permission != Messages.YES) return
 
         BlenderTaskManager.getInstance().run(project, LangManager.message("action.setup.linter.task", version)) { indicator ->
@@ -100,16 +113,18 @@ class PythonLinterService(private val project: Project) {
         val lintDir = PythonUtil.getLintDirectory(blenderVersion, project)
         if (!lintDir.exists()) return
 
-        ApplicationManager.getApplication().runWriteAction {
-            val sdkModificator = sdk.sdkModificator
-            val vFile = VirtualFileManager.getInstance().findFileByNioPath(lintDir)
-            if (vFile != null) {
-                logger.debug("Linter directory found: ${vFile.path}")
-                // Check if already present
-                val currentRoots = sdkModificator.getRoots(OrderRootType.CLASSES)
-                if (currentRoots.none { it.path == vFile.path }) {
-                    sdkModificator.addRoot(vFile, OrderRootType.CLASSES)
-                    sdkModificator.commitChanges()
+        ApplicationManager.getApplication().invokeAndWait {
+            ApplicationManager.getApplication().runWriteAction {
+                val sdkModificator = sdk.sdkModificator
+                val vFile = VirtualFileManager.getInstance().findFileByNioPath(lintDir)
+                if (vFile != null) {
+                    logger.debug("Linter directory found: ${vFile.path}")
+                    // Check if already present
+                    val currentRoots = sdkModificator.getRoots(OrderRootType.CLASSES)
+                    if (currentRoots.none { it.path == vFile.path }) {
+                        sdkModificator.addRoot(vFile, OrderRootType.CLASSES)
+                        sdkModificator.commitChanges()
+                    }
                 }
             }
         }
@@ -218,20 +233,26 @@ class PythonLinterService(private val project: Project) {
         
         var sdk = ProjectJdkTable.getInstance().allJdks.find { it.homePath == pythonExe.toString() }
         if (sdk == null) {
-            sdk = ProjectJdkTable.getInstance().createSdk(sdkName, sdkType)
-            val modificator = sdk.sdkModificator
+            val newSdk = ProjectJdkTable.getInstance().createSdk(sdkName, sdkType)
+            val modificator = newSdk.sdkModificator
             modificator.homePath = pythonExe.toString()
             val version = PythonUtil.getPythonVersion(pythonExe, project)
             modificator.versionString = version?.let { if (it.startsWith("Python")) it else "Python $it" }
-            ApplicationManager.getApplication().runWriteAction {
-                modificator.commitChanges()
-                ProjectJdkTable.getInstance().addJdk(sdk)
+            
+            ApplicationManager.getApplication().invokeAndWait {
+                ApplicationManager.getApplication().runWriteAction {
+                    modificator.commitChanges()
+                    ProjectJdkTable.getInstance().addJdk(newSdk)
+                }
             }
+            sdk = newSdk
         }
 
         // Set as project SDK
-        ApplicationManager.getApplication().runWriteAction {
-            ProjectRootManager.getInstance(project).projectSdk = sdk
+        ApplicationManager.getApplication().invokeAndWait {
+            ApplicationManager.getApplication().runWriteAction {
+                ProjectRootManager.getInstance(project).projectSdk = sdk
+            }
         }
         
         return sdk

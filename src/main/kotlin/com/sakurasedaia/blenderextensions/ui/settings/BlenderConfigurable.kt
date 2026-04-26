@@ -135,6 +135,8 @@ class BlenderConfigurable(private val project: Project) : SearchableConfigurable
             return
         }
 
+        if (!::managedProgressRow.isInitialized || !::systemProgressRow.isInitialized) return
+
         val inManaged = managedTable.containsVersion(progress.version)
         val progressBar = if (inManaged) managedProgressBar else systemProgressBar
         val statusLabel = if (inManaged) managedStatusLabel else systemStatusLabel
