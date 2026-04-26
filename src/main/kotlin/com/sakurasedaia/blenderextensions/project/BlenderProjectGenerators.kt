@@ -41,12 +41,14 @@ import com.sakurasedaia.blenderextensions.blender.services.BlenderFinder
 import com.sakurasedaia.blenderextensions.blender.services.BlenderScanner
 
 
-internal fun formatToId(name: String, allowCapitals: Boolean = false): String {
+internal fun formatToId(name: String, allowCapitals: Boolean = false, allowSpaces: Boolean = false, trim: Boolean = true): String {
     val sb = StringBuilder()
     var lastWasSpace = false
     for (char in name) {
         if (char.isWhitespace()) {
-            if (!lastWasSpace && sb.isNotEmpty()) {
+            if (allowSpaces) {
+                sb.append(' ')
+            } else if (!lastWasSpace && sb.isNotEmpty()) {
                 sb.append('_')
                 lastWasSpace = true
             }
@@ -58,7 +60,12 @@ internal fun formatToId(name: String, allowCapitals: Boolean = false): String {
             }
         }
     }
-    return sb.toString().trim('_')
+    val result = sb.toString()
+    return if (trim) {
+        if (allowSpaces) result.trim() else result.trim('_')
+    } else {
+        result
+    }
 }
 
 class BlenderAddonProjectGenerator : DirectoryProjectGenerator<BlenderAddonProjectSettings> {
@@ -342,7 +349,7 @@ internal class BlenderAddonProjectPeer : ProjectGeneratorPeer<BlenderAddonProjec
             override fun textChanged(e: DocumentEvent) {
                 if (isUpdating) return
                 val original = projectNameField.text
-                val formatted = formatToId(original, allowCapitals = true)
+                val formatted = formatToId(original, allowCapitals = true, allowSpaces = true, trim = false)
 
                 if (original != formatted) {
                     isUpdating = true
@@ -355,7 +362,7 @@ internal class BlenderAddonProjectPeer : ProjectGeneratorPeer<BlenderAddonProjec
                             } catch (_: Exception) {}
                             updateLocationFromProjectName()
                             if (!addonIdIsManual) {
-                                addonIdField.text = formatToId(formatted, allowCapitals = false)
+                                addonIdField.text = formatToId(formatted.trim(), allowCapitals = false)
                             }
                         } finally {
                             isUpdating = false
@@ -367,7 +374,7 @@ internal class BlenderAddonProjectPeer : ProjectGeneratorPeer<BlenderAddonProjec
                     try {
                         updateLocationFromProjectName()
                         if (!addonIdIsManual) {
-                            addonIdField.text = formatToId(formatted, allowCapitals = false)
+                            addonIdField.text = formatToId(formatted.trim(), allowCapitals = false)
                         }
                     } finally {
                         isUpdating = false
@@ -622,9 +629,13 @@ internal class BlenderAddonProjectPeer : ProjectGeneratorPeer<BlenderAddonProjec
         val name = projectNameField.text.trim()
         if (name.isEmpty() || projectLocation == null) return
 
+        // Replace spaces with underscores for the directory name
+        val safeDirectoryName = formatToId(name, allowCapitals = true, allowSpaces = false, trim = true)
+        if (safeDirectoryName.isEmpty()) return
+
         val path = try { Path.of(projectLocation ?: return) } catch (_: Exception) { return }
         val parent = path.parent ?: return
-        val newPath = parent.resolve(name).toAbsolutePath().toString()
+        val newPath = parent.resolve(safeDirectoryName).toAbsolutePath().toString()
 
         if (newPath != projectLocation) {
             findLocationField()?.let {
@@ -691,6 +702,9 @@ internal class BlenderAddonProjectPeer : ProjectGeneratorPeer<BlenderAddonProjec
         val projectName = projectNameField.text?.trim().orEmpty()
         if (projectName.isEmpty()) {
             return ValidationInfo("Project name cannot be empty.", projectNameField)
+        }
+        if (projectName.length !in 3..64) {
+            return ValidationInfo("Project name must be between 3 and 64 characters.", projectNameField)
         }
 
         // 2. Addon ID
