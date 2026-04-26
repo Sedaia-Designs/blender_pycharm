@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.sakura-sedaia"
-version = "0.5.0-SNAPSHOT"
+version = "0.6.0-SNAPSHOT"
 
 repositories {
 	mavenCentral()
@@ -39,22 +39,21 @@ intellijPlatform {
 		changeNotes = """
 			<b>Added</b>
 			<ul>
-				<li><b>Virtual Environment Guardrail</b>: Introduced a project-wide guardrail that automatically ensures all Python-related operations run within a dedicated <code>.venv</code>.</li>
-				<li><b>Linter Setup Improvements</b>: Explicit <code>pip</code> and <code>ensurepip</code> usage for more reliable installations.</li>
+				<li><b>Background Task Management</b>: Centralized UI-blocking operations into <code>BlenderTaskManager</code> for a smoother experience.</li>
+				<li><b>Execution Validation</b>: Proactive detection of filesystem execution restrictions (e.g., <code>noexec</code>) with user-friendly diagnostics.</li>
+				<li><b>UI Modernization</b>: Updated Tool Window, Settings, and Run Configurations with modern Kotlin DSL components.</li>
+				<li><b>Enhanced Blender Discovery</b>: More reliable system-wide Blender detection across Linux and macOS.</li>
 			</ul>
 			<b>Changed</b>
 			<ul>
-				<li><b>Internationalization</b>: Complete localization of logs and synchronization of 11 language bundles.</li>
-				<li><b>Refined UI</b>: Simplified Tool Window and settings UI by consolidating interpreter setup into the linter flow.</li>
-				<li><b>SDK Metadata Management</b>: Improved SDK creation to reliably identify virtual environments and correctly set the home path and version metadata.</li>
+				<li><b>Process Management</b>: Improved Blender process launching using <code>KillableProcessHandler</code> for better responsiveness.</li>
+				<li><b>Refactored Service Layer</b>: Enhanced <code>BlenderService</code> and related components for better project lifecycle management.</li>
 			</ul>
 			<b>Fixed</b>
 			<ul>
-				<li><b>EDT Conflict</b>: Resolved thread conflict when launching Telemetry and Debug instances simultaneously.</li>
-			</ul>
-			<b>Removed</b>
-			<ul>
-				<li><b>Automated Python Installation</b>: Removed complex system-level interpreter management.</li>
+				<li><b>Archive Reliability</b>: Robust extraction using atomic moves and file integrity verification for downloads.</li>
+				<li><b>Thread Safety</b>: Resolved race conditions and EDT conflicts during startup and cache access.</li>
+				<li><b>Communication Safety</b>: Improved JSON serialization and resource cleanup in <code>BlenderCommunicationService</code>.</li>
 			</ul>
 		""".trimIndent()
 	}

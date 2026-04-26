@@ -4,16 +4,16 @@
     <conf name="default" visibility="public" />
   </configurations>
   <publications>
-    <artifact name="kaml" ext="jar" conf="default" url="plugins/python-ce/lib" />
     <artifact name="tuweni-toml" ext="jar" conf="default" url="plugins/python-ce/lib" />
-    <artifact name="python-ce" ext="jar" conf="default" url="plugins/python-ce/lib" />
     <artifact name="io.github.z4kn4fein.semver.jvm" ext="jar" conf="default" url="plugins/python-ce/lib" />
-    <artifact name="jsr305" ext="jar" conf="default" url="plugins/python-ce/lib" />
     <artifact name="python-ce-frontend" ext="jar" conf="default" url="plugins/python-ce/lib" />
-    <artifact name="ml-completion-prev-exprs-models" ext="jar" conf="default" url="plugins/python-ce/lib" />
+    <artifact name="python-ce" ext="jar" conf="default" url="plugins/python-ce/lib" />
     <artifact name="xmlrpc" ext="jar" conf="default" url="plugins/python-ce/lib" />
-    <artifact name="libthrift" ext="jar" conf="default" url="plugins/python-ce/lib" />
     <artifact name="completion-ranking-python-with-full-line" ext="jar" conf="default" url="plugins/python-ce/lib" />
+    <artifact name="jsr305" ext="jar" conf="default" url="plugins/python-ce/lib" />
+    <artifact name="ml-completion-prev-exprs-models" ext="jar" conf="default" url="plugins/python-ce/lib" />
+    <artifact name="kaml" ext="jar" conf="default" url="plugins/python-ce/lib" />
+    <artifact name="libthrift" ext="jar" conf="default" url="plugins/python-ce/lib" />
     <artifact name="intellij.python.ml.features" ext="jar" conf="default" url="plugins/python-ce/lib/modules" />
   </publications>
   <dependencies>
