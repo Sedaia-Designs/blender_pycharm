@@ -9,11 +9,20 @@ object BlenderHelper {
      * Blender is only compatible with the following:
      * Windows x64, Windows Arm64, Linux x64, and MacOS Arm64.
      */
-    fun isOSCompatible(): Boolean {
+    fun isOSCompatible(version: String? = null): Boolean {
+        val parsed = version?.let { parseVersion(it) } ?: emptyList()
+        val major = if (parsed.isNotEmpty()) parsed[0] else -1
+
         return when {
             isWindows() -> isX86_64() || isArm64()
             isLinux() -> isX86_64()
-            isMac() -> isArm64()
+            isMac() -> {
+                if (major >= 5) {
+                    isArm64()
+                } else {
+                    isArm64() || isX86_64()
+                }
+            }
             else -> false
         }
     }
