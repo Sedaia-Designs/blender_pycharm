@@ -14,6 +14,8 @@ import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import com.sakurasedaia.blenderextensions.common.utils.HashUtil
+import com.sakurasedaia.blenderextensions.notifications.BlenderNotification
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.*
@@ -96,7 +98,7 @@ class BlenderDownloader(private val project: Project) {
     }
 
     private fun getOrDownloadBlenderPathInternal(version: String): String? {
-        if (!isSysCompatible()) {
+        if (!isSysCompatible(version)) {
             return null
         }
 
@@ -106,10 +108,34 @@ class BlenderDownloader(private val project: Project) {
 
         // If not, download it
         val downloadUrl = getDownloadUrl(version)
+        val hashUrl = getHashFileUrl(version)
+        
         logger.log("Blender $version not found in cache. Starting download from: $downloadUrl")
+        
+        // 1. Download Hash File
+        val hashFile = downloadFile(hashUrl, baseDir, silent = true)
+        
+        // 2. Download Blender Archive
         val downloadedFile = downloadFile(downloadUrl, baseDir) ?: return null
         
-        // Extract it
+        // 3. Verify SHA-256
+        if (hashFile != null && hashFile.exists()) {
+            val expectedHash = parseHashFromSha256File(hashFile, downloadedFile.name)
+            if (expectedHash != null) {
+                logger.log("Verifying SHA-256 for ${downloadedFile.name}...")
+                if (!HashUtil.verifySha256(downloadedFile, expectedHash, logger)) {
+                    logger.error("SHA-256 mismatch for ${downloadedFile.name}. Deleting corrupted file.")
+                    downloadedFile.deleteIfExists()
+                    return null
+                }
+            } else {
+                logger.log("Could not find hash for ${downloadedFile.name} in $hashUrl, skipping verification")
+            }
+        } else {
+            logger.log("Could not download hash file $hashUrl, skipping verification")
+        }
+        
+        // 4. Extract it
         logger.log(LangManager.message("log.blender.extracting", downloadedFile.name, versionDir.absolutePathString()))
         val statusText = LangManager.message("log.blender.extracting.progress", downloadedFile.name)
         val handler = ProgressManager.getInstance().progressIndicator.toBlenderHandler(this, version, statusText, ProgressType.EXTRACT)
@@ -144,31 +170,31 @@ class BlenderDownloader(private val project: Project) {
         return "https://download.blender.org/release/Blender$version/blender-$fullVersion-$osName-$archType.$extension"
     }
 
-    private fun downloadFile(url: String, targetDir: Path): Path? {
+    private fun downloadFile(url: String, targetDir: Path, silent: Boolean = false): Path? {
         val fileName = url.substringAfterLast("/")
         val targetFile = targetDir.resolve(fileName)
-        logger.log("Downloading to: ${targetFile.absolutePathString()}")
+        if (!silent) logger.log("Downloading to: ${targetFile.absolutePathString()}")
         val indicator = ProgressManager.getInstance().progressIndicator
         val statusText = LangManager.message("log.blender.downloading.progress", fileName)
         val version = _downloadProgress.value.version
         val handler = indicator.toBlenderHandler(this, version, statusText)
-        handler.text2 = url
+        if (!silent) handler.text2 = url
         
         if (targetFile.exists()) {
             try {
                 val remoteSize = HttpRequests.request(url).connect { it.connection.contentLengthLong }
                 if (remoteSize > 0 && targetFile.fileSize() == remoteSize) {
-                    logger.log(LangManager.message("log.blender.cache.skip"))
+                    if (!silent) logger.log(LangManager.message("log.blender.cache.skip"))
                     return targetFile
                 } else if (remoteSize > 0) {
-                    logger.log("Cached file size mismatch for $fileName (local: ${targetFile.fileSize()}, remote: $remoteSize). Re-downloading.")
+                    if (!silent) logger.log("Cached file size mismatch for $fileName (local: ${targetFile.fileSize()}, remote: $remoteSize). Re-downloading.")
                     targetFile.deleteIfExists()
                 } else {
-                    logger.log("Could not verify $fileName via content-length. Using cached file.")
+                    if (!silent) logger.log("Could not verify $fileName via content-length. Using cached file.")
                     return targetFile
                 }
             } catch (e: Exception) {
-                logger.log("Verification failed for $fileName: ${e.message}. Using cached file.")
+                if (!silent) logger.log("Verification failed for $fileName: ${e.message}. Using cached file.")
                 return targetFile
             }
         }
@@ -181,24 +207,46 @@ class BlenderDownloader(private val project: Project) {
             return targetFile
         } catch (e: Exception) {
             if (e is com.intellij.openapi.progress.ProcessCanceledException) {
-                logger.log(LangManager.message("log.blender.download.cancelled"))
+                if (!silent) logger.log(LangManager.message("log.blender.download.cancelled"))
                 throw e
             } else {
-                logger.log(LangManager.message("log.blender.download.error", e.message ?: "Unknown error"))
+                if (!silent) logger.log(LangManager.message("log.blender.download.error", e.message ?: "Unknown error"))
             }
             return null
         }
     }
 
+    internal fun getHashFileUrl(version: String): String {
+        val fullVersion = BlenderVersions.getFullVersion(version) ?: "$version.0"
+        return "https://download.blender.org/release/Blender$version/blender-$fullVersion.sha256"
+    }
 
-    private fun isSysCompatible(): Boolean {
-        if (BlenderHelper.isMac()) {
-            logger.log(LangManager.message("log.blender.macos.unsupported"))
-            return false
+    private fun parseHashFromSha256File(hashFile: Path, targetFileName: String): String? {
+        try {
+            val lines = hashFile.readLines()
+            for (line in lines) {
+                // Expected format: <hash>  <filename>
+                val parts = line.split(Regex("\\s+"))
+                if (parts.size >= 2 && parts[1] == targetFileName) {
+                    return parts[0]
+                }
+            }
+        } catch (e: Exception) {
+            logger.error("Failed to parse hash file: ${e.message}", e)
         }
-        
-        if (!BlenderHelper.isOSCompatible()) {
-            logger.log(LangManager.message("log.blender.incompatible", "System architecture is not supported"))
+        return null
+    }
+
+
+    private fun isSysCompatible(version: String? = null): Boolean {
+        if (!BlenderHelper.isOSCompatible(version)) {
+            val message = if (version != null) {
+                LangManager.message("log.blender.incompatible.version", version, BlenderHelper.getRawOsName(), BlenderHelper.getRawArchName())
+            } else {
+                LangManager.message("log.blender.incompatible", "System architecture is not supported")
+            }
+            logger.log(message)
+            BlenderNotification(project).sendWarning(LangManager.message("notification.incompatible.title"), message)
             return false
         }
         
