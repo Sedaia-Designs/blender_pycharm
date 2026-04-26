@@ -31,39 +31,14 @@ class BlenderLauncher(private val project: Project) {
         scriptPath: Path? = null,
         additionalArgs: String? = null,
         isSandboxed: Boolean = false,
-        blenderCommand: String? = null,
         importUserConfig: Boolean = false,
         blenderVersion: String? = null,
-        indicator: ProgressIndicator? = null
+        indicator: ProgressIndicator? = null,
+        isDebugMode: Boolean = false
     ): OSProcessHandler? {
-        logger.log("BlenderLauncher.startBlenderProcess: Resolving executable for path '$blenderPath' and version '${blenderVersion ?: "Unknown"}'")
-        val downloader = BlenderDownloader.getInstance(project)
+        logger.log("BlenderLauncher.startBlenderProcess: Starting Blender (Path: $blenderPath, Version: ${blenderVersion ?: "Unknown"}, Debug: $isDebugMode)")
         
-        // Use updated downloader logic to resolve path if it doesn't exist
-        val actualPath = if (blenderVersion != null && (blenderPath.isBlank() || !Paths.get(blenderPath).exists())) {
-            downloader.getOrDownloadBlenderPath(blenderVersion) ?: blenderPath
-        } else {
-            blenderPath
-        }
-
-        var blenderFile = Paths.get(actualPath)
-        
-        // Use updated discovery logic: if it's a directory, find the executable
-        if (blenderFile.exists() && blenderFile.isDirectory()) {
-            logger.log("Path '$actualPath' is a directory, searching for Blender executable...")
-            val executable = BlenderPathUtil.findBlenderExecutable(blenderFile)
-            if (executable != null) {
-                blenderFile = executable
-                logger.log("Found Blender executable: ${blenderFile.absolutePathString()}")
-            } else {
-                logger.log("Could not find Blender executable in directory: $actualPath")
-            }
-        }
-
-        if (!blenderFile.exists()) {
-            logger.log(LangManager.message("log.service.exec.not.found", actualPath))
-            return null
-        }
+        val blenderFile = Paths.get(blenderPath)
 
         // Ensure execution permission on Unix-like systems
         FileUtil.makeExecutable(blenderFile)
@@ -71,15 +46,16 @@ class BlenderLauncher(private val project: Project) {
         val commandLine = GeneralCommandLine(blenderFile.absolutePathString())
         commandLine.workDirectory = project.basePath?.let { java.io.File(it) }
         
-        if (!blenderCommand.isNullOrBlank()) {
-            commandLine.addParameters("--command")
-            commandLine.addParameters(ParametersListUtil.parse(blenderCommand))
-        } else if (scriptPath != null) {
+        if (scriptPath != null) {
             commandLine.addParameters("--python", scriptPath.absolutePathString())
         }
         
+        if (isDebugMode) {
+            commandLine.addParameters("--python-expr", "import debugpy; debugpy.wait_for_client(); print('Debugger attached')")
+        }
+
         if (isSandboxed) {
-            setupSandbox(commandLine, importUserConfig, blenderVersion, blenderCommand, indicator)
+            setupSandbox(commandLine, importUserConfig, blenderVersion, additionalArgs, indicator)
         }
         
         if (!additionalArgs.isNullOrBlank()) {
@@ -106,7 +82,7 @@ class BlenderLauncher(private val project: Project) {
         commandLine: GeneralCommandLine,
         importUserConfig: Boolean,
         blenderVersion: String?,
-        blenderCommand: String?,
+        additionalArgs: String? = null,
         indicator: ProgressIndicator? = null
     ) {
         val downloader = BlenderDownloader.getInstance(project)
@@ -142,7 +118,7 @@ class BlenderLauncher(private val project: Project) {
             commandLine.withEnvironment("BLENDER_USER_CONFIG", configDir.absolutePathString())
             commandLine.withEnvironment("BLENDER_USER_SCRIPTS", scriptsDir.absolutePathString())
 
-            val isExtensionCommand = blenderCommand?.contains("extension") == true
+            val isExtensionCommand = additionalArgs?.contains("extension") == true
 
             if (!isExtensionCommand) {
                 commandLine.addParameters("--app-template", "pycharm")

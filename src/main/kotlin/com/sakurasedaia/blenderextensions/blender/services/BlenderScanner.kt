@@ -78,17 +78,6 @@ object BlenderScanner {
     }
 
 
-    private fun addIfValid(list: MutableList<BlenderInstallation>, pathStr: String, project: Project? = null) {
-        val path = Path.of(pathStr)
-        if (path.exists() && Files.isExecutable(path)) {
-            val version = BlenderPathUtil.detectVersion(project, path.toString()) ?: LangManager.message("blender.version.unknown")
-            list.add(BlenderInstallation(LangManager.message("blender.installation.system", version), path.toString(), version))
-        }
-    }
-
-    private fun tryWhich(exec: String): String? {
-        return BlenderFinder.tryWhich(exec)
-    }
 
     private fun scanWindows(project: Project? = null): List<BlenderInstallation> {
         val paths = mutableListOf<BlenderInstallation>()
@@ -122,15 +111,22 @@ object BlenderScanner {
         return paths
     }
 
+    private fun addIfValid(list: MutableList<BlenderInstallation>, path: Path, project: Project? = null) {
+        if (path.exists() && Files.isExecutable(path)) {
+            val version = BlenderPathUtil.detectVersion(project, path.toString()) ?: LangManager.message("blender.version.unknown")
+            list.add(BlenderInstallation(LangManager.message("blender.installation.system", version), path.toString(), version))
+        }
+    }
+
     private fun scanLinux(project: Project? = null): List<BlenderInstallation> {
         val installations = mutableListOf<BlenderInstallation>()
 
         // 1. Try which command
-        tryWhich("blender")?.let { addIfValid(installations, it, project) }
+        BlenderFinder.tryWhich("blender")?.let { addIfValid(installations, Path.of(it), project) }
 
         // 2. Common binaries in PATH
         listOf("/usr/bin/blender", "/usr/local/bin/blender", BlenderHelper.getUserHome() + "/bin/blender")
-            .forEach { addIfValid(installations, it, project) }
+            .forEach { addIfValid(installations, Path.of(it), project) }
 
         // Check /opt
         val opt = Path.of("/opt")
@@ -138,8 +134,7 @@ object BlenderScanner {
             Files.list(opt).use { stream ->
                 stream.filter { it.isDirectory() && it.name.lowercase().contains("blender") }
                     .forEach { dir ->
-                        val exe = dir.resolve("blender")
-                        addIfValid(installations, exe.toString(), project)
+                        addIfValid(installations, dir.resolve("blender"), project)
                     }
             }
         }
