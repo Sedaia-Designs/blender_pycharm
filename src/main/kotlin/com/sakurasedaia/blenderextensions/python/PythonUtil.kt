@@ -8,6 +8,7 @@ import com.intellij.openapi.application.PathManager
 import com.sakurasedaia.blenderextensions.blender.utils.BlenderHelper
 import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.guessProjectDir
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.exists

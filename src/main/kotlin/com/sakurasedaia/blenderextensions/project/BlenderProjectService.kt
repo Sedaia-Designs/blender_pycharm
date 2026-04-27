@@ -3,7 +3,7 @@ package com.sakurasedaia.blenderextensions.project
 import com.intellij.execution.RunManager
 import com.intellij.execution.configurations.ConfigurationTypeUtil
 import com.intellij.openapi.components.Service
-import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.vfs.VfsUtil
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.sakurasedaia.blenderextensions.run.BlenderRunConfiguration
@@ -45,7 +45,7 @@ class BlenderProjectService(private val project: Project) {
             )
         }
         
-        VfsUtil.markDirtyAndRefresh(true, true, true, project.baseDir)
+        VfsUtil.markDirtyAndRefresh(true, true, true, project.guessProjectDir())
     }
 
     fun generateGitignore() {
@@ -64,7 +64,7 @@ class BlenderProjectService(private val project: Project) {
             Files.writeString(gitignorePath, content)
         }
         
-        VfsUtil.markDirtyAndRefresh(true, true, true, project.baseDir)
+        VfsUtil.markDirtyAndRefresh(true, true, true, project.guessProjectDir())
     }
 
     fun generateLicense() {
@@ -78,7 +78,7 @@ class BlenderProjectService(private val project: Project) {
             Files.writeString(licensePath, content)
         }
         
-        VfsUtil.markDirtyAndRefresh(true, true, true, project.baseDir)
+        VfsUtil.markDirtyAndRefresh(true, true, true, project.guessProjectDir())
     }
 
     fun generateRunConfigurations() {

@@ -43,6 +43,7 @@
   - Replaced `Messages.showYesNoDialog` with `MessageDialogBuilder` for improved dialog management.
   - Refactored `BlenderNotification` to use the standard `NotificationGroupManager` retrieval pattern.
   - Modernized various UI components and SDK initialization logic to align with the latest IntelliJ Platform guidelines.
+  - Replaced deprecated `Project.baseDir` with `Project.guessProjectDir()` for more reliable project root resolution.
   - Replaced deprecated `ProgressManager.runProcessWithProgressSynchronously` with modern `Task.Modal` pattern via `BlenderTaskManager`.
 - **Enhanced Debugging**: Updated `BlenderLogger` to print debug messages directly to the console (`println`) when running the IDE, ensuring immediate visibility of logs during development without extra platform configuration.
 - **Archive & Download Reliability**: Implemented robust extraction using temporary directories, atomic moves, file size verification, and improved top-level directory stripping to prevent corrupted installations.

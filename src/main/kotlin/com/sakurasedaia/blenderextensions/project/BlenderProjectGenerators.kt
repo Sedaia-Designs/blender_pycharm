@@ -85,6 +85,7 @@ class BlenderAddonProjectGenerator : DirectoryProjectGenerator<BlenderAddonProje
         return ValidationResult.OK
     }
 
+    @Suppress("DEPRECATION")
     override fun generateProject(project: Project, baseDir: VirtualFile, settings: BlenderAddonProjectSettings, module: Module) {
         val projectPath = Path.of(baseDir.path)
         val projectName = settings.projectName?.takeIf { it.isNotBlank() } ?: project.name

@@ -19,6 +19,7 @@ class BlenderProjectGeneratorTest : BasePlatformTestCase() {
         val tempDir = Files.createTempDirectory("testProject")
         val baseDir = com.intellij.openapi.vfs.VirtualFileManager.getInstance().refreshAndFindFileByNioPath(tempDir)!!
         
+        @Suppress("DEPRECATION")
         try {
             // Scenario 1: Sandbox enabled (default)
             val settingsWithSandbox = BlenderAddonProjectSettings(
