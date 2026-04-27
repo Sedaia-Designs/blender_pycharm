@@ -34,7 +34,7 @@ class BlenderScriptGenerator {
             Files.createDirectories(scratchDir)
         }
         
-        val tempFile = Files.createTempFile(scratchDir, "blender_start", ".py")
+        val tempFile = scratchDir.resolve("blender_start_$port.py")
         Files.writeString(tempFile, scriptContent)
         return tempFile
     }
