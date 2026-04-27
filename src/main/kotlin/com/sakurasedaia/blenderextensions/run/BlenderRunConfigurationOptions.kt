@@ -30,6 +30,11 @@ class BlenderRunConfigurationOptions : RunConfigurationOptions() {
         get() = addonSourceDirectoryProperty.getValue(this)
         set(value) = addonSourceDirectoryProperty.setValue(this, value)
 
+    private val addonOutputDirectoryProperty = string("").provideDelegate(this, "addonOutputDirectory")
+    var addonOutputDirectory: String?
+        get() = addonOutputDirectoryProperty.getValue(this)
+        set(value) = addonOutputDirectoryProperty.setValue(this, value)
+
     private val additionalArgumentsProperty = string("").provideDelegate(this, "additionalArguments")
     var additionalArguments: String?
         get() = additionalArgumentsProperty.getValue(this)

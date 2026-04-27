@@ -33,6 +33,7 @@ class BlenderSettingsEditor(private val project: Project) : SettingsEditor<Blend
     private val myImportUserConfigCheckBox = JBCheckBox(LangManager.message("run.configuration.setting.import.user.config"))
     private val myAddonSymlinkNameField = JBTextField()
     private val myAddonSourceDirectoryField = TextFieldWithBrowseButton()
+    private val myAddonOutputDirectoryField = TextFieldWithBrowseButton()
     private val myAdditionalArgumentsField = JBTextField()
     private val myDownloadButton = JButton(LangManager.message("run.configuration.button.download"), BlenderIcons.Install)
 
@@ -40,6 +41,7 @@ class BlenderSettingsEditor(private val project: Project) : SettingsEditor<Blend
     private val myBlenderCommandComponent = LabeledComponent.create(myBlenderCommandField, "${LangManager.message("run.configuration.setting.cli.args")}:")
     private val myAddonSymlinkComponent = LabeledComponent.create(myAddonSymlinkNameField, "${LangManager.message("run.configuration.setting.symlink.name")}:")
     private val myAddonSourceDirComponent = LabeledComponent.create(myAddonSourceDirectoryField, "${LangManager.message("run.configuration.setting.src")}:")
+    private val myAddonOutputDirComponent = LabeledComponent.create(myAddonOutputDirectoryField, "${LangManager.message("run.configuration.setting.output")}:")
     private val myArgumentsComponent = LabeledComponent.create(myAdditionalArgumentsField, "${LangManager.message("run.configuration.setting.cli.args")}:")
 
     init {
@@ -75,6 +77,7 @@ class BlenderSettingsEditor(private val project: Project) : SettingsEditor<Blend
         myBlenderCommandField.text = options.blenderCommand ?: ""
         myAddonSymlinkNameField.text = options.addonSymlinkName ?: ""
         myAddonSourceDirectoryField.text = options.addonSourceDirectory ?: ""
+        myAddonOutputDirectoryField.text = options.addonOutputDirectory ?: ""
         myAdditionalArgumentsField.text = options.additionalArguments ?: ""
 
         // Adjust visibility based on the factory type
@@ -86,7 +89,8 @@ class BlenderSettingsEditor(private val project: Project) : SettingsEditor<Blend
         myIsSandboxedCheckBox.isVisible = isTesting
         myImportUserConfigCheckBox.isVisible = isTesting
         myAddonSymlinkComponent.isVisible = isTesting
-        myAddonSourceDirComponent.isVisible = isTesting
+        myAddonSourceDirComponent.isVisible = isTesting || isBuildOrValidate
+        myAddonOutputDirComponent.isVisible = isBuildOrValidate
         myArgumentsComponent.isVisible = isTesting
         
         myBlenderCommandComponent.isVisible = isCommand || isBuildOrValidate
@@ -101,11 +105,18 @@ class BlenderSettingsEditor(private val project: Project) : SettingsEditor<Blend
         options.blenderCommand = myBlenderCommandField.text
         options.addonSymlinkName = myAddonSymlinkNameField.text
         options.addonSourceDirectory = myAddonSourceDirectoryField.text
+        options.addonOutputDirectory = myAddonOutputDirectoryField.text
         options.additionalArguments = myAdditionalArgumentsField.text
     }
 
     override fun createEditor(): JComponent {
         myAddonSourceDirectoryField.addBrowseFolderListener(
+            com.intellij.openapi.ui.TextBrowseFolderListener(
+                FileChooserDescriptorFactory.createSingleFolderDescriptor(),
+                project
+            )
+        )
+        myAddonOutputDirectoryField.addBrowseFolderListener(
             com.intellij.openapi.ui.TextBrowseFolderListener(
                 FileChooserDescriptorFactory.createSingleFolderDescriptor(),
                 project
@@ -131,6 +142,9 @@ class BlenderSettingsEditor(private val project: Project) : SettingsEditor<Blend
             }
             row {
                 cell(myAddonSourceDirComponent).align(AlignX.FILL)
+            }
+            row {
+                cell(myAddonOutputDirComponent).align(AlignX.FILL)
             }
             row {
                 cell(myArgumentsComponent).align(AlignX.FILL)

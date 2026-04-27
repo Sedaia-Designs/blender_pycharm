@@ -12,7 +12,7 @@ import java.nio.file.Path
 import javax.swing.Icon
 import kotlin.io.path.pathString
 
-private fun getSrcPath(project: Project): String = 
+fun getSrcPath(project: Project): String = 
     Path.of(project.basePath ?: "", "src").toAbsolutePath().pathString
 
 class BlenderRunConfigurationType : ConfigurationType {

@@ -44,12 +44,7 @@ class BlenderRunProfileState(
                 val isDebug = executor.id == com.intellij.openapi.wm.ToolWindowId.DEBUG
                 options.isDebugMode = isDebug
                 
-                val finalArgs = if (!options.blenderCommand.isNullOrBlank()) {
-                    val cmd = "--command ${options.blenderCommand}"
-                    if (!options.additionalArguments.isNullOrBlank()) "$cmd ${options.additionalArguments}" else cmd
-                } else {
-                    options.additionalArguments
-                }
+                val finalArgs = buildFinalArgs(project, options)
 
                 if (isDebug && blenderPath != null) {
                     val pythonService = com.sakurasedaia.blenderextensions.python.PythonService.getInstance(project)
@@ -109,6 +104,40 @@ class BlenderRunProfileState(
             }
         }
     }
+
+    private fun buildFinalArgs(project: Project, options: BlenderRunConfigurationOptions): String? {
+        val factory = environment.runProfile.let { (it as? BlenderRunConfiguration)?.factory }
+        val isBuild = factory is BlenderBuildConfigurationFactory
+        val isValidate = factory is BlenderValidateConfigurationFactory
+        
+        if (isBuild || isValidate) {
+            val srcDir = options.addonSourceDirectory.takeIf { !it.isNullOrBlank() } ?: getSrcPath(project)
+            val baseCmd = if (isBuild) "extension build" else "extension validate"
+            val args = mutableListOf<String>()
+            
+            if (isBuild) {
+                args.add("--source-dir")
+                args.add(srcDir)
+                if (!options.addonOutputDirectory.isNullOrBlank()) {
+                    args.add("--output-dir")
+                    args.add(options.addonOutputDirectory!!)
+                }
+            } else {
+                args.add(srcDir)
+            }
+            
+            val fullCmd = "--command $baseCmd ${com.intellij.util.execution.ParametersListUtil.join(args)}"
+            return if (!options.additionalArguments.isNullOrBlank()) "$fullCmd ${options.additionalArguments}" else fullCmd
+        }
+        
+        return if (!options.blenderCommand.isNullOrBlank()) {
+            val cmd = "--command ${options.blenderCommand}"
+            if (!options.additionalArguments.isNullOrBlank()) "$cmd ${options.additionalArguments}" else cmd
+        } else {
+            options.additionalArguments
+        }
+    }
+
     private fun attachDebugger(project: Project, handler: OSProcessHandler) {
         val configurationType = ConfigurationTypeUtil.findConfigurationType("PythonConfigurationType") ?: return
         val factory = configurationType.configurationFactories.find { it.id == "PythonDebugServer" } ?: return
