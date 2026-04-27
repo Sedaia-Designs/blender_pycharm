@@ -335,8 +335,8 @@ class BlenderConfigurable(private val project: Project) : SearchableConfigurable
                         val confirm = MessageDialogBuilder.yesNo(
                             LangManager.message("toolwindow.sandbox.clear"),
                             LangManager.message("toolwindow.sandbox.clear.warning")
-                        ).yesText(LangManager.message("toolwindow.sandbox.clear.confirm"))
-                            .noText(LangManager.message("button.cancel"))
+                        ).yesText(LangManager.message("button.yes"))
+                            .noText(LangManager.message("button.no"))
                             .ask(project)
 
                         if (confirm) {
