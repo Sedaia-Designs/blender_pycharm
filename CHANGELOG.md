@@ -1,46 +1,35 @@
 # Changelog
 
-## [0.6.0] - 2026-04-26
-### Changed
-- **Repository Migration**: Migrated the project repository from GitHub to Codeberg (`https://codeberg.org/SakuraSedaia/blender_pycharm.git`). Updated all internal links and references in documentation and generated templates.
-- **CI/CD Migration**: Migrated release automation from GitHub Actions to Forgejo Actions for Codeberg compatibility. Added `.forgejo/workflows/release.yml` with support for Codeberg's native release process.
-
-## [0.6.0] - 2026-04-22
+## [0.6.0] - In Progress
 ### Added
-- **Background Task Management**: Centralized all UI-blocking operations (linter setup, downloads, reloads) into a new `BlenderTaskManager` to ensure a smooth IDE experience and prevent freezes.
-- **User Permission Prompt**: Implemented explicit confirmation dialogs before the plugin performs invasive operations such as Python SDK management.
-- **Semantic Versioning**: Implemented semantic version comparison for detecting the latest Blender configuration directory, ensuring that "4.10" is correctly identified as newer than "4.9".
-- **Execution Validation**: Implemented proactive and reactive detection of filesystem execution restrictions (e.g., `noexec` on Linux). The plugin now identifies when a partition prevents binary execution and provides user-friendly error messages with direct links to troubleshooting guides.
-- **UI Modernization**: Updated the Tool Window, Settings, and Run Configuration editors with modern Kotlin DSL components for a cleaner and more responsive user experience.
-- **Enhanced Blender Discovery**: Improved the `BlenderScanner` and `BlenderPathUtil` to more reliably detect system-wide Blender installations across Linux and macOS, including better support for custom paths.
-- **Robust Downloader**: Overhauled `BlenderDownloader` and `ArchiveUtil` to improve extraction reliability and properly handle Unix execution permissions post-download.
+- **uv-Powered Python Integration ([#4](https://codeberg.org/SakuraSedaia/blender_pycharm/issues/4))**: Implemented a mandatory `uv` integration for ultra-fast virtual environment management and linter installation. Includes automated `uv` installation for the user, support for specific Python versions per Blender release, and deep integration with PyCharm's native `uv` metadata.
+- **Background Task Management**: Centralized all long-running operations (linter setup, downloads, reloads) into a new `BlenderTaskManager` to ensure a smooth, non-blocking IDE experience.
+- **Execution Validation**: Implemented proactive detection of filesystem execution restrictions (e.g., `noexec` on Linux). The plugin now identifies restricted partitions and provides actionable troubleshooting guides.
+- **User Permission Prompt**: Added explicit confirmation dialogs before the plugin performs invasive operations like Python SDK management or environment recreation.
+- **Enhanced Blender Discovery**: Improved `BlenderScanner` and `BlenderPathUtil` for more reliable detection of system-wide installations across all platforms.
+- **Robust Downloader**: Overhauled `BlenderDownloader` and `ArchiveUtil` to improve extraction reliability and properly handle Unix execution permissions.
 - **Internationalization (i18n)**: Enhanced multi-language support, specifically updating Spanish translations and externalizing complex diagnostic messages.
 - **Version Updates**: Updated supported Blender and Python version metadata to include the latest releases.
 
 ### Changed
-- **Version Helper**: Moved version parsing and comparison logic to a centralized `BlenderHelper` module for better reusability.
-- **Process Management**: Refactored Blender process launching to use `KillableProcessHandler` for improved process management and more responsive termination.
-- **UI Modernization**: Improved the Blender Tool Window layout and added descriptive text to the settings button.
-- **Reactive Error Handling**: Refactored permission checks to be reactive, triggering detailed diagnostics only when a "Permission denied" error is encountered during process startup.
-- **Refactored Service Layer**: Enhanced `BlenderService` and related components (`BlenderLinker`, `BlenderCommunicationService`) for better project lifecycle management and UI integration.
-- **Run Configuration Flow**: Improved path resolution and validation within Blender Run Configurations to ensure managed versions are correctly handled before launch.
+- **Repository & CI Migration**: Migrated the project to Codeberg and transitioned from GitHub Actions to Forgejo Actions. Updated all internal links and release automation.
+- **UI Modernization**: Refactored the Tool Window, Settings, and Run Configuration editors using modern Kotlin DSL components for a cleaner, more responsive interface.
+- **Core Refactoring**: Enhanced the service layer (`BlenderService`, `BlenderLinker`, `BlenderCommunicationService`) and centralized version parsing/comparison logic for better maintainability.
+- **Process Management**: Refactored Blender process launching to use `KillableProcessHandler`, improving responsiveness and termination handling.
+- **Run Configuration Flow**: Improved path resolution and validation to ensure managed versions are correctly handled before launch. Resolved Issue #3 by ensuring startup scripts use deterministic filenames to prevent scratch directory clutter.
+- **Enhanced Build & Validate ([#5](https://codeberg.org/SakuraSedaia/blender_pycharm/issues/5), [#6](https://codeberg.org/SakuraSedaia/blender_pycharm/issues/6))**: Added dedicated inputs for source and output directories in Build and Validate run configurations, allowing for more flexible extension packaging.
+- **Reactive Error Handling**: Refactored permission checks to be reactive, triggering detailed diagnostics only when a "Permission denied" error occurs.
 
 ### Fixed
-- **Archive Extraction**: Implemented robust extraction using temporary directories and atomic moves to prevent corrupted or incomplete installations.
-- **Directory Stripping**: Added a more reliable top-level directory stripper for ZIP and TAR archives.
-- **Download Integrity**: Added file size verification for cached Blender downloads to detect and recover from corrupted files.
-- **Command Template Safety**: Ensured that generated Blender command templates (build, validate) correctly handle project paths with spaces by implementing proper shell-style quoting for source directories.
-- **Thread Safety**: Implemented thread-safe access to shared Blender installation and download caches to prevent `ConcurrentModificationException` and race conditions.
-- **Startup Synchronization**: Added a synchronization lock in `BlenderService` to prevent multiple simultaneous Blender process startups and ensure atomicity during initialization.
-- **Linter Setup**: Ensured that the linter setup process always uses a valid Blender version string instead of a file path, improving reliability across system-wide installations.
-- **Process Execution**: Replaced inefficient busy-wait loops in external process execution with a listener-based approach and improved cancellation handling to prevent resource leaks.
-- **Project Wizard**: Corrected the project generation logic to respect the user's sandbox toggle when creating default run configurations.
-- **Reload Command Safety**: Implemented robust JSON serialization for extension reload commands to ensure extension names with special characters are correctly escaped.
-- **Communication Server Leak**: Implemented a synchronization and cleanup mechanism in `BlenderCommunicationService` to ensure only one Blender client is active at a time and resources are properly released upon reconnection.
-- **Sandbox Extension Path**: Resolved a mismatch where Blender would fail to load linked extensions in sandbox mode by aligning the linker path with the `BLENDER_USER_SCRIPTS` environment variable.
-- **Cancellation Responsiveness**: Added `checkCanceled()` calls and improved exception handling to ensure the IDE remains responsive and the startup process can be aborted by the user.
-- **Permission Denied (Error 13)**: Resolved issues where Blender would fail to launch on Linux partitions mounted with restrictive flags by providing clear diagnostic feedback.
-- **Downloader Extraction**: Fixed various edge cases in the extraction logic that could lead to corrupted or incomplete Blender installations.
+- **Archive & Download Reliability**: Implemented robust extraction using temporary directories, atomic moves, file size verification, and improved top-level directory stripping to prevent corrupted installations.
+- **Thread Safety & Synchronization**: Resolved race conditions and `ConcurrentModificationException` in shared caches. Added synchronization locks in `BlenderService` to ensure atomic process initialization.
+- **Communication Server Leak**: Implemented a robust cleanup mechanism in `BlenderCommunicationService` to prevent resource leaks and ensure only one active client connection.
+- **Linter & Setup Stability**: Ensured valid version string usage during linter setup and improved New Project Wizard validation for sandbox settings.
+- **Command & Reload Safety**: Implemented proper shell-style quoting for project paths with spaces and robust JSON serialization for extension reload commands.
+- **Cancellation Responsiveness**: Improved responsiveness by adding `checkCanceled()` calls throughout long-running processes, allowing users to abort operations.
+- **Linux Execution (Error 13)**: Resolved issues where Blender failed to launch on Linux partitions with restrictive mount flags by providing clear diagnostic feedback.
+- **Sandbox Extension Path**: Fixed a path mismatch in sandbox mode by correctly aligning the linker path with `BLENDER_USER_SCRIPTS`.
+- **Process Execution**: Replaced inefficient busy-wait loops with a listener-based approach and improved resource cleanup.
 
 ## [0.5.0] - 2026-03-29
 ### Added
