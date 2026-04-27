@@ -13,7 +13,7 @@
 
 ### Changed
 - **UI Modernization**: Updated the Virtual Environment recreation prompt to display the project name instead of the absolute file path for a cleaner, more user-friendly interface. Refactored the Tool Window, Settings, and Run Configuration editors using modern Kotlin DSL components for a cleaner, more responsive interface.
-- **Repository & CI Migration**: Migrated the project to Codeberg and transitioned from GitHub Actions to Forgejo Actions. Updated all internal links and release automation.
+- **Repository & CI Migration**: Migrated the project templates and CI workflows from `.github` to `.forgejo` for better Codeberg compatibility. Fixed the release workflow to use correct input references.
 - **Core Refactoring**: Enhanced the service layer (`BlenderService`, `BlenderLinker`, `BlenderCommunicationService`) and centralized version parsing/comparison logic for better maintainability.
 - **Process Management**: Refactored Blender process launching to use `KillableProcessHandler`, improving responsiveness and termination handling.
 - **Run Configuration Flow**: Improved path resolution and validation to ensure managed versions are correctly handled before launch. Resolved Issue #3 by ensuring startup scripts use deterministic filenames to prevent scratch directory clutter.

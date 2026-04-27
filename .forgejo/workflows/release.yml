@@ -28,12 +28,12 @@ jobs:
 
       - name: Build and Release
         run: |
-          ./gradlew buildPlugin -Pversion=${{ github.event.inputs.version }}
+          ./gradlew buildPlugin -Pversion=${{ inputs.version }}
 
       - name: Create Release
         uses: https://codeberg.org/actions/release-action@v1
         with:
-          tag_name: v${{ github.event.inputs.version }}
+          tag_name: v${{ inputs.version }}
           files: build/distributions/*.zip
           generate_release_notes: true
         env:
