@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.6.0] - In Progress
+## [0.6.0] - 4-26-2026
 ### Added
 - **uv-Powered Python Integration ([#4](https://codeberg.org/SakuraSedaia/blender_pycharm/issues/4))**: Implemented a mandatory `uv` integration for ultra-fast virtual environment management and linter installation.
   - Added automated `uv` installation for the user and support for specific Python versions per Blender release.
@@ -44,6 +44,7 @@
   - Refactored `BlenderNotification` to use the standard `NotificationGroupManager` retrieval pattern.
   - Modernized various UI components and SDK initialization logic to align with the latest IntelliJ Platform guidelines.
   - Replaced deprecated `Project.baseDir` with `Project.guessProjectDir()` for more reliable project root resolution.
+  - Fixed build errors in `BlenderProjectService.kt` by adding missing `Project` import and standardizing path resolution.
   - Replaced deprecated `ProgressManager.runProcessWithProgressSynchronously` with modern `Task.Modal` pattern via `BlenderTaskManager`.
 - **Enhanced Debugging**: Updated `BlenderLogger` to print debug messages directly to the console (`println`) when running the IDE, ensuring immediate visibility of logs during development without extra platform configuration.
 - **Archive & Download Reliability**: Implemented robust extraction using temporary directories, atomic moves, file size verification, and improved top-level directory stripping to prevent corrupted installations.

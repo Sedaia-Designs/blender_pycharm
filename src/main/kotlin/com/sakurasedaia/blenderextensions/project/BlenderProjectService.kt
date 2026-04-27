@@ -3,6 +3,7 @@ package com.sakurasedaia.blenderextensions.project
 import com.intellij.execution.RunManager
 import com.intellij.execution.configurations.ConfigurationTypeUtil
 import com.intellij.openapi.components.Service
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.vfs.VfsUtil
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
@@ -21,7 +22,7 @@ import kotlin.io.path.writeText
 class BlenderProjectService(private val project: Project) {
 
     fun generateAgentGuidelines() {
-        val projectPath = project.basePath?.let { Path.of(it) } ?: return
+        val projectPath = project.guessProjectDir()?.toNioPath() ?: return
         val projectName = project.name
         
         val agentDir = projectPath.resolve(".agent")
@@ -49,7 +50,7 @@ class BlenderProjectService(private val project: Project) {
     }
 
     fun generateGitignore() {
-        val projectPath = project.basePath?.let { Path.of(it) } ?: return
+        val projectPath = project.guessProjectDir()?.toNioPath() ?: return
         val gitignorePath = projectPath.resolve(".gitignore")
         
         val content = BlenderProjectTemplateGenerator.generateGitignore()
@@ -68,7 +69,7 @@ class BlenderProjectService(private val project: Project) {
     }
 
     fun generateLicense() {
-        val projectPath = project.basePath?.let { Path.of(it) } ?: return
+        val projectPath = project.guessProjectDir()?.toNioPath() ?: return
         val licensePath = projectPath.resolve("LICENSE")
         
         val content = BlenderProjectTemplateGenerator.generateLicense()
@@ -85,7 +86,7 @@ class BlenderProjectService(private val project: Project) {
         val runManager = RunManager.getInstance(project)
         val configType = ConfigurationTypeUtil.findConfigurationType(BlenderRunConfigurationType::class.java)
         
-        val projectPath = project.basePath?.let { Path.of(it) } ?: return
+        val projectPath = project.guessProjectDir()?.toNioPath() ?: return
         val srcDir = projectPath.resolve("src")
         val addonId = project.name.lowercase().replace(" ", "_")
         
