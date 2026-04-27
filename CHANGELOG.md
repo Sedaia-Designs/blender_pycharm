@@ -3,6 +3,7 @@
 ## [0.6.0] - 2026-04-26
 ### Changed
 - **Repository Migration**: Migrated the project repository from GitHub to Codeberg (`https://codeberg.org/SakuraSedaia/blender_pycharm.git`). Updated all internal links and references in documentation and generated templates.
+- **CI/CD Migration**: Migrated release automation from GitHub Actions to Forgejo Actions for Codeberg compatibility. Added `.forgejo/workflows/release.yml` with support for Codeberg's native release process.
 
 ## [0.6.0] - 2026-04-22
 ### Added
