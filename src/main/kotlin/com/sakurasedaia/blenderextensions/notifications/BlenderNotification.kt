@@ -7,18 +7,22 @@ import com.intellij.openapi.project.Project
 
 class BlenderNotification(private val project: Project) {
 
-    private fun getGroup(group: String = "Blender Development"): NotificationGroup? =
-        runCatching { NotificationGroupManager.getInstance().getNotificationGroup(group) }.getOrNull()
+    companion object {
+        private const val GROUP_ID = "Blender Development"
+        
+        private fun getGroup(): NotificationGroup =
+            NotificationGroupManager.getInstance().getNotificationGroup(GROUP_ID)
+    }
 
     fun sendError(title: String, content: String) {
-        getGroup()?.createNotification(title, content, NotificationType.ERROR)?.notify(project)
+        getGroup().createNotification(title, content, NotificationType.ERROR).notify(project)
     }
 
     fun sendWarning(title: String, content: String) {
-        getGroup()?.createNotification(title, content, NotificationType.WARNING)?.notify(project)
+        getGroup().createNotification(title, content, NotificationType.WARNING).notify(project)
     }
 
     fun sendInfo(title: String, content: String) {
-        getGroup()?.createNotification(title, content, NotificationType.INFORMATION)?.notify(project)
+        getGroup().createNotification(title, content, NotificationType.INFORMATION).notify(project)
     }
 }

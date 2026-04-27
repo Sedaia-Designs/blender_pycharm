@@ -5,15 +5,15 @@
 - **uv-Powered Python Integration ([#4](https://codeberg.org/SakuraSedaia/blender_pycharm/issues/4))**: Implemented a mandatory `uv` integration for ultra-fast virtual environment management and linter installation. Includes automated `uv` installation for the user, support for specific Python versions per Blender release, and deep integration with PyCharm's native `uv` metadata.
 - **Background Task Management**: Centralized all long-running operations (linter setup, downloads, reloads) into a new `BlenderTaskManager` to ensure a smooth, non-blocking IDE experience.
 - **Execution Validation**: Implemented proactive detection of filesystem execution restrictions (e.g., `noexec` on Linux). The plugin now identifies restricted partitions and provides actionable troubleshooting guides.
-- **User Permission Prompt**: Added explicit confirmation dialogs before the plugin performs invasive operations like Python SDK management or environment recreation.
+- **User Permission Prompt**: Added explicit confirmation dialogs before the plugin performs invasive operations like Python SDK management or environment recreation. Improved Python version tracking to use full semantic versions (e.g., 3.11.7) for better compatibility with specific Blender releases.
 - **Enhanced Blender Discovery**: Improved `BlenderScanner` and `BlenderPathUtil` for more reliable detection of system-wide installations across all platforms.
 - **Robust Downloader**: Overhauled `BlenderDownloader` and `ArchiveUtil` to improve extraction reliability and properly handle Unix execution permissions.
 - **Internationalization (i18n)**: Enhanced multi-language support, specifically updating Spanish translations and externalizing complex diagnostic messages.
 - **Version Updates**: Updated supported Blender and Python version metadata to include the latest releases.
 
 ### Changed
+- **UI Modernization**: Updated the Virtual Environment recreation prompt to display the project name instead of the absolute file path for a cleaner, more user-friendly interface. Refactored the Tool Window, Settings, and Run Configuration editors using modern Kotlin DSL components for a cleaner, more responsive interface.
 - **Repository & CI Migration**: Migrated the project to Codeberg and transitioned from GitHub Actions to Forgejo Actions. Updated all internal links and release automation.
-- **UI Modernization**: Refactored the Tool Window, Settings, and Run Configuration editors using modern Kotlin DSL components for a cleaner, more responsive interface.
 - **Core Refactoring**: Enhanced the service layer (`BlenderService`, `BlenderLinker`, `BlenderCommunicationService`) and centralized version parsing/comparison logic for better maintainability.
 - **Process Management**: Refactored Blender process launching to use `KillableProcessHandler`, improving responsiveness and termination handling.
 - **Run Configuration Flow**: Improved path resolution and validation to ensure managed versions are correctly handled before launch. Resolved Issue #3 by ensuring startup scripts use deterministic filenames to prevent scratch directory clutter.
@@ -21,6 +21,12 @@
 - **Reactive Error Handling**: Refactored permission checks to be reactive, triggering detailed diagnostics only when a "Permission denied" error occurs.
 
 ### Fixed
+- **Thread Safety & EDT Compliance**: Fixed an issue where "Access is allowed from Event Dispatch Thread (EDT) only" would occur during Python SDK initialization and linter setup by ensuring all model-modifying calls (like `PythonSdkUpdater.update`, SDK creation, and virtual environment management) are correctly synchronized on the EDT.
+- **Codebase Modernization**: Audited the codebase and replaced several deprecated IntelliJ APIs with modern recommended implementations:
+  - Replaced `Messages.showYesNoDialog` with `MessageDialogBuilder` for improved dialog management.
+  - Refactored `BlenderNotification` to use the standard `NotificationGroupManager` retrieval pattern.
+  - Modernized various UI components and SDK initialization logic to align with the latest IntelliJ Platform guidelines.
+  - Replaced deprecated `ProgressManager.runProcessWithProgressSynchronously` with modern `Task.Modal` pattern via `BlenderTaskManager`.
 - **Archive & Download Reliability**: Implemented robust extraction using temporary directories, atomic moves, file size verification, and improved top-level directory stripping to prevent corrupted installations.
 - **Thread Safety & Synchronization**: Resolved race conditions and `ConcurrentModificationException` in shared caches. Added synchronization locks in `BlenderService` to ensure atomic process initialization.
 - **Communication Server Leak**: Implemented a robust cleanup mechanism in `BlenderCommunicationService` to prevent resource leaks and ensure only one active client connection.

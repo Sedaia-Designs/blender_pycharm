@@ -38,6 +38,9 @@ class BlenderLogger(private val project: Project) {
     }
 
     fun debug(message: String) {
+        // Also print to stdout for visibility in the IDE debug console during development
+        println("[DEBUG] $message")
+        
         platformLogger.debug(message)
         if (platformLogger.isDebugEnabled) {
             log("DEBUG: $message")

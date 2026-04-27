@@ -24,14 +24,7 @@ object PythonUtil {
     private fun getDownloadsBaseDirectory(project: Project? = null): Path {
         val configuredPath = project?.let { BlenderSettings.getInstance(it).state.downloadsPath }
             ?: Path.of(PathManager.getSystemPath(), "blender_downloads").toString()
-        val configured = Path.of(configuredPath)
-
-        // Backward compatibility: older versions stored interpreter downloads under py_interpreter.
-        return if (configured.fileName?.toString() == "py_interpreter") {
-            configured.parent ?: configured
-        } else {
-            configured
-        }
+        return Path.of(configuredPath)
     }
 
     fun getBlenderVersion(blenderExePath: String): String {

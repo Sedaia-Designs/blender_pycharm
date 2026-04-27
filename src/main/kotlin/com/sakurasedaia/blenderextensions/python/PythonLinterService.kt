@@ -4,6 +4,9 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ProjectRootManager
+import com.intellij.openapi.projectRoots.Sdk
+import com.intellij.openapi.ui.MessageDialogBuilder
 import com.intellij.openapi.ui.Messages
 import com.sakurasedaia.blenderextensions.blender.model.BlenderVersions
 import com.sakurasedaia.blenderextensions.blender.model.DownloadProgress
@@ -42,7 +45,14 @@ class PythonLinterService(private val project: Project) {
         BlenderTaskManager.getInstance().run(project, LangManager.message("action.setup.linter.task", version)) { indicator ->
             try {
                 val pythonVersion = BlenderVersions.getSupportedVersions().find { it.majorMinor == version }?.pythonVersion
-                if (PythonSdkService.getInstance(project).ensureVirtualEnvironment(pythonVersion) == null) {
+                val venvSdk = ApplicationManager.getApplication().run {
+                    var result: Sdk? = null
+                    invokeAndWait {
+                        result = PythonSdkService.getInstance(project).ensureVirtualEnvironment(pythonVersion)
+                    }
+                    result
+                }
+                if (venvSdk == null) {
                     BlenderNotification(project).sendError(
                         LangManager.message("toolwindow.managed.button.setup.linter"),
                         LangManager.message("log.python.venv.failed")
@@ -50,7 +60,7 @@ class PythonLinterService(private val project: Project) {
                     return@run
                 }
 
-                val result = installFakeBpyModule(version, indicator)
+                val result = installFakeBpyModule(version, indicator, venvSdk)
                 if (!result.success) {
                     BlenderNotification(project).sendError(
                         LangManager.message("toolwindow.managed.button.setup.linter"),
@@ -60,6 +70,13 @@ class PythonLinterService(private val project: Project) {
                 }
 
                 ApplicationManager.getApplication().invokeLater {
+                    // Re-ensure the project SDK is set to the venv SDK just in case
+                    ApplicationManager.getApplication().runWriteAction {
+                        if (ProjectRootManager.getInstance(project).projectSdk != venvSdk) {
+                            ProjectRootManager.getInstance(project).projectSdk = venvSdk
+                        }
+                    }
+                    
                     PythonUtil.addLinterToCurrentSdk(project, version)
                     BlenderNotification(project).sendInfo(
                         LangManager.message("toolwindow.managed.button.setup.linter"),
@@ -76,23 +93,16 @@ class PythonLinterService(private val project: Project) {
     }
 
     private fun promptForLinterPermission(): Boolean {
-        var result = Messages.NO
         val message = LangManager.message("dialog.permission.python.sdk.message")
         val title = LangManager.message("dialog.permission.python.sdk.title")
-        
-        if (ApplicationManager.getApplication().isDispatchThread) {
-            result = Messages.showYesNoDialog(project, message, title, Messages.getQuestionIcon())
-        } else {
-            ApplicationManager.getApplication().invokeAndWait {
-                result = Messages.showYesNoDialog(project, message, title, Messages.getQuestionIcon())
-            }
-        }
-        return result == Messages.YES
+
+        return MessageDialogBuilder.yesNo(title, message)
+            .ask(project)
     }
 
     data class InstallResult(val success: Boolean, val errorMessage: String? = null)
 
-    fun installFakeBpyModule(version: String, indicator: ProgressIndicator? = null): InstallResult {
+    fun installFakeBpyModule(version: String, indicator: ProgressIndicator? = null, venvSdk: Sdk? = null): InstallResult {
         val logger = BlenderLogger.getInstance(project)
         val downloader = BlenderDownloader.getInstance(project)
         val lintDir = PythonUtil.getLintDirectory(version, project)
@@ -106,9 +116,16 @@ class PythonLinterService(private val project: Project) {
                 Files.createDirectories(lintDir)
             }
             
-            val bpyPythonVersion = BlenderVersions.getSupportedVersions().find { it.majorMinor == version }?.pythonVersion
-            val venvSdk = PythonSdkService.getInstance(project).ensureVirtualEnvironment(bpyPythonVersion)
-            if (venvSdk?.homePath == null) {
+            val actualVenvSdk = venvSdk ?: run {
+                val bpyPythonVersion = BlenderVersions.getSupportedVersions().find { it.majorMinor == version }?.pythonVersion
+                var result: Sdk? = null
+                ApplicationManager.getApplication().invokeAndWait {
+                    result = PythonSdkService.getInstance(project).ensureVirtualEnvironment(bpyPythonVersion)
+                }
+                result
+            }
+
+            if (actualVenvSdk?.homePath == null) {
                 val error = LangManager.message("log.python.venv.failed")
                 logger.log(error)
                 return InstallResult(false, error)
@@ -123,6 +140,7 @@ class PythonLinterService(private val project: Project) {
             }
 
             val installSuccess = if (venvDir != null && venvDir.exists()) {
+                // Install into lintDir as target for the linter files themselves
                 UvUtil.installPackages(uvExe, venvDir, listOf("fake-bpy-module-$bpyVersion"), lintDir, project)
             } else {
                 false

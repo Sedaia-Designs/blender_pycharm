@@ -8,7 +8,7 @@ import com.intellij.execution.filters.TextConsoleBuilderFactory
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.execution.runners.ProgramRunner
-import com.intellij.openapi.progress.ProgressManager
+import com.sakurasedaia.blenderextensions.common.utils.BlenderTaskManager
 import com.intellij.openapi.project.Project
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.sakurasedaia.blenderextensions.blender.services.BlenderService
@@ -32,12 +32,11 @@ class BlenderRunProfileState(
         var handler: com.intellij.execution.process.OSProcessHandler? = null
 
         try {
-            ProgressManager.getInstance().runProcessWithProgressSynchronously({
-                val indicator = ProgressManager.getInstance().progressIndicator
+            BlenderTaskManager.getInstance().runModal(project, LangManager.message("run.configuration.starting", environment.runProfile.name), true) { indicator ->
                 // --- STEP 1 & 2: RESOLVE BLENDER PATH AND VERSION ---
                 blenderPath = resolveBlenderPathInternal(service, version) { detectedVersion = it }
                 
-                if (blenderPath == null) return@runProcessWithProgressSynchronously
+                if (blenderPath == null) return@runModal
     
                 service.log("Final Startup Parameters - Path: $blenderPath, Version: $detectedVersion, Sandboxed: ${options.isSandboxed}")
     
@@ -69,7 +68,7 @@ class BlenderRunProfileState(
                     service.log("Starting IDE debugger attachment to localhost:5678...")
                     attachDebugger(project, handler!!)
                 }
-            }, LangManager.message("run.configuration.starting", environment.runProfile.name), true, project)
+            }
         } catch (e: com.intellij.openapi.progress.ProcessCanceledException) {
             return null
         }

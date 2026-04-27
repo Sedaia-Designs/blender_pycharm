@@ -22,6 +22,17 @@ class BlenderTaskManager {
     }
 
     /**
+     * Runs a task synchronously with a progress indicator.
+     */
+    fun runModal(project: Project?, title: String, canBeCancelled: Boolean = true, task: (ProgressIndicator) -> Unit) {
+        ProgressManager.getInstance().run(object : Task.Modal(project, title, canBeCancelled) {
+            override fun run(indicator: ProgressIndicator) {
+                task(indicator)
+            }
+        })
+    }
+
+    /**
      * Executes a task on a pooled thread without a progress indicator.
      */
     fun execute(task: () -> Unit) {

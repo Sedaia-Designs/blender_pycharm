@@ -7,6 +7,7 @@ import com.intellij.openapi.options.SearchableConfigurable
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.MessageDialogBuilder
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.components.JBCheckBox
@@ -163,13 +164,12 @@ class BlenderConfigurable(private val project: Project) : SearchableConfigurable
             val isDownloaded = managedTable.isSelectedVersionDownloaded()
 
             if (isDownloaded) {
-                val confirm = Messages.showYesNoDialog(
-                    project,
-                    LangManager.message("toolwindow.managed.action.delete.description"),
+                val confirm = MessageDialogBuilder.yesNo(
                     LangManager.message("toolwindow.managed.action.delete.title", version),
-                    Messages.getQuestionIcon()
-                )
-                if (confirm == Messages.YES) {
+                    LangManager.message("toolwindow.managed.action.delete.description")
+                ).ask(project)
+
+                if (confirm) {
                     if (service.isRunning()) {
                         BlenderNotification(project).sendError(
                             LangManager.message("notification.delete.failed.title", version),
@@ -228,13 +228,12 @@ class BlenderConfigurable(private val project: Project) : SearchableConfigurable
         systemRemoveButton.addActionListener {
             val inst = systemTable.getSelectedInstallation() ?: return@addActionListener
             if (inst.isCustom && inst.originPath != null) {
-                val confirm = Messages.showYesNoDialog(
-                    project,
-                    LangManager.message("toolwindow.system.table.action.delete.confirm.message"),
+                val confirm = MessageDialogBuilder.yesNo(
                     LangManager.message("toolwindow.table.action.remove"),
-                    Messages.getQuestionIcon()
-                )
-                if (confirm == Messages.YES) {
+                    LangManager.message("toolwindow.system.table.action.delete.confirm.message")
+                ).ask(project)
+
+                if (confirm) {
                     BlenderSettings.getInstance(project).removeCustomBlenderPath(inst.originPath)
                     systemTable.refresh()
                 }
@@ -333,15 +332,14 @@ class BlenderConfigurable(private val project: Project) : SearchableConfigurable
             group(LangManager.message("toolwindow.sandbox.management.label")) {
                 row {
                     button(LangManager.message("toolwindow.sandbox.clear")) {
-                        val confirm = Messages.showYesNoDialog(
-                            project,
-                            LangManager.message("toolwindow.sandbox.clear.warning"),
+                        val confirm = MessageDialogBuilder.yesNo(
                             LangManager.message("toolwindow.sandbox.clear"),
-                            LangManager.message("toolwindow.sandbox.clear.confirm"),
-                            LangManager.message("button.cancel"),
-                            Messages.getQuestionIcon()
-                        )
-                        if (confirm == Messages.YES) {
+                            LangManager.message("toolwindow.sandbox.clear.warning")
+                        ).yesText(LangManager.message("toolwindow.sandbox.clear.confirm"))
+                            .noText(LangManager.message("button.cancel"))
+                            .ask(project)
+
+                        if (confirm) {
                             if (!commService.isConnected()) {
                                 service.clearSandbox()
                                 Messages.showInfoMessage(

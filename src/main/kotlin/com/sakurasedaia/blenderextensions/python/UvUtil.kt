@@ -82,8 +82,8 @@ object UvUtil {
      */
     fun createVenv(uvExe: Path, venvDir: Path, pythonVersion: String? = null, project: Project? = null): Boolean {
         try {
-            // Command: uv venv <venvDir> [--python <version>]
-            val args = mutableListOf("venv", venvDir.toString())
+            // Command: uv venv <venvDir> [--python <version>] [--seed]
+            val args = mutableListOf("venv", venvDir.toString(), "--seed")
             if (pythonVersion != null) {
                 args.add("--python")
                 args.add(pythonVersion)
