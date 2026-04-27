@@ -14,9 +14,10 @@ import java.nio.file.Paths
  * 
  * The Python support module follows this progression:
  * 1. [PythonService] acts as a high-level API for Python tasks.
- * 2. [PythonLinterService] handles the installation of `fake-bpy-module` for IDE intellisense.
- * 3. [PythonFinder] (if applicable) and [getBlenderPythonInfo] detect the Python environment within Blender.
- * 4. [ExternalProcessUtil] is used to execute Python scripts within the Blender process.
+ * 2. [PythonSdkService] manages the project's Python SDK and virtual environments.
+ * 3. [PythonLinterService] handles the installation of `fake-bpy-module` for IDE intellisense.
+ * 4. [PythonUtil] provides discovery logic for system and bundled Python executables.
+ * 5. [ExternalProcessUtil] is used to execute Python scripts within the Blender process.
  */
 @Service(Service.Level.PROJECT)
 class PythonService(private val project: Project) {

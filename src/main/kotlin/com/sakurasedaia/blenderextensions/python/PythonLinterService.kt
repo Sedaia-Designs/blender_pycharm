@@ -1,31 +1,20 @@
 package com.sakurasedaia.blenderextensions.python
 
-import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.progress.ProgressIndicator
-import com.intellij.openapi.progress.ProgressManager
-import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
-import com.sakurasedaia.blenderextensions.blender.utils.BlenderHelper
-import com.intellij.openapi.projectRoots.ProjectJdkTable
-import com.intellij.openapi.projectRoots.Sdk
-import com.intellij.openapi.projectRoots.SdkType
-import com.intellij.openapi.roots.OrderRootType
-import com.intellij.openapi.roots.ProjectRootManager
-import com.intellij.openapi.vfs.VirtualFileManager
-import com.sakurasedaia.blenderextensions.common.utils.LangManager
-import com.sakurasedaia.blenderextensions.common.utils.BlenderTaskManager
-import com.sakurasedaia.blenderextensions.blender.services.BlenderDownloader
-import com.sakurasedaia.blenderextensions.blender.services.BlenderFinder
-import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
+import com.intellij.openapi.ui.Messages
 import com.sakurasedaia.blenderextensions.blender.model.BlenderVersions
 import com.sakurasedaia.blenderextensions.blender.model.DownloadProgress
 import com.sakurasedaia.blenderextensions.blender.model.ProgressType
-import com.sakurasedaia.blenderextensions.notifications.BlenderNotification
-import com.sakurasedaia.blenderextensions.common.utils.ExternalProcessUtil
+import com.sakurasedaia.blenderextensions.blender.services.BlenderDownloader
+import com.sakurasedaia.blenderextensions.blender.services.BlenderFinder
 import com.sakurasedaia.blenderextensions.blender.utils.toBlenderHandler
+import com.sakurasedaia.blenderextensions.common.utils.BlenderTaskManager
+import com.sakurasedaia.blenderextensions.common.utils.LangManager
+import com.sakurasedaia.blenderextensions.notifications.BlenderNotification
+import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.exists
@@ -48,31 +37,12 @@ class PythonLinterService(private val project: Project) {
             return
         }
 
-        val permission = if (ApplicationManager.getApplication().isDispatchThread) {
-            Messages.showYesNoDialog(
-                project,
-                LangManager.message("dialog.permission.python.sdk.message"),
-                LangManager.message("dialog.permission.python.sdk.title"),
-                Messages.getQuestionIcon()
-            )
-        } else {
-            var result = Messages.NO
-            ApplicationManager.getApplication().invokeAndWait {
-                result = Messages.showYesNoDialog(
-                    project,
-                    LangManager.message("dialog.permission.python.sdk.message"),
-                    LangManager.message("dialog.permission.python.sdk.title"),
-                    Messages.getQuestionIcon()
-                )
-            }
-            result
-        }
-        if (permission != Messages.YES) return
+        if (!promptForLinterPermission()) return
 
         BlenderTaskManager.getInstance().run(project, LangManager.message("action.setup.linter.task", version)) { indicator ->
             try {
-                // Guardrail: Ensure project has a Virtual Environment SDK
-                if (ensureVirtualEnvironment() == null) {
+                val pythonVersion = BlenderVersions.getSupportedVersions().find { it.majorMinor == version }?.pythonVersion
+                if (PythonSdkService.getInstance(project).ensureVirtualEnvironment(pythonVersion) == null) {
                     BlenderNotification(project).sendError(
                         LangManager.message("toolwindow.managed.button.setup.linter"),
                         LangManager.message("log.python.venv.failed")
@@ -90,7 +60,7 @@ class PythonLinterService(private val project: Project) {
                 }
 
                 ApplicationManager.getApplication().invokeLater {
-                    addLinterToCurrentSdk(version)
+                    PythonUtil.addLinterToCurrentSdk(project, version)
                     BlenderNotification(project).sendInfo(
                         LangManager.message("toolwindow.managed.button.setup.linter"),
                         LangManager.message("toolwindow.managed.button.setup.linter.success", version)
@@ -105,29 +75,19 @@ class PythonLinterService(private val project: Project) {
         }
     }
 
-    private fun addLinterToCurrentSdk(blenderVersion: String) {
-        val logger = BlenderLogger.getInstance(project)
-        logger.debug("Adding linter to current SDK")
-        logger.debug("Blender version: $blenderVersion")
-        val sdk = ProjectRootManager.getInstance(project).projectSdk ?: return
-        val lintDir = PythonUtil.getLintDirectory(blenderVersion, project)
-        if (!lintDir.exists()) return
-
-        ApplicationManager.getApplication().invokeAndWait {
-            ApplicationManager.getApplication().runWriteAction {
-                val sdkModificator = sdk.sdkModificator
-                val vFile = VirtualFileManager.getInstance().findFileByNioPath(lintDir)
-                if (vFile != null) {
-                    logger.debug("Linter directory found: ${vFile.path}")
-                    // Check if already present
-                    val currentRoots = sdkModificator.getRoots(OrderRootType.CLASSES)
-                    if (currentRoots.none { it.path == vFile.path }) {
-                        sdkModificator.addRoot(vFile, OrderRootType.CLASSES)
-                        sdkModificator.commitChanges()
-                    }
-                }
+    private fun promptForLinterPermission(): Boolean {
+        var result = Messages.NO
+        val message = LangManager.message("dialog.permission.python.sdk.message")
+        val title = LangManager.message("dialog.permission.python.sdk.title")
+        
+        if (ApplicationManager.getApplication().isDispatchThread) {
+            result = Messages.showYesNoDialog(project, message, title, Messages.getQuestionIcon())
+        } else {
+            ApplicationManager.getApplication().invokeAndWait {
+                result = Messages.showYesNoDialog(project, message, title, Messages.getQuestionIcon())
             }
         }
+        return result == Messages.YES
     }
 
     data class InstallResult(val success: Boolean, val errorMessage: String? = null)
@@ -137,59 +97,42 @@ class PythonLinterService(private val project: Project) {
         val downloader = BlenderDownloader.getInstance(project)
         val lintDir = PythonUtil.getLintDirectory(version, project)
         val statusText = LangManager.message("log.blender.installing.linter.progress", version)
-        val handler = indicator.toBlenderHandler(downloader, version, statusText, ProgressType.LINTER)
+        indicator?.toBlenderHandler(downloader, version, statusText, ProgressType.LINTER)
         
-        var bpyVersion: String
-        val latest: String = BlenderVersions.getSupportedVersions().last().majorMinor
-        logger.debug("Latest Blender version: $latest")
-        logger.debug("Requested Blender version: $version")
-        
-        if (version == latest) {
-            bpyVersion = "latest"
-        } else {
-            bpyVersion = version
-        }
-        logger.debug("Using Blender version: $bpyVersion")
+        val bpyVersion = if (version == BlenderVersions.getSupportedVersions().last().majorMinor) "latest" else version
         
         try {
-            // Ensure linter directory exists
             if (!lintDir.exists()) {
                 Files.createDirectories(lintDir)
             }
             
-            // Guardrail: Ensure project has a Virtual Environment SDK
-            val venvSdk = ensureVirtualEnvironment()
-            if (venvSdk == null) {
+            val bpyPythonVersion = BlenderVersions.getSupportedVersions().find { it.majorMinor == version }?.pythonVersion
+            val venvSdk = PythonSdkService.getInstance(project).ensureVirtualEnvironment(bpyPythonVersion)
+            if (venvSdk?.homePath == null) {
                 val error = LangManager.message("log.python.venv.failed")
                 logger.log(error)
                 return InstallResult(false, error)
             }
 
-            val pythonToUse = venvSdk.homePath?.let { Path.of(it) }
-            if (pythonToUse == null) {
-                val error = LangManager.message("log.python.sdk.no.home")
+            val venvDir = project.basePath?.let { Path.of(it).resolve(".venv") }
+            val uvExe = UvUtil.findUvExecutable(project)
+            if (uvExe == null) {
+                val error = LangManager.message("log.python.uv.not.found")
                 logger.log(error)
                 return InstallResult(false, error)
             }
 
-            // Ensure pip is available in the venv
-            val ensurePipCommand = GeneralCommandLine(pythonToUse.toString(), "-m", "ensurepip", "--upgrade")
-            ExternalProcessUtil.execAndGetOutput(ensurePipCommand)
-            
-            val command = GeneralCommandLine(
-                pythonToUse.toString(), "-m",
-                "pip", "install", "fake-bpy-module-$bpyVersion",
-                "--target", lintDir.toString()
-            )
-            logger.debug("Installing linter for Blender $bpyVersion: ${command.commandLineString}")
-            
-            
-            val output = ExternalProcessUtil.execAndGetOutput(command)
-            if (output.exitCode == 0) {
+            val installSuccess = if (venvDir != null && venvDir.exists()) {
+                UvUtil.installPackages(uvExe, venvDir, listOf("fake-bpy-module-$bpyVersion"), lintDir, project)
+            } else {
+                false
+            }
+
+            if (installSuccess) {
                 logger.log(LangManager.message("log.python.linter.install.success", version, lintDir.toString()))
                 return InstallResult(true)
             } else {
-                val error = LangManager.message("log.python.linter.install.failed", version, lintDir.toString(), output.stderr)
+                val error = LangManager.message("log.python.linter.install.failed", version, lintDir.toString(), "Check logs for details")
                 logger.log(error)
                 return InstallResult(false, error)
             }
@@ -200,76 +143,6 @@ class PythonLinterService(private val project: Project) {
         } finally {
             downloader.updateProgress(DownloadProgress.None)
         }
-    }
-
-    fun ensureVirtualEnvironment(): Sdk? {
-        val projectSdk = ProjectRootManager.getInstance(project).projectSdk
-        if (projectSdk != null && isPythonSdk(projectSdk) && isVenv(projectSdk)) {
-            return projectSdk
-        }
-
-        val projectRoot = project.basePath?.let { Path.of(it) } ?: return null
-        val venvDir = projectRoot.resolve(".venv")
-        
-        if (!venvDir.exists()) {
-            val latestPython = PythonUtil.findSystemPython("3", project) ?: PythonUtil.findSystemPython("", project) ?: return null
-            val createVenvCommand = GeneralCommandLine(latestPython.toString(), "-m", "venv", venvDir.toString())
-            val output = ExternalProcessUtil.execAndGetOutput(createVenvCommand)
-            if (output.exitCode != 0) {
-                BlenderLogger.getInstance(project).log(LangManager.message("log.python.venv.create.failed", output.stderr))
-                return null
-            }
-        }
-
-        val pythonExe = if (BlenderHelper.isWindows()) venvDir.resolve("Scripts").resolve("python.exe") else venvDir.resolve("bin").resolve("python")
-        if (!pythonExe.exists()) {
-            BlenderLogger.getInstance(project).log(LangManager.message("log.python.venv.not.found", pythonExe.toString()))
-            return null
-        }
-
-        // Create or find existing SDK in the IDE
-        val sdkType = SdkType.getAllTypes().find { isPythonSdkTypeName(it.name) } ?: return null
-        val sdkName = "Python (BlenderExtensions .venv)"
-        
-        var sdk = ProjectJdkTable.getInstance().allJdks.find { it.homePath == pythonExe.toString() }
-        if (sdk == null) {
-            val newSdk = ProjectJdkTable.getInstance().createSdk(sdkName, sdkType)
-            val modificator = newSdk.sdkModificator
-            modificator.homePath = pythonExe.toString()
-            val version = PythonUtil.getPythonVersion(pythonExe, project)
-            modificator.versionString = version?.let { if (it.startsWith("Python")) it else "Python $it" }
-            
-            ApplicationManager.getApplication().invokeAndWait {
-                ApplicationManager.getApplication().runWriteAction {
-                    modificator.commitChanges()
-                    ProjectJdkTable.getInstance().addJdk(newSdk)
-                }
-            }
-            sdk = newSdk
-        }
-
-        // Set as project SDK
-        ApplicationManager.getApplication().invokeAndWait {
-            ApplicationManager.getApplication().runWriteAction {
-                ProjectRootManager.getInstance(project).projectSdk = sdk
-            }
-        }
-        
-        return sdk
-    }
-
-    private fun isVenv(sdk: Sdk): Boolean {
-        val homePath = sdk.homePath ?: return false
-        val path = Path.of(homePath)
-        return path.parent?.fileName?.toString() == "Scripts" || path.parent?.fileName?.toString() == "bin" || homePath.contains(".venv") || homePath.contains("venv") || homePath.contains("site-packages")
-    }
-
-    private fun isPythonSdk(sdk: Sdk): Boolean {
-        return isPythonSdkTypeName(sdk.sdkType.name) || sdk.sdkType.javaClass.simpleName.contains("Python", ignoreCase = true)
-    }
-
-    private fun isPythonSdkTypeName(name: String): Boolean {
-        return name == "Python SDK" || name == "Python"
     }
 
     companion object {

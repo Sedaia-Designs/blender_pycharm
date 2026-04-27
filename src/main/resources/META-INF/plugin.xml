@@ -17,12 +17,13 @@
         <h1>Blender Development for PyCharm</h1>
         <p><b>Blender Development</b> seamlessly integrates professional Blender extension development into the PyCharm IDE. This project is licensed under the <b>GNU GPL v3</b>.</p>
         <p>This plugin provides a powerful suite of tools designed to streamline the entire lifecycle of creating, testing, and deploying Blender extensions (v4.2+) using modern development practices.</p>
+        <p><i><b>Note:</b> This plugin requires <a href="https://github.com/astral-sh/uv">uv</a> for Python virtual environment management and package integration. The plugin can automatically install <b>uv</b> if it is not found on your system.</i></p>
 
         <p><i><b>Note:</b> This plugin is currently in active development. Please report bugs or feature requests at the <a href="https://codeberg.org/SakuraSedaia/blender_pycharm/issues">Codeberg Repository</a>.</i></p>
 
         <h3>Key Capabilities:</h3>
         <ul>
-            <li><b>Automated Version Management:</b> Effortlessly download, install, and switch between multiple Blender versions (including 4.2 LTS and 5.0) directly from a dedicated management tool window.</li>
+            <li><b>Python Integration:</b> Automatically configures a dedicated <code>.venv</code> using <b>uv</b> to match the Python version required by your selected Blender version. Handles automated <code>uv</code> installation, <code>fake-bpy-module</code> setup, and site-packages mapping for a seamless IDE experience.</li>
             <li><b>Advanced Sandboxing:</b> Develop in total isolation. Launch Blender with project-local configuration, scripts, and preferences to ensure your development environment never interferes with your production Blender setup.</li>
             <li><b>Integrated Hot-Reloading:</b> Experience instant feedback with automatic reloads upon saving files in PyCharm, or trigger manual reloads via <code>Ctrl+Alt+R</code>. The robust reload logic handles module purging and repository refreshing to prevent common caching issues.</li>
             <li><b>Comprehensive Project Wizard:</b> Bootstrap new extensions in seconds with a feature-rich template. Includes a dedicated UI for configuring <code>blender_manifest.toml</code> (metadata, permissions, build settings) and automated setup of Run Configurations.</li>

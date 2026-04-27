@@ -20,12 +20,18 @@ Blender Development for PyCharm is a comprehensive plugin that streamlines the c
 - **Blender Management**: Dedicated tool window for multi-version downloads (LTS 4.2+, 5.0, & 5.1), automatic `fake-bpy-module` linter installation, and sandbox management. Updated with modern Kotlin DSL for improved usability.
 - **Enhanced Blender Discovery**: Improved system-wide detection of Blender installations across all supported platforms with faster scanning and better path resolution.
 - **Execution Validation**: Integrated detection of filesystem execution restrictions (e.g., `noexec` on Linux) with direct links to troubleshooting guides for immediate resolution.
-- **Python Integration**: VENV-based interpreter configuration that matches the Python version bundled with Blender, with automatic site-packages and linter path mapping. It includes a Virtual Environment Guardrail to ensure all Python operations run in a dedicated `.venv`.
+- **Python Integration**: Automatically configures a dedicated `.venv` using **uv** to match the Python version required by your selected Blender version. It includes a Virtual Environment Guardrail to ensure all Python operations run in a dedicated `.venv`. **uv is required** for environment creation and package management; the plugin can automatically install it if it's missing.
 - **UI Improvements**: Optimized Tool Window layout with scrollable tables and dedicated action buttons for easier Blender version management.
 - **Offline Telemetry**: Local-only telemetry support to aid in debugging and stability monitoring.
 - **Internationalization**: Full i18n support for 11 languages (Spanish, German, French, Italian, Japanese, Korean, Dutch, Polish, Portuguese, Russian, and Chinese).
 
 ## Installation
+
+### Prerequisites
+
+This plugin requires **uv** for Python virtual environment management and package integration. If **uv** is not found on your system, the plugin will offer to install it for you automatically.
+
+You can also manually obtain it from the [official uv installation guide](https://docs.astral.sh/uv/getting-started/installation/).
 
 ### Option 1: Install Prebuilt Binary (Recommended)
 
