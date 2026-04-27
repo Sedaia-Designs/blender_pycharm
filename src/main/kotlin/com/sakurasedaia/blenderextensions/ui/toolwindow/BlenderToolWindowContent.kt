@@ -6,6 +6,7 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
+import com.intellij.openapi.ui.MessageDialogBuilder
 import com.intellij.openapi.ui.Messages
 import com.intellij.util.ui.JBUI
 import com.intellij.ui.dsl.builder.AlignX
@@ -18,6 +19,7 @@ import com.sakurasedaia.blenderextensions.blender.model.BlenderVersions
 import com.sakurasedaia.blenderextensions.notifications.BlenderNotification
 import com.sakurasedaia.blenderextensions.python.PythonService
 import com.sakurasedaia.blenderextensions.blender.services.BlenderFinder
+import com.sakurasedaia.blenderextensions.project.BlenderProjectService
 import javax.swing.*
 import com.sakurasedaia.blenderextensions.ui.settings.BlenderConfigurable
 import com.sakurasedaia.blenderextensions.icons.BlenderIcons
@@ -54,15 +56,14 @@ class BlenderToolWindowContent(private val project: Project) {
                 row {
                     cell(clearSandboxButton).applyToComponent {
                         addActionListener {
-                            val result = Messages.showYesNoDialog(
-                                project,
-                                LangManager.message("toolwindow.sandbox.clear.warning"),
+                            val confirm = MessageDialogBuilder.yesNo(
                                 LangManager.message("toolwindow.sandbox.clear"),
-                                LangManager.message("toolwindow.sandbox.clear.confirm"),
-                                LangManager.message("button.cancel"),
-                                Messages.getQuestionIcon()
-                            )
-                            if (result == Messages.YES) {
+                                LangManager.message("toolwindow.sandbox.clear.warning")
+                            ).yesText(LangManager.message("button.yes"))
+                                .noText(LangManager.message("button.no"))
+                                .ask(project)
+
+                            if (confirm) {
                                 blenderService.clearSandbox()
                                 Messages.showInfoMessage(
                                     project,
@@ -71,6 +72,49 @@ class BlenderToolWindowContent(private val project: Project) {
                                 )
                             }
                         }
+                    }.align(AlignX.FILL)
+                }
+            }
+
+            group(LangManager.message("toolwindow.project.traits.label")) {
+                row {
+                    button(LangManager.message("toolwindow.button.create.agent.guidelines")) {
+                        BlenderProjectService.getInstance(project).generateAgentGuidelines()
+                        Messages.showInfoMessage(
+                            project,
+                            LangManager.message("toolwindow.button.create.agent.guidelines.success"),
+                            LangManager.message("toolwindow.sandbox.clear.success.title")
+                        )
+                    }.align(AlignX.FILL)
+                }
+                row {
+                    button(LangManager.message("toolwindow.button.create.run.configs")) {
+                        BlenderProjectService.getInstance(project).generateRunConfigurations()
+                        Messages.showInfoMessage(
+                            project,
+                            LangManager.message("toolwindow.button.create.run.configs.success"),
+                            LangManager.message("toolwindow.sandbox.clear.success.title")
+                        )
+                    }.align(AlignX.FILL)
+                }
+                row {
+                    button(LangManager.message("toolwindow.button.create.gitignore")) {
+                        BlenderProjectService.getInstance(project).generateGitignore()
+                        Messages.showInfoMessage(
+                            project,
+                            LangManager.message("toolwindow.button.create.gitignore.success"),
+                            LangManager.message("toolwindow.sandbox.clear.success.title")
+                        )
+                    }.align(AlignX.FILL)
+                }
+                row {
+                    button(LangManager.message("toolwindow.button.create.license")) {
+                        BlenderProjectService.getInstance(project).generateLicense()
+                        Messages.showInfoMessage(
+                            project,
+                            LangManager.message("toolwindow.button.create.license.success"),
+                            LangManager.message("toolwindow.sandbox.clear.success.title")
+                        )
                     }.align(AlignX.FILL)
                 }
             }
