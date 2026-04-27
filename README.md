@@ -13,17 +13,12 @@ Blender Development for PyCharm is a comprehensive plugin that streamlines the c
 
 ## Features
 
-- **Blender Status Bar Widget**: Real-time indicator for Blender connection status and auto-reload status.
-- **Multiple Source Folders**: Projects can now designate and manage multiple folders as Blender source directories.
-- **Auto-Reload**: Real-time extension updates on file save with robust bidirectional TCP communication and heartbeat logic.
-- **Project Template**: Integrated New Project Wizard for Blender extensions with automatic Python interpreter setup, VENV creation, and manifest configuration.
-- **Blender Management**: Dedicated tool window for multi-version downloads (LTS 4.2+, 5.0, & 5.1), automatic `fake-bpy-module` linter installation, and sandbox management. Updated with modern Kotlin DSL for improved usability.
-- **Enhanced Blender Discovery**: Improved system-wide detection of Blender installations across all supported platforms with faster scanning and better path resolution.
-- **Execution Validation**: Integrated detection of filesystem execution restrictions (e.g., `noexec` on Linux) with direct links to troubleshooting guides for immediate resolution.
-- **Python Integration**: Automatically configures a dedicated `.venv` using **uv** to match the Python version required by your selected Blender version. It includes a Virtual Environment Guardrail to ensure all Python operations run in a dedicated `.venv`. **uv is required** for environment creation and package management; the plugin can automatically install it if it's missing.
-- **UI Improvements**: Optimized Tool Window layout with scrollable tables and dedicated action buttons for easier Blender version management.
-- **Offline Telemetry**: Local-only telemetry support to aid in debugging and stability monitoring.
-- **Internationalization**: Full i18n support for 11 languages (Spanish, German, French, Italian, Japanese, Korean, Dutch, Polish, Portuguese, Russian, and Chinese).
+- **Integrated Blender Management**: A dedicated system for discovering, downloading, and managing multiple Blender versions (LTS 4.2+ and newer) with automatic linter configuration and sandbox isolation.
+- **Real-Time Extension Development**: Robust auto-reload capabilities powered by bidirectional TCP communication, allowing for instant feedback and live updates directly within Blender as you save your code.
+- **Automated Project Lifecycle**: Streamlined project creation via an integrated wizard that handles multi-source directory management, manifest configuration, and automated Python virtual environment setup using **uv**.
+- **Project Maintenance & Traits**: Built-in tools for managing existing projects, including the generation of agent guidelines, run configurations, `.gitignore` templates, and GPL licenses for existing projects.
+- **Platform-Aware Validation**: Smart detection of system-specific requirements, such as filesystem execution permissions (e.g., `noexec` on Linux), with guided resolution steps.
+- **Global Ready**: Comprehensive internationalization support for 11 languages, ensuring a native experience for developers worldwide.
 
 ## Installation
 
@@ -48,14 +43,20 @@ You can also manually obtain it from the [official uv installation guide](https:
    - **macOS/Linux**: `./gradlew buildPlugin`
 3. Install the ZIP from `build/distributions/` using the steps in Option 1.
 
-## Future Plans
-
-- **Enhanced UI**: More granular control over symlink management and multi-extension projects.
-- **Deeper Integration**: Better support for Blender's internal asset browser and library management.
-
 ## License
 
 This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**. See the [LICENSE](LICENSE) file for the full license text.
+
+## AI Usage Declaration
+
+This project is developed in collaboration with **Junie**, an AI agent by JetBrains integrated into IntelliJ IDEA. AI assistance is utilized for:
+
+- **Code Generation & Architecture**: Implementing core logic, refactoring, and documentation.
+- **Quality Assurance**: Assisting with code reviews, optimization, and bug fixing.
+- **Internationalization**: Localizing the plugin into 11+ languages.
+- **Workflow Automation**: Managing repetitive tasks, git commits, and documentation updates.
+
+**Human Oversight**: All AI-generated contributions are strictly reviewed, tested, and approved by **Sakura Sedaia** to ensure project integrity and security.
 
 ---
 

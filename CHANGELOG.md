@@ -2,31 +2,49 @@
 
 ## [0.6.0] - In Progress
 ### Added
-- **uv-Powered Python Integration ([#4](https://codeberg.org/SakuraSedaia/blender_pycharm/issues/4))**: Implemented a mandatory `uv` integration for ultra-fast virtual environment management and linter installation. Includes automated `uv` installation for the user, support for specific Python versions per Blender release, and deep integration with PyCharm's native `uv` metadata.
+- **uv-Powered Python Integration ([#4](https://codeberg.org/SakuraSedaia/blender_pycharm/issues/4))**: Implemented a mandatory `uv` integration for ultra-fast virtual environment management and linter installation.
+  - Added automated `uv` installation for the user and support for specific Python versions per Blender release.
+  - Deep integration with PyCharm's native `uv` metadata.
+  - Enhanced `uv` venv creation with the `--seed` flag to ensure `pip`, `setuptools`, and `wheel` are always present, resolving packaging tool failures.
+- **Project Traits Management**: Added new capabilities to the Blender tool window to generate essential project files for existing projects.
+  - Supports generation of Junie Agent Guidelines, default Run Configurations, `.gitignore` templates, and GPL V3 LICENSE files.
 - **Background Task Management**: Centralized all long-running operations (linter setup, downloads, reloads) into a new `BlenderTaskManager` to ensure a smooth, non-blocking IDE experience.
 - **Execution Validation**: Implemented proactive detection of filesystem execution restrictions (e.g., `noexec` on Linux). The plugin now identifies restricted partitions and provides actionable troubleshooting guides.
-- **User Permission Prompt**: Added explicit confirmation dialogs before the plugin performs invasive operations like Python SDK management or environment recreation. Improved Python version tracking to use full semantic versions (e.g., 3.11.7) for better compatibility with specific Blender releases.
+- **User Permission Prompt**: Added explicit confirmation dialogs before the plugin performs invasive operations like Python SDK management or environment recreation.
+  - Improved Python version tracking to use full semantic versions (e.g., 3.11.7) for better compatibility with specific Blender releases.
 - **Enhanced Blender Discovery**: Improved `BlenderScanner` and `BlenderPathUtil` for more reliable detection of system-wide installations across all platforms.
 - **Robust Downloader**: Overhauled `BlenderDownloader` and `ArchiveUtil` to improve extraction reliability and properly handle Unix execution permissions.
-- **Internationalization (i18n)**: Enhanced multi-language support, specifically updating Spanish translations and externalizing complex diagnostic messages.
+- **Internationalization (i18n)**: Audited and cleaned up the `LangManager` message bundles.
+  - Removed redundant and unused keys and standardized terminology (using "Module" consistently for Blender components).
+  - Synchronized all 11 supported language bundles.
+  - Created unified `button.yes` and `button.no` keys and updated confirmation dialogs across the UI for better consistency.
 - **Version Updates**: Updated supported Blender and Python version metadata to include the latest releases.
 
 ### Changed
-- **UI Modernization**: Updated the Virtual Environment recreation prompt to display the project name instead of the absolute file path for a cleaner, more user-friendly interface. Refactored the Tool Window, Settings, and Run Configuration editors using modern Kotlin DSL components for a cleaner, more responsive interface.
-- **Repository & CI Migration**: Migrated the project templates and CI workflows from `.github` to `.forgejo` for better Codeberg compatibility. Fixed the release workflow to use correct input references.
+- **UI Modernization**: Updated the Virtual Environment recreation prompt to display the project name instead of the absolute file path for a cleaner, more user-friendly interface.
+  - Refactored the Tool Window, Settings, and Run Configuration editors using modern Kotlin DSL components for a cleaner, more responsive interface.
+- **Repository & CI Migration**: Migrated the project templates and CI workflows from `.github` to `.forgejo` for native Codeberg compatibility.
+  - Fixed the `release.yml` workflow to use the correct `inputs.version` syntax for `workflow_dispatch`.
+- **Junie Agent Guidelines**: Renamed the agent configuration directory from `.agent` to `.junie` and expanded the documentation guidelines to require detailed changelog entries when updating existing features.
+  - Improved the **AI Usage Declaration** in the `README.md`.
+  - Consolidated the **Features** section into core summaries.
+  - Updated the project description to reflect the current state (uv integration, Project Traits, and Codeberg migration).
 - **Core Refactoring**: Enhanced the service layer (`BlenderService`, `BlenderLinker`, `BlenderCommunicationService`) and centralized version parsing/comparison logic for better maintainability.
 - **Process Management**: Refactored Blender process launching to use `KillableProcessHandler`, improving responsiveness and termination handling.
-- **Run Configuration Flow**: Improved path resolution and validation to ensure managed versions are correctly handled before launch. Resolved Issue #3 by ensuring startup scripts use deterministic filenames to prevent scratch directory clutter.
+- **Run Configuration Flow**: Improved path resolution and validation to ensure managed versions are correctly handled before launch.
+  - Resolved Issue #3 by ensuring startup scripts use deterministic filenames to prevent scratch directory clutter.
 - **Enhanced Build & Validate ([#5](https://codeberg.org/SakuraSedaia/blender_pycharm/issues/5), [#6](https://codeberg.org/SakuraSedaia/blender_pycharm/issues/6))**: Added dedicated inputs for source and output directories in Build and Validate run configurations, allowing for more flexible extension packaging.
 - **Reactive Error Handling**: Refactored permission checks to be reactive, triggering detailed diagnostics only when a "Permission denied" error occurs.
 
 ### Fixed
 - **Thread Safety & EDT Compliance**: Fixed an issue where "Access is allowed from Event Dispatch Thread (EDT) only" would occur during Python SDK initialization and linter setup by ensuring all model-modifying calls (like `PythonSdkUpdater.update`, SDK creation, and virtual environment management) are correctly synchronized on the EDT.
-- **Codebase Modernization**: Audited the codebase and replaced several deprecated IntelliJ APIs with modern recommended implementations:
+- **Codebase Modernization**: Audited the codebase and replaced several deprecated IntelliJ APIs with modern recommended implementations.
+  - Replaced deprecated `SdkType.getAllTypes()` with the modern `SdkType.EP_NAME.extensionList` for SDK type discovery.
   - Replaced `Messages.showYesNoDialog` with `MessageDialogBuilder` for improved dialog management.
   - Refactored `BlenderNotification` to use the standard `NotificationGroupManager` retrieval pattern.
   - Modernized various UI components and SDK initialization logic to align with the latest IntelliJ Platform guidelines.
   - Replaced deprecated `ProgressManager.runProcessWithProgressSynchronously` with modern `Task.Modal` pattern via `BlenderTaskManager`.
+- **Enhanced Debugging**: Updated `BlenderLogger` to print debug messages directly to the console (`println`) when running the IDE, ensuring immediate visibility of logs during development without extra platform configuration.
 - **Archive & Download Reliability**: Implemented robust extraction using temporary directories, atomic moves, file size verification, and improved top-level directory stripping to prevent corrupted installations.
 - **Thread Safety & Synchronization**: Resolved race conditions and `ConcurrentModificationException` in shared caches. Added synchronization locks in `BlenderService` to ensure atomic process initialization.
 - **Communication Server Leak**: Implemented a robust cleanup mechanism in `BlenderCommunicationService` to prevent resource leaks and ensure only one active client connection.
