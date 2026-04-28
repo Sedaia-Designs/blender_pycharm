@@ -37,16 +37,6 @@ import com.sakurasedaia.blenderextensions.blender.services.BlenderDownloader
 import com.sakurasedaia.blenderextensions.blender.services.BlenderService
 import com.sakurasedaia.blenderextensions.common.utils.MigrationUtil
 
-/**
- * Main settings page for Blender Extensions plugin.
- * 
- * The settings UI module follows this progression:
- * 1. [BlenderConfigurable] defines the configuration interface.
- * 2. [BlenderSettings] stores the persistent state.
- * 3. [ManagedBlenderTable] & [SystemBlenderTable] display Blender installations.
- * 4. User interaction triggers actions in [BlenderService] and [PythonService].
- * 5. Changes are persisted via [apply] and [BlenderSettings].
- */
 class BlenderConfigurable(private val project: Project) : SearchableConfigurable, Configurable.NoScroll {
     private val service = BlenderService.getInstance(project)
     private val pythonService = PythonService.getInstance(project)
@@ -376,7 +366,7 @@ class BlenderConfigurable(private val project: Project) : SearchableConfigurable
         settings.autoReload = myAutoReloadCheckbox.isSelected
 
         if (oldDownloadsPath != newDownloadsPath) {
-            com.sakurasedaia.blenderextensions.common.utils.MigrationUtil.migrate(project, oldDownloadsPath, newDownloadsPath) { finalPath ->
+            MigrationUtil.migrate(project, oldDownloadsPath, newDownloadsPath) { finalPath ->
                 settings.downloadsPath = finalPath
                 myDownloadsDirField.text = finalPath
             }
