@@ -1,5 +1,5 @@
 package com.sakurasedaia.blenderextensions.python
-import com.sakurasedaia.blenderextensions.common.BlenderProjectPaths
+import com.sakurasedaia.blenderextensions.common.utils.PathUtils
 
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import org.junit.Test
@@ -11,11 +11,10 @@ class PythonSdkSafetyTest : BasePlatformTestCase() {
 
     @Test
     fun testIsSafeToDelete() {
-        val service = PythonSdkService(project)
         val projectRoot = Path.of(project.basePath!!)
 
         // 1. Test project root (Unsafe)
-        assertFalse("Should not be allowed to delete project root", service.isSafeToDelete(projectRoot))
+        assertFalse("Should not be allowed to delete project root", PathUtils.isSafeToDelete(projectRoot, project))
 
         // 2. Test system paths (Unsafe)
         val systemPath = if (com.sakurasedaia.blenderextensions.blender.utils.BlenderHelper.isWindows()) {
@@ -23,12 +22,12 @@ class PythonSdkSafetyTest : BasePlatformTestCase() {
         } else {
             Path.of("/usr/bin")
         }
-        assertFalse("Should not be allowed to delete system path: $systemPath", service.isSafeToDelete(systemPath))
+        assertFalse("Should not be allowed to delete system path: $systemPath", PathUtils.isSafeToDelete(systemPath, project))
 
         // 3. Test non-venv directory (Unsafe)
         val randomDir = Files.createTempDirectory("random_dir")
         try {
-            assertFalse("Should not be allowed to delete directory without pyvenv.cfg", service.isSafeToDelete(randomDir))
+            assertFalse("Should not be allowed to delete directory without pyvenv.cfg", PathUtils.isSafeToDelete(randomDir, project))
         } finally {
             randomDir.toFile().delete()
         }
@@ -38,16 +37,16 @@ class PythonSdkSafetyTest : BasePlatformTestCase() {
         Files.createDirectories(venvDir)
         try {
             venvDir.resolve("pyvenv.cfg").createFile()
-            assertTrue("Should be allowed to delete venv with pyvenv.cfg inside project", service.isSafeToDelete(venvDir))
+            assertTrue("Should be allowed to delete venv with pyvenv.cfg inside project", PathUtils.isSafeToDelete(venvDir, project))
         } finally {
             venvDir.toFile().deleteRecursively()
         }
 
         // 5. Test sandbox directory (Safe)
-        val sandboxDir = BlenderProjectPaths.getSandboxDir(project)
+        val sandboxDir = projectRoot.resolve(PathUtils.SANDBOX_NAME)
         Files.createDirectories(sandboxDir)
         try {
-            assertTrue("Should be allowed to delete ${BlenderProjectPaths.SANDBOX_NAME} inside project", service.isSafeToDelete(sandboxDir))
+            assertTrue("Should be allowed to delete ${PathUtils.SANDBOX_NAME} inside project", PathUtils.isSafeToDelete(sandboxDir, project))
         } finally {
             sandboxDir.toFile().deleteRecursively()
         }
@@ -56,7 +55,7 @@ class PythonSdkSafetyTest : BasePlatformTestCase() {
         val userHome = System.getProperty("user.home")?.let { Path.of(it) }
         if (userHome != null) {
             val documents = userHome.resolve("Documents")
-            assertFalse("Should not be allowed to delete Documents", service.isSafeToDelete(documents))
+            assertFalse("Should not be allowed to delete Documents", PathUtils.isSafeToDelete(documents, project))
         }
     }
 }

@@ -14,7 +14,7 @@ import com.sakurasedaia.blenderextensions.blender.model.ProgressType
 import com.sakurasedaia.blenderextensions.blender.services.BlenderDownloader
 import com.sakurasedaia.blenderextensions.blender.services.BlenderFinder
 import com.sakurasedaia.blenderextensions.blender.utils.toBlenderHandler
-import com.sakurasedaia.blenderextensions.common.BlenderProjectPaths
+import com.sakurasedaia.blenderextensions.common.utils.paths.*
 import com.sakurasedaia.blenderextensions.common.utils.BlenderTaskManager
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.sakurasedaia.blenderextensions.notifications.BlenderNotification
@@ -78,7 +78,7 @@ class PythonLinterService(private val project: Project) {
                         }
                     }
                     
-                    PythonUtil.addLinterToCurrentSdk(project, version)
+                    addLinterToCurrentSdk(project, version)
                     BlenderNotification(project).sendInfo(
                         LangManager.message("toolwindow.managed.button.setup.linter"),
                         LangManager.message("toolwindow.managed.button.setup.linter.success", version)
@@ -106,7 +106,7 @@ class PythonLinterService(private val project: Project) {
     fun installFakeBpyModule(version: String, indicator: ProgressIndicator? = null, venvSdk: Sdk? = null): InstallResult {
         val logger = BlenderLogger.getInstance(project)
         val downloader = BlenderDownloader.getInstance(project)
-        val lintDir = PythonUtil.getLintDirectory(version, project)
+        val lintDir = getLintDirectory(version, project)
         val statusText = LangManager.message("log.blender.installing.linter.progress", version)
         indicator?.toBlenderHandler(downloader, version, statusText, ProgressType.LINTER)
         
@@ -132,7 +132,7 @@ class PythonLinterService(private val project: Project) {
                 return InstallResult(false, error)
             }
 
-            val venvDir = try { BlenderProjectPaths.getVenvDir(project) } catch (e: Exception) { null }
+            val venvDir = try { getVenvDir(project) } catch (e: Exception) { null }
             val uvExe = UvUtil.findUvExecutable(project)
             if (uvExe == null) {
                 val error = LangManager.message("log.python.uv.not.found")

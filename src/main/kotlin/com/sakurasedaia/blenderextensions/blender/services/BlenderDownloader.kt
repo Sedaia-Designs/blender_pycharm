@@ -1,9 +1,8 @@
 package com.sakurasedaia.blenderextensions.blender.services
 
 import com.sakurasedaia.blenderextensions.common.utils.ArchiveUtil
-import com.sakurasedaia.blenderextensions.common.utils.FileUtil
 import com.sakurasedaia.blenderextensions.blender.utils.BlenderHelper
-import com.sakurasedaia.blenderextensions.blender.utils.BlenderPathUtil
+import com.sakurasedaia.blenderextensions.common.utils.paths.*
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
@@ -51,8 +50,8 @@ class BlenderDownloader(private val project: Project) {
     fun isDownloaded(version: String?): Boolean {
         synchronized(cacheLock) {
             return isDownloadedCache.getOrPut(version) {
-                val downloadDir = BlenderPathUtil.getVersionDirectory(project, version)
-                BlenderPathUtil.findBlenderExecutable(downloadDir) != null
+                val downloadDir = getVersionDirectory(project, version)
+                findBlenderExecutable(downloadDir) != null
             }
         }
     }
@@ -64,20 +63,12 @@ class BlenderDownloader(private val project: Project) {
     }
 
     fun deleteVersion(version: String) {
-        val downloadDir = BlenderPathUtil.getVersionDirectory(project, version)
+        val downloadDir = getVersionDirectory(project, version)
         if (downloadDir.exists()) {
-            // Safety check: Ensure the directory is within the expected download base directory
-            val baseDir = BlenderPathUtil.getBaseDownloadDirectory(project).toAbsolutePath()
-            val absDownloadDir = downloadDir.toAbsolutePath()
-
-            if (!absDownloadDir.startsWith(baseDir) || absDownloadDir == baseDir) {
-                logger.error("Safety: Refusing to delete Blender version at $absDownloadDir as it is outside or equal to the managed download directory ($baseDir)")
-                return
+            if (safelyDeleteRecursively(downloadDir, project)) {
+                logger.log(LangManager.message("log.blender.deleted.version", version, downloadDir.absolutePathString()))
+                clearCache()
             }
-
-            downloadDir.toFile().deleteRecursively()
-            logger.log(LangManager.message("log.blender.deleted.version", version, downloadDir.absolutePathString()))
-            clearCache()
         }
     }
 
@@ -85,10 +76,10 @@ class BlenderDownloader(private val project: Project) {
         logger.log("BlenderDownloader.getOrDownloadBlenderPath: version=$version")
         
         // Check if already downloaded before showing progress
-        val versionDir = BlenderPathUtil.getVersionDirectory(project, version)
-        val executable = BlenderPathUtil.findBlenderExecutable(versionDir)
+        val versionDir = getVersionDirectory(project, version)
+        val executable = findBlenderExecutable(versionDir)
         if (executable != null) {
-            FileUtil.makeExecutable(executable)
+            makeExecutable(executable)
             
             logger.log("Blender $version found at: ${executable.absolutePathString()}")
             logger.log(LangManager.message("log.blender.using.cached", version, executable.absolutePathString()))
@@ -111,9 +102,9 @@ class BlenderDownloader(private val project: Project) {
             return null
         }
 
-        val baseDir = BlenderPathUtil.getBaseDownloadDirectory(project)
-        val appDir = BlenderPathUtil.getAppDirectory(project).also { if (!it.exists()) Files.createDirectories(it) }
-        val versionDir = BlenderPathUtil.getVersionDirectory(project, version)
+        val baseDir = getBaseDownloadDirectory(project)
+        val appDir = getAppDirectory(project).also { if (!it.exists()) Files.createDirectories(it) }
+        val versionDir = getVersionDirectory(project, version)
 
         // If not, download it
         val downloadUrl = getDownloadUrl(version)
@@ -157,9 +148,9 @@ class BlenderDownloader(private val project: Project) {
         }
 
         clearCache()
-        val finalExecutable = BlenderPathUtil.findBlenderExecutable(versionDir)
+        val finalExecutable = findBlenderExecutable(versionDir)
         if (finalExecutable != null) {
-            FileUtil.makeExecutable(finalExecutable)
+            makeExecutable(finalExecutable)
             
             logger.log(LangManager.message("log.blender.extracted", version, finalExecutable.absolutePathString()))
             PythonService.getInstance(project).installFakeBpyModule(version)

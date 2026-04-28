@@ -1,6 +1,6 @@
 package com.sakurasedaia.blenderextensions.blender.services
 
-import com.sakurasedaia.blenderextensions.common.BlenderProjectPaths
+import com.sakurasedaia.blenderextensions.common.utils.paths.*
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.sakurasedaia.blenderextensions.common.utils.BlenderTaskManager
 import com.intellij.execution.process.OSProcessHandler
@@ -51,10 +51,10 @@ class BlenderService(private val project: Project) {
     fun getOrDownloadBlenderPath(version: String): String? = downloader.getOrDownloadBlenderPath(version)
 
     fun clearSandbox() {
-        val sandboxDir = BlenderProjectPaths.getSandboxDir(project)
+        val sandboxDir = getSandboxDir(project)
         if (sandboxDir.exists()) {
             logger.log("Clearing Blender sandbox at: $sandboxDir")
-            com.intellij.openapi.util.io.FileUtil.delete(sandboxDir.toFile())
+            safelyDeleteRecursively(sandboxDir, project)
             logger.log(LangManager.message("log.service.cleared.sandbox", sandboxDir.toString()))
         }
     }

@@ -1,6 +1,5 @@
 package com.sakurasedaia.blenderextensions.blender.services
 
-import com.sakurasedaia.blenderextensions.common.BlenderProjectPaths
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.sakurasedaia.blenderextensions.common.utils.ExternalProcessUtil
 import com.intellij.execution.configurations.GeneralCommandLine
@@ -11,7 +10,7 @@ import com.sakurasedaia.blenderextensions.blender.utils.BlenderHelper
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.*
-import com.sakurasedaia.blenderextensions.blender.utils.BlenderPathUtil
+import com.sakurasedaia.blenderextensions.common.utils.paths.*
 import com.sakurasedaia.blenderextensions.ui.settings.BlenderSettings
 
 @Service(Service.Level.PROJECT)
@@ -102,10 +101,10 @@ class BlenderLinker(private val project: Project) {
     
     fun getExtensionsRepoDir(isSandboxed: Boolean = false): Path? {
         if (isSandboxed) {
-            return BlenderProjectPaths.getSandboxExtensionsPycharmDir(project)
+            return getSandboxExtensionsPycharmDir(project)
         }
         
-        val blenderConfigDir = BlenderPathUtil.getBlenderRootConfigDir() ?: return null
+        val blenderConfigDir = getBlenderRootConfigDir() ?: return null
 
         if (!blenderConfigDir.exists()) return null
 

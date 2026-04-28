@@ -47,6 +47,11 @@ class BlenderLogger(private val project: Project) {
         }
     }
 
+    fun warn(message: String) {
+        platformLogger.warn(message)
+        log("WARN: $message")
+    }
+
     fun error(message: String, e: Throwable? = null) {
         platformLogger.error(message, e)
         log("ERROR: $message" + (if (e != null) " - ${e.message}" else ""))
@@ -61,6 +66,10 @@ class BlenderLogger(private val project: Project) {
 
         fun debug(project: Project?, message: String) {
             project?.let { getInstance(it).debug(message) } ?: Logger.getInstance(BlenderLogger::class.java).debug(message)
+        }
+
+        fun warn(project: Project?, message: String) {
+            project?.let { getInstance(it).warn(message) } ?: Logger.getInstance(BlenderLogger::class.java).warn(message)
         }
 
         fun error(project: Project?, message: String, e: Throwable? = null) {

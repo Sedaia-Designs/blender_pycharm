@@ -1,8 +1,7 @@
 package com.sakurasedaia.blenderextensions.blender.services
 
-import com.sakurasedaia.blenderextensions.common.BlenderProjectPaths
+import com.sakurasedaia.blenderextensions.common.utils.paths.*
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
-import com.sakurasedaia.blenderextensions.common.utils.FileUtil
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.ExecutionException
 import com.intellij.execution.process.KillableProcessHandler
@@ -18,7 +17,6 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 import kotlin.io.path.*
-import com.sakurasedaia.blenderextensions.blender.utils.BlenderPathUtil
 import com.sakurasedaia.blenderextensions.blender.utils.toBlenderHandler
 import com.sakurasedaia.blenderextensions.blender.model.ProgressType
 import com.sakurasedaia.blenderextensions.blender.model.DownloadProgress
@@ -46,10 +44,17 @@ class BlenderLauncher(private val project: Project) {
         val blenderFile = Paths.get(blenderPath)
 
         // Ensure execution permission on Unix-like systems
-        FileUtil.makeExecutable(blenderFile)
+        makeExecutable(blenderFile)
 
         val commandLine = GeneralCommandLine(blenderFile.absolutePathString())
         commandLine.workDirectory = project.basePath?.let { java.io.File(it) }
+        
+        // Check for Linux execution restrictions
+        val restrictionMessage = getExecutionRestrictionMessage(blenderFile)
+        if (restrictionMessage != null) {
+            logger.error(restrictionMessage)
+            return null
+        }
         
         if (scriptPath != null) {
             commandLine.addParameters("--python", scriptPath.absolutePathString())
@@ -73,7 +78,7 @@ class BlenderLauncher(private val project: Project) {
         } catch (e: ExecutionException) {
             val message = e.message ?: ""
             if (message.contains("Permission denied") || message.contains("error=13")) {
-                val restrictionMessage = FileUtil.getExecutionRestrictionMessage(blenderFile)
+                val restrictionMessage = getExecutionRestrictionMessage(blenderFile)
                 if (restrictionMessage != null) {
                     logger.error(restrictionMessage)
                     throw ExecutionException(restrictionMessage, e)
@@ -97,10 +102,10 @@ class BlenderLauncher(private val project: Project) {
         try {
             indicator?.checkCanceled()
             logger.log("$statusText (Version: ${blenderVersion ?: "Unknown"})")
-            val sandboxDir = BlenderProjectPaths.getSandboxDir(project)
+            val sandboxDir = getSandboxDir(project)
             logger.log("Sandbox directory: ${sandboxDir.absolutePathString()}")
-            val configDir = BlenderProjectPaths.getSandboxConfigDir(project)
-            val scriptsDir = BlenderProjectPaths.getSandboxScriptsDir(project)
+            val configDir = getSandboxConfigDir(project)
+            val scriptsDir = getSandboxScriptsDir(project)
             
             configDir.createDirectories()
             scriptsDir.createDirectories()
@@ -111,7 +116,7 @@ class BlenderLauncher(private val project: Project) {
             }
 
             // Create a simple app template
-            val templatesDir = BlenderProjectPaths.getSandboxAppTemplatesDir(project)
+            val templatesDir = getSandboxAppTemplatesDir(project)
             templatesDir.createDirectories()
             val initFile = templatesDir.resolve("__init__.py")
             if (!initFile.exists()) {
@@ -165,7 +170,7 @@ class BlenderLauncher(private val project: Project) {
             indicator?.checkCanceled()
             val dirName = sourceDir.name
             try {
-                FileUtil.copyDirectory(sourceDir, targetConfigDir.resolve(dirName))
+                copyDirectory(sourceDir, targetConfigDir.resolve(dirName))
                 logger.log(LangManager.message("log.launcher.imported.folder", dirName))
             } catch (e: Exception) {
                 logger.log(LangManager.message("log.launcher.failed.import.folder", dirName, e.message ?: ""))
@@ -174,7 +179,7 @@ class BlenderLauncher(private val project: Project) {
     }
 
     private fun findSystemBlenderConfigDir(version: String): Path? {
-        return BlenderPathUtil.getSystemBlenderConfigDir(version)
+        return getSystemBlenderConfigDir(version)
     }
 
     private fun handleSandboxSplashScreen(templatesDir: Path) {

@@ -6,7 +6,7 @@ import com.intellij.execution.configurations.RunConfiguration
 import com.intellij.util.execution.ParametersListUtil
 import com.intellij.openapi.components.BaseState
 import com.intellij.openapi.project.Project
-import com.sakurasedaia.blenderextensions.common.BlenderProjectPaths
+import com.sakurasedaia.blenderextensions.common.utils.paths.*
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.sakurasedaia.blenderextensions.icons.BlenderIcons
 import java.nio.file.Path
@@ -14,7 +14,7 @@ import javax.swing.Icon
 import kotlin.io.path.pathString
 
 fun getSrcPath(project: Project): String = 
-    BlenderProjectPaths.getSrcDir(project).toAbsolutePath().pathString
+    getSrcDir(project).toAbsolutePath().pathString
 
 class BlenderRunConfigurationType : ConfigurationType {
     override fun getDisplayName(): String = LangManager.message("run.configuration.name")

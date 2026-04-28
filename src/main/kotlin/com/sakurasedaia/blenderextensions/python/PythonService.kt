@@ -1,7 +1,7 @@
 package com.sakurasedaia.blenderextensions.python
  
 import com.sakurasedaia.blenderextensions.common.utils.ExternalProcessUtil
-import com.sakurasedaia.blenderextensions.common.utils.FileUtil
+import com.sakurasedaia.blenderextensions.common.utils.paths.*
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
@@ -16,7 +16,7 @@ import java.nio.file.Paths
  * 1. [PythonService] acts as a high-level API for Python tasks.
  * 2. [PythonSdkService] manages the project's Python SDK and virtual environments.
  * 3. [PythonLinterService] handles the installation of `fake-bpy-module` for IDE intellisense.
- * 4. [PythonUtil] provides discovery logic for system and bundled Python executables.
+ * 4. [PathUtils] provides discovery logic for system and bundled Python executables.
  * 5. [ExternalProcessUtil] is used to execute Python scripts within the Blender process.
  */
 @Service(Service.Level.PROJECT)
@@ -31,14 +31,14 @@ class PythonService(private val project: Project) {
     fun getBlenderPythonInfo(blenderPath: String): Pair<String, Boolean> {
         return try {
             val path = Paths.get(blenderPath)
-            FileUtil.makeExecutable(path)
+            makeExecutable(path)
             
             val script = "import sys; import importlib.util; has_fake = importlib.util.find_spec('bpy') is not None; print(f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}|{has_fake}')"
             val commandLine = GeneralCommandLine(blenderPath, "--background", "--python-expr", script)
             val output = try {
                 ExternalProcessUtil.execAndGetOutput(commandLine)
             } catch (e: Exception) {
-                val restriction = FileUtil.getExecutionRestrictionMessage(path)
+                val restriction = getExecutionRestrictionMessage(path)
                 if (restriction != null) {
                     return Pair(restriction, false)
                 }

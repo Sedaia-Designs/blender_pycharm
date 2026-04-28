@@ -8,7 +8,7 @@ import java.nio.file.Path
 import kotlin.io.path.exists
 import kotlin.io.path.isDirectory
 import kotlin.io.path.name
-import com.sakurasedaia.blenderextensions.blender.utils.BlenderPathUtil
+import com.sakurasedaia.blenderextensions.common.utils.paths.*
 
 data class BlenderInstallation(
     val name: String,
@@ -51,9 +51,9 @@ object BlenderScanner {
         customPaths.forEach { (pathStr, _) ->
             val path = Path.of(pathStr)
             if (path.exists()) {
-                val exe = if (path.isDirectory()) BlenderPathUtil.findBlenderExecutable(path) else path
+                val exe = if (path.isDirectory()) findBlenderExecutable(path) else path
                 if (exe != null && exe.exists()) {
-                    val version = BlenderPathUtil.detectVersion(project, exe.toString()) ?: LangManager.message("blender.version.unknown")
+                    val version = detectVersion(project, exe.toString()) ?: LangManager.message("blender.version.unknown")
                     allInstallations.add(
                         BlenderInstallation(
                             LangManager.message("blender.installation.custom", version),
@@ -69,7 +69,7 @@ object BlenderScanner {
 
         val result = allInstallations.distinctBy { it.path }.map {
             if (it.version == LangManager.message("blender.version.unknown")) {
-                it.copy(version = BlenderPathUtil.detectVersion(project, it.path) ?: LangManager.message("blender.version.unknown"))
+                it.copy(version = detectVersion(project, it.path) ?: LangManager.message("blender.version.unknown"))
             } else {
                 it
             }
@@ -100,7 +100,7 @@ object BlenderScanner {
                             if (exe.exists()) {
                                 var version = dir.name.replace("Blender", "", ignoreCase = true).trim()
                                 if (version.isEmpty()) {
-                                    version = BlenderPathUtil.detectVersion(project, exe.toString()) ?: LangManager.message("blender.version.unknown")
+                                    version = detectVersion(project, exe.toString()) ?: LangManager.message("blender.version.unknown")
                                 }
                                 paths.add(BlenderInstallation(LangManager.message("blender.installation.system", version), exe.toString(), version))
                             }
@@ -113,7 +113,7 @@ object BlenderScanner {
 
     private fun addIfValid(list: MutableList<BlenderInstallation>, path: Path, project: Project? = null) {
         if (path.exists() && Files.isExecutable(path)) {
-            val version = BlenderPathUtil.detectVersion(project, path.toString()) ?: LangManager.message("blender.version.unknown")
+            val version = detectVersion(project, path.toString()) ?: LangManager.message("blender.version.unknown")
             list.add(BlenderInstallation(LangManager.message("blender.installation.system", version), path.toString(), version))
         }
     }
@@ -156,7 +156,7 @@ object BlenderScanner {
                         .forEach { appPath ->
                             val exe = appPath.resolve("Contents/MacOS/Blender")
                             if (exe.exists()) {
-                                val version = BlenderPathUtil.detectVersion(project, exe.toString()) ?: LangManager.message("blender.version.unknown")
+                                val version = detectVersion(project, exe.toString()) ?: LangManager.message("blender.version.unknown")
                                 installations.add(BlenderInstallation(LangManager.message("blender.installation.system", version), exe.toString(), version))
                             }
                         }

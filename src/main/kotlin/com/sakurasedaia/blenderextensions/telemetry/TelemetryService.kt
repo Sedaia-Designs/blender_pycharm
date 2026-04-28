@@ -4,7 +4,7 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.sakurasedaia.blenderextensions.blender.utils.BlenderHelper
 import com.sakurasedaia.blenderextensions.python.PythonService
-import com.sakurasedaia.blenderextensions.python.PythonUtil
+import com.sakurasedaia.blenderextensions.common.utils.PathUtils
 import com.sakurasedaia.blenderextensions.run.BlenderRunConfigurationOptions
 import com.sun.management.OperatingSystemMXBean
 import java.lang.management.ManagementFactory
@@ -51,7 +51,7 @@ class BlenderTelemetryService(private val project: Project) {
         // Add Blender info if available
         if (blenderPath != null) {
             telemetryData.append("Blender Path: $blenderPath\n")
-            val version = blenderVersion ?: PythonUtil.getBlenderVersion(blenderPath)
+            val version = blenderVersion ?: PathUtils.getBlenderVersion(blenderPath)
             telemetryData.append("Blender Version: $version\n")
             
             val pythonInfo = PythonService.getInstance(project).getBlenderPythonInfo(blenderPath)

@@ -13,7 +13,7 @@ import com.intellij.openapi.project.Project
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.sakurasedaia.blenderextensions.blender.services.BlenderService
 import com.sakurasedaia.blenderextensions.blender.model.BlenderVersions
-import com.sakurasedaia.blenderextensions.blender.utils.BlenderPathUtil
+import com.sakurasedaia.blenderextensions.common.utils.paths.*
 
 class BlenderRunProfileState(
     private val project: Project,
@@ -98,7 +98,7 @@ class BlenderRunProfileState(
                 service.log("Using system Blender path: $rawVersion")
                 // rawVersion is a path. Let's find its version for config import.
                 val inst = com.sakurasedaia.blenderextensions.blender.services.BlenderScanner.scanSystemInstallations(project).find { it.path == rawVersion }
-                onVersionDetected(inst?.version ?: BlenderPathUtil.detectVersion(project, rawVersion))
+                onVersionDetected(inst?.version ?: detectVersion(project, rawVersion))
                 rawVersion
             }
         }

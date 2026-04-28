@@ -2,7 +2,7 @@ package com.sakurasedaia.blenderextensions.blender.services
 
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import org.junit.Test
-import com.sakurasedaia.blenderextensions.common.BlenderProjectPaths
+import com.sakurasedaia.blenderextensions.common.utils.PathUtils
 import com.sakurasedaia.blenderextensions.blender.utils.BlenderHelper
 import java.nio.file.Files
 import java.nio.file.Path
@@ -45,7 +45,7 @@ class BlenderLinkerTest : BasePlatformTestCase() {
         val projectPath = project.basePath
         assertNotNull(projectPath)
         
-        val expectedPath = BlenderProjectPaths.getSandboxExtensionsPycharmDir(project)
+        val expectedPath = PathUtils.getSandboxExtensionsPycharmDir(project)
         assertEquals(expectedPath.toAbsolutePath().toString(), repoDir!!.toAbsolutePath().toString())
     }
 }

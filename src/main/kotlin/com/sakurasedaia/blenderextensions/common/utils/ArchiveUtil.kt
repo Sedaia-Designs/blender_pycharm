@@ -4,6 +4,7 @@ import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.util.io.Decompressor
+import com.sakurasedaia.blenderextensions.common.utils.paths.*
 import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
 import java.nio.file.Files
 import java.nio.file.Path
@@ -38,8 +39,11 @@ object ArchiveUtil {
                 logger?.log("Target directory already exists, skipping extraction: $versionDir")
                 return 0
             }
-            versionDir.toFile().deleteRecursively()
-            logger?.log("Purged existing $versionDir")
+            if (safelyDeleteRecursively(versionDir)) {
+                logger?.log("Purged existing $versionDir")
+            } else {
+                return -1
+            }
         }
 
         val result = try {
@@ -93,7 +97,7 @@ object ArchiveUtil {
             logger?.error("Failed to extract TAR ${file.name}", e)
             return -1
         } finally {
-            tempDir.toFile().deleteRecursively()
+            safelyDeleteRecursively(tempDir)
         }
     }
     
@@ -115,7 +119,7 @@ object ArchiveUtil {
             logger?.error("Failed to extract ZIP ${file.name}", e)
             return -1
         } finally {
-            tempDir.toFile().deleteRecursively()
+            safelyDeleteRecursively(tempDir)
         }
     }
 
@@ -143,7 +147,7 @@ object ArchiveUtil {
             return 0
         } catch (e: Exception) {
             logger?.error("Failed to move extracted content to $target: ${e.message}", e)
-            target.toFile().deleteRecursively()
+            safelyDeleteRecursively(target)
             return -1
         }
     }

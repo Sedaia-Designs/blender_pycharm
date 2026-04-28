@@ -1,6 +1,6 @@
 package com.sakurasedaia.blenderextensions.project
 
-import com.sakurasedaia.blenderextensions.common.BlenderProjectPaths
+import com.sakurasedaia.blenderextensions.common.utils.PathUtils
 
 data class BlenderManifestSettings(
     val id: String,
@@ -224,7 +224,7 @@ class BlenderProjectTemplateGenerator {
                     - Go to **File > Settings > Project** (or **PyCharm > Settings** on macOS) and select **Python Interpreter**.
                     - Click **Add Interpreter** and select **Add Local Interpreter...**.
                     - Choose **Virtualenv Environment**.
-                    - Ensure **New environment** is selected. The **Location** should default to a `${BlenderProjectPaths.VENV_NAME}` folder in your project root.
+                    - Ensure **New environment** is selected. The **Location** should default to a `${PathUtils.VENV_NAME}` folder in your project root.
                     - Select a **Base interpreter** (Python 3.11 is recommended for Blender 4.2+ and 5.0).
                     - Click **OK**. PyCharm will create the virtual environment and configure it for your project.
 
@@ -295,8 +295,8 @@ class BlenderProjectTemplateGenerator {
                 - Maintain compliance with Blender's extension guidelines.
 
                 ## Architecture
-                - **${BlenderProjectPaths.SRC_NAME}/**: Extension source code.
-                - **${BlenderProjectPaths.MANIFEST_NAME}**: Extension metadata and permissions.
+                - **${PathUtils.SRC_NAME}/**: Extension source code.
+                - **${PathUtils.MANIFEST_NAME}**: Extension metadata and permissions.
 
                 ## Task Status
                 - [x] Project Initialization
