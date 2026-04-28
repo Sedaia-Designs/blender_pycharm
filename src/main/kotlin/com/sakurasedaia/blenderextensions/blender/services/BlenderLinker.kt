@@ -1,5 +1,6 @@
 package com.sakurasedaia.blenderextensions.blender.services
 
+import com.sakurasedaia.blenderextensions.common.BlenderProjectPaths
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.sakurasedaia.blenderextensions.common.utils.ExternalProcessUtil
 import com.intellij.execution.configurations.GeneralCommandLine
@@ -101,8 +102,7 @@ class BlenderLinker(private val project: Project) {
     
     fun getExtensionsRepoDir(isSandboxed: Boolean = false): Path? {
         if (isSandboxed) {
-            val projectPath = project.basePath ?: return null
-            return Path.of(projectPath, ".venv", "blender_sandbox", "scripts", "extensions", "blender_pycharm")
+            return BlenderProjectPaths.getSandboxExtensionsPycharmDir(project)
         }
         
         val blenderConfigDir = BlenderPathUtil.getBlenderRootConfigDir() ?: return null

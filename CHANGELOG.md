@@ -30,13 +30,23 @@
   - Consolidated the **Features** section into core summaries.
   - Updated the project description to reflect the current state (uv integration, Project Traits, and Codeberg migration).
 - **Core Refactoring**: Enhanced the service layer (`BlenderService`, `BlenderLinker`, `BlenderCommunicationService`) and centralized version parsing/comparison logic for better maintainability.
+- **Path Centralization**: Introduced a new `BlenderProjectPaths` utility to centralize and standardize all project-local paths (e.g., `.venv`, `.blender_sandbox`).
+  - Refactored `BlenderLauncher`, `BlenderLinker`, `BlenderService`, `PythonSdkService`, `PythonLinterService`, and project generators to use these centralized definitions, improving maintainability and reducing hardcoded string usage.
+  - Centralized constants for `src`, `blender_manifest.toml`, `LICENSE`, `README.md`, `.gitignore`, `.agent`, `pyvenv.cfg`, and Python entry points (`__init__.py`, `auto_load.py`).
 - **Process Management**: Refactored Blender process launching to use `KillableProcessHandler`, improving responsiveness and termination handling.
 - **Run Configuration Flow**: Improved path resolution and validation to ensure managed versions are correctly handled before launch.
   - Resolved Issue #3 by ensuring startup scripts use deterministic filenames to prevent scratch directory clutter.
 - **Enhanced Build & Validate ([#5](https://codeberg.org/SakuraSedaia/blender_pycharm/issues/5), [#6](https://codeberg.org/SakuraSedaia/blender_pycharm/issues/6))**: Added dedicated inputs for source and output directories in Build and Validate run configurations, allowing for more flexible extension packaging.
 - **Reactive Error Handling**: Refactored permission checks to be reactive, triggering detailed diagnostics only when a "Permission denied" error occurs.
+- **Sandbox Management**: Relocated the Sandbox directory from `.venv/blender_sandbox` to `.blender_sandbox` at the project root level.
+  - This preserves sandbox data when switching Python virtual environments or recreating the `.venv`.
+  - The folder is now automatically marked as "excluded" in the IDE to prevent indexing and tracking.
 
 ### Fixed
+- **Filesystem Safety & Protection**: Implemented robust protections to prevent accidental deletion of source files or system directories.
+  - Added strict `isVenv` validation that excludes system paths and requires the presence of `pyvenv.cfg`.
+  - Introduced `isSafeToDelete` checks for all recursive deletion operations, ensuring they are contained within project boundaries or managed download directories.
+  - Added explicit blacklisting for critical system paths and common user folders (Documents, Desktop, etc.).
 - **Thread Safety & EDT Compliance**: Fixed an issue where "Access is allowed from Event Dispatch Thread (EDT) only" would occur during Python SDK initialization and linter setup by ensuring all model-modifying calls (like `PythonSdkUpdater.update`, SDK creation, and virtual environment management) are correctly synchronized on the EDT.
 - **Codebase Modernization**: Audited the codebase and replaced several deprecated IntelliJ APIs with modern recommended implementations.
   - Replaced deprecated `SdkType.getAllTypes()` with the modern `SdkType.EP_NAME.extensionList` for SDK type discovery.

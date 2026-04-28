@@ -1,5 +1,6 @@
 package com.sakurasedaia.blenderextensions.blender.services
 
+import com.sakurasedaia.blenderextensions.common.BlenderProjectPaths
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.sakurasedaia.blenderextensions.common.utils.FileUtil
 import com.intellij.execution.configurations.GeneralCommandLine
@@ -21,6 +22,10 @@ import com.sakurasedaia.blenderextensions.blender.utils.BlenderPathUtil
 import com.sakurasedaia.blenderextensions.blender.utils.toBlenderHandler
 import com.sakurasedaia.blenderextensions.blender.model.ProgressType
 import com.sakurasedaia.blenderextensions.blender.model.DownloadProgress
+import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.openapi.module.ModuleUtilCore
+import com.intellij.openapi.roots.ModuleRootModificationUtil
+import com.intellij.openapi.vfs.VfsUtilCore
 
 @Service(Service.Level.PROJECT)
 class BlenderLauncher(private val project: Project) {
@@ -92,21 +97,21 @@ class BlenderLauncher(private val project: Project) {
         try {
             indicator?.checkCanceled()
             logger.log("$statusText (Version: ${blenderVersion ?: "Unknown"})")
-            val projectPath = project.basePath ?: return
-            val sandboxDir = Paths.get(projectPath, ".venv", "blender_sandbox")
+            val sandboxDir = BlenderProjectPaths.getSandboxDir(project)
             logger.log("Sandbox directory: ${sandboxDir.absolutePathString()}")
-            val configDir = sandboxDir.resolve("config")
-            val scriptsDir = sandboxDir.resolve("scripts")
+            val configDir = BlenderProjectPaths.getSandboxConfigDir(project)
+            val scriptsDir = BlenderProjectPaths.getSandboxScriptsDir(project)
             
             configDir.createDirectories()
             scriptsDir.createDirectories()
+            excludeDirectory(sandboxDir)
             
             if (importUserConfig) {
                 importBlenderConfig(configDir, blenderVersion, indicator)
             }
 
             // Create a simple app template
-            val templatesDir = scriptsDir.resolve("startup/bl_app_templates/pycharm")
+            val templatesDir = BlenderProjectPaths.getSandboxAppTemplatesDir(project)
             templatesDir.createDirectories()
             val initFile = templatesDir.resolve("__init__.py")
             if (!initFile.exists()) {
@@ -193,6 +198,22 @@ class BlenderLauncher(private val project: Project) {
                 logger.log(LangManager.message("log.launcher.copied.splash"))
             } catch (e: Exception) {
                 logger.log(LangManager.message("log.launcher.failed.copy.splash", e.message ?: ""))
+            }
+        }
+    }
+
+    private fun excludeDirectory(path: Path) {
+        val virtualFile = VfsUtil.findFileByIoFile(path.toFile(), true) ?: return
+        val module = ModuleUtilCore.findModuleForFile(virtualFile, project) ?: return
+        
+        ModuleRootModificationUtil.updateModel(module) { model ->
+            val contentEntry = model.contentEntries.find { 
+                it.file?.let { file -> VfsUtilCore.isAncestor(file, virtualFile, false) } == true 
+            }
+            if (contentEntry != null) {
+                if (!contentEntry.excludeFolders.any { it.file == virtualFile }) {
+                    contentEntry.addExcludeFolder(virtualFile)
+                }
             }
         }
     }

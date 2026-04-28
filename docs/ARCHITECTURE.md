@@ -21,7 +21,7 @@ Reloads are executed on Blender's main thread (via `bpy.app.timers`) to avoid th
 
 ### 4. Sandboxing and Virtual Environments
 To isolate development settings and ensure dependency isolation:
-- **Sandboxing**: The plugin creates a project-local Blender user environment in `.venv/blender_sandbox`. It uses a project-local app template (`pycharm`) and user directories to avoid conflicts with your main Blender installation.
+- **Sandboxing**: The plugin creates a project-local Blender user environment in `.blender_sandbox` at the project root. It uses a project-local app template (`pycharm`) and user directories to avoid conflicts with your main Blender installation.
 - **Virtual Environments**: The plugin implements a **Virtual Environment Guardrail**, automatically creating and configuring a project-local `.venv`. All Python operations, including linter setup, are executed within this environment.
 - **Customization**: Supports custom splash screens (`images/sandbox_splash.png` in project root) and can optionally import your standard Blender user configuration.
 
