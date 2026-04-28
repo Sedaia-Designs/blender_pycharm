@@ -12,7 +12,10 @@
 - **Execution Validation**: Implemented proactive detection of filesystem execution restrictions (e.g., `noexec` on Linux). The plugin now identifies restricted partitions and provides actionable troubleshooting guides.
 - **User Permission Prompt**: Added explicit confirmation dialogs before the plugin performs invasive operations like Python SDK management or environment recreation.
   - Improved Python version tracking to use full semantic versions (e.g., 3.11.7) for better compatibility with specific Blender releases.
-- **Enhanced Blender Discovery**: Improved `BlenderScanner` and `BlenderPathUtil` for more reliable detection of system-wide installations across all platforms.
+- **Unified Path Utility**: Consolidated `BlenderProjectPaths`, `FileUtil`, and `PathUtils` into a single, well-organized `PathUtils.kt` class. This eliminates architectural technical debt and provides a single, logical authority for path definitions, filesystem operations, and discovery.
+- **Improved Deletion Safety**: Implemented `PathUtils.safelyDeleteRecursively` as a centralized, protected entry point for all recursive file operations, ensuring source and system files are never deleted by accident.
+- **Architectural Refactoring**: Split `PathUtils` into a multi-file submodule under `common.utils.paths` for better maintainability and clearer logical separation of concerns (Constants, Project Paths, Discovery, Analysis, etc.).
+- **Enhanced Blender Discovery**: Improved `BlenderScanner` and `PathUtils` for more reliable detection of system-wide installations across all platforms.
 - **Robust Downloader**: Overhauled `BlenderDownloader` and `ArchiveUtil` to improve extraction reliability and properly handle Unix execution permissions.
 - **Internationalization (i18n)**: Audited and cleaned up the `LangManager` message bundles.
   - Removed redundant and unused keys and standardized terminology (using "Module" consistently for Blender components).
@@ -29,12 +32,10 @@
   - Improved the **AI Usage Declaration** in the `README.md`.
   - Consolidated the **Features** section into core summaries.
   - Updated the project description to reflect the current state (uv integration, Project Traits, and Codeberg migration).
-- **Core Refactoring**: Enhanced the service layer (`BlenderService`, `BlenderLinker`, `BlenderCommunicationService`) and centralized version parsing/comparison logic for better maintainability.
-- **Path Centralization**: Introduced a new `BlenderProjectPaths` utility to centralize and standardize all project-local paths (e.g., `.venv`, `.blender_sandbox`).
-  - Refactored `BlenderLauncher`, `BlenderLinker`, `BlenderService`, `PythonSdkService`, `PythonLinterService`, and project generators to use these centralized definitions, improving maintainability and reducing hardcoded string usage.
-  - Centralized constants for `src`, `blender_manifest.toml`, `LICENSE`, `README.md`, `.gitignore`, `.agent`, `pyvenv.cfg`, and Python entry points (`__init__.py`, `auto_load.py`).
+- **Core Reorganization**: Simplified the codebase by merging `BlenderProjectPaths`, `FileUtil`, and `PathUtils`. All project-local paths (e.g., `.venv`, `.blender_sandbox`), filesystem operations, and discovery logic are now centralized in `common.utils.PathUtils`.
 - **Process Management**: Refactored Blender process launching to use `KillableProcessHandler`, improving responsiveness and termination handling.
 - **Run Configuration Flow**: Improved path resolution and validation to ensure managed versions are correctly handled before launch.
+- **Improved Documentation Strategy**: Added a guideline to avoid "changelog-like" dialogue in narrative documentation, favoring state-describing language. Audited and updated the Wiki and `Codebase_Audit_Report.md` to reflect the new architectural state.
   - Resolved Issue #3 by ensuring startup scripts use deterministic filenames to prevent scratch directory clutter.
 - **Enhanced Build & Validate ([#5](https://codeberg.org/SakuraSedaia/blender_pycharm/issues/5), [#6](https://codeberg.org/SakuraSedaia/blender_pycharm/issues/6))**: Added dedicated inputs for source and output directories in Build and Validate run configurations, allowing for more flexible extension packaging.
 - **Reactive Error Handling**: Refactored permission checks to be reactive, triggering detailed diagnostics only when a "Permission denied" error occurs.
