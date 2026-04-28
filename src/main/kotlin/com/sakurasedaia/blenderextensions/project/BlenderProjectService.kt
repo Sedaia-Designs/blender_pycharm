@@ -6,6 +6,7 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.vfs.VfsUtil
+import com.sakurasedaia.blenderextensions.common.BlenderProjectPaths
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.sakurasedaia.blenderextensions.run.BlenderRunConfiguration
 import com.sakurasedaia.blenderextensions.run.BlenderRunConfigurationType
@@ -25,8 +26,8 @@ class BlenderProjectService(private val project: Project) {
         val projectPath = project.guessProjectDir()?.toNioPath() ?: return
         val projectName = project.name
         
-        val agentDir = projectPath.resolve(".agent")
-        val skillsDir = agentDir.resolve("skills")
+        val agentDir = BlenderProjectPaths.getAgentDir(project)
+        val skillsDir = BlenderProjectPaths.getSkillsDir(project)
         Files.createDirectories(skillsDir)
 
         agentDir.resolve("guidelines.md").writeText(
@@ -51,7 +52,7 @@ class BlenderProjectService(private val project: Project) {
 
     fun generateGitignore() {
         val projectPath = project.guessProjectDir()?.toNioPath() ?: return
-        val gitignorePath = projectPath.resolve(".gitignore")
+        val gitignorePath = BlenderProjectPaths.getGitignorePath(project)
         
         val content = BlenderProjectTemplateGenerator.generateGitignore()
         if (content.isBlank()) return
@@ -70,7 +71,7 @@ class BlenderProjectService(private val project: Project) {
 
     fun generateLicense() {
         val projectPath = project.guessProjectDir()?.toNioPath() ?: return
-        val licensePath = projectPath.resolve("LICENSE")
+        val licensePath = BlenderProjectPaths.getLicensePath(project)
         
         val content = BlenderProjectTemplateGenerator.generateLicense()
         if (content.isBlank()) return
@@ -87,7 +88,7 @@ class BlenderProjectService(private val project: Project) {
         val configType = ConfigurationTypeUtil.findConfigurationType(BlenderRunConfigurationType::class.java)
         
         val projectPath = project.guessProjectDir()?.toNioPath() ?: return
-        val srcDir = projectPath.resolve("src")
+        val srcDir = BlenderProjectPaths.getSrcDir(project)
         val addonId = project.name.lowercase().replace(" ", "_")
         
         // Try to find an existing Blender version or path

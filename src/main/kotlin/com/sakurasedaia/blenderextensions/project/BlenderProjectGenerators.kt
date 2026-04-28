@@ -13,6 +13,7 @@ import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
 import com.sakurasedaia.blenderextensions.icons.BlenderIcons
+import com.sakurasedaia.blenderextensions.common.BlenderProjectPaths
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.intellij.ui.DocumentAdapter
 import com.intellij.util.ui.UIUtil
@@ -106,7 +107,7 @@ class BlenderAddonProjectGenerator : DirectoryProjectGenerator<BlenderAddonProje
             }
         }
 
-        val srcDir = projectPath.resolve("src")
+        val srcDir = BlenderProjectPaths.getSrcDir(project)
         Files.createDirectories(srcDir)
         BlenderSettings.getInstance(project).addSourceFolder(srcDir.toAbsolutePath().toString().replace("\\", "/"))
 
@@ -130,20 +131,20 @@ class BlenderAddonProjectGenerator : DirectoryProjectGenerator<BlenderAddonProje
             permissions = if (permissionsMap.isNotEmpty()) permissionsMap else null,
             buildPathsExcludePattern = settings.buildPathsExcludePattern?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() }
         )
-        srcDir.resolve("blender_manifest.toml").writeText(
+        srcDir.resolve(BlenderProjectPaths.MANIFEST_NAME).writeText(
             BlenderProjectTemplateGenerator.generateManifest(manifestSettings)
         )
-        projectPath.resolve("LICENSE").writeText(BlenderProjectTemplateGenerator.generateLicense())
-        projectPath.resolve("README.md").writeText(BlenderProjectTemplateGenerator.generateReadme(
+        projectPath.resolve(BlenderProjectPaths.LICENSE_NAME).writeText(BlenderProjectTemplateGenerator.generateLicense())
+        projectPath.resolve(BlenderProjectPaths.README_NAME).writeText(BlenderProjectTemplateGenerator.generateReadme(
             name = manifestSettings.name,
             author = manifestSettings.maintainer,
             tagline = manifestSettings.tagline
         ))
-        projectPath.resolve(".gitignore").writeText(BlenderProjectTemplateGenerator.generateGitignore())
+        projectPath.resolve(BlenderProjectPaths.GITIGNORE_NAME).writeText(BlenderProjectTemplateGenerator.generateGitignore())
 
         if (settings.agentGuidelines) {
-            val agentDir = projectPath.resolve(".agent")
-            val skillsDir = agentDir.resolve("skills")
+            val agentDir = BlenderProjectPaths.getAgentDir(project)
+            val skillsDir = BlenderProjectPaths.getSkillsDir(project)
             Files.createDirectories(skillsDir)
 
             agentDir.resolve("guidelines.md").writeText(
@@ -165,14 +166,14 @@ class BlenderAddonProjectGenerator : DirectoryProjectGenerator<BlenderAddonProje
         }
 
         if (settings.enableAutoLoad) {
-            srcDir.resolve("__init__.py").writeText(
+            srcDir.resolve(BlenderProjectPaths.INIT_PY_NAME).writeText(
                 BlenderProjectTemplateGenerator.generateAutoLoadInit(projectName, authorName)
             )
-            srcDir.resolve("auto_load.py").writeText(
+            srcDir.resolve(BlenderProjectPaths.AUTO_LOAD_PY_NAME).writeText(
                 BlenderProjectTemplateGenerator.getAutoLoadContent()
             )
         } else {
-            srcDir.resolve("__init__.py").writeText(
+            srcDir.resolve(BlenderProjectPaths.INIT_PY_NAME).writeText(
                 BlenderProjectTemplateGenerator.generateSimpleInit(projectName, authorName)
             )
         }

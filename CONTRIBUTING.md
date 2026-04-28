@@ -111,13 +111,13 @@ The [Jacques Lucke VS-Code extension](https://github.com/JacquesLucke/blender_vs
 
 This project uses AI agents (like Junie) to maintain high-quality code and documentation. When contributing using an AI agent:
 
-- **Initial Context**: At session start, review `.agent/` files and specialized skills in `.agent/skills/` to align with current architecture and standards.
+- **Initial Context**: At session start, review `.junie/` files and specialized skills in `.junie/skills/` to align with current architecture and standards.
 - **NO REGEX**: Avoid using Regular Expressions unless absolutely necessary. Prefer standard string methods or dedicated parsers.
 - **Role Definition**:
-  - `.agent/project.md`: Authoritative "Project Map" for goals, architecture, and current state.
-  - `.agent/context.md`: Language-specific coding styles (Kotlin, Python).
-  - `.agent/guidelines.md`: Entry point and high-level workflow summary.
-  - `.agent/skills/`: Modular, procedural instructions for specific domains (Git, Docs, etc.).
+  - `.junie/project.md`: Authoritative "Project Map" for goals, architecture, and current state.
+  - `.junie/context.md`: Language-specific coding styles (Kotlin, Python).
+  - `.junie/guidelines.md`: Entry point and high-level workflow summary.
+  - `.junie/skills/`: Modular, procedural instructions for specific domains (Git, Docs, etc.).
 - **Versioning**: NEVER bump the plugin version (e.g., in `build.gradle.kts`) unless explicitly instructed by the maintainers.
 - **Wiki**: `wiki_guidelines.md` is strictly for the external Sphinx/RST wiki (`PycharmBlenderWiki`) and has NO effect on this project's code or internal documentation. Editing the wiki's source code is allowed only when authorized.
 
