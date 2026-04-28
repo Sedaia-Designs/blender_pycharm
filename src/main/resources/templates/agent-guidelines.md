@@ -37,6 +37,9 @@ This document is the **primary entry point** for AI agents working on this proje
 - **Status Updates**: Use `update_status` frequently.
 - **Verification**: Clearly state how you verified your changes.
 
+### 3.2 Documentation
+- **Narrative Documentation**: Avoid "changelog-like" dialogue (e.g., "Added...", "Fixed...", "Updated...") in non-changelog files. Describe the *current state* and *capabilities* of the system (e.g., "Provides...", "Includes...", "Supports...") rather than the history of changes.
+
 ---
 
 ## 4. Git & Commits

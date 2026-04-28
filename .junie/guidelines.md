@@ -51,9 +51,10 @@ This document is the **authoritative Source of Truth** for Junie (the AI agent).
 
 ### 3.2 Documentation
 - **CHANGELOG.md**: Update for every feature or fix using existing categories. **NEVER** bump the version number unless explicitly told. If a changelog entry for the feature or related feature already exists, expand that entry by adding the exact changes as new bullet points underneath the respective item.
-- **README.md / CONTRIBUTING.md**: Update if features or workflows change.
 - **Project Wiki**: Whenever significant features or architectural changes are made, you MUST update the corresponding documentation in the project wiki (located at `/mnt/data/PycharmProjects/SakuraProjectWiki/docs/blender-development-pycharm/`).
   - If developing on MacOS or Windows, create a comprehensive Markdown document documenting all changes made.
+- **Narrative Documentation**: Avoid "changelog-like" dialogue (e.g., "Added...", "Fixed...", "Updated...") in Features, Architecture, or User Guides. Describe the *current state* and *capabilities* of the system (e.g., "Provides...", "Includes...", "Supports...") rather than the history of changes.
+- **README.md / CONTRIBUTING.md**: Update if features or workflows change.
 
 ---
 
