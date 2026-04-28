@@ -14,6 +14,7 @@ import com.sakurasedaia.blenderextensions.blender.model.ProgressType
 import com.sakurasedaia.blenderextensions.blender.services.BlenderDownloader
 import com.sakurasedaia.blenderextensions.blender.services.BlenderFinder
 import com.sakurasedaia.blenderextensions.blender.utils.toBlenderHandler
+import com.sakurasedaia.blenderextensions.common.BlenderProjectPaths
 import com.sakurasedaia.blenderextensions.common.utils.BlenderTaskManager
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.sakurasedaia.blenderextensions.notifications.BlenderNotification
@@ -131,7 +132,7 @@ class PythonLinterService(private val project: Project) {
                 return InstallResult(false, error)
             }
 
-            val venvDir = project.basePath?.let { Path.of(it).resolve(".venv") }
+            val venvDir = try { BlenderProjectPaths.getVenvDir(project) } catch (e: Exception) { null }
             val uvExe = UvUtil.findUvExecutable(project)
             if (uvExe == null) {
                 val error = LangManager.message("log.python.uv.not.found")

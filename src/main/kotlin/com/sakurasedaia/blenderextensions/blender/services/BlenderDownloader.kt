@@ -66,6 +66,15 @@ class BlenderDownloader(private val project: Project) {
     fun deleteVersion(version: String) {
         val downloadDir = BlenderPathUtil.getVersionDirectory(project, version)
         if (downloadDir.exists()) {
+            // Safety check: Ensure the directory is within the expected download base directory
+            val baseDir = BlenderPathUtil.getBaseDownloadDirectory(project).toAbsolutePath()
+            val absDownloadDir = downloadDir.toAbsolutePath()
+
+            if (!absDownloadDir.startsWith(baseDir) || absDownloadDir == baseDir) {
+                logger.error("Safety: Refusing to delete Blender version at $absDownloadDir as it is outside or equal to the managed download directory ($baseDir)")
+                return
+            }
+
             downloadDir.toFile().deleteRecursively()
             logger.log(LangManager.message("log.blender.deleted.version", version, downloadDir.absolutePathString()))
             clearCache()

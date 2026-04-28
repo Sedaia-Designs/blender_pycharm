@@ -11,10 +11,13 @@ import com.intellij.openapi.roots.ModuleRootModificationUtil
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.ui.MessageDialogBuilder
 import com.sakurasedaia.blenderextensions.blender.utils.BlenderHelper
+import com.sakurasedaia.blenderextensions.common.BlenderProjectPaths
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.sakurasedaia.blenderextensions.telemetry.BlenderLogger
 import java.nio.file.Path
+import kotlin.io.path.absolutePathString
 import kotlin.io.path.exists
+import kotlin.io.path.name
 
 @Service(Service.Level.PROJECT)
 class PythonSdkService(private val project: Project) {
@@ -53,35 +56,34 @@ class PythonSdkService(private val project: Project) {
             BlenderLogger.debug(project, "PythonSdkService: No valid Python venv SDK found in ProjectRootManager.")
         }
 
-        val projectRoot = project.basePath?.let { Path.of(it) } ?: return null
-        val venvDir = projectRoot.resolve(".venv")
-        BlenderLogger.debug(project, "PythonSdkService: Checking for .venv at $venvDir")
+        val venvDir = try { BlenderProjectPaths.getVenvDir(project) } catch (e: Exception) { return null }
+        BlenderLogger.debug(project, "PythonSdkService: Checking for ${BlenderProjectPaths.VENV_NAME} at $venvDir")
         
         if (venvDir.exists()) {
-            BlenderLogger.debug(project, "PythonSdkService: .venv directory exists.")
+            BlenderLogger.debug(project, "PythonSdkService: ${BlenderProjectPaths.VENV_NAME} directory exists.")
             val pythonExe = getVenvPythonExecutable(venvDir)
             if (pythonExe.exists()) {
                 BlenderLogger.debug(project, "PythonSdkService: Python executable found at $pythonExe")
                 val currentVersion = PythonUtil.getPythonVersion(pythonExe, project)
-                BlenderLogger.debug(project, "PythonSdkService: .venv Python version: $currentVersion")
+                BlenderLogger.debug(project, "PythonSdkService: ${BlenderProjectPaths.VENV_NAME} Python version: $currentVersion")
                 if (requestedPythonVersion == null || (currentVersion != null && currentVersion.startsWith(requestedPythonVersion))) {
-                    BlenderLogger.debug(project, "PythonSdkService: .venv is compatible. Registering/Setting as project SDK.")
+                    BlenderLogger.debug(project, "PythonSdkService: ${BlenderProjectPaths.VENV_NAME} is compatible. Registering/Setting as project SDK.")
                     // Even if it's the right version, we want to ensure it's properly registered
                     return createAndSetProjectSdk(pythonExe)
                 }
-                BlenderLogger.debug(project, "PythonSdkService: .venv is incompatible with requested version $requestedPythonVersion.")
+                BlenderLogger.debug(project, "PythonSdkService: ${BlenderProjectPaths.VENV_NAME} is incompatible with requested version $requestedPythonVersion.")
             } else {
-                BlenderLogger.debug(project, "PythonSdkService: Python executable NOT found in existing .venv.")
+                BlenderLogger.debug(project, "PythonSdkService: Python executable NOT found in existing ${BlenderProjectPaths.VENV_NAME}.")
             }
             
             // If we reach here, the venv exists but is not compatible or requestedVersion is different
             val existingSdk = ProjectJdkTable.getInstance().allJdks.find { it.homePath == pythonExe.toString() }
-            BlenderLogger.debug(project, "PythonSdkService: Removing incompatible/broken .venv.")
+            BlenderLogger.debug(project, "PythonSdkService: Removing incompatible/broken ${BlenderProjectPaths.VENV_NAME}.")
             removeVirtualEnvironment(existingSdk, venvDir)
         }
         
         if (!venvDir.exists()) {
-            BlenderLogger.debug(project, "PythonSdkService: .venv does not exist. Attempting to create one.")
+            BlenderLogger.debug(project, "PythonSdkService: ${BlenderProjectPaths.VENV_NAME} does not exist. Attempting to create one.")
             var uvExe = UvUtil.findUvExecutable(project)
             if (uvExe == null) {
                 BlenderLogger.debug(project, "PythonSdkService: uv executable not found. Prompting for installation.")
@@ -318,6 +320,12 @@ class PythonSdkService(private val project: Project) {
 
         // 3. Delete files
         if (actualVenvPath != null && actualVenvPath.exists()) {
+            if (!isSafeToDelete(actualVenvPath)) {
+                logger.log(LangManager.message("log.python.venv.remove.unsafe", actualVenvPath.toString()))
+                BlenderLogger.debug(project, "PythonSdkService: SKIPPING deletion of unsafe path: $actualVenvPath")
+                return
+            }
+
             try {
                 BlenderLogger.debug(project, "PythonSdkService: Deleting venv directory: $actualVenvPath")
                 if (actualVenvPath.toFile().deleteRecursively()) {
@@ -348,6 +356,59 @@ class PythonSdkService(private val project: Project) {
         }
     }
 
+    internal fun isSafeToDelete(path: Path): Boolean {
+        val absPath = path.toAbsolutePath()
+        val projectPath = project.basePath?.let { Path.of(it).toAbsolutePath() }
+
+        // 1. Never delete project root
+        if (projectPath != null && absPath == projectPath) {
+            BlenderLogger.debug(project, "Safety: Refusing to delete project root: $absPath")
+            return false
+        }
+
+        // 2. Never delete system paths
+        if (isSystemPath(absPath)) {
+            BlenderLogger.debug(project, "Safety: Refusing to delete system path: $absPath")
+            return false
+        }
+
+        // 3. Must contain pyvenv.cfg to be considered a deletable venv
+        val hasCfg = absPath.resolve(BlenderProjectPaths.PYVENV_CFG_NAME).exists()
+
+        // 4. Or it must be a specific sandbox directory
+        val name = absPath.fileName?.toString() ?: ""
+        val isSandbox = name == BlenderProjectPaths.SANDBOX_NAME
+
+        if (!hasCfg && !isSandbox) {
+            BlenderLogger.debug(project, "Safety: Path does not look like a venv (no pyvenv.cfg) and is not sandbox: $absPath")
+            return false
+        }
+
+        // 5. Check if it's within project for extra safety
+        val isInsideProject = projectPath != null && absPath.startsWith(projectPath)
+        if (!isInsideProject) {
+            // If outside project, we should be even more careful.
+            val userHome = System.getProperty("user.home")?.let { Path.of(it).toAbsolutePath() }
+            if (userHome != null) {
+                if (absPath == userHome) return false
+                val commonDirs = listOf("Documents", "Desktop", "Downloads", "Music", "Pictures", "Videos")
+                if (commonDirs.any { absPath == userHome.resolve(it) }) return false
+            }
+        }
+
+        return true
+    }
+
+    private fun isSystemPath(path: Path): Boolean {
+        val pathStr = path.toAbsolutePath().toString().lowercase()
+        val systemPrefixes = if (BlenderHelper.isWindows()) {
+            listOf("c:\\windows", "c:\\program files", "c:\\program files (x86)")
+        } else {
+            listOf("/usr", "/bin", "/sbin", "/etc", "/lib", "/var", "/root", "/proc", "/sys", "/dev")
+        }
+        return systemPrefixes.any { pathStr.startsWith(it) }
+    }
+
     fun isVenv(sdk: Sdk): Boolean {
         val additionalData = sdk.sdkAdditionalData
         if (additionalData != null && (additionalData.javaClass.simpleName.contains("Uv") || 
@@ -374,8 +435,15 @@ class PythonSdkService(private val project: Project) {
         
         val homePath = sdk.homePath ?: return false
         val path = Path.of(homePath)
-        return path.parent?.fileName?.toString() in listOf("bin", "Scripts") || 
-               homePath.contains(".venv") || homePath.contains("venv") || homePath.contains("site-packages")
+        val venvRoot = getVenvRootFromExecutable(path)
+
+        // Safety check: is it a system path?
+        if (isSystemPath(venvRoot)) return false
+
+        // Check for pyvenv.cfg
+        if (venvRoot.resolve(BlenderProjectPaths.PYVENV_CFG_NAME).exists()) return true
+
+        return homePath.contains(BlenderProjectPaths.VENV_NAME) || homePath.contains("venv") || homePath.contains("site-packages")
     }
 
     fun isPythonSdk(sdk: Sdk): Boolean {
