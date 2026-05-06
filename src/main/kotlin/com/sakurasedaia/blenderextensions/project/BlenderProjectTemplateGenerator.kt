@@ -16,17 +16,6 @@ data class BlenderManifestSettings(
     val buildPathsExcludePattern: List<String>? = null
 )
 
-/**
- * Generator for Blender extension project templates.
- * 
- * The project creation module follows this progression:
- * 1. [BlenderProjectGenerators] (UI) collects user input and settings.
- * 2. [BlenderManifestSettings] stores the metadata for the `blender_manifest.toml`.
- * 3. [generateManifest] creates the TOML configuration file based on user input.
- * 4. [generateSimpleInit] or [generateAutoLoadInit] creates the main Python entry point.
- * 5. [generateReadme], [generateLicense], and [generateGitignore] create boilerplate files.
- * 6. (Optional) Agent-related files like guidelines and skills are generated for AI assistance.
- */
 class BlenderProjectTemplateGenerator {
     companion object {
         fun generateManifest(settings: BlenderManifestSettings): String {
@@ -152,6 +141,101 @@ class BlenderProjectTemplateGenerator {
             }
 
             return sb.toString()
+        }
+
+        /**
+         * Generates an addon `__init__.py` modeled after the legacy
+         * "Blank Addon" / "ExampleCode Addon" file templates. A single
+         * "Add Example Code" toggle (`addExampleCode`) switches between
+         * the empty-body variant and the example-code variant.
+         */
+        fun generateAddonInit(
+            name: String,
+            author: String,
+            version: String,
+            blender: String,
+            location: String,
+            description: String,
+            warning: String,
+            docUrl: String,
+            category: String,
+            addExampleCode: Boolean
+        ): String {
+            val header = """
+                bl_info = {
+                    "name": "$name",
+                    "author": "$author",
+                    "version": $version,
+                    "blender": $blender,
+                    "location": "$location",
+                    "description": "$description",
+                    "warning": "$warning",
+                    "doc_url": "$docUrl",
+                    "category": "$category",
+                }
+
+            """.trimIndent()
+
+            val body = if (addExampleCode) {
+                """
+
+                import bpy
+                import bpy.types as T
+                import bpy.props as P
+                import bpy.ops as O
+                import bpy.utils as U
+
+                class SIMPLE_OT_operator(T.Operator):
+                    ""${'"'}Simple Operator Tooltip""${'"'}
+                    bl_idname = "object.simple_operator"
+                    bl_label = "Simple Operator"
+                    bl_options = {'REGISTER', 'UNDO'}
+
+                    def execute(self, context):
+                        self.report({'INFO'}, "Hello $author!")
+                        return {'FINISHED'}
+
+                def menu_func(self, context):
+                    self.layout.operator(SIMPLE_OT_operator.bl_idname, text=SIMPLE_OT_operator.bl_label)
+
+                # Register and unregister classes
+
+                classes = (
+                    SIMPLE_OT_operator,
+                )
+
+                def register():
+                    for cls in classes:
+                        U.register_class(cls)
+
+                    bpy.types.VIEW3D_MT_object.append(menu_func)
+
+                def unregister():
+                    for cls in reversed(classes):
+                        U.unregister_class(cls)
+
+                    bpy.types.VIEW3D_MT_object.remove(menu_func)
+
+                if __name__ == "__main__":
+                    register()
+                """.trimIndent()
+            } else {
+                """
+
+                import bpy
+
+                def register():
+                    pass
+
+                def unregister():
+                    pass
+
+                if __name__ == "__main__":
+                    register()
+                """.trimIndent()
+            }
+
+            return header + "\n" + body + "\n"
         }
 
         fun generateSimpleInit(name: String, author: String): String {

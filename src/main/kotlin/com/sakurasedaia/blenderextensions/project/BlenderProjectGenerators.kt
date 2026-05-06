@@ -1,45 +1,38 @@
 package com.sakurasedaia.blenderextensions.project
 
+import com.intellij.execution.RunManager
+import com.intellij.execution.configurations.ConfigurationTypeUtil
 import com.intellij.facet.ui.ValidationResult
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.DirectoryProjectGenerator
 import com.intellij.platform.ProjectGeneratorPeer
+import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBTextField
-import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
-import com.sakurasedaia.blenderextensions.icons.BlenderIcons
-import com.sakurasedaia.blenderextensions.common.utils.PathUtils
-import com.sakurasedaia.blenderextensions.common.utils.LangManager
-import com.intellij.ui.DocumentAdapter
 import com.intellij.util.ui.UIUtil
-import javax.swing.event.DocumentEvent
-import javax.swing.SwingUtilities
-import com.intellij.execution.RunManager
-import com.intellij.execution.configurations.ConfigurationTypeUtil
-import com.sakurasedaia.blenderextensions.blender.model.*
-import com.sakurasedaia.blenderextensions.blender.services.*
-import com.sakurasedaia.blenderextensions.blender.utils.*
-import com.sakurasedaia.blenderextensions.common.utils.*
+import com.sakurasedaia.blenderextensions.blender.model.BlenderVersions
+import com.sakurasedaia.blenderextensions.blender.services.BlenderDownloader
+import com.sakurasedaia.blenderextensions.blender.services.BlenderFinder
+import com.sakurasedaia.blenderextensions.common.utils.BlenderTaskManager
+import com.sakurasedaia.blenderextensions.common.utils.LangManager
+import com.sakurasedaia.blenderextensions.common.utils.PathUtils
+import com.sakurasedaia.blenderextensions.icons.BlenderIcons
 import com.sakurasedaia.blenderextensions.run.*
-import com.sakurasedaia.blenderextensions.python.PythonService
 import com.sakurasedaia.blenderextensions.ui.settings.BlenderSettings
-import com.intellij.openapi.roots.OrderRootType
-import com.intellij.openapi.vfs.VirtualFileManager
+import java.lang.ref.WeakReference
 import java.nio.file.Files
 import java.nio.file.Path
 import javax.swing.Icon
 import javax.swing.JPanel
-import java.lang.ref.WeakReference
+import javax.swing.SwingUtilities
+import javax.swing.event.DocumentEvent
 import kotlin.io.path.writeText
-import com.sakurasedaia.blenderextensions.blender.model.BlenderVersions
-import com.sakurasedaia.blenderextensions.blender.services.BlenderDownloader
-import com.sakurasedaia.blenderextensions.blender.services.BlenderFinder
-import com.sakurasedaia.blenderextensions.blender.services.BlenderScanner
 
 
 internal fun formatToId(name: String, allowCapitals: Boolean = false, allowSpaces: Boolean = false, trim: Boolean = true): String {
@@ -187,7 +180,7 @@ class BlenderAddonProjectGenerator : DirectoryProjectGenerator<BlenderAddonProje
         if (startBlenderFactory != null) {
             val runSettings = runManager.createConfiguration("Start Blender", startBlenderFactory)
             val runConfig = runSettings.configuration as BlenderRunConfiguration
-            val options = runConfig.getOptions()
+            val options = runConfig.options
             options.blenderVersion = selectedVersion
             options.isSandboxed = settings.sandbox
             options.addonSourceDirectory = srcDir.toAbsolutePath().toString()
@@ -201,7 +194,7 @@ class BlenderAddonProjectGenerator : DirectoryProjectGenerator<BlenderAddonProje
         if (buildFactory != null) {
             val runSettings = runManager.createConfiguration("Build", buildFactory)
             val runConfig = runSettings.configuration as BlenderRunConfiguration
-            runConfig.getOptions().blenderVersion = selectedVersion
+            runConfig.options.blenderVersion = selectedVersion
             runManager.addConfiguration(runSettings)
         }
 
@@ -210,7 +203,7 @@ class BlenderAddonProjectGenerator : DirectoryProjectGenerator<BlenderAddonProje
         if (validateFactory != null) {
             val runSettings = runManager.createConfiguration("Validate", validateFactory)
             val runConfig = runSettings.configuration as BlenderRunConfiguration
-            runConfig.getOptions().blenderVersion = selectedVersion
+            runConfig.options.blenderVersion = selectedVersion
             runManager.addConfiguration(runSettings)
         }
 
@@ -289,10 +282,10 @@ internal class BlenderAddonProjectPeer : ProjectGeneratorPeer<BlenderAddonProjec
         }
     }
 
-    private val autoLoadCheckbox = JBCheckBox("Add automatic module/class registration script", false)
-    private val includeAgentGuidelines = JBCheckBox("Append pre-made agent guidelines", true)
-    private val createGitRepoCheckbox = JBCheckBox("Create Git repository", false)
-    private val sandboxEnvironment = JBCheckBox("Enable sandbox environment", true)
+    private val autoLoadCheckbox = JBCheckBox(LangManager.message("project.generator.extension.checkbox.autoload"), false)
+    private val includeAgentGuidelines = JBCheckBox(LangManager.message("project.generator.checkbox.agent.guidelines"), true)
+    private val createGitRepoCheckbox = JBCheckBox(LangManager.message("project.generator.checkbox.git.repo"), false)
+    private val sandboxEnvironment = JBCheckBox(LangManager.message("project.generator.checkbox.sandbox"), true)
     internal val projectNameField = JBTextField()
     internal val addonIdField = JBTextField()
     internal val addonTaglineField = JBTextField("A Blender extension")
@@ -305,15 +298,15 @@ internal class BlenderAddonProjectPeer : ProjectGeneratorPeer<BlenderAddonProjec
     internal val blenderVersionMaxField = JBTextField()
     internal val addonPlatformsField = JBTextField()
 
-    internal val permissionNetworkCheckbox = JBCheckBox("Network access", false)
+    internal val permissionNetworkCheckbox = JBCheckBox(LangManager.message("project.generator.extension.checkbox.permission.network"), false)
     internal val permissionNetworkReasonField = JBTextField()
-    internal val permissionFilesCheckbox = JBCheckBox("Filesystem access", false)
+    internal val permissionFilesCheckbox = JBCheckBox(LangManager.message("project.generator.extension.checkbox.permission.files"), false)
     internal val permissionFilesReasonField = JBTextField()
-    internal val permissionClipboardCheckbox = JBCheckBox("Clipboard access", false)
+    internal val permissionClipboardCheckbox = JBCheckBox(LangManager.message("project.generator.extension.checkbox.permission.clipboard"), false)
     internal val permissionClipboardReasonField = JBTextField()
-    internal val permissionCameraCheckbox = JBCheckBox("Camera access", false)
+    internal val permissionCameraCheckbox = JBCheckBox(LangManager.message("project.generator.extension.checkbox.permission.camera"), false)
     internal val permissionCameraReasonField = JBTextField()
-    internal val permissionMicrophoneCheckbox = JBCheckBox("Microphone access", false)
+    internal val permissionMicrophoneCheckbox = JBCheckBox(LangManager.message("project.generator.extension.checkbox.permission.microphone"), false)
     internal val permissionMicrophoneReasonField = JBTextField()
 
     internal val buildPathsExcludePatternField = JBTextField()
@@ -542,83 +535,83 @@ internal class BlenderAddonProjectPeer : ProjectGeneratorPeer<BlenderAddonProjec
                 cell(sandboxEnvironment)
             }
             separator()
-            row("Project name:") {
+            row(LangManager.message("project.generator.extension.row.project.name")) {
                 cell(projectNameField).align(AlignX.FILL)
             }
-            row("Addon ID:") {
+            row(LangManager.message("project.generator.extension.row.addon.id")) {
                 cell(addonIdField).align(AlignX.FILL)
             }
-            row("Tagline:") {
+            row(LangManager.message("project.generator.extension.row.tagline")) {
                 cell(addonTaglineField).align(AlignX.FILL)
             }
-            row("Maintainer:") {
+            row(LangManager.message("project.generator.extension.row.maintainer")) {
                 cell(addonMaintainerField).align(AlignX.FILL)
             }
-            row("Website (Optional):") {
+            row(LangManager.message("project.generator.extension.row.website")) {
                 cell(addonWebsiteField).align(AlignX.FILL)
             }
-            row("Tags (comma separated, Optional):") {
+            row(LangManager.message("project.generator.extension.row.tags")) {
                 cell(addonTagsField).align(AlignX.FILL)
             }
 
-            row("Blender version:") {
+            row(LangManager.message("project.generator.row.blender.version")) {
                 cell(blenderVersionComboBox).align(AlignX.FILL).resizableColumn()
                 cell(blenderDownloadButton)
             }
-            row("Min blender version:") {
+            row(LangManager.message("project.generator.extension.row.blender.version.min")) {
                 cell(blenderVersionMinField).align(AlignX.FILL)
             }
-            row("Max blender version (optional):") {
+            row(LangManager.message("project.generator.extension.row.blender.version.max")) {
                 cell(blenderVersionMaxField).align(AlignX.FILL)
             }
-            row("Platforms (comma separated, optional):") {
+            row(LangManager.message("project.generator.extension.row.platforms")) {
                 cell(addonPlatformsField).align(AlignX.FILL)
             }
 
             separator()
-            group("Permissions (optional)") {
+            group(LangManager.message("project.generator.extension.group.permissions")) {
                 row {
                     cell(permissionNetworkCheckbox)
                 }
-                row("  Reason (required if checked, max 64 chars):") {
+                row(LangManager.message("project.generator.extension.row.permission.reason")) {
                     cell(permissionNetworkReasonField).align(AlignX.FILL)
                 }
                 row {
                     cell(permissionFilesCheckbox)
                 }
-                row("  Reason (required if checked, max 64 chars):") {
+                row(LangManager.message("project.generator.extension.row.permission.reason")) {
                     cell(permissionFilesReasonField).align(AlignX.FILL)
                 }
                 row {
                     cell(permissionClipboardCheckbox)
                 }
-                row("  Reason (required if checked, max 64 chars):") {
+                row(LangManager.message("project.generator.extension.row.permission.reason")) {
                     cell(permissionClipboardReasonField).align(AlignX.FILL)
                 }
                 row {
                     cell(permissionCameraCheckbox)
                 }
-                row("  Reason (required if checked, max 64 chars):") {
+                row(LangManager.message("project.generator.extension.row.permission.reason")) {
                     cell(permissionCameraReasonField).align(AlignX.FILL)
                 }
                 row {
                     cell(permissionMicrophoneCheckbox)
                 }
-                row("  Reason (required if checked, max 64 chars):") {
+                row(LangManager.message("project.generator.extension.row.permission.reason")) {
                     cell(permissionMicrophoneReasonField).align(AlignX.FILL)
                 }
             }
             separator()
-            row("Build exclude patterns (optional):") {
+            row(LangManager.message("project.generator.extension.row.build.exclude")) {
                 cell(buildPathsExcludePatternField).align(AlignX.FILL)
             }
         }
 
         // Tooltips/Hints
-        addonIdField.toolTipText = "Kebab-case, alphanumeric, 3-32 characters"
-        addonPlatformsField.toolTipText = "windows-x64, macos-arm64, linux-x64, windows-arm64, macos-x64"
-        blenderVersionComboBox.toolTipText = "Select the Blender version to use for development"
-        blenderVersionMinField.toolTipText = "Minimum Blender version required by the extension (x.y.z)"
+        addonIdField.toolTipText = LangManager.message("project.generator.extension.tooltip.addon.id")
+        addonPlatformsField.toolTipText = LangManager.message("project.generator.extension.tooltip.platforms")
+        blenderVersionComboBox.toolTipText = LangManager.message("project.generator.extension.tooltip.blender.version")
+        blenderVersionMinField.toolTipText = LangManager.message("project.generator.extension.tooltip.blender.version.min")
     }
 
     private fun updateDownloadButtonVisibility() {
@@ -703,43 +696,43 @@ internal class BlenderAddonProjectPeer : ProjectGeneratorPeer<BlenderAddonProjec
         // 1. Project Name
         val projectName = projectNameField.text?.trim().orEmpty()
         if (projectName.isEmpty()) {
-            return ValidationInfo("Project name cannot be empty.", projectNameField)
+            return ValidationInfo(LangManager.message("project.generator.error.project.name.empty"), projectNameField)
         }
         if (projectName.length !in 3..64) {
-            return ValidationInfo("Project name must be between 3 and 64 characters.", projectNameField)
+            return ValidationInfo(LangManager.message("project.generator.extension.error.project.name.length"), projectNameField)
         }
 
         // 2. Addon ID
         val id = addonIdField.text?.trim().orEmpty()
         if (id.isEmpty()) {
-            return ValidationInfo("Addon ID cannot be empty.", addonIdField)
+            return ValidationInfo(LangManager.message("project.generator.extension.error.addon.id.empty"), addonIdField)
         }
         if (id.length !in 3..32 || !id.all { it.isLowerCase() || it.isDigit() || it == '_' }) {
-            if (id.length < 3) return ValidationInfo("Addon ID is too short (min 3 characters).", addonIdField)
-            if (id.length > 32) return ValidationInfo("Addon ID is too long (max 32 characters).", addonIdField)
-            return ValidationInfo("Addon ID must be snake-case (lowercase letters, underscores only).", addonIdField)
+            if (id.length < 3) return ValidationInfo(LangManager.message("project.generator.extension.error.addon.id.short"), addonIdField)
+            if (id.length > 32) return ValidationInfo(LangManager.message("project.generator.extension.error.addon.id.long"), addonIdField)
+            return ValidationInfo(LangManager.message("project.generator.extension.error.addon.id.format"), addonIdField)
         }
 
         // 3. Blender Version
         val selectedVersion = blenderVersionComboBox.selectedItem as? String
         if (selectedVersion.isNullOrBlank()) {
-            return ValidationInfo("Please select a Blender version.", blenderVersionComboBox)
+            return ValidationInfo(LangManager.message("project.generator.error.blender.version.select"), blenderVersionComboBox)
         }
 
         val minVer = blenderVersionMinField.text?.trim().orEmpty()
         if (minVer.isEmpty()) {
-            return ValidationInfo("Minimum Blender version cannot be empty.", blenderVersionMinField)
+            return ValidationInfo(LangManager.message("project.generator.extension.error.blender.min.empty"), blenderVersionMinField)
         }
         val minVerParts = minVer.split(".")
         if (minVerParts.size < 3 || minVerParts.take(3).any { p -> p.isEmpty() || !p.all { it.isDigit() } }) {
-            return ValidationInfo("Minimum Blender version must be in format x.y.z (e.g., 5.0.0).", blenderVersionMinField)
+            return ValidationInfo(LangManager.message("project.generator.extension.error.blender.min.format"), blenderVersionMinField)
         }
 
         val maxVer = blenderVersionMaxField.text?.trim().orEmpty()
         if (maxVer.isNotEmpty()) {
             val maxVerParts = maxVer.split(".")
             if (maxVerParts.size < 3 || maxVerParts.take(3).any { p -> p.isEmpty() || !p.all { it.isDigit() } }) {
-                return ValidationInfo("Maximum Blender version must be in format x.y.z (e.g., 5.0.0).", blenderVersionMaxField)
+                return ValidationInfo(LangManager.message("project.generator.extension.error.blender.max.format"), blenderVersionMaxField)
             }
         }
 
@@ -747,7 +740,7 @@ internal class BlenderAddonProjectPeer : ProjectGeneratorPeer<BlenderAddonProjec
         val website = addonWebsiteField.text?.trim().orEmpty()
         if (website.isNotEmpty()) {
             if (!website.contains(".") || website.contains(" ") || website.length < 4) {
-                return ValidationInfo("Please enter a valid URL (e.g., https://example.com).", addonWebsiteField)
+                return ValidationInfo(LangManager.message("project.generator.extension.error.website.invalid"), addonWebsiteField)
             }
         }
 
@@ -755,9 +748,9 @@ internal class BlenderAddonProjectPeer : ProjectGeneratorPeer<BlenderAddonProjec
         fun checkReason(checkbox: JBCheckBox, field: JBTextField, label: String): ValidationInfo? {
             if (checkbox.isSelected) {
                 val reason = field.text?.trim().orEmpty()
-                if (reason.isEmpty()) return ValidationInfo("Permission '$label' requires a reason.", field)
-                if (reason.length > 64) return ValidationInfo("Reason for '$label' must be 64 characters or fewer.", field)
-                if (reason.endsWith('.')) return ValidationInfo("Reason for '$label' should not end with a period (.).", field)
+                if (reason.isEmpty()) return ValidationInfo(LangManager.message("project.generator.extension.error.permission.reason.empty", label), field)
+                if (reason.length > 64) return ValidationInfo(LangManager.message("project.generator.extension.error.permission.reason.long", label), field)
+                if (reason.endsWith('.')) return ValidationInfo(LangManager.message("project.generator.extension.error.permission.reason.period", label), field)
             }
             return null
         }
@@ -772,7 +765,7 @@ internal class BlenderAddonProjectPeer : ProjectGeneratorPeer<BlenderAddonProjec
         val platforms = addonPlatformsField.text?.split(',')?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList()
         for (platform in platforms) {
             if (platform !in allowedPlatforms) {
-                return ValidationInfo("Unsupported platform: $platform. Allowed: windows-x64, macos-arm64, linux-x64, etc.", addonPlatformsField)
+                return ValidationInfo(LangManager.message("project.generator.extension.error.platform.unsupported", platform), addonPlatformsField)
             }
         }
 

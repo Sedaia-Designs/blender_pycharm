@@ -2,6 +2,11 @@
 
 ## [0.6.0] - 4-26-2026
 ### Added
+- **Single-File Add-on Project Generator**: Consolidated the legacy `Blank Addon` and `ExampleCode Addon` file templates into a new `Blender Add-on (Single File)` project generator.
+  - Exposes the original template variables (`NAME`, `USER`, `VERSION`, `BLENDER`, `LOCATION`, `DESCRIPTION`, `WARNING`, `DOC URL`, `category`) as wizard fields.
+  - Adds an **Add Example Code** toggle that switches between the empty addon body and the example operator/menu body.
+  - Generates the same project layout as the full Extension generator (LICENSE, README, `.gitignore`, optional agent guidelines, run configurations, sandbox), but `src/` only contains a single `__init__.py` instead of a `blender_manifest.toml`.
+  - The single addon file is now placed at the project root (no `src/` directory is created), and a dedicated **Filename** field is exposed beneath **Name** so users can choose the generated Python module's name; the filename auto-derives from the project name until the user edits it manually.
 - **uv-Powered Python Integration ([#4](https://codeberg.org/SakuraSedaia/blender_pycharm/issues/4))**: Implemented a mandatory `uv` integration for ultra-fast virtual environment management and linter installation.
   - Added automated `uv` installation for the user and support for specific Python versions per Blender release.
   - Deep integration with PyCharm's native `uv` metadata.
@@ -21,6 +26,7 @@
   - Removed redundant and unused keys and standardized terminology (using "Module" consistently for Blender components).
   - Synchronized all 11 supported language bundles.
   - Created unified `button.yes` and `button.no` keys and updated confirmation dialogs across the UI for better consistency.
+  - Migrated all hardcoded UI strings from the project generators (Extension and Single-File Add-on) — checkbox labels, row labels, tooltips, and validation messages — into `LangManager.properties` under a new `project.generator.*` namespace, and removed an additional 18 unused keys.
 - **Version Updates**: Updated supported Blender and Python version metadata to include the latest releases.
 
 ### Changed
