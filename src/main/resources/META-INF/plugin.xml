@@ -55,6 +55,7 @@
         <defaultLiveTemplates file="liveTemplates/Blender.xml"/>
 
         <directoryProjectGenerator implementation="com.sakurasedaia.blenderextensions.project.BlenderAddonProjectGenerator"/>
+        <directoryProjectGenerator implementation="com.sakurasedaia.blenderextensions.project.BlenderAddonFileProjectGenerator"/>
         <iconProvider implementation="com.sakurasedaia.blenderextensions.icons.BlenderIconProvider"/>
         
         <toolWindow id="MBVS"
@@ -65,7 +66,6 @@
         <fileTemplateGroup implementation="com.sakurasedaia.blenderextensions.actions.BlenderTemplateGroupFactory"/>
         <internalFileTemplate name="Blender Component"/>
         <internalFileTemplate name="Blender Package"/>
-        <internalFileTemplate name="Add-on"/>
         <statusBarWidgetFactory implementation="com.sakurasedaia.blenderextensions.ui.statusbar.BlenderStatusBarWidgetFactory"
                                 id="BlenderStatus"/>
 
