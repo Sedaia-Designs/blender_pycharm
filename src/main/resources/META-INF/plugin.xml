@@ -1,0 +1,43 @@
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+    <!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
+    <id>com.sakurasedaia.BlenderDevelopment</id>
+
+    <!-- Public plugin name should be written in Title Case.
+     Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-name -->
+    <name>Blender Python Development</name>
+
+    <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
+    <vendor url="https://www.sakura-sedaia.com">Sakura Sedaia</vendor>
+
+    <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-description -->
+    <description><![CDATA[
+        <h1>Blender Development for PyCharm</h1>
+        <p><b>Blender Development</b> seamlessly integrates professional Blender extension development into the PyCharm IDE. This project is licensed under the <b>GNU GPL v3</b>.</p>
+        <p>This plugin provides a powerful suite of tools designed to streamline the entire lifecycle of creating, testing, and deploying Blender extensions (v4.2+) using modern development practices.</p>
+        <p><i><b>Note:</b> This plugin requires <a href="https://github.com/astral-sh/uv">uv</a> for Python virtual environment management and package integration. The plugin can automatically install <b>uv</b> if it is not found on your system using UV's official installer.</i></p>
+
+        <p><i><b>Note:</b> This plugin is currently in active development. Please report bugs or feature requests at the <a href="https://codeberg.org/SakuraSedaia/blender_pycharm/issues">Codeberg Repository</a>.</i></p>
+
+        <h3>Key Capabilities:</h3>
+        <ul>
+        </ul>
+
+        <p>Inspired by and uses code from the <a href="https://github.com/JacquesLucke/blender_vscode">Blender Development extension</a> for VS Code by <b>Jacques Lucke</b> and optimized for the PyCharm ecosystem.</p>
+
+        <p><small><i>Blender is a registered trademark of the Blender Foundation. This plugin is an independent project and is not affiliated with, endorsed by, or sponsored by the Blender Foundation. The Blender logo is used under nominative fair use to denote compatibility and integration.</i></small></p>
+    ]]></description>
+
+    <!-- Product and plugin compatibility requirements.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
+    <depends>com.intellij.modules.python</depends>
+    <depends>com.intellij.modules.pycharm</depends>
+
+
+    <!-- Extensions defined by the plugin.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
+    <extensions defaultExtensionNs="com.intellij">
+    </extensions>
+
+</idea-plugin>
