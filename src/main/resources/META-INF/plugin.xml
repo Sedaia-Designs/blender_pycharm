@@ -34,10 +34,15 @@
     <depends>com.intellij.modules.python</depends>
     <depends>com.intellij.modules.pycharm</depends>
 
-
     <!-- Extensions defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
+        <toolWindow
+                id="Project Blender Manager"
+                anchor="right"
+                factoryClass="com.sakurasedaia.blenderdevelopment.ui.toolwindow.BlenderToolWindowFactory"
+                icon="com.sakurasedaia.blenderdevelopment.icons.BlenderIcons.Blender"
+        />
     </extensions>
 
 </idea-plugin>
