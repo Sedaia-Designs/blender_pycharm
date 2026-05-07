@@ -8,10 +8,6 @@ import java.nio.file.Path
 @Service
 class BlenderScriptGenerator {
 
-    fun generateStartupScriptContent(port: Int, extensionName: String?, isDebugMode: Boolean = false): String {
-        return BlenderScriptTemplates.getReloadScript(port, isDebugMode)
-    }
-
     fun createStartupScript(port: Int, repoDir: Path?, extensionName: String?, isDebugMode: Boolean = false): Path {
         val repoPath = repoDir?.toAbsolutePath()?.toString()?.replace("\\", "\\\\") ?: ""
         val extName = extensionName ?: ""
@@ -22,7 +18,7 @@ class BlenderScriptGenerator {
         
         if (extName.isNotEmpty()) {
             sb.append(BlenderScriptTemplates.getAutoEnableScript(extName))
-            sb.append("\n")
+            sb.append("\n\n")
         }
         
         sb.append(BlenderScriptTemplates.getReloadScript(port, isDebugMode))

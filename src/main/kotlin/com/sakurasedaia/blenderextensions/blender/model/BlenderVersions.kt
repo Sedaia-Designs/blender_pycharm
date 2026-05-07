@@ -12,7 +12,6 @@ data class BlenderVersion(
 }
 
 object BlenderVersions {
-    
     private val STATIC_SUPPORTED_VERSIONS = listOf(
         BlenderVersion("4.2", "19", "3.11.7"),
         BlenderVersion("4.3", "2", "3.11.9"),

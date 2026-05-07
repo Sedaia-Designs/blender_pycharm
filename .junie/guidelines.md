@@ -50,10 +50,12 @@ This document is the **authoritative Source of Truth** for Junie (the AI agent).
 - **Verification**: Clearly state how you verified your changes (tests, linting, manual checks).
 
 ### 3.2 Documentation
-- **CHANGELOG.md**: Update for every feature or fix using existing categories. **NEVER** bump the version number unless explicitly told. If a changelog entry for the feature or related feature already exists, expand that entry by adding the exact changes as new bullet points underneath the respective item.
-- **Project Wiki**: Whenever significant features or architectural changes are made, you MUST update the corresponding documentation in the project wiki (located at `/mnt/data/PycharmProjects/SakuraProjectWiki/docs/blender-development-pycharm/`).
-  - If developing on MacOS or Windows, create a comprehensive Markdown document documenting all changes made.
+- **CHANGELOG.md**: Update for every feature or fix using existing categories. 
+  - **NEVER** bump the version number unless explicitly told. 
+  - If a changelog entry for the feature or related feature already exists, expand that entry by adding the exact changes as new bullet points underneath the respective item.
+  - Never document changes to documentation in `CHANGELOG.md`, as the changelog exists purely for the source code itself.
 - **Narrative Documentation**: Avoid "changelog-like" dialogue (e.g., "Added...", "Fixed...", "Updated...") in Features, Architecture, or User Guides. Describe the *current state* and *capabilities* of the system (e.g., "Provides...", "Includes...", "Supports...") rather than the history of changes.
+  - This rule is exempt in sections focused on planning, changes, etc.
 - **README.md / CONTRIBUTING.md**: Update if features or workflows change.
 
 ---
@@ -63,21 +65,23 @@ This document is the **authoritative Source of Truth** for Junie (the AI agent).
 ### 4.1 No Edit:
 - When this prefix is used, no code changes shall be made.
 
+### 4.2 Commit Changes
+- When this prompt is entered, perform systematic commits as outlined by section 5. `Git & Commits`
+
 ---
 
 ## 5. Git & Commits
 
 ### 4.1 Commit Format
-- **Format**: `Type(scope): Description`
+- **Format**: `[Type](scope): Description`
 - **Capitalization**: The `Type` MUST start with a capital letter.
 - **Approved Types**: `[Feat]`, `[Fix]`, `[Docs]`, `[Style]`, `[Refactor]`, `[Test]`, `[Chore]`, `[I18n]`, `[Build]`, `[Ci]`, `[Perf]`.
 - **Module Type Suffix**: If Necessary, for commits focusing on a single module, add a suffix wrapped in () noting the module
 - **Atomic Commits**: Max 1-2 features per commit. Each commit must be a single logical unit.
-- **Message Length**: Max 2 sentences (excluding prefix and trailer).
+- **Description Length**: Max 2 sentences (excluding prefix and trailer).
 
-### 4.2 Mandatory Trailer
-When Junie performs a commit, the command MUST include the following trailer:
-`--trailer "Co-authored-by: Junie <junie@jetbrains.com>"`
+### 4.2 Mandatory Author
+Commits must always be commited and authored by `SakuraSedaia <sakusedaia@outlook.com>`
 
 ---
 

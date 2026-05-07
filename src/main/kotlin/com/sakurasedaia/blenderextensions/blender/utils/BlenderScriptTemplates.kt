@@ -1,27 +1,28 @@
 package com.sakurasedaia.blenderextensions.blender.utils
 
+// TODO: Generated script templates use the wrong indentation, now allowing the run configuration to run properly. I need to diagnose and fix the problem at some point
 object BlenderScriptTemplates {
     fun getReloadScript(port: Int, isDebug: Boolean = false): String {
         val debugSetup = if (isDebug) {
             """
-                try:
-                    import debugpy
-                    # Use 127.0.0.1 for maximum compatibility with PyCharm's default listener
-                    debugpy.listen(('127.0.0.1', 5678))
-                    print("Debugpy listening on 127.0.0.1:5678 (DAP)")
-                except Exception as e:
-                    print(f"Failed to start debugpy: {e}")
+				try:
+				    import debugpy
+				    # Use 127.0.0.1 for maximum compatibility with PyCharm's default listener
+				    debugpy.listen(('127.0.0.1', 5678))
+				    print("Debugpy listening on 127.0.0.1:5678 (DAP)")
+				except Exception as e:
+				    print(f"Failed to start debugpy: {e}")
             """.trimIndent()
         } else ""
-
+        
         val enhancedLogging = """
-            print(f"--- Blender Python Environment ---")
-            print(f"Python Version: {sys.version}")
-            print(f"Executable: {sys.executable}")
-            print(f"Path: {sys.path}")
-            print(f"----------------------------------")
+			print(f"--- Blender Python Environment ---")
+			print(f"Python Version: {sys.version}")
+			print(f"Executable: {sys.executable}")
+			print(f"Path: {sys.path}")
+			print(f"----------------------------------")
         """.trimIndent()
-
+        
         return """
             import json
             import sys
@@ -34,12 +35,12 @@ object BlenderScriptTemplates {
             $debugSetup
 
             def listen_for_reload():
-                
+
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 max_retries = 5
                 retry_count = 0
                 connected = False
-                
+
                 while retry_count < max_retries:
                     try:
                         s.connect(('127.0.0.1', $port))
@@ -49,7 +50,7 @@ object BlenderScriptTemplates {
                         retry_count += 1
                         print(f"Connection attempt {retry_count} failed: {e}. Retrying in 1s...")
                         time.sleep(1)
-                
+
                 if not connected:
                     print(f"Failed to connect to IntelliJ after {max_retries} attempts.")
                     return
@@ -67,33 +68,33 @@ object BlenderScriptTemplates {
                             if message.get('type') == 'reload':
                                 extension_name = message.get('name')
                                 print(f"Received reload command for: {extension_name}")
-                                
+
                                 def do_reload():
                                     try:
                                         module_name = f"bl_ext.blender_pycharm.{extension_name}"
-                                        
+
                                         # 1. Disable if enabled
                                         if module_name in bpy.context.preferences.addons:
                                             bpy.ops.preferences.addon_disable(module=module_name)
-                                        
+
                                         # 2. Refresh repositories to pick up file changes
                                         if hasattr(bpy.ops.extensions, 'repo_refresh_all'):
                                             bpy.ops.extensions.repo_refresh_all()
-                                        
+
                                         # 3. Purge from sys.modules to force re-import
                                         for m in list(sys.modules.keys()):
                                             if m == module_name or m.startswith(module_name + "."):
                                                 del sys.modules[m]
-                                        
+
                                         # 4. Re-enable
                                         bpy.ops.preferences.addon_enable(module=module_name)
                                         print(f"Successfully reloaded extension: {module_name}")
-                                        
+
                                     except Exception as e:
                                         print(f"Error during reload of {extension_name}: {e}")
                                         traceback.print_exc()
                                     return None # Don't repeat the timer
-                                
+
                                 # Use timer to run on main thread
                                 import bpy
                                 if hasattr(bpy.app, 'timers'):
@@ -113,7 +114,7 @@ object BlenderScriptTemplates {
             t.start()
         """.trimIndent()
     }
-
+    
     fun getRepoSetupScript(repoName: String, repoPath: String): String {
         return """
             def ensure_extension_repo_exists(repo_name, repo_path):
@@ -124,7 +125,7 @@ object BlenderScriptTemplates {
                     return
                 if not repo_path or not os.path.exists(repo_path):
                     return
-
+            
                 repo_path = os.path.normpath(repo_path)
                 
                 # Check if repo exists
@@ -160,7 +161,7 @@ object BlenderScriptTemplates {
                                 return
                         except Exception as e2:
                             print(f"Fallback update also failed: {e2}")
-
+            
                 # Add the repo
                 try:
                     if hasattr(bpy.ops.preferences, 'extension_repo_add'):
@@ -194,33 +195,33 @@ object BlenderScriptTemplates {
                 except Exception as e:
                     print(f"Failed to create extensions repository: {e}")
                     traceback.print_exc()
-
+            
             ensure_extension_repo_exists("$repoName", "$repoPath")
         """.trimIndent()
     }
-
+    
     fun getAutoEnableScript(extensionName: String): String {
         return """
-            def ensure_extension_enabled(extension_name):
-                if not extension_name:
-                    return
-                
-                import bpy
-                module_name = f"bl_ext.blender_pycharm.{extension_name}"
-                if module_name not in bpy.context.preferences.addons:
-                    print(f"Automatically enabling extension: {module_name}")
-                    try:
-                        if hasattr(bpy.ops.extensions, 'repo_refresh_all'):
-                            bpy.ops.extensions.repo_refresh_all()
-                        bpy.ops.preferences.addon_enable(module=module_name)
-                    except Exception as e:
-                        print(f"Failed to auto-enable {module_name}: {e}")
-                return None
-
-            if hasattr(bpy.app, 'timers'):
-                bpy.app.timers.register(lambda: ensure_extension_enabled("$extensionName"), first_interval=1.0)
-            else:
-                ensure_extension_enabled("$extensionName")
+			def ensure_extension_enabled(extension_name):
+			    if not extension_name:
+			        return
+			    
+			    import bpy
+			    module_name = f"bl_ext.blender_pycharm.{extension_name}"
+			    if module_name not in bpy.context.preferences.addons:
+			        print(f"Automatically enabling extension: {module_name}")
+			        try:
+			            if hasattr(bpy.ops.extensions, 'repo_refresh_all'):
+			                bpy.ops.extensions.repo_refresh_all()
+			            bpy.ops.preferences.addon_enable(module=module_name)
+			        except Exception as e:
+			            print(f"Failed to auto-enable {module_name}: {e}")
+			    return None
+			
+			if hasattr(bpy.app, 'timers'):
+			    bpy.app.timers.register(lambda: ensure_extension_enabled("$extensionName"), first_interval=1.0)
+			else:
+			    ensure_extension_enabled("$extensionName")
         """.trimIndent()
     }
 }

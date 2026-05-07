@@ -17,7 +17,7 @@
         <h1>Blender Development for PyCharm</h1>
         <p><b>Blender Development</b> seamlessly integrates professional Blender extension development into the PyCharm IDE. This project is licensed under the <b>GNU GPL v3</b>.</p>
         <p>This plugin provides a powerful suite of tools designed to streamline the entire lifecycle of creating, testing, and deploying Blender extensions (v4.2+) using modern development practices.</p>
-        <p><i><b>Note:</b> This plugin requires <a href="https://github.com/astral-sh/uv">uv</a> for Python virtual environment management and package integration. The plugin can automatically install <b>uv</b> if it is not found on your system.</i></p>
+        <p><i><b>Note:</b> This plugin requires <a href="https://github.com/astral-sh/uv">uv</a> for Python virtual environment management and package integration. The plugin can automatically install <b>uv</b> if it is not found on your system using UV's official installer.</i></p>
 
         <p><i><b>Note:</b> This plugin is currently in active development. Please report bugs or feature requests at the <a href="https://codeberg.org/SakuraSedaia/blender_pycharm/issues">Codeberg Repository</a>.</i></p>
 
@@ -31,9 +31,9 @@
             <li><b>Customizable Developer Experience:</b> Supports custom splash screens for sandboxed sessions, flexible path management, and automatic detection of system Blender installations.</li>
         </ul>
 
-        <p>Inspired by the <a href="https://codeberg.org/SakuraSedaia/blender_pycharm">Blender Development extension</a> by <b>Sakura Sedaia</b> and optimized for the PyCharm ecosystem.</p>
+        <p>Inspired by and uses code from the <a href="https://github.com/JacquesLucke/blender_vscode">Blender Development extension</a> for VS Code by <b>Jacques Lucke</b> and optimized for the PyCharm ecosystem.</p>
 
-        <p><small><i>Blender is a registered trademark of the Blender Foundation. This plugin is an independent project and is not affiliated with, endorsed by, or sponsored by the Blender Foundation. The Blender logo is used under nominative fair use to denote compatibility.</i></small></p>
+        <p><small><i>Blender is a registered trademark of the Blender Foundation. This plugin is an independent project and is not affiliated with, endorsed by, or sponsored by the Blender Foundation. The Blender logo is used under nominative fair use to denote compatibility and integration.</i></small></p>
     ]]></description>
 
     <!-- Product and plugin compatibility requirements.
@@ -56,6 +56,7 @@
 
         <directoryProjectGenerator implementation="com.sakurasedaia.blenderextensions.project.BlenderAddonProjectGenerator"/>
         <directoryProjectGenerator implementation="com.sakurasedaia.blenderextensions.project.BlenderAddonFileProjectGenerator"/>
+
         <iconProvider implementation="com.sakurasedaia.blenderextensions.icons.BlenderIconProvider"/>
         
         <toolWindow id="MBVS"

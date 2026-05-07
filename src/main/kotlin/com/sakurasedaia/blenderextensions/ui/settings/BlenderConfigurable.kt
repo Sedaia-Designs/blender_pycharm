@@ -4,8 +4,6 @@ import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.options.SearchableConfigurable
-import com.intellij.openapi.progress.ProgressManager
-import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.MessageDialogBuilder
 import com.intellij.openapi.ui.Messages
@@ -14,14 +12,10 @@ import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.dsl.builder.AlignX
-import com.intellij.ui.dsl.builder.AlignY
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
 import com.sakurasedaia.blenderextensions.common.utils.LangManager
 import com.sakurasedaia.blenderextensions.common.utils.BlenderTaskManager
-import com.sakurasedaia.blenderextensions.blender.model.*
-import com.sakurasedaia.blenderextensions.blender.services.*
-import com.sakurasedaia.blenderextensions.blender.utils.*
 import com.sakurasedaia.blenderextensions.icons.BlenderIcons
 import com.sakurasedaia.blenderextensions.notifications.BlenderNotification
 import com.sakurasedaia.blenderextensions.python.PythonService

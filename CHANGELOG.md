@@ -1,12 +1,18 @@
 # Changelog
 
-## [0.6.0] - 4-26-2026
+## [0.7.0] - Indev
 ### Added
 - **Single-File Add-on Project Generator**: Consolidated the legacy `Blank Addon` and `ExampleCode Addon` file templates into a new `Blender Add-on (Single File)` project generator.
   - Exposes the original template variables (`NAME`, `USER`, `VERSION`, `BLENDER`, `LOCATION`, `DESCRIPTION`, `WARNING`, `DOC URL`, `category`) as wizard fields.
   - Adds an **Add Example Code** toggle that switches between the empty addon body and the example operator/menu body.
   - Generates the same project layout as the full Extension generator (LICENSE, README, `.gitignore`, optional agent guidelines, run configurations, sandbox), but `src/` only contains a single `__init__.py` instead of a `blender_manifest.toml`.
   - The single addon file is now placed at the project root (no `src/` directory is created), and a dedicated **Filename** field is exposed beneath **Name** so users can choose the generated Python module's name; the filename auto-derives from the project name until the user edits it manually.
+### Changed
+- **Core Reorganization**: Simplified the codebase by merging `BlenderProjectPaths`, `FileUtil`, and `PathUtils`. All project-local paths (e.g., `.venv`, `.blender_sandbox`), filesystem operations, and discovery logic are now centralized in `common.utils.PathUtils`.
+- **Startup Script Naming**: Resolved Issue #3 by ensuring startup scripts use deterministic filenames to prevent scratch directory clutter.
+
+## [0.6.0] - 4-26-2026
+### Added
 - **uv-Powered Python Integration ([#4](https://codeberg.org/SakuraSedaia/blender_pycharm/issues/4))**: Implemented a mandatory `uv` integration for ultra-fast virtual environment management and linter installation.
   - Added automated `uv` installation for the user and support for specific Python versions per Blender release.
   - Deep integration with PyCharm's native `uv` metadata.
@@ -34,15 +40,8 @@
   - Refactored the Tool Window, Settings, and Run Configuration editors using modern Kotlin DSL components for a cleaner, more responsive interface.
 - **Repository & CI Migration**: Migrated the project templates and CI workflows from `.github` to `.forgejo` for native Codeberg compatibility.
   - Fixed the `release.yml` workflow to use the correct `inputs.version` syntax for `workflow_dispatch`.
-- **Junie Agent Guidelines**: Renamed the agent configuration directory from `.agent` to `.junie` and expanded the documentation guidelines to require detailed changelog entries when updating existing features.
-  - Improved the **AI Usage Declaration** in the `README.md`.
-  - Consolidated the **Features** section into core summaries.
-  - Updated the project description to reflect the current state (uv integration, Project Traits, and Codeberg migration).
-- **Core Reorganization**: Simplified the codebase by merging `BlenderProjectPaths`, `FileUtil`, and `PathUtils`. All project-local paths (e.g., `.venv`, `.blender_sandbox`), filesystem operations, and discovery logic are now centralized in `common.utils.PathUtils`.
 - **Process Management**: Refactored Blender process launching to use `KillableProcessHandler`, improving responsiveness and termination handling.
 - **Run Configuration Flow**: Improved path resolution and validation to ensure managed versions are correctly handled before launch.
-- **Improved Documentation Strategy**: Added a guideline to avoid "changelog-like" dialogue in narrative documentation, favoring state-describing language. Audited and updated the Wiki and `Codebase_Audit_Report.md` to reflect the new architectural state.
-  - Resolved Issue #3 by ensuring startup scripts use deterministic filenames to prevent scratch directory clutter.
 - **Enhanced Build & Validate ([#5](https://codeberg.org/SakuraSedaia/blender_pycharm/issues/5), [#6](https://codeberg.org/SakuraSedaia/blender_pycharm/issues/6))**: Added dedicated inputs for source and output directories in Build and Validate run configurations, allowing for more flexible extension packaging.
 - **Reactive Error Handling**: Refactored permission checks to be reactive, triggering detailed diagnostics only when a "Permission denied" error occurs.
 - **Sandbox Management**: Relocated the Sandbox directory from `.venv/blender_sandbox` to `.blender_sandbox` at the project root level.

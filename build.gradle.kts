@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.sakura-sedaia"
-version = "0.6.0-SNAPSHOT"
+version = "0.7.0-SNAPSHOT"
 
 repositories {
 	mavenCentral()
@@ -26,13 +26,13 @@ dependencies {
 }
 
 intellijPlatform {
-		pluginConfiguration {
-			vendor {
-				name = "Sakura Sedaia"
-				url = "https://www.sakura-sedaia.com"
-			}
+	pluginConfiguration {
+		vendor {
+			name = "Sakura Sedaia"
+			url = "https://www.sakura-sedaia.com"
+		}
 
-			ideaVersion {
+		ideaVersion {
 			sinceBuild = "252.25557"
 		}
 		
