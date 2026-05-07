@@ -1,24 +1,9 @@
 # Blender Development for PyCharm
 
+> [!NOTE]
+> The full, handwritten rewrite of the source code has begun, and progress can be tracked in it's respective branch `v1-release`. Some sections of the this readme have been removed in preparation for these changes.
+
 Blender Development for PyCharm is a comprehensive plugin that streamlines the creation and debugging of Blender extensions by enabling seamless launch and real-time reloading directly from the IDE. It features a dedicated management system for multiple Blender versions (LTS 4.2+, 5.0, & 5.1) and offers robust auto-reload capabilities powered by bidirectional TCP communication. With an integrated project wizard and multi-language support, it provides a powerful environment for developers to manage complex, multi-source projects with ease.
-
-## Documentation
-- [Installation Guide](https://wiki.sakura-sedaia.com/docs/blender-development-pycharm/getting-started/installation.html)
-- [Operating Instructions](https://wiki.sakura-sedaia.com/docs/blender-development-pycharm/usage/index.html)
-- [Architecture Overview](https://wiki.sakura-sedaia.com/docs/blender-development-pycharm/core-concepts/architecture.html)
-- [Contributing](https://wiki.sakura-sedaia.com/docs/blender-development-pycharm/contributing/index.html)
-- [Localized Wiki Links](https://wiki.sakura-sedaia.com/docs/blender-development-pycharm/index.html)
-- [Notices and Acknowledgments](docs/NOTICE.md)
-- [Full Documentation Wiki](https://wiki.sakura-sedaia.com/docs/blender-development-pycharm/index.html)
-
-## Features
-
-- **Integrated Blender Management**: A dedicated system for discovering, downloading, and managing multiple Blender versions (LTS 4.2+ and newer) with automatic linter configuration and sandbox isolation.
-- **Real-Time Extension Development**: Robust auto-reload capabilities powered by bidirectional TCP communication, allowing for instant feedback and live updates directly within Blender as you save your code.
-- **Automated Project Lifecycle**: Streamlined project creation via an integrated wizard that handles multi-source directory management, manifest configuration, and automated Python virtual environment setup using **uv**.
-- **Project Maintenance & Traits**: Built-in tools for managing existing projects, including the generation of agent guidelines, run configurations, `.gitignore` templates, and GPL licenses for existing projects.
-- **Platform-Aware Validation**: Smart detection of system-specific requirements, such as filesystem execution permissions (e.g., `noexec` on Linux), with guided resolution steps.
-- **Global Ready**: Comprehensive internationalization support for 11 languages, ensuring a native experience for developers worldwide.
 
 ## Installation
 
