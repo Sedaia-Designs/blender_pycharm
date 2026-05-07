@@ -14,16 +14,13 @@ class NotificationModal (private val project: Project) {
     
     fun sendError(title: String, content: String) {
         getGroup().createNotification(title, content, NotificationType.ERROR).notify(project)
-        println("[$GROUP_ID] Error ${'"'}$title${'"'}: $content")
     }
     
     fun sendWarning(title: String, content: String) {
         getGroup().createNotification(title, content, NotificationType.WARNING).notify(project)
-        println("[$GROUP_ID] Warning ${'"'}$title${'"'}: $content")
     }
     
     fun sendInfo(title: String, content: String) {
         getGroup().createNotification(title, content, NotificationType.INFORMATION).notify(project)
-        println("[$GROUP_ID] Info ${'"'}$title${'"'}: $content")
     }
 }
