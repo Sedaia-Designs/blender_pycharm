@@ -1,4 +1,24 @@
 .gradle
+build
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+.kotlin
+
+### IntelliJ IDEA ###
 .idea
 .intellijPlatform
-build
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### Mac OS ###
+.DS_Store
+
+### PROJECT SPECIFIC ###
+.hidden/
+.output.txt
+.reference
