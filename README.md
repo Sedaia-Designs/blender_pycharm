@@ -1,7 +1,7 @@
 # Blender Development for PyCharm
 
 > [!NOTE]
-> The full, handwritten rewrite of the source code has begun, and progress can be tracked in it's respective branch `v1-release`. Some sections of the this readme have been removed in preparation for these changes.
+> A comprehensive rewrite of the source code is currently underway. You can monitor our progress in the [v1-dev branch](../v1-dev). In preparation for these updates, certain sections of this README have been temporarily removed. The goal of this rewrite is to improve plugin stability and performance through a manually-crafted codebase, supported by AI-assisted learning.
 
 Blender Development for PyCharm is a comprehensive plugin that streamlines the creation and debugging of Blender extensions by enabling seamless launch and real-time reloading directly from the IDE. It features a dedicated management system for multiple Blender versions (LTS 4.2+, 5.0, & 5.1) and offers robust auto-reload capabilities powered by bidirectional TCP communication. With an integrated project wizard and multi-language support, it provides a powerful environment for developers to manage complex, multi-source projects with ease.
 
