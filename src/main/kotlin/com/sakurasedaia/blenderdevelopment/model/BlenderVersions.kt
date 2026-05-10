@@ -1,40 +1,45 @@
 package com.sakurasedaia.blenderdevelopment.model
 
 data class BlenderVersion(
-    val majorMinor: Double,
-    val fallbackPatch: Int,
-    val pythonVersion: String,
+    private val blender: List<Int>,
+    private val python: List<Int>,
     val compatWithOs: Map<String, List<String>>
 ) {
-    val fullVersion get() = "$majorMinor.$fallbackPatch"
+    val blVersion: String get() = blender.joinToString(separator = ".")
+    val pyVersion: String get() = python.joinToString(separator = ".")
+    
+    val blMajorMinor: String get() = "${blender[0]}.${blender[1]}"
+    val pyMajorMinor: String get() = "${python[0]}.${python[1]}"
+    
+    val blFallback: String get() = blender[2].toString()
+    val pyFallback: String get() = python[2].toString()
+    
+    val blVersionList: List<Int> get() = blender
+    val pyVersionList: List<Int> get() = python
 }
-
 
 object BlenderVersions {
     private val VERSION_TABLE = listOf(
         BlenderVersion(
-            4.2,
-            19,
-            "3.11.7",
-            mapOf(
+            blender = listOf(4, 2, 19),
+            python = listOf(3,11,7),
+            compatWithOs = mapOf(
                 "win" to listOf("x64"),
                 "mac" to listOf("x64", "arm64"),
                 "linux" to listOf("x64")
             )),
         BlenderVersion(
-            4.5,
-            8,
-            "3.11.9",
-            mapOf(
+            blender = listOf(4,5,8),
+            python = listOf(3,11,9),
+            compatWithOs = mapOf(
                 "win" to listOf("x64", "arm64"),
                 "mac" to listOf("x64", "arm64"),
                 "linux" to listOf("x64")
             )),
         BlenderVersion(
-            5.1,
-            1,
-            "3.13.9",
-            mapOf(
+            blender = listOf(5,1,1),
+            python = listOf(3,13,9),
+            compatWithOs = mapOf(
                 "win" to listOf("x64", "arm64"),
                 "mac" to listOf("arm64"),
                 "linux" to listOf("x64")
@@ -44,30 +49,37 @@ object BlenderVersions {
     @Volatile
     private var _cachedVersions: List<BlenderVersion>? = null
     
-    private fun getVersionTable(): List<BlenderVersion> {
+    private fun getVersionTableSafe(): List<BlenderVersion> {
         _cachedVersions?.let { return it }
         val versions = VERSION_TABLE
         _cachedVersions = versions
         return versions
     }
     
-    fun getFullVersion(majorMinor: Double): String? {
-        return getVersionTable().find { it.majorMinor == majorMinor }?.fullVersion
+    fun getVersionTable(): List<BlenderVersion> {
+        return getVersionTableSafe()
     }
     
-    fun getPythonVersion(majorMinor: Double): String? {
-        return getVersionTable().find { it.majorMinor == majorMinor }?.pythonVersion
+    val LIST: List<BlenderVersion>
+        get() = getVersionTable()
+    
+    fun getBlenderVersion(blMajorMinor: String): String? {
+        val normalized = normalizeVersion(blMajorMinor)
+        return getVersionTable().find { it.blMajorMinor == normalized }?.blVersion
+    }
+
+    fun getPythonVersion(blMajorMinor: String): String? {
+        val normalized = normalizeVersion(blMajorMinor)
+        return getVersionTable().find { it.blMajorMinor == normalized }?.pyVersion
     }
     
-    fun getStringList(majorMinor: Double): List<String> {
-        val selectable = mutableListOf<String>()
-        
-        selectable.addAll(getVersionTable().map { it.majorMinor.toString() })
-        
-        return selectable.distinct()
+    fun getCompatibleArch(blMajorMinor: String): Map<String, List<String>>? {
+        val normalized = normalizeVersion(blMajorMinor)
+        return getVersionTable().find { it.blMajorMinor == normalized }?.compatWithOs
     }
     
-    fun getCompatibleArch(majorMinor: Double): Map<String, List<String>>? {
-        return getVersionTable().find { it.majorMinor == majorMinor }?.compatWithOs
+    private fun normalizeVersion(version: String): String {
+        val parts = version.split('.')
+        return if (parts.size >= 2) "${parts[0]}.${parts[1]}" else version
     }
 }
