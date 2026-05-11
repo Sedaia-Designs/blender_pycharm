@@ -9,4 +9,6 @@ object BlenderIcons {
     @JvmField
     val Blender: Icon = IconLoader.getIcon(vector("blenderGray"), BlenderIcons::class.java)
     
+    @JvmField
+    val BlenderColor: Icon = IconLoader.getIcon(vector("blenderColor"), BlenderIcons::class.java)
 }

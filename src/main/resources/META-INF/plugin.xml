@@ -45,6 +45,8 @@
                 factoryClass="com.sakurasedaia.blenderdevelopment.ui.toolwindow.BlenderToolWindowFactory"
                 icon="com.sakurasedaia.blenderdevelopment.icons.BlenderIcons.Blender"
         />
+
+        <directoryProjectGenerator implementation="com.sakurasedaia.blenderdevelopment.wizard.legacy.BlenderProjectDirectoryGenerator" />
     </extensions>
 
 </idea-plugin>
