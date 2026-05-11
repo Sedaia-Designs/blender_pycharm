@@ -6,7 +6,7 @@ plugins {
     id("org.jetbrains.intellij.platform")
 }
 
-group = "com.sedaiadesigns"
+group = "com.sakurasedaia"
 version = "1.0.0-RC1"
 
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html
@@ -15,7 +15,7 @@ dependencies {
     
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
-        pycharm("2025.3.4.1")
+        pycharm("2025.3")
         testFramework(TestFrameworkType.Platform)
         
         // Add plugin dependencies for compilation here:
@@ -27,12 +27,11 @@ dependencies {
 intellijPlatform {
     pluginConfiguration {
         vendor {
-            name= "Sakura Sedaia"
-            url=" https://sakura-sedaia.com"
+            url="https://sakura-sedaia.com"
         }
         
         ideaVersion {
-            sinceBuild = "253.32098"
+            sinceBuild = "253.28294"
         }
         
         changeNotes = """
