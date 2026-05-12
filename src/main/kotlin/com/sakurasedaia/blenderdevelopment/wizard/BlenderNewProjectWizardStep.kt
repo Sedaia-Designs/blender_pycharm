@@ -1,6 +1,20 @@
-/**
- * This module defines the UI itself for the New Project Wizard API
+/*
+ * Copyright (C) 2026 Sakura Sedaia
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 package com.sakurasedaia.blenderdevelopment.wizard
 
 import com.intellij.ide.wizard.AbstractNewProjectWizardStep
@@ -27,11 +41,6 @@ import com.intellij.util.text.VersionComparatorUtil
 import com.sakurasedaia.blenderdevelopment.project.ProjectConfig
 import java.nio.file.Path
 
-/**
- * Handles Blender-related fields for the project
- *
- * @see <a href="https://plugins.jetbrains.com/docs/intellij/new-project-wizard.html">New Project Wizard API (IntelliJ Platform Docs)</a>
- */
 class BlenderNewProjectWizardStep(val parent: NewProjectWizardStep) :
     AbstractNewProjectWizardStep(parent),
     BlenderNewProjectWizardData {

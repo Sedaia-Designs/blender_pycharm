@@ -1,0 +1,23 @@
+Blender Development Plugin for PyCharm
+Copyright (C) 2026 [Your Name or Organization]
+
+This project is licensed under the GNU General Public License v3.0 (GPLv3).
+
+-------------------------------------------------------------------------------
+THIRD-PARTY ATTRIBUTIONS
+-------------------------------------------------------------------------------
+
+This project incorporates code derived from the xmake-idea project
+(https://github.com/xmake-io/xmake-idea), which is licensed under the
+Apache License, Version 2.0.
+
+Files derived from xmake-idea:
+- BlenderProjectDirectoryGenerator.kt
+- NewProjectWizardDirectoryGeneratorAdapter.kt
+
+Copyright Holders for derived portions:
+- Copyright 2022 xmake-io
+- Copyright 2000-2022 JetBrains s.r.o. and contributors
+
+The original Apache 2.0 license for these portions can be found at:
+http://www.apache.org/licenses/LICENSE-2.0

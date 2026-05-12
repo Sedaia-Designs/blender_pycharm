@@ -1,17 +1,26 @@
-/**
- * Data Storage of the project wizard, can be called by other functions later on, for example,
- * gitignore, License File (If Applicable), and Agent Guidelines.
+/*
+ * Copyright (C) 2026 Sakura Sedaia
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 package com.sakurasedaia.blenderdevelopment.wizard
 
 import com.intellij.ide.wizard.NewProjectWizardBaseData
 import com.intellij.openapi.observable.properties.GraphProperty
 
 interface BlenderNewProjectWizardData : NewProjectWizardBaseData {
-    /**
-     * The Properties below are **MANDATORY**
-     */
-    
     // This property will determine the minimum version of Blender Desired.
     val blenderVersionProperty: GraphProperty<String>
     var blenderVersion: String
@@ -32,25 +41,12 @@ interface BlenderNewProjectWizardData : NewProjectWizardBaseData {
     val manifestExtensionTypeProperty: GraphProperty<String>
     var manifestExtensionType: String
     
-    
-    
-    /**
-     * Blender Manifest Settings
-     */
-    
-    /**
-     * Blender Manifest Required Settings
-     */
     val manifestIDProperty: GraphProperty<String>
     var manifestID: String
     
     // This value will be locked to just `SPDX:GPL-3.0-or-later` due to Blender requiring the use of the copyleft license GPL V3
     val manifestLicenseProperty: GraphProperty<String>
     var manifestLicense: String
-    
-    /**
-     * Blender Manifest Optional Settings
-     */
     
     val manifestWebsiteLinkProperty: GraphProperty<String>
     var manifestWebsiteLink: String

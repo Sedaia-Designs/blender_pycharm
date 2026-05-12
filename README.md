@@ -8,16 +8,20 @@ The Blender Development for Pycharm Plugin is a comprehensive tool suite aimed a
 
 The Plugin is heavily inspired by and even uses some Python source code from [Jacques Lucke's Blender Development](https://github.com/JacquesLucke/blender_vscode) extension for [Visual Studio Code](https://code.visualstudio.com/).
 
-## License
+## Credits & Licensing
 
-This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**. See the [LICENSE](LICENSE) file for the full license text.
+### License
+This project is licensed under the **GNU General Public License v3.0**. See the [LICENSE](LICENSE) file for the full text.
 
-## Acknowledgements
+### Attributions & Third-Party Code
+* **xmake-idea:** This plugin incorporates bridge components derived from the [xmake-idea](https://github.com/xmake-io/xmake-idea) project (Apache License 2.0). See the [NOTICE](NOTICE) file for full copyright details.
+* **Blender Logo & Name:** The Blender logo and the name "Blender" are registered trademarks of the **Blender Foundation**. This project is not affiliated with or endorsed by the Blender Foundation. The Blender logo is used here for community identification purposes.
 
-### Blender Trademark
-[Blender](https://www.blender.org/) is a registered trademark of the [Blender Foundation](https://www.blender.org/about/foundation/). The [Blender logo](https://www.blender.org/about/logo/) is used within this project under **nominative fair use** to denote compatibility and integration features.
-
-This project is an independent community development and is **not** affiliated with, endorsed by, or sponsored by the Blender Foundation.
+### Acknowledgements
+* **JetBrains:** For the IntelliJ Platform SDK.
+* **AI Collaborators:** Developed with technical assistance from Gemini and Junie (JetBrains AI).
+* **Blender Foundation:** For the incredible open-source and highly extensible 3D suite that makes this plugin necessary.
+* **Community:** Thanks to the Blender and PyCharm communities for their ongoing support and feedback.
 
 ### AI Use Disclaimer
 This Project is developed in part using AI tooling, specifically Jetbrain's Junie Agent (And Associated Models) and Google's Gemini Model
@@ -27,3 +31,19 @@ This Project is developed in part using AI tooling, specifically Jetbrain's Juni
   - Automate highly repetitive tasks
 - Audit the codebase for bugs, vulnerabilities, and other issues.
 - Assist Sakura in learning Kotlin and the Intellij Platform SDK
+
+## Plans
+
+This is a complete rewrite of the core plugin, making use of modern Intellij standards as well as improving some functionalities. Here is a list of items I have planned to integrate as well as bring over from the old, poorly written extension
+
+- [x] More robust data class for managing Blender Version metadata
+- [x] Blender Project Generator (Using the NewProjectWizard API isntead of DirectoryProjectGenerator)
+- [ ] UV Integration for automated Python Virtual Environment Setup with Blender Extensions
+  - [ ] `fake-bpy-module` Package integration, automatically setting up the appropriate linter for the plugin.
+  - [ ] Automated UV installer for users who don't have UV installed
+- [ ] Custom `blproject.toml` Configuration File for Blender Extensions, with Gradle-like syncing with the Blender Manifest.
+- [ ] Blender Manifest GUI based editor
+- [ ] Debugging Protocol for Blender, allowing users to run Blender via the IDE with a Debugger attached, which will enable users to have "Hot-Reloading" of their code
+- [ ] Run Blender from the IDE in a normal capacity, allowing users to test functions in a controlled environment.
+- [ ] Blender Installation management directly from within the IDE, allowing for sandboxed installations that are separate from a User's main install
+- [ ] Full range of i18n Translations.
