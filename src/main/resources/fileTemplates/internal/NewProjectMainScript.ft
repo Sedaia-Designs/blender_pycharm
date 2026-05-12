@@ -1,0 +1,52 @@
+# Imports
+import bpy
+
+#if ($newProject == "true")
+bl_info = {
+    "name" : "${name}",
+    "author": "${author}",
+    "version" : "${version}",
+    "blender" : "${blenderVersion}",
+    "description": "${description}",
+}
+#end
+
+#if ($exampleCode == "true")
+class SIMPLE_OT_operator(bpy.types.Operator):
+    """Simple Operator Tooltip"""
+    bl_idname = "object.simple_operator"
+    bl_label = "Simple Operator"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        self.report({'INFO'}, "Hello ${author}!")
+        return {'FINISHED'}
+
+    def menu_func(self, context):
+        self.layout.operator(SIMPLE_OT_operator.bl_idname, text=SIMPLE_OT_operator.bl_label)
+
+# Register and unregister classes
+classes = (
+    SIMPLE_OT_operator,
+)
+
+def register():
+for cls in classes:
+        bpy.utils.register_class(cls)
+    bpy.types.VIEW3D_MT_object.append(menu_func)
+
+def unregister():
+for cls in reversed(classes):
+        bpy.utils.unregister_class(cls)
+    bpy.types.VIEW3D_MT_object.remove(menu_func)
+
+#else
+def register():
+    pass
+
+def unregister():
+    pass
+#end
+
+if __name__ == "__main__":
+register()

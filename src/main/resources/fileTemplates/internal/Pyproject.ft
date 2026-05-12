@@ -1,0 +1,5 @@
+[project]
+name = "$name"
+version = "$version"
+requires-python = ">=$python"
+license = "$license"

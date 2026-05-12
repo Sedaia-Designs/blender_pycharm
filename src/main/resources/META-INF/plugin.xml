@@ -47,6 +47,13 @@
         />
 
         <directoryProjectGenerator implementation="com.sakurasedaia.blenderdevelopment.wizard.legacy.BlenderProjectDirectoryGenerator" />
+
+        <internalFileTemplate name="Pyproject"/>
+        <internalFileTemplate name="BlenderManifest"/>
+        <internalFileTemplate name="GitIgnore"/>
+        <internalFileTemplate name="GplLicenseV3"/>
+        <internalFileTemplate name="README"/>
+        <fileTemplateGroup implementation="com.sakurasedaia.blenderdevelopment.project.BlenderTemplateGroupDescription"/>
     </extensions>
 
 </idea-plugin>

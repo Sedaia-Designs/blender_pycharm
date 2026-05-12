@@ -1,0 +1,43 @@
+schema_version = "1.0.0"
+
+# Need help modifying this file? Refer to https://docs.blender.org/manual/en/latest/advanced/extensions/getting_started.html#manifest
+id = "$extensionId"
+version = "$extensionVersion"
+name = "$name"
+tagline = "$description"
+maintainer = "$author"
+type = "$extensionType"
+
+#if($website && $website != "")
+website = "$website"
+#end
+
+tags = $tags
+blender_version_min = "$minBlenderVersion"
+
+#if($maxBlendVersion && $maxBlendVersion != "none" && $maxBlendVersion != "")
+blender_version_max = "$maxBlendVersion"
+#end
+
+license = [
+"$license",
+]
+
+#if(($network && $network != "") || ($files && $files != "") || ($clipboard && $clipboard != "") || ($camera && $camera != "") || ($microphone && $microphone != ""))
+[permissions]
+#if($network && $network != "")
+network = "$network"
+#end
+#if($files && $files != "")
+files = "$files"
+#end
+#if($clipboard && $clipboard != "")
+clipboard = "$clipboard"
+#end
+#if($camera && $camera != "")
+camera = "$camera"
+#end
+#if($microphone && $microphone != "")
+microphone = "$microphone"
+#end
+#end

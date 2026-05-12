@@ -1,0 +1,22 @@
+# Imports
+import bpy
+import bpy.types as T
+import bpy.props as P
+import bpy.ops as O
+import bpy.utils as U
+
+# Write Code Here
+
+
+# Register and unregister classes
+classes = (
+    # Type the Class Name here
+)
+
+def register():
+    for cls in classes:
+        U.register_class(cls)
+
+def unregister():
+    for cls in reversed(classes):
+        U.unregister_class(cls)
