@@ -65,8 +65,18 @@ data class ProjectConfig (
 )
 
 
+/**
+ * The `BlenderProjectGenerator` class is the core logic and distribution center of
+ * the new project wizard. Its primary purpose is to create the new project directory
+ * based on the user provided input, and the ProjectConfig data class passed to it by
+ * the NewProjectWizard. On top of handling the project creation, the generator functions
+ * below the main `generate` function can be called after project creation
+ */
 class BlenderProjectGenerator(val data: ProjectConfig) {
-    fun generate(project: Project, baseDir: VirtualFile) {
+    /**
+     * Must only be called by the NewProjectWizard, as it generates the new Project itself.
+     */
+    fun generateNewProject(project: Project, baseDir: VirtualFile) {
         WriteCommandAction.runWriteCommandAction(project) {
             try {
                 val sourceDir = baseDir.findChild("src") ?: baseDir.createChildDirectory(this, "src")
@@ -106,10 +116,7 @@ class BlenderProjectGenerator(val data: ProjectConfig) {
                 generateLicense(project, baseDir)
                 
             } catch (e: IOException) {
-                PluginLogger.error(
-                    project,
-                    message = e.toString()
-                )
+            
             }
         }
         

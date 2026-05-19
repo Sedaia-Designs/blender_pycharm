@@ -325,6 +325,6 @@ class BlenderNewProjectWizardStep(val parent: NewProjectWizardStep) :
         val baseDir = VfsUtil.findFileByIoFile(projectPath.toFile(), true)
             ?: throw IllegalStateException(MessageBundle.message("project.wizard.error.project.directory.not.found", projectPath.toString()))
         
-        BlenderProjectGenerator(data).generate(project, baseDir)
+        BlenderProjectGenerator(data).generateNewProject(project, baseDir)
     }
 }
