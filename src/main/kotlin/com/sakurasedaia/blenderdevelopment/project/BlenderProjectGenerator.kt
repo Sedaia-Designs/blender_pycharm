@@ -26,6 +26,10 @@ import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.model.BlenderVersions
+import com.sakurasedaia.blenderdevelopment.uvPython.UvHelper
+import com.sakurasedaia.blenderdevelopment.uvPython.UvProjectScope
+import com.intellij.openapi.components.service
+import kotlinx.coroutines.launch
 import kotlinx.io.IOException
 import org.jetbrains.jps.model.java.JavaSourceRootType
 import java.util.Properties
@@ -78,6 +82,7 @@ class BlenderProjectGenerator(val data: ProjectConfig) {
      * Must only be called by the NewProjectWizard, as it generates the new Project itself.
      */
     fun generateNewProject(project: Project, baseDir: VirtualFile) {
+        PluginLogger.log(project, "Creating new project for ${data.name} at ${baseDir.path}")
         WriteCommandAction.runWriteCommandAction(project) {
             try {
                 val sourceDir = baseDir.findChild("src") ?: baseDir.createChildDirectory(this, "src")
@@ -109,8 +114,12 @@ class BlenderProjectGenerator(val data: ProjectConfig) {
                 generateMainScript(project, sourceDir)
                 
                 // Repository Extras
-                if (data.initiateUvInstance) generatePyproject(project, baseDir)
+                if (data.initiateUvInstance) {
+                    generatePyproject(project, baseDir)
+                    PluginLogger.log(project, "Initializing UV Instance")
+                }
                 if (data.isGitInitialized) {
+                    PluginLogger.log(project, "Initializing Git instance")
                     generateGitIgnore(project, baseDir)
                     generateReadme(project, baseDir)
                 }
