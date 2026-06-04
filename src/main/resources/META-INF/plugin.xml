@@ -61,6 +61,7 @@
                 displayName="Blender Development"
                 instance="com.sakurasedaia.blenderdevelopment.ui.settings.BlenderSettingsFactory"
         />
+        <configurationType implementation="com.sakurasedaia.blenderdevelopment.run.BlenderRunConfigurationType" />
 
         <directoryProjectGenerator implementation="com.sakurasedaia.blenderdevelopment.wizard.legacy.BlenderProjectDirectoryGenerator" />
 
