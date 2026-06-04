@@ -17,50 +17,81 @@
 
 package com.sakurasedaia.blenderdevelopment.system
 
+import com.intellij.openapi.util.SystemInfo
+import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import kotlinx.coroutines.runBlocking
-import javax.swing.JComponent
+import java.io.File
+import java.nio.file.Files
 
 /** Integration-style tests for [ExternalProcessUtil] command execution. */
 class ExternalProcessUtilTest : BasePlatformTestCase() {
-    
-    /**
-     * Verifies `echo` execution returns a non-null console component.
-     *
-     * @return `Unit`.
-     */
-    fun testEchoCommandReturnsConsoleComponent() {
+    override fun runInDispatchThread(): Boolean = false
+
+    fun testJavaVersionCommandReturnsConsoleComponent() {
         val util = ExternalProcessUtil(project)
         val workingDir = System.getProperty("java.io.tmpdir")
-        
-        val component: JComponent = runBlocking {
-            util.runExternalToolAsync(
-                executable = "echo",
-                arguments = listOf("hello", "from", "ExternalProcessUtil"),
-                workingDir = workingDir
-            )
+        val disposable = Disposer.newDisposable()
+
+        try {
+            val result = runBlocking {
+                util.runExternalToolAsync(
+                    executable = bundledJavaExecutable(),
+                    arguments = listOf("-version"),
+                    workingDir = workingDir,
+                    parentDisposable = disposable,
+                )
+            }
+
+            assertEquals("java -version should exit cleanly", 0, result.exitCode)
+            assertNotNull("Returned console component should not be null", result.component)
+        } finally {
+            ApplicationManager.getApplication().invokeAndWait { Disposer.dispose(disposable) }
         }
-        
-        assertNotNull("Returned console component should not be null", component)
     }
-    
-    /**
-     * Verifies listing directory contents returns a non-null console component.
-     *
-     * @return `Unit`.
-     */
-    fun testLsCommandReturnsConsoleComponent() {
+
+    fun testPrepareCommandResolvesRelativeExecutableAgainstWorkingDirectory() {
         val util = ExternalProcessUtil(project)
-        val workingDir = System.getProperty("java.io.tmpdir")
-        
-        val component: JComponent = runBlocking {
-            util.runExternalToolAsync(
-                executable = "ls",
-                arguments = emptyList(),
-                workingDir = workingDir
-            )
+        val tempDir = Files.createTempDirectory("external-process-util-test").toFile()
+        val script = File(tempDir, "sample-tool")
+        assertTrue(script.createNewFile())
+        assertTrue(script.setExecutable(true))
+
+        val prepared = util.prepareCommand(
+            executable = "./sample-tool",
+            arguments = listOf("--version"),
+            workingDirectory = tempDir,
+        )
+
+        assertEquals(script.absolutePath, prepared.executable)
+        assertEquals(listOf("--version"), prepared.arguments)
+    }
+
+    fun testPrepareCommandWrapsMacApplicationBundlesWithOpenArgs() {
+        val util = ExternalProcessUtil(project)
+        val bundlePath = "/Applications/Blender.app"
+
+        val prepared = util.prepareCommand(
+            executable = bundlePath,
+            arguments = listOf("--debug"),
+        )
+
+        if (SystemInfo.isMac) {
+            assertEquals("open", prepared.executable)
+            assertEquals(listOf(bundlePath, "--args", "--debug"), prepared.arguments)
+        } else {
+            assertEquals(bundlePath, prepared.executable)
+            assertEquals(listOf("--debug"), prepared.arguments)
         }
-        
-        assertNotNull("Returned console component should not be null", component)
+    }
+
+    private fun bundledJavaExecutable(): String {
+        val bin = File(System.getProperty("java.home"), "bin")
+        return if (SystemInfo.isWindows) {
+            File(bin, "java.exe").absolutePath
+        } else {
+            File(bin, "java").absolutePath
+        }
     }
 }

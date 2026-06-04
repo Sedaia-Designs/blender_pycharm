@@ -49,6 +49,7 @@ data class ExternalToolResult(val exitCode: Int, val component: JComponent)
 
 /** Executes external commands and provides live IntelliJ console output. */
 class ExternalProcessUtil(private val project: Project) {
+    internal data class PreparedCommand(val executable: String, val arguments: List<String>)
 
     /**
      * Executes an external tool asynchronously via Kotlin Coroutines.
@@ -76,11 +77,11 @@ class ExternalProcessUtil(private val project: Project) {
         val workDir = File(workingDir).takeIf { it.isDirectory }
             ?: error("Working directory does not exist: $workingDir")
 
-        val resolved = resolveExecutable(executable)
+        val preparedCommand = prepareCommand(executable, arguments, workDir)
 
         // 1. Configure the command line execution
-        val commandLine = GeneralCommandLine(resolved)
-            .withParameters(arguments)
+        val commandLine = GeneralCommandLine(preparedCommand.executable)
+            .withParameters(preparedCommand.arguments)
             .withWorkDirectory(workDir)
             .withCharset(Charsets.UTF_8)
             .withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE)
@@ -98,13 +99,13 @@ class ExternalProcessUtil(private val project: Project) {
             })
 
         // 2/3/4. Create the visual Console UI component and bind it to the process handler -- on EDT.
-        val (consoleView, processHandler) = withContext(Dispatchers.EDT) {
+        val (consoleComponent, processHandler) = withContext(Dispatchers.EDT) {
             val view: ConsoleView = TextConsoleBuilderFactory.getInstance()
                 .createBuilder(project).console
             Disposer.register(parentDisposable, view) // prevent leaks on repeated invocations
             val handler = ColoredProcessHandler(commandLine)
             view.attachToProcess(handler)
-            view to handler
+            view.component to handler
         }
 
         // 5. Add custom logging hooks for backend tracking
@@ -120,7 +121,7 @@ class ExternalProcessUtil(private val project: Project) {
             override fun processTerminated(event: ProcessEvent) {
                 PluginLogger.log(
                     project,
-                    "External process '$executable ${arguments.joinToString(" ")}' " +
+                    "External process '${preparedCommand.executable} ${preparedCommand.arguments.joinToString(" ")}' " +
                         "finished with exit code: ${event.exitCode}"
                 )
             }
@@ -138,7 +139,33 @@ class ExternalProcessUtil(private val project: Project) {
                 processHandler.startNotify()
             }
         }
-        return ExternalToolResult(exitCode, consoleView.component)
+        return ExternalToolResult(exitCode, consoleComponent)
+    }
+
+    /**
+     * When running the ExternalProcessUtil, this function is responsible for accurately
+     * assembling the correct command to execute an app regardless of the OS, since macOS
+     * requires a special command to launch .app bundles while Windows and Linux can run
+     * the binary directly.
+     *
+     * @param executable The command or path to the executable (e.g., "blender", "blender.exe", "Blender.app").
+     * @param arguments The list of arguments to pass to the executable.
+     * @param workingDirectory The directory where the command should execute.
+     * @return [PreparedCommand] A data class containing the resolved executable path and arguments.
+     */
+    internal fun prepareCommand(
+        executable: String,
+        arguments: List<String>,
+        workingDirectory: File? = null,
+    ): PreparedCommand {
+        val resolvedExecutable = resolveExecutable(executable, workingDirectory)
+        if (SystemInfo.isMac && resolvedExecutable.endsWith(".app", ignoreCase = true)) {
+            return PreparedCommand(
+                executable = "open",
+                arguments = listOf(resolvedExecutable, "--args") + arguments,
+            )
+        }
+        return PreparedCommand(executable = resolvedExecutable, arguments = arguments)
     }
 
     /**
@@ -150,17 +177,43 @@ class ExternalProcessUtil(private val project: Project) {
      *     inherited PATH on macOS when the IDE is launched from Finder/Spotlight.
      *
      * @param name executable name or path.
-     * @return resolved executable path, or original [name] if unresolved.
+     * @param workingDirectory working directory to resolve relative paths against.
+     * @return Resolved executable path, or original [name] if unresolved.
      */
-    private fun resolveExecutable(name: String): String {
-        if (File(name).isAbsolute) return name
-        PathEnvironmentVariableUtil.findInPath(name)?.let { return it.absolutePath }
+    private fun resolveExecutable(name: String, workingDirectory: File? = null): String {
+        val trimmed = name.trim()
+        require(trimmed.isNotEmpty()) { "Executable name cannot be blank." }
+
+        val directPath = resolvePathLikeExecutable(trimmed, workingDirectory)
+        if (directPath != null) return directPath
+
+        PathEnvironmentVariableUtil.findInPath(trimmed)?.let { return it.absolutePath }
         val home = System.getProperty("user.home")
         val candidates = if (SystemInfo.isWindows) {
-            listOf("$home\\.local\\bin\\$name.exe", "$home\\.cargo\\bin\\$name.exe")
+            val suffixes = listOf(".exe", ".cmd", ".bat")
+            listOf("$home\\.local\\bin", "$home\\.cargo\\bin")
+                .flatMap { base -> suffixes.map { suffix -> "$base\\$trimmed$suffix" } }
         } else {
-            listOf("$home/.local/bin/$name", "$home/.cargo/bin/$name")
+            listOf("$home/.local/bin/$trimmed", "$home/.cargo/bin/$trimmed")
         }
-        return candidates.firstOrNull { File(it).canExecute() } ?: name
+        return candidates.firstOrNull { File(it).canExecute() } ?: trimmed
+    }
+    
+    /**
+     * Resolves a path-like executable name to its absolute path, if possible.
+     *
+     * @param name executable name or path.
+     * @param workingDirectory working directory to resolve relative paths against.
+     * @return Resolved executable path, or original [name] if unresolved.
+     */
+    private fun resolvePathLikeExecutable(name: String, workingDirectory: File?): String? {
+        val file = File(name)
+        if (file.isAbsolute && file.exists()) return file.toPath().normalize().toString()
+        if (file.isAbsolute) return name
+
+        if (!name.contains("/") && !name.contains("\\") && !name.startsWith(".")) return null
+
+        val resolved = workingDirectory?.resolve(name) ?: file
+        return if (resolved.exists()) resolved.toPath().toAbsolutePath().normalize().toString() else name
     }
 }
