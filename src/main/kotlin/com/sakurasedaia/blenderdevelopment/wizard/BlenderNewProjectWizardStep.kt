@@ -119,6 +119,9 @@ class BlenderNewProjectWizardStep(val parent: NewProjectWizardStep) :
     // TODO: Add options to restrict what platforms can and cannot use the plugin
     val restrictVersionsProperty: GraphProperty<Boolean> = propertyGraph.property(false)
     
+    override val blenderDebugSymlinkProperty: GraphProperty<String> = propertyGraph.property("")
+    override var blenderDebugSymlinkName: String by blenderDebugSymlinkProperty
+    
     // --- 3. UI Layout Props ---
     private lateinit var uvCheckBox: Cell<JBCheckBox>
     val pythonVersionData: (String) -> String? = { blMajorMinor -> BlenderVersions.getPythonVersion(blMajorMinor) }

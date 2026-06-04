@@ -63,6 +63,8 @@ interface BlenderNewProjectWizardData : NewProjectWizardBaseData {
     var manifestMaxBlenderVersion: String
     
     // TODO: Impement a system to help users restrict what OS's can and cannot use this plugin
+    val blenderDebugSymlinkProperty: GraphProperty<String>
+    var blenderDebugSymlinkName: String
     
     // If the reason is left blank or has only spaces, tabs, or any other symbole it will not be added to the manifest.
     val manifestFilesPermissionProperty: GraphProperty<String>
