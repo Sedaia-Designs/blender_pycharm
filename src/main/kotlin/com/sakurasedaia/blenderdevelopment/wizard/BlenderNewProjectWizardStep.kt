@@ -146,53 +146,53 @@ class BlenderNewProjectWizardStep(val parent: NewProjectWizardStep) :
     override fun setupUI(builder: Panel) {
         with(builder) {
             
-            row(MessageBundle.message("project.wizard.row.label.extension.type")) {
+            row(MessageBundle.message("ui.project.wizard.row.label.extension.type")) {
                 segmentedButton(listOf("Extension", "Add-on")) { text = it }
                     .bind(manifestExtensionTypeProperty)
             }.bottomGap(BottomGap.SMALL)
             
-            group(MessageBundle.message("project.wizard.ui.group.project.label")) {
-                row(MessageBundle.message("project.wizard.ui.group.project.author")) {
+            group(MessageBundle.message("ui.project.wizard.ui.group.project.label")) {
+                row(MessageBundle.message("ui.project.wizard.ui.group.project.author")) {
                     textField().bindText(authorNameProperty)
                 }
-                row(MessageBundle.message("project.wizard.ui.group.project.blender.version")) {
+                row(MessageBundle.message("ui.project.wizard.ui.group.project.blender.version")) {
                     comboBox(BlenderVersions.LIST.map { it.blMajorMinor }).bindItem(blenderVersionProperty)
                     uvCheckBox = checkBox(getFormattedLabel(pythonVersion))
                         .bindSelected(initiateUvInstanceProperty)
                 }
                 row {
-                    checkBox(MessageBundle.message("project.wizard.ui.group.project.add_example_code")).bindSelected(addExampleCodeProperty)
+                    checkBox(MessageBundle.message("ui.project.wizard.ui.group.project.add_example_code")).bindSelected(addExampleCodeProperty)
                 }
-                row(MessageBundle.message("project.wizard.ui.group.project.license")) {
+                row(MessageBundle.message("ui.project.wizard.ui.group.project.license")) {
                     textField().bindText(manifestLicenseProperty).enabled(false)
                 }
                 
-                row(MessageBundle.message("project.wizard.ui.group.project.website.docs")) {
+                row(MessageBundle.message("ui.project.wizard.ui.group.project.website.docs")) {
                     textField().bindText(manifestWebsiteLinkProperty)
                         .validationOnInput {
                             if (!manifestWebsiteLink.startsWith("https://")) {
-                                error(MessageBundle.message("project.wizard.ui.group.manifest.website.error.improper_format"))
+                                error(MessageBundle.message("ui.project.wizard.ui.group.manifest.website.error.improper_format"))
                             } else {
                                 null
                             }
                         }
-                        .comment(MessageBundle.message("project.wizard.ui.group.manifest.website.description"))
+                        .comment(MessageBundle.message("ui.project.wizard.ui.group.manifest.website.description"))
                 }.visibleIf(manifestExtensionTypeProperty.equalsTo("Addon"))
                 
-                row(MessageBundle.message("project.wizard.ui.group.project.description")) {
+                row(MessageBundle.message("ui.project.wizard.ui.group.project.description")) {
                     textArea().bindText(descriptionProperty)
                 }
             }
             
-            group(MessageBundle.message("project.wizard.ui.group.manifest.label")) {
-                row(MessageBundle.message("project.wizard.ui.group.manifest.addon_id")) {
+            group(MessageBundle.message("ui.project.wizard.ui.group.manifest.label")) {
+                row(MessageBundle.message("ui.project.wizard.ui.group.manifest.addon_id")) {
                     textField().bindText(manifestIDProperty).applyToComponent {
                         whenTextChangedFromUi {
                             isEnabled = true
                         }
                     }.validationOnInput { sb ->
                         if (! sb.text.matches(Regex("^[a-zA-Z0-9_]*$"))) {
-                            error(MessageBundle.message("project.wizard.ui.group.manifest.addon_id.error"))
+                            error(MessageBundle.message("ui.project.wizard.ui.group.manifest.addon_id.error"))
                         } else {
                             null
                         }
@@ -200,7 +200,7 @@ class BlenderNewProjectWizardStep(val parent: NewProjectWizardStep) :
                 }
                 
                 
-                row(MessageBundle.message("project.wizard.ui.group.manifest.min.blender")) {
+                row(MessageBundle.message("ui.project.wizard.ui.group.manifest.min.blender")) {
                     comboBox(BlenderVersions.LIST.map { it.blMajorMinor })
                         .bindItem(manifestMinBlenderVersionProperty)
                         .validationOnInput {// Directly access both properties here
@@ -208,64 +208,64 @@ class BlenderNewProjectWizardStep(val parent: NewProjectWizardStep) :
                             val max = manifestMaxBlenderVersionProperty.get()
                             
                             if (max != "None" && VersionComparatorUtil.compare(min, max) > 0) {
-                                error(MessageBundle.message("project.wizard.ui.group.manifest.min.blender.error"))
+                                error(MessageBundle.message("ui.project.wizard.ui.group.manifest.min.blender.error"))
                             } else null
                         }
                 }
                 
-                row(MessageBundle.message("project.wizard.ui.group.manifest.max.blender")) {
+                row(MessageBundle.message("ui.project.wizard.ui.group.manifest.max.blender")) {
                     comboBox(listOf("None") + BlenderVersions.LIST.map { it.blMajorMinor })
                         .bindItem(manifestMaxBlenderVersionProperty)
                         .validationOnInput {val min = manifestMinBlenderVersionProperty.get()
                             val max = manifestMaxBlenderVersionProperty.get()
                             
                             if (max != "None" && VersionComparatorUtil.compare(min, max) > 0) {
-                                error(MessageBundle.message("project.wizard.ui.group.manifest.max.blender.error"))
+                                error(MessageBundle.message("ui.project.wizard.ui.group.manifest.max.blender.error"))
                             } else null
                         }
                 }
-                row(MessageBundle.message("project.wizard.ui.group.manifest.tags.label")) {
+                row(MessageBundle.message("ui.project.wizard.ui.group.manifest.tags.label")) {
                     textField().bindText(manifestTagsProperty)
                         .align(AlignX.FILL)
-                        .comment(MessageBundle.message("project.wizard.ui.group.manifest.tags.description"))
+                        .comment(MessageBundle.message("ui.project.wizard.ui.group.manifest.tags.description"))
                 }
-                row(MessageBundle.message("project.wizard.ui.group.manifest.website.label")) {
+                row(MessageBundle.message("ui.project.wizard.ui.group.manifest.website.label")) {
                     textField().bindText(manifestWebsiteLinkProperty)
                         .validationOnInput {
                             if (!manifestWebsiteLink.startsWith("https://")) {
-                                error(MessageBundle.message("project.wizard.ui.group.manifest.website.error.improper_format"))
+                                error(MessageBundle.message("ui.project.wizard.ui.group.manifest.website.error.improper_format"))
                             } else {
                                 null
                             }
                         }
-                        .comment(MessageBundle.message("project.wizard.ui.group.manifest.website.description"))
+                        .comment(MessageBundle.message("ui.project.wizard.ui.group.manifest.website.description"))
                     
                 }
-                group(MessageBundle.message("project.wizard.ui.group.manifest.permissions.label")) {
+                group(MessageBundle.message("ui.project.wizard.ui.group.manifest.permissions.label")) {
                     row {
-                        comment(MessageBundle.message("project.wizard.ui.group.manifest.permissions.description"))
+                        comment(MessageBundle.message("ui.project.wizard.ui.group.manifest.permissions.description"))
                     }
-                    row(MessageBundle.message("project.wizard.ui.group.manifest.permissions.files")) {
+                    row(MessageBundle.message("ui.project.wizard.ui.group.manifest.permissions.files")) {
                         textField().bindText(manifestFilesPermissionProperty)
                             .align(AlignX.FILL)
                     }
                     
-                    row(MessageBundle.message("project.wizard.ui.group.manifest.permissions.network")) {
+                    row(MessageBundle.message("ui.project.wizard.ui.group.manifest.permissions.network")) {
                         textField().bindText(manifestNetworkPermissionProperty)
                             .align(AlignX.FILL)
                     }
                     
-                    row(MessageBundle.message("project.wizard.ui.group.manifest.permissions.clipboard")) {
+                    row(MessageBundle.message("ui.project.wizard.ui.group.manifest.permissions.clipboard")) {
                         textField().bindText(manifestClipboardPermissionProperty)
                             .align(AlignX.FILL)
                     }
                     
-                    row(MessageBundle.message("project.wizard.ui.group.manifest.permissions.camera")) {
+                    row(MessageBundle.message("ui.project.wizard.ui.group.manifest.permissions.camera")) {
                         textField().bindText(manifestCameraPermissionProperty)
                             .align(AlignX.FILL)
                     }
                     
-                    row(MessageBundle.message("project.wizard.ui.group.manifest.permissions.microphone")) {
+                    row(MessageBundle.message("ui.project.wizard.ui.group.manifest.permissions.microphone")) {
                         textField().bindText(manifestMicrophonePermissionProperty)
                             .align(AlignX.FILL)
                     }
@@ -287,7 +287,7 @@ class BlenderNewProjectWizardStep(val parent: NewProjectWizardStep) :
     }
     // Helper to keep your string formatting in one place
     private fun getFormattedLabel(version: String): String {
-        return MessageBundle.message("project.wizard.ui.group.project.initiate.uv", version)
+        return MessageBundle.message("ui.project.wizard.ui.group.project.initiate.uv", version)
     }
     // --- 5. Project Generation ---
     override fun setupProject(project: Project) {
@@ -323,7 +323,7 @@ class BlenderNewProjectWizardStep(val parent: NewProjectWizardStep) :
         
         val projectPath: Path = context.projectDirectory
         val baseDir = VfsUtil.findFileByIoFile(projectPath.toFile(), true)
-            ?: throw IllegalStateException(MessageBundle.message("project.wizard.error.project.directory.not.found", projectPath.toString()))
+            ?: throw IllegalStateException(MessageBundle.message("ui.project.wizard.error.project.directory.not.found", projectPath.toString()))
         
         BlenderProjectGenerator(data).generateNewProject(project, baseDir)
     }

@@ -31,7 +31,7 @@ import com.sakurasedaia.blenderdevelopment.icons.BlenderIcons
 import javax.swing.Icon
 
 class BlenderPythonProjectWizard : GeneratorNewProjectWizard {
-    override val name: String = MessageBundle.message("project.wizard.template.title")
+    override val name: String = MessageBundle.message("ui.project.wizard.template.title")
     override val id: String = "BlenderPythonProjectWizard"
     override val icon: Icon = BlenderIcons.BlenderColor
     

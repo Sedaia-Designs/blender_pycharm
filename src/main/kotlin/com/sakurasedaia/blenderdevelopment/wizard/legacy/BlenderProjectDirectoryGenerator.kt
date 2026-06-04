@@ -43,7 +43,7 @@ import com.intellij.platform.DirectoryProjectGenerator
 import com.sakurasedaia.blenderdevelopment.wizard.BlenderNewProjectWizardData
 import com.sakurasedaia.blenderdevelopment.wizard.BlenderPythonProjectWizard
 
-@Deprecated("This Module is slated for removal once PyCharm migrates to the newer ${"NewProjectWizard"} API.")
+@Deprecated("This Module is slated for removal once PyCharm properly migrates to the newer ${"NewProjectWizard"} API.")
 class BlenderProjectDirectoryGenerator :
     NewProjectWizardDirectoryGeneratorAdapter<BlenderNewProjectWizardData>(BlenderPythonProjectWizard()),
     CustomStepProjectGenerator<BlenderNewProjectWizardData> {

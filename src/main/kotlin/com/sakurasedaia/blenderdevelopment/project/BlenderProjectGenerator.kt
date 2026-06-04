@@ -137,8 +137,8 @@ class BlenderProjectGenerator(val data: ProjectConfig) {
         val template = when (internal) {
             true -> templateManager.getInternalTemplate(templateFileName)
             else -> templateManager.getTemplate(templateFileName)
-        } ?: throw IllegalStateException(MessageBundle.message("project.wizard.error.project.template.file.missing", templateFileName))
-        if (template.text.isEmpty()) throw IllegalStateException(MessageBundle.message("project.wizard.error.project.template.template.missing", templateFileName))
+        } ?: throw IllegalStateException(MessageBundle.message("ui.project.wizard.error.project.template.file.missing", templateFileName))
+        if (template.text.isEmpty()) throw IllegalStateException(MessageBundle.message("ui.project.wizard.error.project.template.template.missing", templateFileName))
         
         val templateProps = Properties(templateManager.defaultProperties)
         
