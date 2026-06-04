@@ -20,6 +20,7 @@ package com.sakurasedaia.blenderdevelopment.wizard
 import com.intellij.ide.wizard.NewProjectWizardBaseData
 import com.intellij.openapi.observable.properties.GraphProperty
 
+/** Contract for state exchanged between the Blender new-project UI and generator. */
 interface BlenderNewProjectWizardData : NewProjectWizardBaseData {
     // This property will determine the minimum version of Blender Desired.
     val blenderVersionProperty: GraphProperty<String>

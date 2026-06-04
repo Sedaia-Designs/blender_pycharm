@@ -41,6 +41,7 @@ import com.intellij.util.text.VersionComparatorUtil
 import com.sakurasedaia.blenderdevelopment.project.ProjectConfig
 import java.nio.file.Path
 
+/** Wizard step that collects Blender-specific settings and creates project files. */
 class BlenderNewProjectWizardStep(val parent: NewProjectWizardStep) :
     AbstractNewProjectWizardStep(parent),
     BlenderNewProjectWizardData {
@@ -146,6 +147,12 @@ class BlenderNewProjectWizardStep(val parent: NewProjectWizardStep) :
     // --- 4. UI Layout ---
     
     @Suppress("UnstableApiUsage")
+    /**
+     * Renders the form controls for Blender project options.
+     *
+     * @param builder UI DSL panel builder for this step.
+     * @return `Unit`.
+     */
     override fun setupUI(builder: Panel) {
         with(builder) {
             
@@ -289,10 +296,22 @@ class BlenderNewProjectWizardStep(val parent: NewProjectWizardStep) :
         }
     }
     // Helper to keep your string formatting in one place
+    /**
+     * Formats the UV checkbox label for the selected Python version.
+     *
+     * @param version Python version shown in the label.
+     * @return formatted localized checkbox text.
+     */
     private fun getFormattedLabel(version: String): String {
         return MessageBundle.message("ui.project.wizard.ui.group.project.initiate.uv", version)
     }
     // --- 5. Project Generation ---
+    /**
+     * Converts wizard input into [ProjectConfig] and triggers generation.
+     *
+     * @param project target project being created.
+     * @return `Unit`.
+     */
     override fun setupProject(project: Project) {
         
         val gitData = data.getUserData(GitNewProjectWizardData.KEY)

@@ -22,7 +22,13 @@ import com.intellij.ide.fileTemplates.FileTemplateGroupDescriptor
 import com.intellij.ide.fileTemplates.FileTemplateGroupDescriptorFactory
 import com.sakurasedaia.blenderdevelopment.icons.BlenderIcons
 
+/** Registers the plugin's file templates under the Blender template group. */
 class BlenderTemplateGroupDescription : FileTemplateGroupDescriptorFactory {
+    /**
+     * Builds the template group descriptor shown in the New File dialog.
+     *
+     * @return file template group descriptor with Blender templates.
+     */
     override fun getFileTemplatesDescriptor(): FileTemplateGroupDescriptor {
         val group = FileTemplateGroupDescriptor("Blender", BlenderIcons.BlenderColor)
         group.addTemplate(FileTemplateDescriptor("Main Script.py", BlenderIcons.PythonIcon))

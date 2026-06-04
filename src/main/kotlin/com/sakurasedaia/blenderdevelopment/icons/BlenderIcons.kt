@@ -20,6 +20,7 @@ package com.sakurasedaia.blenderdevelopment.icons
 import com.intellij.openapi.util.IconLoader
 import javax.swing.Icon
 
+/** Central icon registry for the Blender plugin. */
 object BlenderIcons {
     private val vector: (String) -> String = { name: String -> "/images/$name.svg"}
     

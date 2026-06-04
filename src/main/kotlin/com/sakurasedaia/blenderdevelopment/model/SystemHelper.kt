@@ -19,25 +19,54 @@ package com.sakurasedaia.blenderdevelopment.model
 
 import kotlinx.io.files.Path
 
+/** Normalized host platform information used by Blender compatibility checks. */
 data class SysInfo(
     val osName: String,
     val osVersion: String,
     val osArch: String,
 )
 
+
+/** Helpers for host OS/CPU detection and Blender compatibility validation. */
 object SystemHelper {
     private val rawSysArch = System.getProperty("os.arch").orEmpty().lowercase()
+    
+    
+    /**
+     * Returns whether the normalized CPU architecture string contains [input].
+     *
+     * @param input architecture token to match.
+     * @return `true` when the token is present in the architecture string.
+     */
+    
     private fun isArch(input: String): Boolean = input in rawSysArch
+    
     // returns a simple value in line with Blender's Filename scheme
     private val cpuArch = when {
         isArch("aarch64") || isArch("arm64") -> "arm64"
         isArch("x86_64") || isArch("amd64") -> "x64"
         else -> "unknown"
     }
+    
+    
+    /**
+     * Returns whether the file path ends with the provided extension.
+     *
+     * @param path file path to inspect.
+     * @param extension expected extension.
+     * @return `true` when the file name ends with [extension], case-insensitive.
+     */
     fun isFileExt(path: Path, extension: String): Boolean = path.name.endsWith(extension, ignoreCase=true)
     
-    
     private val rawOsName = System.getProperty("os.name").orEmpty().lowercase()
+    
+    
+    /**
+     * Returns whether the normalized OS name string contains [input].
+     *
+     * @param input OS token to match.
+     * @return `true` when the token is present in the OS name string.
+     */
     private fun isOS(input: String): Boolean = input in rawOsName
     private val parseOsName = when {
         isOS("windows") -> "win"
@@ -52,6 +81,13 @@ object SystemHelper {
         osArch = cpuArch
     )
     
+    
+    /**
+     * Returns whether the current host can run the selected Blender major/minor version.
+     *
+     * @param blMajorMinor target Blender major/minor version.
+     * @return `true` if current OS/arch is listed as compatible.
+     */
     fun isOSCompatible(blMajorMinor: String): Boolean {
         val systemInfo = sysInfo
         

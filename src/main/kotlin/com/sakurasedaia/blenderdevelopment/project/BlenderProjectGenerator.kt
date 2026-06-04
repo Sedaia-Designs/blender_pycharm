@@ -36,6 +36,7 @@ import java.util.Properties
 import com.sakurasedaia.blenderdevelopment.common.MessageBundle
 import com.sakurasedaia.blenderdevelopment.config.BlenderProjectConfig
 
+/** Immutable configuration payload consumed by [BlenderProjectGenerator]. */
 data class ProjectConfig (
     // Base Project Info
     val name: String,
@@ -80,6 +81,10 @@ data class ProjectConfig (
 class BlenderProjectGenerator(val data: ProjectConfig) {
     /**
      * Must only be called by the NewProjectWizard, as it generates the new Project itself.
+     *
+     * @param project project being initialized.
+     * @param baseDir project root directory.
+     * @return `Unit`.
      */
     fun generateNewProject(project: Project, baseDir: VirtualFile) {
         PluginLogger.log(project, "Creating new project for ${data.name} at ${baseDir.path}")
@@ -165,6 +170,18 @@ class BlenderProjectGenerator(val data: ProjectConfig) {
         PluginLogger.log(project, "Project generation complete")
     }
     
+    
+    /**
+     * Renders a file template and writes it to the target directory.
+     *
+     * @param project active project context.
+     * @param targetName output file name.
+     * @param templateName optional template name override.
+     * @param parentDir parent directory for generated output.
+     * @param internal whether the template comes from internal templates.
+     * @param args key/value template variables.
+     * @return rendered template content.
+     */
     private fun createFromTemplate(
         project: Project,
         targetName: String,
@@ -197,6 +214,13 @@ class BlenderProjectGenerator(val data: ProjectConfig) {
         return result
     }
     
+    /**
+     * Creates `pyproject.toml` from the internal file template.
+     *
+     * @param project active project context.
+     * @param baseDir project root directory.
+     * @return `Unit`.
+     */
     fun generatePyproject(project: Project, baseDir: VirtualFile) {
         createFromTemplate(
             project,
@@ -210,8 +234,15 @@ class BlenderProjectGenerator(val data: ProjectConfig) {
             Pair("license", data.projectLicense),
         )
     }
+    /**
+     * Creates `blender_manifest.toml` from wizard configuration values.
+     *
+     * @param project active project context.
+     * @param baseDir output directory for the manifest file.
+     * @return `Unit`.
+     */
     fun generateManifest(project: Project, baseDir: VirtualFile) {
-        // Helper to ensure empty strings are passed instead of nulls for Velocity logic
+        // Helper to ensure empty strings are passed instead of nulls for Velocity logic.
         fun String?.valOrEmpty(): String = if (this.isNullOrBlank()) "" else this
         
         // Format the list of strings into a TOML array: ["tag1", "tag2"]
@@ -254,8 +285,15 @@ class BlenderProjectGenerator(val data: ProjectConfig) {
             "microphone" to data.microphonePermission.valOrEmpty()
         )
     }
+    /**
+     * Creates the initial add-on `__init__.py` script from template.
+     *
+     * @param project active project context.
+     * @param baseDir output directory for the script.
+     * @return `Unit`.
+     */
     fun generateMainScript(project: Project, baseDir: VirtualFile) {
-        // Helper for strings
+        // Helper for normalizing nullable strings.
         fun String?.valOrEmpty(): String = if (this.isNullOrBlank()) "" else this
         
         createFromTemplate(
@@ -277,6 +315,13 @@ class BlenderProjectGenerator(val data: ProjectConfig) {
             "description" to data.description.valOrEmpty()
         )
     }
+    /**
+     * Creates the `.gitignore` template file.
+     *
+     * @param project active project context.
+     * @param baseDir project root directory.
+     * @return `Unit`.
+     */
     fun generateGitIgnore(project: Project, baseDir: VirtualFile) {
         createFromTemplate(
             project,
@@ -286,6 +331,13 @@ class BlenderProjectGenerator(val data: ProjectConfig) {
             internal = true,
         )
     }
+    /**
+     * Creates a GPLv3 license file from template.
+     *
+     * @param project active project context.
+     * @param baseDir project root directory.
+     * @return `Unit`.
+     */
     fun generateLicense(project: Project, baseDir: VirtualFile) {
         createFromTemplate(
             project,
@@ -295,7 +347,15 @@ class BlenderProjectGenerator(val data: ProjectConfig) {
             internal = true
         )
     }
+    /**
+     * Creates `README.md` from template.
+     *
+     * @param project active project context.
+     * @param baseDir project root directory.
+     * @return `Unit`.
+     */
     fun generateReadme(project: Project, baseDir: VirtualFile) {
+        // Helper for normalizing nullable strings.
         fun String?.valOrEmpty(): String = if (this.isNullOrBlank()) "" else this
         createFromTemplate(
             project,

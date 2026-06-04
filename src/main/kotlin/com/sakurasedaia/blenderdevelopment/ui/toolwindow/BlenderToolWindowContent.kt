@@ -28,7 +28,13 @@ import com.sakurasedaia.blenderdevelopment.config.BlenderProjectConfig
 import javax.swing.JComponent
 import javax.swing.JTextField
 
+/** Builds the Blender tool window UI for editing workspace configuration values. */
 class BlenderToolWindowContent(private val project: Project) {
+    /**
+     * Creates and returns the tool window Swing content component.
+     *
+     * @return root Swing component for the Blender tool window.
+     */
     fun getContent(): JComponent {
         val config = BlenderProjectConfig.getInstance(project)
         val notifications = NotificationModal.getInstance(project)
@@ -39,6 +45,12 @@ class BlenderToolWindowContent(private val project: Project) {
         lateinit var sandboxCheckBox: javax.swing.JCheckBox
         val statusLabel = JBLabel("")
 
+        
+        /**
+         * Refreshes all form fields from persisted workspace configuration.
+         *
+         * @return `Unit`.
+         */
         fun loadFromConfig() {
             blenderPathField.text = config.getBlenderPath()
             addonSymlinkField.text = config.getAddonSymlinkName()

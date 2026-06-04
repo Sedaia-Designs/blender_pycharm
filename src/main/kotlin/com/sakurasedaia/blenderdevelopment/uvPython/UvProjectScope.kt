@@ -20,6 +20,12 @@ import kotlinx.coroutines.CoroutineScope
 @Service(Service.Level.PROJECT)
 class UvProjectScope(val scope: CoroutineScope) {
     companion object {
+        /**
+         * Returns the project's shared coroutine scope for `uv` operations.
+         *
+         * @param project target project.
+         * @return project-level coroutine scope.
+         */
         fun get(project: Project): CoroutineScope = project.service<UvProjectScope>().scope
     }
 }

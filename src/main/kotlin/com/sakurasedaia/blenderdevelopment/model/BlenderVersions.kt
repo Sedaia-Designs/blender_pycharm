@@ -17,6 +17,7 @@
 
 package com.sakurasedaia.blenderdevelopment.model
 
+/** Version mapping row between Blender and the bundled Python runtime. */
 data class BlenderVersion(
     private val blender: List<Int>,
     private val python: List<Int>,
@@ -35,6 +36,8 @@ data class BlenderVersion(
     val pyVersionList: List<Int> get() = python
 }
 
+
+/** In-memory version registry used by wizard defaults and compatibility checks. */
 object BlenderVersions {
     private val VERSION_TABLE = listOf(
         BlenderVersion(
@@ -66,6 +69,12 @@ object BlenderVersions {
     @Volatile
     private var _cachedVersions: List<BlenderVersion>? = null
     
+    
+    /**
+     * Returns the cached version table, initializing cache on first access.
+     *
+     * @return cached list of [BlenderVersion] entries.
+     */
     private fun getVersionTableSafe(): List<BlenderVersion> {
         _cachedVersions?.let { return it }
         val versions = VERSION_TABLE
@@ -73,6 +82,12 @@ object BlenderVersions {
         return versions
     }
     
+    
+    /**
+     * Returns the loaded Blender/Python compatibility table.
+     *
+     * @return list of known Blender/Python compatibility rows.
+     */
     fun getVersionTable(): List<BlenderVersion> {
         return getVersionTableSafe()
     }
@@ -80,21 +95,49 @@ object BlenderVersions {
     val LIST: List<BlenderVersion>
         get() = getVersionTable()
     
+
+    /**
+     * Returns full Blender version (e.g. `4.5.8`) for a major/minor selector (e.g. `4.5`).
+     *
+     * @param blMajorMinor Blender version selector in major/minor form.
+     * @return full Blender version string, or `null` when not found.
+     */
     fun getBlenderVersion(blMajorMinor: String): String? {
         val normalized = normalizeVersion(blMajorMinor)
         return getVersionTable().find { it.blMajorMinor == normalized }?.blVersion
     }
 
+    
+    /**
+     * Returns full Python version that corresponds to the provided Blender major/minor value.
+     *
+     * @param blMajorMinor Blender version selector in major/minor form.
+     * @return full Python version string, or `null` when no mapping exists.
+     */
     fun getPythonVersion(blMajorMinor: String): String? {
         val normalized = normalizeVersion(blMajorMinor)
         return getVersionTable().find { it.blMajorMinor == normalized }?.pyVersion
     }
     
+    
+    /**
+     * Returns OS/architecture compatibility matrix for the selected Blender version.
+     *
+     * @param blMajorMinor Blender version selector in major/minor form.
+     * @return compatibility map keyed by OS shorthand, or `null` when not found.
+     */
     fun getCompatibleArch(blMajorMinor: String): Map<String, List<String>>? {
         val normalized = normalizeVersion(blMajorMinor)
         return getVersionTable().find { it.blMajorMinor == normalized }?.compatWithOs
     }
     
+    
+    /**
+     * Normalizes version strings to `major.minor` for table lookup.
+     *
+     * @param version raw version string.
+     * @return normalized major/minor version.
+     */
     private fun normalizeVersion(version: String): String {
         val parts = version.split('.')
         return if (parts.size >= 2) "${parts[0]}.${parts[1]}" else version

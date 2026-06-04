@@ -17,6 +17,8 @@
 
 package com.sakurasedaia.blenderdevelopment.model
 
+
+/** Progress phases used by long-running setup tasks. */
 enum class ProgressType {
     NONE,
     DOWNLOAD,
@@ -25,6 +27,8 @@ enum class ProgressType {
     SANDBOX
 }
 
+
+/** Immutable progress snapshot for download/setup operations. */
 data class DownloadProgress(
     val isDownloading: Boolean = false,
     val progress: Double = 0.0,
@@ -33,6 +37,7 @@ data class DownloadProgress(
     val type: ProgressType = ProgressType.NONE
 ) {
     companion object {
+        /** Empty progress state used as a default sentinel. */
         val None = DownloadProgress()
     }
 }

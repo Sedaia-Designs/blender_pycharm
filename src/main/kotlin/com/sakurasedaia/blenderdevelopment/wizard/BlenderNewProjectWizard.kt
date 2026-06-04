@@ -30,11 +30,18 @@ import com.sakurasedaia.blenderdevelopment.common.MessageBundle
 import com.sakurasedaia.blenderdevelopment.icons.BlenderIcons
 import javax.swing.Icon
 
+/** Registers the Blender project template entry in the IntelliJ New Project wizard. */
 class BlenderPythonProjectWizard : GeneratorNewProjectWizard {
     override val name: String = MessageBundle.message("ui.project.wizard.template.title")
     override val id: String = "BlenderPythonProjectWizard"
     override val icon: Icon = BlenderIcons.BlenderColor
     
+    /**
+     * Builds the wizard step chain for project creation.
+     *
+     * @param context wizard context provided by IntelliJ.
+     * @return composed wizard step chain.
+     */
     override fun createStep(context: WizardContext): NewProjectWizardStep {
         return RootNewProjectWizardStep(context)
             .nextStep(::newProjectWizardBaseStepWithoutGap)

@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2026 Sakura Sedaia
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.sakurasedaia.blenderdevelopment.uvPython
 
 import com.intellij.openapi.Disposable
@@ -98,6 +115,12 @@ class UvHelper(private val project: Project) : Disposable {
         return installed != null
     }
     
+    
+    /**
+     * Ensures `uv` is installed and up-to-date on the current machine.
+     *
+     * @return `true` when `uv` is available and update completed successfully.
+     */
     suspend fun checkUvVersion(): Boolean {
         val workDir = project.basePath ?: System.getProperty("user.home")
 
@@ -123,6 +146,12 @@ class UvHelper(private val project: Project) : Disposable {
         return true
     }
 
+    
+    /**
+     * Releases service resources.
+     *
+     * @return `Unit`.
+     */
     override fun dispose() {
         // No owned long-lived resources; ExternalProcessUtil only holds a Project ref.
     }
@@ -156,6 +185,13 @@ class UvHelper(private val project: Project) : Disposable {
         )
     }
 
+    
+    /**
+     * Converts `major.minor` strings into a SemVer instance accepted by uv APIs.
+     *
+     * @param majorMinor Python version string (for example `3.11`).
+     * @return parsed SemVer value, or `null` when parsing fails.
+     */
     private fun parseVersion(majorMinor: String): Version? = runCatching {
         // `Version` requires a full SemVer. Pad missing components with 0.
         val parts = majorMinor.split('.').mapNotNull { it.toIntOrNull() }
@@ -167,6 +203,13 @@ class UvHelper(private val project: Project) : Disposable {
         }
     }.getOrNull()
     
+    
+    /**
+     * Runs `uv pip install` for the provided package list in project context.
+     *
+     * @param packages package specifiers to install.
+     * @return process result with exit code and console component.
+     */
     suspend fun pipInstall(packages: List<String>) = processUtil.runExternalToolAsync(
         executable = "uv",
         arguments = listOf("pip", "install", *packages.toTypedArray()),
@@ -174,6 +217,12 @@ class UvHelper(private val project: Project) : Disposable {
     )
     
     companion object {
+        /**
+         * Static placeholder used by legacy call sites.
+         *
+         * @param listOf package names.
+         * @return `Unit`.
+         */
         fun pipInstall(listOf: List<String>) {}
     }
 }

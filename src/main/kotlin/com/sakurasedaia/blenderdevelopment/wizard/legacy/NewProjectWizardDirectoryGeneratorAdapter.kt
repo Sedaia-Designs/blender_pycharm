@@ -58,13 +58,41 @@ open class NewProjectWizardDirectoryGeneratorAdapter<T : Any>(val wizard: Genera
     DirectoryProjectGeneratorBase<T>() {
     internal lateinit var panel: NewProjectWizardStepPanel
 
+    /**
+     * Returns the display name shown in legacy project generator lists.
+     *
+     * @return wizard display name.
+     */
+    
+    
     override fun getName(): String = wizard.name
+    /**
+     * Returns the icon shown in legacy project generator lists.
+     *
+     * @return wizard icon.
+     */
     override fun getLogo(): Icon = wizard.icon
 
+    
+    /**
+     * Delegates project setup to the wrapped New Project Wizard step.
+     *
+     * @param project target project.
+     * @param baseDir project base directory.
+     * @param settings generator settings payload.
+     * @param module module created for the project.
+     * @return `Unit`.
+     */
     override fun generateProject(project: Project, baseDir: VirtualFile, settings: T, module: Module) {
         panel.step.setupProject(project)
     }
 
+    
+    /**
+     * Creates a bridge peer that renders the New Wizard step inside legacy UI.
+     *
+     * @return generator peer that hosts wizard content.
+     */
     override fun createPeer(): ProjectGeneratorPeer<T> {
         val context = WizardContext(null) {}
         return object : GeneratorPeerImpl<T>() {
@@ -88,16 +116,36 @@ open class NewProjectWizardProjectSettingsStep<T : Any>(private val projectGener
         myCallback = AbstractNewProjectStep.AbstractCallback()
     }
 
+    /**
+     * Builds the panel containing the bridged wizard UI.
+     *
+     * @return populated legacy content panel.
+     */
     override fun createAndFillContentPanel(): JPanel =
         JPanel(VerticalFlowLayout()).apply {
             add(peer.getComponent(TextFieldWithBrowseButton()) {})
         }
 
+    /**
+     * Validators are managed by the wrapped wizard step.
+     *
+     * @return `Unit`.
+     */
     override fun registerValidators() {}
 
+    /**
+     * Returns the project location from wizard context.
+     *
+     * @return project location path.
+     */
     override fun getProjectLocation(): String =
         projectGenerator.panel.step.context.projectFileDirectory
 
+    /**
+     * Applies the wizard panel state before delegating to base action handling.
+     *
+     * @return action button for this settings step.
+     */
     override fun getActionButton(): JButton =
         super.getActionButton().apply {
             addActionListener {

@@ -44,10 +44,17 @@ import com.sakurasedaia.blenderdevelopment.wizard.BlenderNewProjectWizardData
 import com.sakurasedaia.blenderdevelopment.wizard.BlenderPythonProjectWizard
 
 @Deprecated("This Module is slated for removal once PyCharm properly migrates to the newer ${"NewProjectWizard"} API.")
+/** Legacy directory generator bridge used by PyCharm builds without full New Wizard support. */
 class BlenderProjectDirectoryGenerator :
     NewProjectWizardDirectoryGeneratorAdapter<BlenderNewProjectWizardData>(BlenderPythonProjectWizard()),
     CustomStepProjectGenerator<BlenderNewProjectWizardData> {
     
+    
+    /**
+     * Validates the current wizard panel and converts the result to legacy API format.
+     *
+     * @return validation result for the current wizard state.
+     */
     private fun validate(): ValidationResult {
         return with(panel.component.validateAll()) {
             if (all { it.okEnabled }) ValidationResult.OK
@@ -55,6 +62,14 @@ class BlenderProjectDirectoryGenerator :
         }
     }
     
+    
+    /**
+     * Creates the legacy step that hosts New Wizard content with live validation updates.
+     *
+     * @param projectGenerator legacy generator reference.
+     * @param callback legacy wizard callback.
+     * @return legacy action panel wrapping the new wizard UI.
+     */
     override fun createStep(
         projectGenerator: DirectoryProjectGenerator<BlenderNewProjectWizardData>?,
         callback: AbstractNewProjectStep.AbstractCallback<BlenderNewProjectWizardData>?,

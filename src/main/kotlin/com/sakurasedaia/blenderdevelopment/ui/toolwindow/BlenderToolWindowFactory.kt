@@ -22,7 +22,15 @@ import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
 
+/** Registers and populates the Blender tool window content. */
 class BlenderToolWindowFactory : ToolWindowFactory {
+    /**
+     * Creates the tool window tab content for a project.
+     *
+     * @param project current project instance.
+     * @param toolWindow target tool window container.
+     * @return `Unit`.
+     */
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
         val content = ContentFactory.getInstance().createContent(
             BlenderToolWindowContent(project).getContent(),

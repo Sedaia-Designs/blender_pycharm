@@ -48,8 +48,12 @@ internal class PluginLogger(private val project: Project) {
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
     private val timestampFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
+    
     /**
      * Appends a raw line to the plugin's daily log file. Safe to call from any thread.
+     *
+     * @param message log message text.
+     * @return `Unit`.
      */
     fun log(message: String) {
         val now = LocalDateTime.now()
@@ -77,6 +81,13 @@ internal class PluginLogger(private val project: Project) {
         }
     }
 
+    
+    /**
+     * Writes a debug entry to both IntelliJ logs and plugin logs.
+     *
+     * @param message debug message text.
+     * @return `Unit`.
+     */
     fun debug(message: String) {
         platformLogger.debug(message)
         // Always persist debug entries to the plugin's own log file; the platform logger
@@ -84,16 +95,39 @@ internal class PluginLogger(private val project: Project) {
         log("[DEBUG] $message")
     }
 
+    
+    /**
+     * Writes a warning entry to both IntelliJ logs and plugin logs.
+     *
+     * @param message warning message text.
+     * @return `Unit`.
+     */
     fun warn(message: String) {
         platformLogger.warn(message)
         log("[WARN] $message")
     }
 
+    
+    /**
+     * Writes a warning entry with stack trace details.
+     *
+     * @param message warning message text.
+     * @param throwable associated exception.
+     * @return `Unit`.
+     */
     fun warn(message: String, throwable: Throwable) {
         platformLogger.warn(message, throwable)
         log("[WARN] $message: ${throwable.stackTraceToString()}")
     }
 
+    
+    /**
+     * Writes a typed plugin error to IntelliJ logs and plugin logs.
+     *
+     * @param errorType canonical plugin error code.
+     * @param throwable optional exception details.
+     * @return `Unit`.
+     */
     fun error(errorType: ErrorTypes, throwable: Throwable? = null) {
         platformLogger.error(errorType.message, throwable)
         val suffix = throwable?.let { ": ${it.stackTraceToString()}" } ?: ""
@@ -101,14 +135,53 @@ internal class PluginLogger(private val project: Project) {
     }
 
     companion object {
+        /**
+         * Returns the logger service for the given project.
+         *
+         * @param project target project.
+         * @return project-level [PluginLogger] service.
+         */
         fun getInstance(project: Project): PluginLogger = project.service()
 
+        
+        /**
+         * Convenience static wrapper for [log].
+         *
+         * @param project target project.
+         * @param message log message text.
+         * @return `Unit`.
+         */
         fun log(project: Project, message: String) = getInstance(project).log(message)
 
+        
+        /**
+         * Convenience static wrapper for [debug].
+         *
+         * @param project target project.
+         * @param message debug message text.
+         * @return `Unit`.
+         */
         fun debug(project: Project, message: String) = getInstance(project).debug(message)
 
+        
+        /**
+         * Convenience static wrapper for [warn].
+         *
+         * @param project target project.
+         * @param message warning message text.
+         * @return `Unit`.
+         */
         fun warn(project: Project, message: String) = getInstance(project).warn(message)
 
+
+        /**
+         * Convenience static wrapper for [error].
+         *
+         * @param project target project.
+         * @param errorType canonical plugin error code.
+         * @param throwable optional exception details.
+         * @return `Unit`.
+         */
         fun error(project: Project, errorType: ErrorTypes, throwable: Throwable? = null) =
             getInstance(project).error(errorType, throwable)
     }
