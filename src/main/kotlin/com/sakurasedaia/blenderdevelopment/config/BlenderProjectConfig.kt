@@ -41,31 +41,6 @@ internal class BlenderProjectConfig(private val project: Project): PersistentSta
 	 */
 	fun getBlenderPath(): String = state.blenderPath
 	
-	
-	/**
-	 * Returns the configured add-on symlink name.
-	 *
-	 * @return add-on symlink name.
-	 */
-	fun getAddonSymlinkName(): String = state.addonSymlinkName
-	
-	
-	/**
-	 * Returns whether sandbox mode is enabled.
-	 *
-	 * @return `true` when sandbox mode is enabled.
-	 */
-	fun getSandbox(): Boolean = state.sandbox
-	
-	
-	/**
-	 * Returns the configured project source folder path.
-	 *
-	 * @return source folder path relative to project root.
-	 */
-	fun getSourceFolder(): String = state.sourceFolder
-	
-	
 	/**
 	 * Stores the Blender executable path.
 	 *
@@ -75,6 +50,13 @@ internal class BlenderProjectConfig(private val project: Project): PersistentSta
 	fun setBlenderPath(path: String) {
 		state.blenderPath = path
 	}
+	
+	/**
+	 * Returns the configured add-on symlink name.
+	 *
+	 * @return add-on symlink name.
+	 */
+	fun getAddonSymlinkName(): String = state.addonSymlinkName
 	
 	
 	/**
@@ -89,6 +71,15 @@ internal class BlenderProjectConfig(private val project: Project): PersistentSta
 	
 	
 	/**
+	 * Returns whether sandbox mode is enabled.
+	 *
+	 * @return `true` when sandbox mode is enabled.
+	 */
+	fun getSandbox(): Boolean = state.sandbox
+	
+	
+	
+	/**
 	 * Stores sandbox mode preference.
 	 *
 	 * @param sandbox sandbox enabled flag.
@@ -97,6 +88,13 @@ internal class BlenderProjectConfig(private val project: Project): PersistentSta
 	fun setSandbox(sandbox: Boolean) {
 		state.sandbox = sandbox
 	}
+	
+	/**
+	 * Returns the configured project source folder path.
+	 *
+	 * @return source folder path relative to project root.
+	 */
+	fun getSourceFolder(): String = state.sourceFolder
 	
 	
 	/**
@@ -141,3 +139,5 @@ internal class BlenderProjectConfig(private val project: Project): PersistentSta
 		fun getInstance(project: Project): BlenderProjectConfig = project.service()
 	}
 }
+
+// State managed by com.sakurasedaia.blenderdevelopment.ui.toolwindow.BlenderToolWindowFactory
