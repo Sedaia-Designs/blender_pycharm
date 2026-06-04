@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakurasedaia.blenderdevelopment.common
+package com.sakurasedaia.blenderdevelopment.lib
 
 import com.intellij.DynamicBundle
 import org.jetbrains.annotations.PropertyKey

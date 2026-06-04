@@ -19,7 +19,7 @@ package com.sakurasedaia.blenderdevelopment.ui.settings
 
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.options.SearchableConfigurable
-import com.sakurasedaia.blenderdevelopment.common.MessageBundle
+import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
 import com.sakurasedaia.blenderdevelopment.config.BlenderPluginConfig
 import javax.swing.JComponent
 

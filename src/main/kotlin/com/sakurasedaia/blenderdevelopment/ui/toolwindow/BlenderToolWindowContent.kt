@@ -22,8 +22,8 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
-import com.sakurasedaia.blenderdevelopment.alerts.NotificationModal
-import com.sakurasedaia.blenderdevelopment.common.MessageBundle
+import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
+import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
 import com.sakurasedaia.blenderdevelopment.config.BlenderProjectConfig
 import javax.swing.JComponent
 import javax.swing.JTextField

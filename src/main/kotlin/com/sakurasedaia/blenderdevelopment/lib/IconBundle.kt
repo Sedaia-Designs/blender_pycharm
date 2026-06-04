@@ -15,21 +15,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakurasedaia.blenderdevelopment.icons
+package com.sakurasedaia.blenderdevelopment.lib
 
 import com.intellij.openapi.util.IconLoader
 import javax.swing.Icon
 
 /** Central icon registry for the Blender plugin. */
-object BlenderIcons {
+object IconBundle {
     private val vector: (String) -> String = { name: String -> "/images/$name.svg"}
     
     @JvmField
-    val Blender: Icon = IconLoader.getIcon(vector("blenderGray"), BlenderIcons::class.java)
+    val Blender: Icon = IconLoader.getIcon(vector("blenderGray"), IconBundle::class.java)
     
     @JvmField
-    val BlenderColor: Icon = IconLoader.getIcon(vector("blenderColor"), BlenderIcons::class.java)
+    val BlenderColor: Icon = IconLoader.getIcon(vector("blenderColor"), IconBundle::class.java)
     
     @JvmField
-    val PythonIcon: Icon = IconLoader.getIcon(vector("pythonFile"), BlenderIcons::class.java)
+    val PythonIcon: Icon = IconLoader.getIcon(vector("pythonFile"), IconBundle::class.java)
 }

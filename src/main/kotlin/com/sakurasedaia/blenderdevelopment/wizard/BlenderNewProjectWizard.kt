@@ -26,15 +26,15 @@ import com.intellij.ide.wizard.GitNewProjectWizardStep
 import com.intellij.ide.wizard.newProjectWizardBaseStepWithoutGap
 import com.intellij.ide.wizard.NewProjectWizardChainStep.Companion.nextStep
 import com.intellij.ide.wizard.RootNewProjectWizardStep
-import com.sakurasedaia.blenderdevelopment.common.MessageBundle
-import com.sakurasedaia.blenderdevelopment.icons.BlenderIcons
+import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
+import com.sakurasedaia.blenderdevelopment.lib.IconBundle
 import javax.swing.Icon
 
 /** Registers the Blender project template entry in the IntelliJ New Project wizard. */
 class BlenderPythonProjectWizard : GeneratorNewProjectWizard {
     override val name: String = MessageBundle.message("ui.project.wizard.template.title")
     override val id: String = "BlenderPythonProjectWizard"
-    override val icon: Icon = BlenderIcons.BlenderColor
+    override val icon: Icon = IconBundle.BlenderColor
     
     /**
      * Builds the wizard step chain for project creation.

@@ -53,7 +53,7 @@
                 id="Project Blender Manager"
                 anchor="right"
                 factoryClass="com.sakurasedaia.blenderdevelopment.ui.toolwindow.BlenderToolWindowFactory"
-                icon="com.sakurasedaia.blenderdevelopment.icons.BlenderIcons.Blender"
+                icon="/images/blenderGray.svg"
         />
         <applicationConfigurable
                 id="com.sakurasedaia.blenderdevelopment.settings.plugin"

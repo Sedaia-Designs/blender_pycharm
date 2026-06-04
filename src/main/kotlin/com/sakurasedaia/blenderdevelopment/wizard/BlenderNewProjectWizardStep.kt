@@ -34,11 +34,9 @@ import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.bindText
-import com.sakurasedaia.blenderdevelopment.project.BlenderProjectGenerator
-import com.sakurasedaia.blenderdevelopment.common.MessageBundle
+import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
 import com.sakurasedaia.blenderdevelopment.model.BlenderVersions
 import com.intellij.util.text.VersionComparatorUtil
-import com.sakurasedaia.blenderdevelopment.project.ProjectConfig
 import java.nio.file.Path
 
 /** Wizard step that collects Blender-specific settings and creates project files. */

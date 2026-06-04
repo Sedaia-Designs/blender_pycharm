@@ -20,7 +20,7 @@ package com.sakurasedaia.blenderdevelopment.project
 import com.intellij.ide.fileTemplates.FileTemplateDescriptor
 import com.intellij.ide.fileTemplates.FileTemplateGroupDescriptor
 import com.intellij.ide.fileTemplates.FileTemplateGroupDescriptorFactory
-import com.sakurasedaia.blenderdevelopment.icons.BlenderIcons
+import com.sakurasedaia.blenderdevelopment.lib.IconBundle
 
 /** Registers the plugin's file templates under the Blender template group. */
 class BlenderTemplateGroupDescription : FileTemplateGroupDescriptorFactory {
@@ -30,9 +30,9 @@ class BlenderTemplateGroupDescription : FileTemplateGroupDescriptorFactory {
      * @return file template group descriptor with Blender templates.
      */
     override fun getFileTemplatesDescriptor(): FileTemplateGroupDescriptor {
-        val group = FileTemplateGroupDescriptor("Blender", BlenderIcons.BlenderColor)
-        group.addTemplate(FileTemplateDescriptor("Main Script.py", BlenderIcons.PythonIcon))
-        group.addTemplate(FileTemplateDescriptor("Component.py", BlenderIcons.PythonIcon))
+        val group = FileTemplateGroupDescriptor("Blender", IconBundle.BlenderColor)
+        group.addTemplate(FileTemplateDescriptor("Main Script.py", IconBundle.PythonIcon))
+        group.addTemplate(FileTemplateDescriptor("Component.py", IconBundle.PythonIcon))
         return group
     }
 }

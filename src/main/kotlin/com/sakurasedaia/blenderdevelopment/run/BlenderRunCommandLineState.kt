@@ -21,7 +21,7 @@ import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.CommandLineState
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.runners.ExecutionEnvironment
-import com.sakurasedaia.blenderdevelopment.common.MessageBundle
+import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
 
 /** Command-line state placeholder for Blender run configuration execution. */
 class BlenderRunCommandLineState(

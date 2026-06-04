@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakurasedaia.blenderdevelopment.project
+package com.sakurasedaia.blenderdevelopment.wizard
 
 import com.intellij.ide.fileTemplates.FileTemplateManager
 import com.intellij.openapi.command.WriteCommandAction
@@ -33,7 +33,7 @@ import kotlinx.coroutines.launch
 import kotlinx.io.IOException
 import org.jetbrains.jps.model.java.JavaSourceRootType
 import java.util.Properties
-import com.sakurasedaia.blenderdevelopment.common.MessageBundle
+import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
 import com.sakurasedaia.blenderdevelopment.config.BlenderProjectConfig
 
 /** Immutable configuration payload consumed by [BlenderProjectGenerator]. */

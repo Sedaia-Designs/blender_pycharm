@@ -19,8 +19,8 @@ package com.sakurasedaia.blenderdevelopment.run
 
 import com.intellij.execution.configurations.ConfigurationTypeBase
 import com.intellij.openapi.util.NotNullLazyValue
-import com.sakurasedaia.blenderdevelopment.common.MessageBundle
-import com.sakurasedaia.blenderdevelopment.icons.BlenderIcons
+import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
+import com.sakurasedaia.blenderdevelopment.lib.IconBundle
 
 const val BLENDER_RUN_CONFIGURATION_ID: String = "BlenderRunConfigurationType"
 
@@ -29,7 +29,7 @@ class BlenderRunConfigurationType : ConfigurationTypeBase(
     BLENDER_RUN_CONFIGURATION_ID,
     MessageBundle.message("run.configuration.type.display.name"),
     MessageBundle.message("run.configuration.type.description"),
-    NotNullLazyValue.createValue { BlenderIcons.BlenderColor },
+    NotNullLazyValue.createValue { IconBundle.BlenderColor },
 ) {
     init {
         addFactory(BlenderRunConfigurationFactory(this))
