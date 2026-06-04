@@ -36,9 +36,19 @@
     <depends>com.intellij.modules.python</depends>
     <depends>com.intellij.modules.pycharm</depends>
 
+    <extensionPoints>
+    </extensionPoints>
     <!-- Extensions defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
+        <notificationGroup
+                id="Blender Development Notifications"
+                bundle="messages.MessageBundle"
+                key="ui.notification.group.blender.development"
+                displayType="BALLOON"
+                isLogByDefault="true"
+        />
+
         <toolWindow
                 id="Project Blender Manager"
                 anchor="right"
@@ -56,4 +66,7 @@
         <fileTemplateGroup implementation="com.sakurasedaia.blenderdevelopment.project.BlenderTemplateGroupDescription"/>
     </extensions>
 
+    <extensions defaultExtensionNs="Pythonid">
+        <pythonFlavorProvider implementation="com.jetbrains.python.sdk.uv.UvSdkFlavorProvider"/>
+    </extensions>
 </idea-plugin>

@@ -17,27 +17,48 @@
 
 package com.sakurasedaia.blenderdevelopment.alerts
 
-import com.intellij.notification.NotificationGroup
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
+import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 
-class NotificationModal (private val project: Project) {
+@Service(Service.Level.PROJECT)
+internal class NotificationModal(private val project: Project) {
+    private val logger by lazy { PluginLogger.getInstance(project) }
+
     companion object {
-        private const val GROUP_ID = "Blender Development"
+        private const val GROUP_ID = "Blender Development Notifications"
+        private const val DEFAULT_TITLE = "Blender Development"
+
+        fun getInstance(project: Project): NotificationModal = project.service()
         
-        private fun getGroup(): NotificationGroup = NotificationGroupManager.getInstance().getNotificationGroup(GROUP_ID)
+    }
+
+    fun sendInfo(content: String, title: String = DEFAULT_TITLE) {
+        send(title, content, NotificationType.INFORMATION)
+    }
+
+    fun sendWarning(content: String, title: String = DEFAULT_TITLE) {
+        send(title, content, NotificationType.WARNING)
+    }
+
+    fun sendError(content: String, title: String = DEFAULT_TITLE, throwable: Throwable? = null) {
+        send(title, content, NotificationType.ERROR)
+        if (throwable != null) {
+            logger.warn(content, throwable)
+        } else {
+            logger.warn(content)
+        }
+    }
+
+    private fun send(title: String, content: String, type: NotificationType) {
+        NotificationGroupManager
+            .getInstance()
+            .getNotificationGroup(GROUP_ID)
+            .createNotification(title, content, type)
+            .notify(project)
     }
     
-    fun sendError(title: String, content: String) {
-        getGroup().createNotification(title, content, NotificationType.ERROR).notify(project)
-    }
-    
-    fun sendWarning(title: String, content: String) {
-        getGroup().createNotification(title, content, NotificationType.WARNING).notify(project)
-    }
-    
-    fun sendInfo(title: String, content: String) {
-        getGroup().createNotification(title, content, NotificationType.INFORMATION).notify(project)
-    }
 }

@@ -22,6 +22,7 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
+import com.sakurasedaia.blenderdevelopment.alerts.NotificationModal
 import com.sakurasedaia.blenderdevelopment.common.MessageBundle
 import com.sakurasedaia.blenderdevelopment.config.BlenderProjectConfig
 import javax.swing.JComponent
@@ -30,6 +31,7 @@ import javax.swing.JTextField
 class BlenderToolWindowContent(private val project: Project) {
     fun getContent(): JComponent {
         val config = BlenderProjectConfig.getInstance(project)
+        val notifications = NotificationModal.getInstance(project)
 
         lateinit var blenderPathField: JTextField
         lateinit var addonSymlinkField: JTextField
@@ -70,6 +72,7 @@ class BlenderToolWindowContent(private val project: Project) {
                     button(MessageBundle.message("ui.toolwindow.group.workspace.save")) {
                         val sourceFolder = sourceFolderField.text.trim()
                         if (sourceFolder.isEmpty()) {
+                            notifications.sendWarning(MessageBundle.message("ui.toolwindow.group.workspace.save.validation.source.empty"))
                             return@button
                         }
 
@@ -77,10 +80,12 @@ class BlenderToolWindowContent(private val project: Project) {
                         config.setAddonSymlinkName(addonSymlinkField.text.trim())
                         config.setSourceFolder(sourceFolder)
                         config.setSandbox(sandboxCheckBox.isSelected)
+                        notifications.sendInfo(MessageBundle.message("ui.toolwindow.group.workspace.save.confirmation"))
                     }
 
                     button(MessageBundle.message("ui.toolwindow.group.workspace.reload")) {
                         loadFromConfig()
+                        notifications.sendInfo(MessageBundle.message("ui.toolwindow.group.workspace.reload.confirmation"))
                     }
                 }
                 row {
