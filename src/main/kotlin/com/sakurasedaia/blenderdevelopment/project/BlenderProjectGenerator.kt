@@ -30,6 +30,7 @@ import kotlinx.io.IOException
 import org.jetbrains.jps.model.java.JavaSourceRootType
 import java.util.Properties
 import com.sakurasedaia.blenderdevelopment.common.MessageBundle
+import com.sakurasedaia.blenderdevelopment.config.BlenderProjectConfig
 
 data class ProjectConfig (
     // Base Project Info
@@ -121,6 +122,38 @@ class BlenderProjectGenerator(val data: ProjectConfig) {
         }
         
         VfsUtil.markDirtyAndRefresh(false, true, true, baseDir)
+         
+        @Suppress("UNUSED_VARIABLE", "unused")
+        val projectConfig = BlenderProjectConfig.getInstance(project).apply {
+            setAddonSymlinkName(data.extensionId)
+            setSandbox(true)
+            setSourceFolder("src/")
+        }
+
+        if (data.initiateUvInstance) {
+            val pythonMajorMinor = BlenderVersions.LIST
+                .firstOrNull { it.blMajorMinor == data.blenderVersion }
+                ?.pyMajorMinor
+            if (pythonMajorMinor == null) {
+                PluginLogger.getInstance(project).warn(
+                    "Cannot initialize uv venv: no Python version mapped to Blender ${data.blenderVersion}"
+                )
+            } else {
+                val uvHelper = project.service<UvHelper>()
+                UvProjectScope.get(project).launch {
+                    val sdk = uvHelper.initializeVenv(pythonMajorMinor, baseDir.path)
+                    if (sdk == null) {
+                        PluginLogger.getInstance(project).warn(
+                            "uv venv initialization failed for ${baseDir.path}"
+                        )
+                        return@launch
+                    }
+                    uvHelper.sync()
+                }
+            }
+        }
+
+        PluginLogger.log(project, "Project generation complete")
     }
     
     private fun createFromTemplate(
