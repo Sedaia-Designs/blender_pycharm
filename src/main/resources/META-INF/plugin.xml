@@ -55,6 +55,12 @@
                 factoryClass="com.sakurasedaia.blenderdevelopment.ui.toolwindow.BlenderToolWindowFactory"
                 icon="com.sakurasedaia.blenderdevelopment.icons.BlenderIcons.Blender"
         />
+        <applicationConfigurable
+                id="com.sakurasedaia.blenderdevelopment.settings.plugin"
+                groupId="tools"
+                displayName="Blender Development"
+                instance="com.sakurasedaia.blenderdevelopment.ui.settings.BlenderSettingsFactory"
+        />
 
         <directoryProjectGenerator implementation="com.sakurasedaia.blenderdevelopment.wizard.legacy.BlenderProjectDirectoryGenerator" />
 
