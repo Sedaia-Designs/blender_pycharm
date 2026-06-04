@@ -26,30 +26,34 @@ data class SysInfo(
 )
 
 object SystemHelper {
-    private val sysArch = { arch: String -> System.getProperty("os.arch").contains(arch) }
+    private val rawSysArch = System.getProperty("os.arch").orEmpty().lowercase()
+    private fun isArch(input: String): Boolean = input in rawSysArch
     // returns a simple value in line with Blender's Filename scheme
     private val cpuArch = when {
-        sysArch("aarch64") || sysArch("arm64") -> "arm64"
-        sysArch("x86_64") || sysArch("amd64") -> "x64"
+        isArch("aarch64") || isArch("arm64") -> "arm64"
+        isArch("x86_64") || isArch("amd64") -> "x64"
         else -> "unknown"
     }
-    fun isFileExt(path: Path, extension: String): Boolean = path.name.endsWith(extension)
+    fun isFileExt(path: Path, extension: String): Boolean = path.name.endsWith(extension, ignoreCase=true)
     
+    
+    private val rawOsName = System.getProperty("os.name").orEmpty().lowercase()
+    private fun isOS(input: String): Boolean = input in rawOsName
     private val parseOsName = when {
-        System.getProperty("os.name").lowercase().contains("windows") -> "win"
-        System.getProperty("os.name").lowercase().contains("mac os x") -> "mac"
-        System.getProperty("os.name").lowercase().contains("linux") -> "linux"
+        isOS("windows") -> "win"
+        isOS("macos") || isOS("mac os x") || isOS("darwin") -> "mac"
+        isOS("linux") -> "linux"
         else -> "unknown"
     }
     
-    val Info: SysInfo = SysInfo(
+    val sysInfo: SysInfo = SysInfo(
         osName = parseOsName,
         osVersion = System.getProperty("os.version"),
         osArch = cpuArch
     )
     
     fun isOSCompatible(blMajorMinor: String): Boolean {
-        val systemInfo = Info
+        val systemInfo = sysInfo
         
         if (systemInfo.osName == "unknown") {
             return false
