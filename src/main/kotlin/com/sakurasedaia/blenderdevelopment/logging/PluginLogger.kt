@@ -17,82 +17,99 @@
 
 package com.sakurasedaia.blenderdevelopment.logging
 
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.components.Service
-import com.intellij.openapi.project.Project
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.application.PathManager
+import com.intellij.openapi.project.Project
+import com.intellij.util.io.createDirectories
+import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardOpenOption
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import kotlin.io.path.appendText
 import kotlin.io.path.exists
 
+/**
+ * Project-level logger that mirrors messages to:
+ *  - the IntelliJ platform logger (`idea.log`), respecting its level configuration, and
+ *  - a plugin-specific daily file under `<IDE log path>/blender-plugin/blender_plugin_<yyyy-MM-dd>.log`.
+ *
+ * File I/O is dispatched to a pooled thread and serialized to avoid interleaving and to keep the EDT responsive.
+ */
 @Service(Service.Level.PROJECT)
 internal class PluginLogger(private val project: Project) {
     private val platformLogger = Logger.getInstance(PluginLogger::class.java)
-    
+    private val logDir: Path = Path.of(PathManager.getLogPath()).resolve("blender-plugin")
+    private val writeLock = Any()
+
+    private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    private val timestampFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+
+    /**
+     * Appends a raw line to the plugin's daily log file. Safe to call from any thread.
+     */
     fun log(message: String) {
-        // Platform Logging
-        platformLogger.info(message)
-        
-        // Official Intellij Log Directory
-        val logPath = Path.of(PathManager.getLogPath()).resolve("blender-plugin")
-        
-        try {
-            if (!logPath.exists()) {
-                Files.createDirectories(logPath)
+        val now = LocalDateTime.now()
+        val timestamp = now.format(timestampFormatter)
+        val date = now.format(dateFormatter)
+        val line = "[$timestamp] $message${System.lineSeparator()}"
+
+        // Dispatch I/O to a background thread to keep the IDE responsive.
+        ApplicationManager.getApplication().executeOnPooledThread {
+            synchronized(writeLock) {
+                try {
+                    if (!logDir.exists()) logDir.createDirectories()
+                    val logFile = logDir.resolve("blender_plugin_$date.log")
+                    Files.write(
+                        logFile,
+                        line.toByteArray(StandardCharsets.UTF_8),
+                        StandardOpenOption.CREATE,
+                        StandardOpenOption.APPEND,
+                    )
+                } catch (e: Exception) {
+                    // Surface the failure via the platform logger so it is still discoverable.
+                    platformLogger.warn("Failed to write to plugin log file at $logDir", e)
+                }
             }
-            
-            // Custom File Logging
-            val dateTime = { format: String -> LocalDateTime.now().format(DateTimeFormatter.ofPattern(format)) }
-            val date = dateTime("yyyy-MM-dd")
-            val timestamp = dateTime("yyyy-MM-dd HH:mm:ss")
-            val logFile = logPath.resolve("blender_plugin_$date.log")
-            
-            logFile.appendText("[$timestamp] $message\n")
-        } catch (_: Exception) {
-            // Silently ignore logging errors
         }
     }
-    
+
     fun debug(message: String) {
-        println("[DEBUG]: $message")
-        
         platformLogger.debug(message)
-        if (platformLogger.isDebugEnabled) {
-            log("[DEBUG]: $message")
-        }
+        // Always persist debug entries to the plugin's own log file; the platform logger
+        // filters its own output independently based on the IDE's debug categories.
+        log("[DEBUG] $message")
     }
-    
+
     fun warn(message: String) {
         platformLogger.warn(message)
-        log("[WARN]: $message")
+        log("[WARN] $message")
     }
-    
-    fun error(message: String) {
-        platformLogger.error(message)
-        log("[ERROR]: $message")
+
+    fun warn(message: String, throwable: Throwable) {
+        platformLogger.warn(message, throwable)
+        log("[WARN] $message: ${throwable.stackTraceToString()}")
     }
-    
+
+    fun error(errorType: ErrorTypes, throwable: Throwable? = null) {
+        platformLogger.error(errorType.message, throwable)
+        val suffix = throwable?.let { ": ${it.stackTraceToString()}" } ?: ""
+        log("[ERROR] ${errorType.name}: ${errorType.message}$suffix")
+    }
+
     companion object {
         fun getInstance(project: Project): PluginLogger = project.service()
-        
-        fun log(project: Project, message: String) {
-            project.let { getInstance(it ).log(message) }
-        }
-        
-        fun debug(project: Project, message: String) {
-            project.let { getInstance(it ).debug(message) }
-        }
-        
-        fun warn(project: Project, message: String) {
-            project.let { getInstance(it ).warn(message) }
-        }
-        
-        fun error(project: Project, message: String) {
-            project.let { getInstance(it ).error(message) }
-        }
+
+        fun log(project: Project, message: String) = getInstance(project).log(message)
+
+        fun debug(project: Project, message: String) = getInstance(project).debug(message)
+
+        fun warn(project: Project, message: String) = getInstance(project).warn(message)
+
+        fun error(project: Project, errorType: ErrorTypes, throwable: Throwable? = null) =
+            getInstance(project).error(errorType, throwable)
     }
 }

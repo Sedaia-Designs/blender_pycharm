@@ -27,7 +27,7 @@ class DebugpyHelper {
          * This function starts the Debugpy server, first by checking to ensure the user is actually using the debugpy
          */
         if (! isDebugpyBackend()) {
-            return DebugpyResult.Failure(ErrorTypes.InvalidDapConfiguration)
+            return DebugpyResult.Failure(ErrorTypes.INVALID_DAP_CONFIG)
         }
         
         // Temporary testing port and server
