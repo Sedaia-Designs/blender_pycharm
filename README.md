@@ -25,7 +25,7 @@ This project is licensed under the **GNU General Public License v3.0**. See the 
 
 ### AI Use Disclaimer
 This Project is developed in part using AI tooling, specifically Jetbrain's Junie Agent (And Associated Models) and Google's Gemini Model
-- Generate small portions of the codebase
+- Generate portions of the codebase
 - Automate certain tasks such as:
   - Syncing Repository Documentation with the externally hosted [Wiki](https://wiki.sakura-sedaia.com/docs/blender-development-pycharm/contributing/index.html)
   - Automate highly repetitive tasks
@@ -38,7 +38,10 @@ This is a complete rewrite of the core plugin, making use of modern Intellij sta
 
 - [x] More robust data class for managing Blender Version metadata
 - [x] Blender Project Generator (Using the NewProjectWizard API isntead of DirectoryProjectGenerator)
-- [ ] UV Integration for automated Python Virtual Environment Setup with Blender Extensions
+- [x] Project Level Workspace Configuration for a Blender Project
+- [x] Modern DSL based interface for all Plugin UI's
+- [x] Deeper integration with the Intellij Platform SDK, making use of SDK Tools as opposed to OS Native tools and external tools.
+- [x] UV Integration for automated Python Virtual Environment Setup with Blender Extensions
   - [ ] `fake-bpy-module` Package integration, automatically setting up the appropriate linter for the plugin.
   - [ ] Automated UV installer for users who don't have UV installed
 - [ ] Custom `blproject.toml` Configuration File for Blender Extensions, with Gradle-like syncing with the Blender Manifest.
