@@ -18,14 +18,16 @@
 package com.sakurasedaia.blenderdevelopment.uvPython
 
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.application.edtWriteAction
 import com.intellij.openapi.components.Service
+import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.projectRoots.ProjectJdkTable
 import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.openapi.roots.ProjectRootManager
 import com.jetbrains.python.Result
 import com.jetbrains.python.packaging.management.ui.PythonPackageManagerUI
+import com.jetbrains.python.sdk.persist
+import com.jetbrains.python.sdk.pythonSdk
 import com.jetbrains.python.sdk.uv.impl.createUvLowLevel
 import com.jetbrains.python.sdk.uv.impl.getUvExecutable
 import com.jetbrains.python.sdk.uv.setupNewUvSdkAndEnv
@@ -62,8 +64,10 @@ class UvHelper(private val project: Project) : Disposable {
         return when (val result = setupNewUvSdkAndEnv(workingDir, existingSdks, version)) {
             is Result.Success -> {
                 val sdk = result.result
-                edtWriteAction {
-                    ProjectRootManager.getInstance(project).projectSdk = sdk
+                sdk.persist()
+                project.pythonSdk = sdk
+                ModuleManager.getInstance(project).modules.forEach { module ->
+                    module.pythonSdk = sdk
                 }
                 PluginLogger.debug(project, "uv venv initialized at $workingDir with Python $majorMinor")
                 sdk
