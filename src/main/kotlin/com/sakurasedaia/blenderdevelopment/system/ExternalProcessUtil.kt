@@ -31,6 +31,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.SystemInfo
+import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -73,73 +74,84 @@ class ExternalProcessUtil(private val project: Project) {
         env: Map<String, String> = emptyMap(),
         parentDisposable: Disposable = project,
     ): ExternalToolResult {
+        return try {
+            val workDir = File(workingDir).takeIf { it.isDirectory }
+                ?: error("Working directory does not exist: $workingDir")
 
-        val workDir = File(workingDir).takeIf { it.isDirectory }
-            ?: error("Working directory does not exist: $workingDir")
+            val preparedCommand = prepareCommand(executable, arguments, workDir)
 
-        val preparedCommand = prepareCommand(executable, arguments, workDir)
+            // 1. Configure the command line execution
+            val commandLine = GeneralCommandLine(preparedCommand.executable)
+                .withParameters(preparedCommand.arguments)
+                .withWorkDirectory(workDir)
+                .withCharset(Charsets.UTF_8)
+                .withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE)
+                .withEnvironment(buildMap {
+                    // Force colored output from uv / pip / python tooling even though stdout is a pipe.
+                    put("FORCE_COLOR", "1")
+                    put("CLICOLOR_FORCE", "1")
+                    put("PY_COLORS", "1")
+                    // Ensure clean UTF-8 I/O across platforms (esp. Windows + non-ASCII paths).
+                    put("PYTHONIOENCODING", "utf-8")
+                    put("PYTHONUTF8", "1")
+                    // Stream Python child output promptly instead of buffering.
+                    put("PYTHONUNBUFFERED", "1")
+                    putAll(env)
+                })
 
-        // 1. Configure the command line execution
-        val commandLine = GeneralCommandLine(preparedCommand.executable)
-            .withParameters(preparedCommand.arguments)
-            .withWorkDirectory(workDir)
-            .withCharset(Charsets.UTF_8)
-            .withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE)
-            .withEnvironment(buildMap {
-                // Force colored output from uv / pip / python tooling even though stdout is a pipe.
-                put("FORCE_COLOR", "1")
-                put("CLICOLOR_FORCE", "1")
-                put("PY_COLORS", "1")
-                // Ensure clean UTF-8 I/O across platforms (esp. Windows + non-ASCII paths).
-                put("PYTHONIOENCODING", "utf-8")
-                put("PYTHONUTF8", "1")
-                // Stream Python child output promptly instead of buffering.
-                put("PYTHONUNBUFFERED", "1")
-                putAll(env)
+            // 2/3/4. Create the visual Console UI component and bind it to the process handler -- on EDT.
+            val (consoleComponent, processHandler) = withContext(Dispatchers.EDT) {
+                val view: ConsoleView = TextConsoleBuilderFactory.getInstance()
+                    .createBuilder(project).console
+                Disposer.register(parentDisposable, view) // prevent leaks on repeated invocations
+                val handler = ColoredProcessHandler(commandLine)
+                view.attachToProcess(handler)
+                view.component to handler
+            }
+
+            // 5. Add custom logging hooks for backend tracking
+            processHandler.addProcessListener(object : ProcessListener {
+                override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
+                    // region ===== REVIEW: only log stderr to avoid log spam from uv progress bars / ANSI on stdout =====
+                    if (outputType === ProcessOutputType.STDERR) {
+                        PluginLogger.debug(project, "[stderr] ${event.text.trimEnd()}")
+                    }
+                    // endregion ===== REVIEW =====
+                }
+
+                override fun processTerminated(event: ProcessEvent) {
+                    PluginLogger.log(
+                        project,
+                        "External process '${preparedCommand.executable} ${preparedCommand.arguments.joinToString(" ")}' " +
+                            "finished with exit code: ${event.exitCode}"
+                    )
+                }
             })
 
-        // 2/3/4. Create the visual Console UI component and bind it to the process handler -- on EDT.
-        val (consoleComponent, processHandler) = withContext(Dispatchers.EDT) {
-            val view: ConsoleView = TextConsoleBuilderFactory.getInstance()
-                .createBuilder(project).console
-            Disposer.register(parentDisposable, view) // prevent leaks on repeated invocations
-            val handler = ColoredProcessHandler(commandLine)
-            view.attachToProcess(handler)
-            view.component to handler
-        }
-
-        // 5. Add custom logging hooks for backend tracking
-        processHandler.addProcessListener(object : ProcessListener {
-            override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
-                // region ===== REVIEW: only log stderr to avoid log spam from uv progress bars / ANSI on stdout =====
-                if (outputType === ProcessOutputType.STDERR) {
-                    PluginLogger.debug(project, "[stderr] ${event.text.trimEnd()}")
+            // 6/7. Start the process and suspend until termination -- cancellation kills the process.
+            val exitCode = withContext(Dispatchers.IO) {
+                suspendCancellableCoroutine { cont ->
+                    processHandler.addProcessListener(object : ProcessListener {
+                        override fun processTerminated(event: ProcessEvent) {
+                            if (cont.isActive) cont.resume(event.exitCode)
+                        }
+                    })
+                    cont.invokeOnCancellation { processHandler.destroyProcess() }
+                    processHandler.startNotify()
                 }
-                // endregion ===== REVIEW =====
             }
-
-            override fun processTerminated(event: ProcessEvent) {
-                PluginLogger.log(
-                    project,
-                    "External process '${preparedCommand.executable} ${preparedCommand.arguments.joinToString(" ")}' " +
-                        "finished with exit code: ${event.exitCode}"
-                )
-            }
-        })
-
-        // 6/7. Start the process and suspend until termination -- cancellation kills the process.
-        val exitCode = withContext(Dispatchers.IO) {
-            suspendCancellableCoroutine { cont ->
-                processHandler.addProcessListener(object : ProcessListener {
-                    override fun processTerminated(event: ProcessEvent) {
-                        if (cont.isActive) cont.resume(event.exitCode)
-                    }
-                })
-                cont.invokeOnCancellation { processHandler.destroyProcess() }
-                processHandler.startNotify()
-            }
+            ExternalToolResult(exitCode, consoleComponent)
+        } catch (t: Throwable) {
+            PluginLogger.getInstance(project).warn(
+                "Failed to execute external process '$executable ${arguments.joinToString(" ")}' from '$workingDir'",
+                t,
+            )
+            NotificationModal.getInstance(project).sendError(
+                "Failed to start external process '$executable'. Check plugin logs for details.",
+                throwable = t,
+            )
+            throw t
         }
-        return ExternalToolResult(exitCode, consoleComponent)
     }
 
     /**
