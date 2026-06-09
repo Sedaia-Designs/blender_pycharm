@@ -26,14 +26,20 @@ import com.intellij.openapi.application.ApplicationManager
 internal class BlenderPluginConfig : PersistentStateComponent<BlenderPluginConfig.PluginState> {
 	data class PluginState(
 		// Temporary example setting, will be filled out later with proper settings
-		var myBool: Boolean = true,
+		var useCustomBlenderInstallPath: Boolean = true,
+		var blenderInstallPath: String = "",
 	)
 
 	private var state: PluginState = PluginState()
-
-	fun getMyBool(): Boolean = state.myBool
-	fun setMyBool(value: Boolean) {
-		state.myBool = value
+	
+	fun getBlenderInstallPath(): String = state.blenderInstallPath
+	fun setBlenderInstallPath(path: String) {
+		state.blenderInstallPath = path
+	}
+	
+	fun getUseCustomBlenderInstallPath(): Boolean = state.useCustomBlenderInstallPath
+	fun setUseCustomBlenderInstallPath(value: Boolean) {
+		state.useCustomBlenderInstallPath = value
 	}
 
 	override fun getState(): PluginState = state

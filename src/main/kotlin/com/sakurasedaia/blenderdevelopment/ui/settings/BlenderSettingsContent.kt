@@ -22,31 +22,42 @@ import com.intellij.ui.dsl.builder.panel
 import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
 import com.sakurasedaia.blenderdevelopment.config.BlenderPluginConfig
 import javax.swing.JComponent
+import javax.swing.JTextField
 
 /** Settings panel content for global Blender plugin configuration. */
 internal class BlenderSettingsContent {
-    private lateinit var templateCheckBox: JBCheckBox
-
+    private lateinit var useCustomBlenderInstallPath: JBCheckBox
+    private lateinit var customBlenderInstallPath: JTextField
     private val root = panel {
         group(MessageBundle.message("ui.settings.group.template.title")) {
             row {
-                checkBox(MessageBundle.message("ui.settings.group.template.enabled"))
-                    .applyToComponent { templateCheckBox = this }
+                checkBox(MessageBundle.message("ui.settings.group.template.use_custom_path"))
+                    .applyToComponent { useCustomBlenderInstallPath = this }
+                textField()
+                    .applyToComponent { customBlenderInstallPath = this }
+                    .comment(MessageBundle.message("ui.settings.group.template.path"))
             }
+            
         }
     }
 
     internal fun component(): JComponent = root
 
     internal fun reset(config: BlenderPluginConfig) {
-        templateCheckBox.isSelected = config.getMyBool()
+        useCustomBlenderInstallPath.isSelected = config.getUseCustomBlenderInstallPath()
+        customBlenderInstallPath.text = config.getBlenderInstallPath()
     }
 
     internal fun isModified(config: BlenderPluginConfig): Boolean {
-        return templateCheckBox.isSelected != config.getMyBool()
+        return when {
+            config.getBlenderInstallPath() != customBlenderInstallPath.text -> true
+            config.getUseCustomBlenderInstallPath() != useCustomBlenderInstallPath.isSelected -> true
+            else -> false
+        }
     }
 
     internal fun apply(config: BlenderPluginConfig) {
-        config.setMyBool(templateCheckBox.isSelected)
+        config.setUseCustomBlenderInstallPath(useCustomBlenderInstallPath.isSelected)
+        config.setBlenderInstallPath(customBlenderInstallPath.text)
     }
 }
