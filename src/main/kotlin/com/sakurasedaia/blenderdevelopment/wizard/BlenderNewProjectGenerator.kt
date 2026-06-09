@@ -24,13 +24,13 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.model.BlenderVersions
 import com.sakurasedaia.blenderdevelopment.uvPython.UvHelper
 import com.sakurasedaia.blenderdevelopment.uvPython.UvProjectScope
 import com.intellij.openapi.components.service
 import kotlinx.coroutines.launch
-import kotlinx.io.IOException
 import org.jetbrains.jps.model.java.JavaSourceRootType
 import java.util.Properties
 import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
@@ -87,7 +87,9 @@ class BlenderProjectGenerator(val data: ProjectConfig) {
      * @return `Unit`.
      */
     fun generateNewProject(project: Project, baseDir: VirtualFile) {
-        PluginLogger.log(project, "Creating new project for ${data.name} at ${baseDir.path}")
+        val logger = PluginLogger.getInstance(project)
+        val notifications = NotificationModal.getInstance(project)
+        logger.log("Creating new project for ${data.name} at ${baseDir.path}")
         WriteCommandAction.runWriteCommandAction(project) {
             try {
                 val sourceDir = baseDir.findChild("src") ?: baseDir.createChildDirectory(this, "src")
@@ -121,17 +123,18 @@ class BlenderProjectGenerator(val data: ProjectConfig) {
                 // Repository Extras
                 if (data.initiateUvInstance) {
                     generatePyproject(project, baseDir)
-                    PluginLogger.log(project, "Initializing UV Instance")
+                    logger.log("Initializing UV Instance")
                 }
                 if (data.isGitInitialized) {
-                    PluginLogger.log(project, "Initializing Git instance")
+                    logger.log("Initializing Git instance")
                     generateGitIgnore(project, baseDir)
                     generateReadme(project, baseDir)
                 }
                 generateLicense(project, baseDir)
                 
-            } catch (e: IOException) {
-            
+            } catch (e: Exception) {
+                logger.warn("Project generation failed for ${data.name} at ${baseDir.path}", e)
+                notifications.sendError("Project generation failed. Check plugin logs for details.", throwable = e)
             }
         }
         
@@ -149,25 +152,30 @@ class BlenderProjectGenerator(val data: ProjectConfig) {
                 .firstOrNull { it.blMajorMinor == data.blenderVersion }
                 ?.pyMajorMinor
             if (pythonMajorMinor == null) {
-                PluginLogger.getInstance(project).warn(
+                logger.warn(
                     "Cannot initialize uv venv: no Python version mapped to Blender ${data.blenderVersion}"
                 )
+                notifications.sendWarning("Unable to determine Python version for Blender ${data.blenderVersion}; skipping uv setup.")
             } else {
                 val uvHelper = project.service<UvHelper>()
                 UvProjectScope.get(project).launch {
                     val sdk = uvHelper.initializeVenv(pythonMajorMinor, baseDir.path)
                     if (sdk == null) {
-                        PluginLogger.getInstance(project).warn(
+                        logger.warn(
                             "uv venv initialization failed for ${baseDir.path}"
                         )
+                        notifications.sendWarning("uv virtual environment setup failed.")
                         return@launch
                     }
-                    uvHelper.sync()
+                    if (uvHelper.sync() == null) {
+                        logger.warn("uv sync failed after environment initialization for ${baseDir.path}")
+                        notifications.sendWarning("uv dependency sync failed.")
+                    }
                 }
             }
         }
 
-        PluginLogger.log(project, "Project generation complete")
+        logger.log("Project generation complete")
     }
     
     

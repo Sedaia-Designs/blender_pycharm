@@ -21,6 +21,8 @@ import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.CommandLineState
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.runners.ExecutionEnvironment
+import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
+import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
 
 /** Command-line state placeholder for Blender run configuration execution. */
@@ -30,9 +32,10 @@ class BlenderRunCommandLineState(
 ) : CommandLineState(environment) {
 
     override fun startProcess(): ProcessHandler {
-        throw ExecutionException(
-            MessageBundle.message("run.configuration.execution.not.implemented", configuration.name)
-        )
+        val message = MessageBundle.message("run.configuration.execution.not.implemented", configuration.name)
+        val project = environment.project
+        PluginLogger.warn(project, "Run configuration execution requested but not implemented: ${configuration.name}")
+        NotificationModal.getInstance(project).sendError(message)
+        throw ExecutionException(message)
     }
 }
-

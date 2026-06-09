@@ -40,7 +40,7 @@ import com.intellij.util.text.VersionComparatorUtil
 import java.nio.file.Path
 
 /** Wizard step that collects Blender-specific settings and creates project files. */
-class BlenderNewProjectWizardStep(val parent: NewProjectWizardStep) :
+class BlenderNewProjectWizardStep(parent: NewProjectWizardStep) :
     AbstractNewProjectWizardStep(parent),
     BlenderNewProjectWizardData {
     

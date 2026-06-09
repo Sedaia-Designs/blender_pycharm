@@ -32,6 +32,7 @@ import com.jetbrains.python.sdk.uv.impl.createUvLowLevel
 import com.jetbrains.python.sdk.uv.impl.getUvExecutable
 import com.jetbrains.python.sdk.uv.setupNewUvSdkAndEnv
 import com.sakurasedaia.blenderdevelopment.logging.ErrorTypes
+import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.model.SystemHelper
 import com.sakurasedaia.blenderdevelopment.system.ExternalProcessUtil
@@ -43,6 +44,8 @@ import java.nio.file.Path
 class UvHelper(private val project: Project) : Disposable {
 
     private val processUtil by lazy { ExternalProcessUtil(project) }
+    private val logger by lazy { PluginLogger.getInstance(project) }
+    private val notifications by lazy { NotificationModal.getInstance(project) }
 
     suspend fun initializeVenv(majorMinor: String, projectPath: String): Sdk? {
         val workingDir = Path.of(projectPath)
@@ -50,10 +53,11 @@ class UvHelper(private val project: Project) : Disposable {
         // Ensure uv is on disk before delegating to the platform (the platform
         // assumes the binary already exists).
         if (getUvExecutable() == null) {
-            PluginLogger.getInstance(project).warn("uv binary not found; running installer first")
+            logger.warn("uv binary not found; running installer first")
             installer() ?: return null
             if (getUvExecutable() == null) {
-                PluginLogger.getInstance(project).error(ErrorTypes.UNSUPPORTED_OS)
+                logger.error(ErrorTypes.UNSUPPORTED_OS)
+                notifications.sendError("Unable to initialize Python environment: uv is not available on this OS.")
                 return null
             }
         }
@@ -73,7 +77,8 @@ class UvHelper(private val project: Project) : Disposable {
                 sdk
             }
             is Result.Failure -> {
-                PluginLogger.getInstance(project).warn("setupNewUvSdkAndEnv failed: ${result.error}")
+                logger.warn("setupNewUvSdkAndEnv failed: ${result.error}")
+                notifications.sendError("Failed to initialize uv virtual environment.")
                 null
             }
         }
@@ -82,7 +87,8 @@ class UvHelper(private val project: Project) : Disposable {
     suspend fun sync(): String? {
         val basePath = project.basePath
         if (basePath == null) {
-            PluginLogger.getInstance(project).warn("sync(): project has no basePath")
+            logger.warn("sync(): project has no basePath")
+            notifications.sendWarning("Cannot sync dependencies: project base path is unavailable.")
             return null
         }
         val cwd = Path.of(basePath)
@@ -94,12 +100,14 @@ class UvHelper(private val project: Project) : Disposable {
                     syncResult.result
                 }
                 is Result.Failure -> {
-                    PluginLogger.getInstance(project).warn("uv sync failed: ${syncResult.error}")
+                    logger.warn("uv sync failed: ${syncResult.error}")
+                    notifications.sendError("uv dependency sync failed.")
                     null
                 }
             }
             is Result.Failure -> {
-                PluginLogger.getInstance(project).warn("createUvLowLevel failed: ${uvResult.error}")
+                logger.warn("createUvLowLevel failed: ${uvResult.error}")
+                notifications.sendError("Unable to create uv project context for dependency sync.")
                 null
             }
         }
@@ -110,7 +118,8 @@ class UvHelper(private val project: Project) : Disposable {
 
         val sdk = ProjectRootManager.getInstance(project).projectSdk
         if (sdk == null) {
-            PluginLogger.getInstance(project).warn("setupLibraries(): no project SDK is configured")
+            logger.warn("setupLibraries(): no project SDK is configured")
+            notifications.sendWarning("Cannot install libraries: no Python SDK is configured.")
             return false
         }
 
@@ -142,9 +151,10 @@ class UvHelper(private val project: Project) : Disposable {
         }.getOrNull()
 
         if (updateResult == null || updateResult.exitCode != 0) {
-            PluginLogger.getInstance(project).warn(
+            logger.warn(
                 "uv self update exited with code ${updateResult?.exitCode}"
             )
+            notifications.sendWarning("uv self-update failed; continuing with the currently installed version.")
             return false
         }
         return true
@@ -175,18 +185,25 @@ class UvHelper(private val project: Project) : Disposable {
         }
 
         if (invocation == null) {
-            PluginLogger.getInstance(project).error(ErrorTypes.UNSUPPORTED_OS)
+            logger.error(ErrorTypes.UNSUPPORTED_OS)
+            notifications.sendError("Automatic uv installation is not supported on this OS.")
             return null
         }
 
         val (executable, args) = invocation
         val workDir = project.basePath ?: System.getProperty("user.home")
 
-        return processUtil.runExternalToolAsync(
+        val result = processUtil.runExternalToolAsync(
             executable = executable,
             arguments = args,
             workingDir = workDir,
         )
+        if (result.exitCode != 0) {
+            logger.warn("uv installer exited with code ${result.exitCode}")
+            notifications.sendError("uv installation failed. Review the process output for details.")
+            return null
+        }
+        return result
     }
 
     
