@@ -17,41 +17,98 @@
 
 package com.sakurasedaia.blenderdevelopment.ui.settings
 
-import com.intellij.ui.components.JBCheckBox
+import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
+import com.intellij.openapi.ui.TextFieldWithBrowseButton
+import com.intellij.openapi.ui.TextBrowseFolderListener
+import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
 import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
 import com.sakurasedaia.blenderdevelopment.config.BlenderPluginConfig
 import javax.swing.JComponent
-import javax.swing.JTextField
 
 /** Settings panel content for global Blender plugin configuration. */
 internal class BlenderSettingsContent {
-    private lateinit var useCustomBlenderInstallPath: JBCheckBox
-    private lateinit var customBlenderInstallPath: JTextField
+    private data class SettingBinding(
+        val getFromConfig: (BlenderPluginConfig) -> String,
+        val getFromField: () -> String,
+        val setToField: (String) -> Unit,
+        val setToConfig: (BlenderPluginConfig, String) -> Unit,
+    )
+
+    private lateinit var customBlenderInstallPath: TextFieldWithBrowseButton
+    private lateinit var customCodeCompletionPath: TextFieldWithBrowseButton
+    private lateinit var customLogPath: TextFieldWithBrowseButton
+
     private val root = panel {
-        group(MessageBundle.message("ui.settings.group.template.title")) {
+        group(MessageBundle.message("ui.settings.group.filepaths.title")) {
             row {
-                textField()
-                    .applyToComponent { customBlenderInstallPath = this }
-                    .comment(MessageBundle.message("ui.settings.group.template.path"))
+                cell(TextFieldWithBrowseButton())
+                    .applyToComponent {
+                        customBlenderInstallPath = this
+                        addBrowseFolderListener(TextBrowseFolderListener(FileChooserDescriptorFactory.createSingleFolderDescriptor()))
+                    }
+                    .comment(MessageBundle.message("ui.settings.group.blender.comment"))
+                    .align(AlignX.FILL)
+            }
+            row {
+                cell(TextFieldWithBrowseButton())
+                    .applyToComponent {
+                        customCodeCompletionPath = this
+                        addBrowseFolderListener(TextBrowseFolderListener(FileChooserDescriptorFactory.createSingleFolderDescriptor()))
+                    }
+                    .comment(MessageBundle.message("ui.settings.group.code-completion.comment"))
+                    .align(AlignX.FILL)
+            }
+            row {
+                cell(TextFieldWithBrowseButton())
+                    .applyToComponent {
+                        customLogPath = this
+                        addBrowseFolderListener(TextBrowseFolderListener(FileChooserDescriptorFactory.createSingleFolderDescriptor()))
+                    }
+                    .comment(MessageBundle.message("ui.settings.group.log.comment"))
+                    .align(AlignX.FILL)
             }
         }
     }
 
+    private val settingsBindings: List<SettingBinding>
+        get() = listOf(
+            SettingBinding(
+                getFromConfig = { it.getBlenderInstallPath() },
+                getFromField = { customBlenderInstallPath.text },
+                setToField = { customBlenderInstallPath.text = it },
+                setToConfig = { config, value -> config.setBlenderInstallPath(value) },
+            ),
+            SettingBinding(
+                getFromConfig = { it.getCodeCompletionPath() },
+                getFromField = { customCodeCompletionPath.text },
+                setToField = { customCodeCompletionPath.text = it },
+                setToConfig = { config, value -> config.setCodeCompletionPath(value) },
+            ),
+            SettingBinding(
+                getFromConfig = { it.getLogPath() },
+                getFromField = { customLogPath.text },
+                setToField = { customLogPath.text = it },
+                setToConfig = { config, value -> config.setLogPath(value) },
+            ),
+        )
+
     internal fun component(): JComponent = root
 
     internal fun reset(config: BlenderPluginConfig) {
-        customBlenderInstallPath.text = config.getBlenderInstallPath()
-    }
-
-    internal fun isModified(config: BlenderPluginConfig): Boolean {
-        return when {
-            config.getBlenderInstallPath() != customBlenderInstallPath.text -> true
-            else -> false
+        settingsBindings.forEach { binding ->
+            binding.setToField(binding.getFromConfig(config))
         }
     }
 
+    internal fun isModified(config: BlenderPluginConfig): Boolean =
+        settingsBindings.any { binding ->
+            binding.getFromConfig(config) != binding.getFromField()
+        }
+
     internal fun apply(config: BlenderPluginConfig) {
-        config.setBlenderInstallPath(customBlenderInstallPath.text)
+        settingsBindings.forEach { binding ->
+            binding.setToConfig(config, binding.getFromField())
+        }
     }
 }

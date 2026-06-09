@@ -24,8 +24,10 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.util.io.createDirectories
+import com.sakurasedaia.blenderdevelopment.config.BlenderPluginConfig
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
+import java.nio.file.InvalidPathException
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 import java.time.LocalDateTime
@@ -35,14 +37,15 @@ import kotlin.io.path.exists
 /**
  * Project-level logger that mirrors messages to:
  *  - the IntelliJ platform logger (`idea.log`), respecting its level configuration, and
- *  - a plugin-specific daily file under `<IDE log path>/blender-plugin/blender_plugin_<yyyy-MM-dd>.log`.
+ *  - a plugin-specific daily file under the configured plugin log path
+ *    (`BlenderPluginConfig.logPath`) using `blender_plugin_<yyyy-MM-dd>.log`.
  *
  * File I/O is dispatched to a pooled thread and serialized to avoid interleaving and to keep the EDT responsive.
  */
 @Service(Service.Level.PROJECT)
 internal class PluginLogger(private val project: Project) {
     private val platformLogger = Logger.getInstance(PluginLogger::class.java)
-    private val logDir: Path = Path.of(PathManager.getLogPath()).resolve("blender-plugin")
+    private val defaultLogDir: Path = Path.of(PathManager.getLogPath()).resolve("BlenderExtensions")
     private val writeLock = Any()
 
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -64,6 +67,7 @@ internal class PluginLogger(private val project: Project) {
         // Dispatch I/O to a background thread to keep the IDE responsive.
         ApplicationManager.getApplication().executeOnPooledThread {
             synchronized(writeLock) {
+                val logDir = resolveLogDir()
                 try {
                     if (!logDir.exists()) logDir.createDirectories()
                     val logFile = logDir.resolve("blender_plugin_$date.log")
@@ -78,6 +82,18 @@ internal class PluginLogger(private val project: Project) {
                     platformLogger.warn("Failed to write to plugin log file at $logDir", e)
                 }
             }
+        }
+    }
+
+    private fun resolveLogDir(): Path {
+        val configuredPath = BlenderPluginConfig.getInstance().state.logPath.trim()
+        if (configuredPath.isBlank()) return defaultLogDir
+
+        return try {
+            Path.of(configuredPath)
+        } catch (_: InvalidPathException) {
+            platformLogger.warn("Configured plugin log path is invalid: '$configuredPath'. Falling back to $defaultLogDir")
+            defaultLogDir
         }
     }
 
