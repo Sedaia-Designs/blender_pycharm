@@ -69,10 +69,18 @@ object SystemHelper {
      */
     private fun isOS(input: String): Boolean = input in rawOsName
     private val parseOsName = when {
-        isOS("windows") -> "win"
-        isOS("macos") || isOS("mac os x") || isOS("darwin") -> "mac"
+        isOS("windows") -> "windows"
+        isOS("macos") || isOS("mac os x") || isOS("darwin") -> "macos"
         isOS("linux") -> "linux"
         else -> "unknown"
+    }
+    
+    val getSystemBundleExtension: (String) -> String = { os: String -> when (os) {
+            "windows" -> "zip"
+            "macos" -> "dmg"
+            "linux" -> "tar.gz"
+            else -> "unknown"
+        }
     }
     
     val sysInfo: SysInfo = SysInfo(
