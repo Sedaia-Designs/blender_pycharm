@@ -68,6 +68,7 @@ object SystemHelper {
      * @return `true` when the token is present in the OS name string.
      */
     private fun isOS(input: String): Boolean = input in rawOsName
+    
     private val parseOsName = when {
         isOS("windows") -> "windows"
         isOS("macos") || isOS("mac os x") || isOS("darwin") -> "macos"
@@ -75,6 +76,9 @@ object SystemHelper {
         else -> "unknown"
     }
     
+    /**
+     * Returns the default file extension for the current OS.
+     */
     val getSystemBundleExtension: (String) -> String = { os: String -> when (os) {
             "windows" -> "zip"
             "macos" -> "dmg"
@@ -83,12 +87,25 @@ object SystemHelper {
         }
     }
     
+    /**
+     * Normalized host platform information.
+     *
+     * @property osName OS name (e.g. "windows", "macos", "linux").
+     * @property osVersion OS version string.
+     * @property osArch CPU architecture (e.g. "x64", "arm64").
+     */
     val sysInfo: SysInfo = SysInfo(
         osName = parseOsName,
         osVersion = System.getProperty("os.version"),
         osArch = cpuArch
     )
     
+    /**
+     * Returns whether the current host is running under Windows Subsystem for Linux.
+     *
+     * @return `true` if the host is running under WSL.
+     */
+    val isWSL: Boolean = System.getenv("WSL_DISTRO_NAME") != null
     
     /**
      * Returns whether the current host can run the selected Blender major/minor version.

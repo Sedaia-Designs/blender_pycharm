@@ -19,13 +19,15 @@ package com.sakurasedaia.blenderdevelopment.system
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.SystemInfo
-import com.sakurasedaia.blenderdevelopment.logging.ErrorTypes
+import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.intellij.util.io.Decompressor
+import com.sakurasedaia.blenderdevelopment.logging.ErrorTypes
 
 /** Utility for platform-aware Blender bundle installation and downloads. */
 class SystemUtilities(private val project: Project) {
 	private val logger = PluginLogger.getInstance(project)
+	private val notifications = NotificationModal.getInstance(project)
 
 	/**
 	 * Handles the installation of applications based on the detected operating system.
@@ -43,28 +45,23 @@ class SystemUtilities(private val project: Project) {
 		val bundleSplit: List<String> = bundlePath.split("-")
 		when {
 			bundleSplit.first() != "blender" -> {
-				logger.error(ErrorTypes.NOT_BLENDER_BUNDLE)
-				throw IllegalArgumentException(
-					"Bundle provided is not a Portable Blender bundle"
-				)
+				logger.error(errorType = ErrorTypes.NOT_BLENDER_BUNDLE)
+				notifications.sendError("The provided file is not a Blender bundle.")
+				return
 			}
 			bundleSplit[2] !in listOf("windows", "macos", "linux") -> {
-				logger.error(ErrorTypes.UNSUPPORTED_OS)
-				throw IllegalArgumentException(
-					"Bundle provided is not for a supported operating system"
-				)
+				logger.error(errorType = ErrorTypes.UNSUPPORTED_OS)
+				notifications.sendError("Blender installation is not supported on this OS.")
+				// Download the appropriate bundle for the host OS and retry function, error out if the bundle is not found.
 			}
 			bundleSplit[3] !in listOf("x64", "arm64") -> {
-				logger.error(ErrorTypes.UNSUPPORTED_ARCH)
-				throw IllegalArgumentException(
-					"Bundle provided is not for a supported architecture"
-				)
+				logger.error(errorType = ErrorTypes.UNSUPPORTED_ARCH)
+				notifications.sendError("Blender installation is not supported on this architecture.")
+				// Download the appropriate bundle for the host Architecture and retry function, error out if the bundle is not found.
 			}
 			bundleSplit[4] !in listOf("zip", "dmg", "tar.xz") -> {
-				logger.error(ErrorTypes.ARCHIVE_FORMAT_UNSUPPORTED)
-				throw IllegalArgumentException(
-					"Bundle provided is not in a supported format"
-				)
+				logger.error(errorType = ErrorTypes.ARCHIVE_FORMAT_UNSUPPORTED)
+				notifications.sendError("Blender installation is not supported on this file format.")
 			}
 		}
 		
@@ -73,7 +70,10 @@ class SystemUtilities(private val project: Project) {
 			SystemInfo.isWindows -> installBlenderWindows(bundlePath)
 			SystemInfo.isMac -> installBlenderMac(bundlePath)
 			SystemInfo.isLinux -> installBlenderLinux(bundlePath)
-			else -> logger.error(ErrorTypes.UNSUPPORTED_OS)
+			else -> {
+				logger.warn("Blender installation requested on unsupported host OS")
+				notifications.sendError("Blender installation is not supported on this OS.")
+			}
 		}
 	}
 	

@@ -35,13 +35,6 @@ internal class BlenderProjectConfig(private val project: Project): PersistentSta
 	private var state: ProjectState = ProjectState()
 	
 	/**
-	 * Returns the configured Blender executable path.
-	 *
-	 * @return Blender executable path.
-	 */
-	fun getBlenderPath(): String = state.blenderPath
-	
-	/**
 	 * Stores the Blender executable path.
 	 *
 	 * @param path Blender executable path.
@@ -50,13 +43,7 @@ internal class BlenderProjectConfig(private val project: Project): PersistentSta
 	fun setBlenderPath(path: String) {
 		state.blenderPath = path
 	}
-	
-	/**
-	 * Returns the configured add-on symlink name.
-	 *
-	 * @return add-on symlink name.
-	 */
-	fun getAddonSymlinkName(): String = state.addonSymlinkName
+	fun getBlenderPath(): String = state.blenderPath
 	
 	
 	/**
@@ -68,16 +55,7 @@ internal class BlenderProjectConfig(private val project: Project): PersistentSta
 	fun setAddonSymlinkName(name: String) {
 		state.addonSymlinkName = name
 	}
-	
-	
-	/**
-	 * Returns whether sandbox mode is enabled.
-	 *
-	 * @return `true` when sandbox mode is enabled.
-	 */
-	fun getSandbox(): Boolean = state.sandbox
-	
-	
+	fun getAddonSymlinkName(): String = state.addonSymlinkName
 	
 	/**
 	 * Stores sandbox mode preference.
@@ -88,13 +66,7 @@ internal class BlenderProjectConfig(private val project: Project): PersistentSta
 	fun setSandbox(sandbox: Boolean) {
 		state.sandbox = sandbox
 	}
-	
-	/**
-	 * Returns the configured project source folder path.
-	 *
-	 * @return source folder path relative to project root.
-	 */
-	fun getSourceFolder(): String = state.sourceFolder
+	fun getSandbox(): Boolean = state.sandbox
 	
 	
 	/**
@@ -106,16 +78,7 @@ internal class BlenderProjectConfig(private val project: Project): PersistentSta
 	fun setSourceFolder(path: String) {
 		state.sourceFolder = path
 	}
-	
-	
-	/**
-	 * Returns persisted workspace state for serialization.
-	 *
-	 * @return current persistent state payload.
-	 */
-	override fun getState(): ProjectState {
-		return state
-	}
+	fun getSourceFolder(): String = state.sourceFolder
 	
 	
 	/**
@@ -127,6 +90,7 @@ internal class BlenderProjectConfig(private val project: Project): PersistentSta
 	override fun loadState(p0: ProjectState) {
 		state = p0
 	}
+	override fun getState(): ProjectState = state
 	
 	
 	companion object {
