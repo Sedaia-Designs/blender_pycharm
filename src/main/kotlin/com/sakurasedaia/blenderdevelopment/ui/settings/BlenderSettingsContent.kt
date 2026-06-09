@@ -31,33 +31,27 @@ internal class BlenderSettingsContent {
     private val root = panel {
         group(MessageBundle.message("ui.settings.group.template.title")) {
             row {
-                checkBox(MessageBundle.message("ui.settings.group.template.use_custom_path"))
-                    .applyToComponent { useCustomBlenderInstallPath = this }
                 textField()
                     .applyToComponent { customBlenderInstallPath = this }
                     .comment(MessageBundle.message("ui.settings.group.template.path"))
             }
-            
         }
     }
 
     internal fun component(): JComponent = root
 
     internal fun reset(config: BlenderPluginConfig) {
-        useCustomBlenderInstallPath.isSelected = config.getUseCustomBlenderInstallPath()
         customBlenderInstallPath.text = config.getBlenderInstallPath()
     }
 
     internal fun isModified(config: BlenderPluginConfig): Boolean {
         return when {
             config.getBlenderInstallPath() != customBlenderInstallPath.text -> true
-            config.getUseCustomBlenderInstallPath() != useCustomBlenderInstallPath.isSelected -> true
             else -> false
         }
     }
 
     internal fun apply(config: BlenderPluginConfig) {
-        config.setUseCustomBlenderInstallPath(useCustomBlenderInstallPath.isSelected)
         config.setBlenderInstallPath(customBlenderInstallPath.text)
     }
 }
