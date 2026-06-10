@@ -31,6 +31,9 @@ internal class BlenderPluginConfig : PersistentStateComponent<BlenderPluginConfi
 		
 		var bpyApiInstallPath: String = "${PathManager.getSystemPath()}/BlenderExtensions/CodeCompletion/", // Installs for Fake-Bpy-Module
 		
+		var downloadPath: String = "${PathManager.getSystemPath()}/BlenderExtensions/Downloads/",
+		var clearDownloadsAfterInstall: Boolean = true,
+		
 		var logPath: String = "${PathManager.getLogPath()}/BlenderExtensions/", // TODO: Change the default to the same path as the Intellij `idea.log` file, but save alongside in a `blender-development.log` file.
 	)
 
@@ -40,7 +43,6 @@ internal class BlenderPluginConfig : PersistentStateComponent<BlenderPluginConfi
 	 * Sets the path to the Blender application bundle.
 	 *
 	 * @param path path to the Blender application bundle.
-	 * @return `Unit`.
 	 */
 	fun setBlenderInstallPath(path: String) {
 		state.blenderInstallPath = path
@@ -51,7 +53,6 @@ internal class BlenderPluginConfig : PersistentStateComponent<BlenderPluginConfi
 	 * Sets the path to the Fake-Bpy-Module installation.
 	 *
 	 * @param path path to the Fake-Bpy-Module installation.
-	 * @return `Unit`.
 	 */
 	fun setCodeCompletionPath(path: String) {
 		state.bpyApiInstallPath = path
@@ -62,12 +63,31 @@ internal class BlenderPluginConfig : PersistentStateComponent<BlenderPluginConfi
 	 * Sets the path to the log file.
 	 *
 	 * @param path path to the log file.
-	 * @return `Unit`.
 	 */
 	fun setLogPath(path: String) {
 		state.logPath = path
 	}
 	fun getLogPath(): String = state.logPath
+	
+	/**
+	 * Sets the path to the download folder.
+	 *
+	 * @param path path to the download folder.
+	 */
+	fun setDownloadPath(path: String) {
+		state.downloadPath = path
+	}
+	fun getDownloadPath(): String = state.downloadPath
+	
+	/**
+	 * Sets whether to clear the download folder after installation.
+	 *
+	 * @param clear true to clear the download folder after installation, false otherwise.
+	 */
+	fun setClearDownloadsAfterInstall(clear: Boolean) {
+		state.clearDownloadsAfterInstall = clear
+	}
+	fun getClearDownloadsAfterInstall(): Boolean = state.clearDownloadsAfterInstall
 	
 	override fun getState(): PluginState = state
 

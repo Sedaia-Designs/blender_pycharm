@@ -24,6 +24,8 @@ enum class ErrorTypes(val message: String) {
     ARCHIVE_FORMAT_UNSUPPORTED("[BL-003]: Archive Format not supported"),
     NOT_BLENDER_BUNDLE("[BL-004]: Bundle provided is not a Portable Blender bundle"),
     UNSUPPORTED_ARCH("[BL-005]: Unsupported CPU Architecture"),
+    DOWNLOAD_ERROR("[BL-006]: Failed to download Blender bundle"),
+    DMG_EXTRACTION_FAILED("[BL-007]: Failed to extract DMG Bundle"),
     ;
 
     /**

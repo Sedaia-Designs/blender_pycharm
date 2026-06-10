@@ -21,6 +21,7 @@ import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.configurations.PathEnvironmentVariableUtil
 import com.intellij.execution.filters.TextConsoleBuilderFactory
 import com.intellij.execution.process.ColoredProcessHandler
+import com.intellij.execution.process.CapturingProcessHandler
 import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessListener
 import com.intellij.execution.process.ProcessOutputType
@@ -47,6 +48,7 @@ import kotlin.coroutines.resume
  * @param component The console UI component; safe to embed in a ToolWindow immediately, output streams live.
  */
 data class ExternalToolResult(val exitCode: Int, val component: JComponent)
+data class ExternalCapturedToolResult(val exitCode: Int, val stdout: String, val stderr: String)
 
 /** Executes external commands and provides live IntelliJ console output. */
 class ExternalProcessUtil(private val project: Project) {
@@ -141,6 +143,63 @@ class ExternalProcessUtil(private val project: Project) {
                 }
             }
             ExternalToolResult(exitCode, consoleComponent)
+        } catch (t: Throwable) {
+            PluginLogger.getInstance(project).warn(
+                "Failed to execute external process '$executable ${arguments.joinToString(" ")}' from '$workingDir'",
+                t,
+            )
+            NotificationModal.getInstance(project).sendError(
+                "Failed to start external process '$executable'. Check plugin logs for details.",
+                throwable = t,
+            )
+            throw t
+        }
+    }
+    
+    /**
+     * Executes an external tool asynchronously and captures stdout/stderr.
+     *
+     * @param executable The command or path to the executable.
+     * @param arguments The list of arguments to pass to the executable.
+     * @param workingDir The directory where the command should execute.
+     * @param env Extra environment variables merged on top of the inherited shell environment.
+     * @return [ExternalCapturedToolResult] with exit code and captured output streams.
+     */
+    suspend fun runExternalToolAndCaptureAsync(
+        executable: String,
+        arguments: List<String>,
+        workingDir: String,
+        env: Map<String, String> = emptyMap(),
+    ): ExternalCapturedToolResult {
+        return try {
+            val workDir = File(workingDir).takeIf { it.isDirectory }
+                ?: error("Working directory does not exist: $workingDir")
+            
+            val preparedCommand = prepareCommand(executable, arguments, workDir)
+            val commandLine = GeneralCommandLine(preparedCommand.executable)
+                .withParameters(preparedCommand.arguments)
+                .withWorkDirectory(workDir)
+                .withCharset(Charsets.UTF_8)
+                .withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE)
+                .withEnvironment(buildMap {
+                    put("FORCE_COLOR", "1")
+                    put("CLICOLOR_FORCE", "1")
+                    put("PY_COLORS", "1")
+                    put("PYTHONIOENCODING", "utf-8")
+                    put("PYTHONUTF8", "1")
+                    put("PYTHONUNBUFFERED", "1")
+                    putAll(env)
+                })
+            
+            val output = withContext(Dispatchers.IO) {
+                val handler = CapturingProcessHandler(commandLine)
+                handler.runProcess()
+            }
+            ExternalCapturedToolResult(
+                exitCode = output.exitCode,
+                stdout = output.stdout,
+                stderr = output.stderr,
+            )
         } catch (t: Throwable) {
             PluginLogger.getInstance(project).warn(
                 "Failed to execute external process '$executable ${arguments.joinToString(" ")}' from '$workingDir'",
