@@ -20,6 +20,7 @@ package com.sakurasedaia.blenderdevelopment.ui.settings
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.ui.TextBrowseFolderListener
+import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
 import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
@@ -38,7 +39,10 @@ internal class BlenderSettingsContent {
     private lateinit var customBlenderInstallPath: TextFieldWithBrowseButton
     private lateinit var customCodeCompletionPath: TextFieldWithBrowseButton
     private lateinit var customLogPath: TextFieldWithBrowseButton
-
+    private lateinit var downloadPath: TextFieldWithBrowseButton
+    private lateinit var clearDownloadAfterInstall: JBCheckBox
+    
+    
     private val root = panel {
         group(MessageBundle.message("ui.settings.group.filepaths.title")) {
             row {
@@ -66,6 +70,17 @@ internal class BlenderSettingsContent {
                         addBrowseFolderListener(TextBrowseFolderListener(FileChooserDescriptorFactory.createSingleFolderDescriptor()))
                     }
                     .comment(MessageBundle.message("ui.settings.group.log.comment"))
+                    .align(AlignX.FILL)
+            }
+            row {
+                cell(TextFieldWithBrowseButton())
+                    .comment(MessageBundle.message("ui.settings.group.download.comment"))
+                    .applyToComponent { downloadPath = this }
+                    .align(AlignX.FILL)
+            }
+            row {
+                cell(JBCheckBox(MessageBundle.message("ui.settings.group.download.clear-after-install")))
+                    .applyToComponent { clearDownloadAfterInstall = this }
                     .align(AlignX.FILL)
             }
         }
