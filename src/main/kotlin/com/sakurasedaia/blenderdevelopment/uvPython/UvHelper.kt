@@ -34,7 +34,7 @@ import com.jetbrains.python.sdk.uv.setupNewUvSdkAndEnv
 import com.sakurasedaia.blenderdevelopment.logging.ErrorTypes
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
-import com.sakurasedaia.blenderdevelopment.model.SystemHelper
+import com.sakurasedaia.blenderdevelopment.model.BlenderSystem
 import com.sakurasedaia.blenderdevelopment.system.ExternalProcessUtil
 import com.sakurasedaia.blenderdevelopment.system.ExternalToolResult
 import io.github.z4kn4fein.semver.Version
@@ -171,7 +171,7 @@ class UvHelper(private val project: Project) : Disposable {
     }
 
     internal suspend fun installer(): ExternalToolResult? {
-        val os = SystemHelper.sysInfo.osName // 'win' | 'mac' | 'linux' | 'unknown'
+        val os = BlenderSystem.getSysInfo.osName // 'win' | 'mac' | 'linux' | 'unknown'
 
         val invocation: Pair<String, List<String>>? = when (os) {
             "win" -> "powershell" to listOf(

@@ -21,7 +21,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Unit tests for host/platform compatibility checks in [SystemHelper]. */
+/** Unit tests for host/platform compatibility checks in [BlenderSystem]. */
 class BlenderVersionsTest {
     @Test
     /**
@@ -30,8 +30,8 @@ class BlenderVersionsTest {
      * @return `Unit`.
      */
     fun testIsOSCompatibleSpecific() {
-        assertTrue("Should be compatible with 4.5", SystemHelper.isOSCompatible("4.5"))
-        assertTrue("Should be compatible with 5.1", SystemHelper.isOSCompatible("5.1"))
+        assertTrue("Should be compatible with 4.5", BlenderSystem.isOSCompatible("4.5"))
+        assertTrue("Should be compatible with 5.1", BlenderSystem.isOSCompatible("5.1"))
     }
     
     @Test
@@ -41,7 +41,7 @@ class BlenderVersionsTest {
      * @return `Unit`.
      */
     fun testIsOSCompatibleUnknownVersion() {
-        assertFalse("Should not be compatible with unknown version", SystemHelper.isOSCompatible("9.9"))
+        assertFalse("Should not be compatible with unknown version", BlenderSystem.isOSCompatible("9.9"))
     }
 
     @Test
@@ -51,6 +51,6 @@ class BlenderVersionsTest {
      * @return `Unit`.
      */
     fun testIsOSCompatibleFullVersion() {
-        assertTrue("Should be compatible with full version string 4.2.19", SystemHelper.isOSCompatible("4.2.19"))
+        assertTrue("Should be compatible with full version string 4.2.19", BlenderSystem.isOSCompatible("4.2.19"))
     }
 }
