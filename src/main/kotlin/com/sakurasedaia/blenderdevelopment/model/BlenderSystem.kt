@@ -64,7 +64,7 @@ object BlenderSystem {
         bundleFileType = when (osName) {
             "windows" -> "exe"
             "macos" -> "dmg"
-            "linux" -> "tar.gz"
+            "linux" -> "tar.xz"
             else -> "unknown"
         }
     )
