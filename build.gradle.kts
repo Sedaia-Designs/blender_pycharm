@@ -38,6 +38,7 @@ intellijPlatform {
             Initial Release
         """.trimIndent()
     }
+    autoReload = true
 }
 
 tasks {
@@ -56,6 +57,10 @@ tasks {
     
     jarSearchableOptions {
         enabled = false
+    }
+    
+    runIde {
+        autoReload = true
     }
 }
 
