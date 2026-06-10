@@ -35,19 +35,6 @@ object BlenderSystem {
     private fun isArch(input: String): Boolean = input in sysArch
     private fun isOS(input: String): Boolean = input in osName
     
-    private val parseCpuArch = when {
-        isArch("aarch64") || isArch("arm64") -> "arm64"
-        isArch("x86_64") || isArch("amd64") -> "x64"
-        else -> "unknown"
-    }
-    
-    private val parseOsName = when {
-        isOS("windows") -> "windows"
-        isOS("macos") || isOS("mac os x") || isOS("darwin") -> "macos"
-        isOS("linux") -> "linux"
-        else -> "unknown"
-    }
-    
     fun isOSCompatible(blMajorMinor: String): Boolean {
         val systemInfo = getSysInfo
         
@@ -61,11 +48,20 @@ object BlenderSystem {
     }
     
     val getSysInfo: SysInfo = SysInfo(
-        osName = parseOsName,
+        osName = when {
+            isOS("windows") -> "windows"
+            isOS("macos") || isOS("mac os x") || isOS("darwin") -> "macos"
+            isOS("linux") -> "linux"
+            else -> "unknown"
+        },
         osVersion = System.getProperty("os.version"),
-        osArch = parseCpuArch,
+        osArch = when {
+            isArch("aarch64") || isArch("arm64") -> "arm64"
+            isArch("x86_64") || isArch("amd64") -> "x64"
+            else -> "unknown"
+        },
         isWSL = System.getenv("WSL_DISTRO_NAME") != null,
-        bundleFileType = when (parseOsName) {
+        bundleFileType = when (osName) {
             "windows" -> "exe"
             "macos" -> "dmg"
             "linux" -> "tar.gz"
