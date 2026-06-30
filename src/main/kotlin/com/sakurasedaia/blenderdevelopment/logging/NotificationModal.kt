@@ -5,6 +5,7 @@ import com.intellij.notification.NotificationType
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
+import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
 
 /** Project service wrapper around IntelliJ notifications for plugin UI feedback. */
 @Service(Service.Level.PROJECT)
@@ -13,7 +14,8 @@ internal class NotificationModal(private val project: Project) {
 
     companion object {
         private const val GROUP_ID = "Blender Development Notifications"
-        private const val DEFAULT_TITLE = "Blender Development"
+        private val DEFAULT_TITLE: String
+            get() = MessageBundle.message("ui.notification.default.title")
 
         
         /**

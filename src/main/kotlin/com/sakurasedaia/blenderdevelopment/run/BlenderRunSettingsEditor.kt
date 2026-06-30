@@ -31,17 +31,18 @@ class BlenderRunSettingsEditor : SettingsEditor<BlenderRunConfiguration>() {
     private lateinit var argumentsField: JBTextField
 
     private val root: JPanel = panel {
-        row("Script Path") {
+        row(MessageBundle.message("run.configuration.editor.source.path")) {
             textField()
                 .align(AlignX.FILL)
                 .applyToComponent { scriptPathField = this }
         }
         row("Working Directory") {
+        row(MessageBundle.message("run.configuration.editor.working.directory")) {
             textField()
                 .align(AlignX.FILL)
                 .applyToComponent { workingDirectoryField = this }
         }
-        row("Arguments") {
+        row(MessageBundle.message("run.configuration.editor.arguments")) {
             textField()
                 .align(AlignX.FILL)
                 .applyToComponent { argumentsField = this }

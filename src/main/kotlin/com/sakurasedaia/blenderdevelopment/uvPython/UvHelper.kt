@@ -34,6 +34,7 @@ import com.jetbrains.python.sdk.uv.setupNewUvSdkAndEnv
 import com.sakurasedaia.blenderdevelopment.logging.ErrorTypes
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
+import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
 import com.sakurasedaia.blenderdevelopment.model.BlenderSystem
 import com.sakurasedaia.blenderdevelopment.system.ExternalProcessUtil
 import com.sakurasedaia.blenderdevelopment.system.ExternalToolResult
@@ -57,7 +58,7 @@ class UvHelper(private val project: Project) : Disposable {
             installer() ?: return null
             if (getUvExecutable() == null) {
                 logger.error(ErrorTypes.UNSUPPORTED_OS)
-                notifications.sendError("Unable to initialize Python environment: uv is not available on this OS.")
+                notifications.sendError(MessageBundle.message("notification.uv.init.unavailable.os"))
                 return null
             }
         }
@@ -78,7 +79,7 @@ class UvHelper(private val project: Project) : Disposable {
             }
             is Result.Failure -> {
                 logger.warn("setupNewUvSdkAndEnv failed: ${result.error}")
-                notifications.sendError("Failed to initialize uv virtual environment.")
+                notifications.sendError(MessageBundle.message("notification.uv.venv.init.failed"))
                 null
             }
         }
@@ -88,7 +89,7 @@ class UvHelper(private val project: Project) : Disposable {
         val basePath = project.basePath
         if (basePath == null) {
             logger.warn("sync(): project has no basePath")
-            notifications.sendWarning("Cannot sync dependencies: project base path is unavailable.")
+            notifications.sendWarning(MessageBundle.message("notification.uv.sync.project.path.unavailable"))
             return null
         }
         val cwd = Path.of(basePath)
@@ -101,13 +102,13 @@ class UvHelper(private val project: Project) : Disposable {
                 }
                 is Result.Failure -> {
                     logger.warn("uv sync failed: ${syncResult.error}")
-                    notifications.sendError("uv dependency sync failed.")
+                    notifications.sendError(MessageBundle.message("notification.uv.sync.failed"))
                     null
                 }
             }
             is Result.Failure -> {
                 logger.warn("createUvLowLevel failed: ${uvResult.error}")
-                notifications.sendError("Unable to create uv project context for dependency sync.")
+                notifications.sendError(MessageBundle.message("notification.uv.sync.context.create.failed"))
                 null
             }
         }
@@ -119,7 +120,7 @@ class UvHelper(private val project: Project) : Disposable {
         val sdk = ProjectRootManager.getInstance(project).projectSdk
         if (sdk == null) {
             logger.warn("setupLibraries(): no project SDK is configured")
-            notifications.sendWarning("Cannot install libraries: no Python SDK is configured.")
+            notifications.sendWarning(MessageBundle.message("notification.uv.libraries.sdk.missing"))
             return false
         }
 
@@ -154,7 +155,7 @@ class UvHelper(private val project: Project) : Disposable {
             logger.warn(
                 "uv self update exited with code ${updateResult?.exitCode}"
             )
-            notifications.sendWarning("uv self-update failed; continuing with the currently installed version.")
+            notifications.sendWarning(MessageBundle.message("notification.uv.self.update.failed"))
             return false
         }
         return true
@@ -186,7 +187,7 @@ class UvHelper(private val project: Project) : Disposable {
 
         if (invocation == null) {
             logger.error(ErrorTypes.UNSUPPORTED_OS)
-            notifications.sendError("Automatic uv installation is not supported on this OS.")
+            notifications.sendError(MessageBundle.message("notification.uv.install.unsupported.os"))
             return null
         }
 
@@ -200,7 +201,7 @@ class UvHelper(private val project: Project) : Disposable {
         )
         if (result.exitCode != 0) {
             logger.warn("uv installer exited with code ${result.exitCode}")
-            notifications.sendError("uv installation failed. Review the process output for details.")
+            notifications.sendError(MessageBundle.message("notification.uv.install.failed"))
             return null
         }
         return result

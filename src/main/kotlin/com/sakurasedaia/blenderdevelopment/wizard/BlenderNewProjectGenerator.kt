@@ -29,12 +29,11 @@ import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.model.BlenderVersions
 import com.sakurasedaia.blenderdevelopment.uvPython.UvHelper
 import com.sakurasedaia.blenderdevelopment.uvPython.UvProjectScope
-import com.intellij.openapi.components.service
+import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
+import com.sakurasedaia.blenderdevelopment.config.ProjectConfig
 import kotlinx.coroutines.launch
 import org.jetbrains.jps.model.java.JavaSourceRootType
 import java.util.Properties
-import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
-import com.sakurasedaia.blenderdevelopment.config.BlenderProjectConfig
 
 /** Immutable configuration payload consumed by [BlenderProjectGenerator]. */
 data class ProjectConfig (
@@ -114,8 +113,6 @@ class BlenderProjectGenerator(val data: ProjectConfig) {
                     model.commit()
                 }
                 
-                // Run Generators
-                
                 // Necessary Components for a Blender Project
                 if (data.projectType != "Add-on" ) generateManifest(project, sourceDir)
                 generateMainScript(project, sourceDir)
@@ -155,7 +152,9 @@ class BlenderProjectGenerator(val data: ProjectConfig) {
                 logger.warn(
                     "Cannot initialize uv venv: no Python version mapped to Blender ${data.blenderVersion}"
                 )
-                notifications.sendWarning("Unable to determine Python version for Blender ${data.blenderVersion}; skipping uv setup.")
+                notifications.sendWarning(
+                    MessageBundle.message("notification.uv.python.version.unmapped", data.blenderVersion)
+                )
             } else {
                 val uvHelper = project.service<UvHelper>()
                 UvProjectScope.get(project).launch {
@@ -164,12 +163,12 @@ class BlenderProjectGenerator(val data: ProjectConfig) {
                         logger.warn(
                             "uv venv initialization failed for ${baseDir.path}"
                         )
-                        notifications.sendWarning("uv virtual environment setup failed.")
+                        notifications.sendWarning(MessageBundle.message("notification.uv.venv.setup.failed"))
                         return@launch
                     }
                     if (uvHelper.sync() == null) {
                         logger.warn("uv sync failed after environment initialization for ${baseDir.path}")
-                        notifications.sendWarning("uv dependency sync failed.")
+                        notifications.sendWarning(MessageBundle.message("notification.uv.sync.failed"))
                     }
                 }
             }

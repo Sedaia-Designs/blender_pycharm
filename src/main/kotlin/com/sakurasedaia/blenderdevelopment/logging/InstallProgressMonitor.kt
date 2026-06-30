@@ -7,6 +7,7 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
+import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
 import kotlin.math.max
 import kotlin.math.min
 
@@ -56,10 +57,10 @@ internal class InstallProgressMonitor(private val project: Project) {
                     logger.log("Finished task: $title")
                 } catch (_: ProcessCanceledException) {
                     logger.warn("Canceled task: $title")
-                    notifications.sendWarning("$title canceled.")
+                    notifications.sendWarning(MessageBundle.message("notification.task.canceled", title))
                 } catch (t: Throwable) {
                     logger.warn("Failed task: $title", t)
-                    notifications.sendError("Failed task '$title'. Check logs for details.", throwable = t)
+                    notifications.sendError(MessageBundle.message("notification.task.failed", title), throwable = t)
                 }
             }
         })

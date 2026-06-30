@@ -28,7 +28,7 @@ class BlenderRunConfigurationFactory(type: ConfigurationType) : ConfigurationFac
     override fun getId(): String = BLENDER_RUN_CONFIGURATION_ID
 
     override fun createTemplateConfiguration(project: Project): RunConfiguration {
-        return BlenderRunConfiguration(project, this, "Blender")
+        return BlenderRunConfiguration(project, this, MessageBundle.message("run.configuration.type.display.name"))
     }
 
     override fun getOptionsClass(): Class<out BaseState?>? = null
