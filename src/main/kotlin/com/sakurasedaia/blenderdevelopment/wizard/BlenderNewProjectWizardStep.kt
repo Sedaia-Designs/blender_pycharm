@@ -57,8 +57,6 @@ class BlenderNewProjectWizardStep(parent: NewProjectWizardStep) :
     override val authorNameProperty: GraphProperty<String> = propertyGraph.property(System.getProperty("user.name"))
     override var authorName: String by authorNameProperty
     
-    override val initiateUvInstanceProperty: GraphProperty<Boolean> = propertyGraph.property(true)
-    override var initiateUvInstance: Boolean by initiateUvInstanceProperty
 
     override val sandboxEnabledProperty: GraphProperty<Boolean> = propertyGraph.property(true)
     override var sandboxEnabled: Boolean by sandboxEnabledProperty
@@ -126,7 +124,6 @@ class BlenderNewProjectWizardStep(parent: NewProjectWizardStep) :
     override var blenderDebugSymlinkName: String by blenderDebugSymlinkProperty
     
     // --- 3. UI Layout Props ---
-    private lateinit var uvCheckBox: Cell<JBCheckBox>
     val pythonVersionData: (String) -> String? = { blMajorMinor -> BlenderVersions.getPythonVersion(blMajorMinor) }
     val pythonVersionProperty: GraphProperty<String> = propertyGraph.property(pythonVersionData(blenderVersion) ?: "")
     var pythonVersion: String by pythonVersionProperty
@@ -183,8 +180,6 @@ class BlenderNewProjectWizardStep(parent: NewProjectWizardStep) :
                 }
                 row(MessageBundle.message("ui.project.wizard.ui.group.project.blender.version")) {
                     comboBox(BlenderVersions.LIST.map { it.blMajorMinor }).bindItem(blenderVersionProperty)
-                    uvCheckBox = checkBox(getFormattedLabel(pythonVersion))
-                        .bindSelected(initiateUvInstanceProperty)
                 }
                 row {
                     checkBox(MessageBundle.message("ui.project.wizard.ui.group.project.add_example_code")).bindSelected(addExampleCodeProperty)
@@ -301,28 +296,6 @@ class BlenderNewProjectWizardStep(parent: NewProjectWizardStep) :
                 }
             }.visibleIf(manifestExtensionTypeProperty.equalsTo(BlenderProjectGenerator.PROJECT_TYPE_EXTENSION))
         }
-        
-        // Update Python Label on UI
-        pythonVersionProperty.afterChange { newVersion ->
-            if (::uvCheckBox.isInitialized) {
-                // Directly update the Swing component's text
-                uvCheckBox.component.text = getFormattedLabel(newVersion)
-                
-                // Force the UI to recalculate the row width so the text isn't cut off
-                uvCheckBox.component.revalidate()
-                uvCheckBox.component.repaint()
-            }
-        }
-    }
-    // Helper to keep your string formatting in one place
-    /**
-     * Formats the UV checkbox label for the selected Python version.
-     *
-     * @param version Python version shown in the label.
-     * @return formatted localized checkbox text.
-     */
-    private fun getFormattedLabel(version: String): String {
-        return MessageBundle.message("ui.project.wizard.ui.group.project.initiate.uv", version)
     }
     // --- 5. Project Generation ---
     /**
@@ -348,7 +321,6 @@ class BlenderNewProjectWizardStep(parent: NewProjectWizardStep) :
             addExampleCode = addExampleCode,
             isGitInitialized = isGitInitialized,
             author = authorName,
-            initiateUvInstance = initiateUvInstance,
             sandboxEnabled = sandboxEnabled,
             projectType = manifestExtensionType,
             extensionId = manifestID,

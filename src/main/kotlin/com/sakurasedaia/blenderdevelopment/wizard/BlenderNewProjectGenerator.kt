@@ -28,8 +28,6 @@ import com.intellij.openapi.components.service
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.model.BlenderVersions
-import com.sakurasedaia.blenderdevelopment.uvPython.UvHelper
-import com.sakurasedaia.blenderdevelopment.uvPython.UvProjectScope
 import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
 import com.sakurasedaia.blenderdevelopment.config.ProjectConfig
 import kotlinx.coroutines.launch
@@ -144,36 +142,6 @@ class BlenderProjectGenerator(val data: BlenderExtensionManifest) {
             setAddonSymlinkName(data.extensionId)
             setSandbox(data.sandboxEnabled)
             setSourceFolder("src/")
-        }
-
-        if (data.initiateUvInstance) {
-            val pythonMajorMinor = BlenderVersions.LIST
-                .firstOrNull { it.blMajorMinor == data.blenderVersion }
-                ?.pyMajorMinor
-            if (pythonMajorMinor == null) {
-                logger.warn(
-                    "Cannot initialize uv venv: no Python version mapped to Blender ${data.blenderVersion}"
-                )
-                notifications.sendWarning(
-                    MessageBundle.message("notification.uv.python.version.unmapped", data.blenderVersion)
-                )
-            } else {
-                val uvHelper = project.service<UvHelper>()
-                UvProjectScope.get(project).launch {
-                    val sdk = uvHelper.initializeVenv(pythonMajorMinor, baseDir.path)
-                    if (sdk == null) {
-                        logger.warn(
-                            "uv venv initialization failed for ${baseDir.path}"
-                        )
-                        notifications.sendWarning(MessageBundle.message("notification.uv.venv.setup.failed"))
-                        return@launch
-                    }
-                    if (uvHelper.sync() == null) {
-                        logger.warn("uv sync failed after environment initialization for ${baseDir.path}")
-                        notifications.sendWarning(MessageBundle.message("notification.uv.sync.failed"))
-                    }
-                }
-            }
         }
 
         logger.log("Project generation complete")
