@@ -31,6 +31,9 @@ interface BlenderNewProjectWizardData : NewProjectWizardBaseData {
     
     val initiateUvInstanceProperty: GraphProperty<Boolean>
     var initiateUvInstance: Boolean
+
+    val sandboxEnabledProperty: GraphProperty<Boolean>
+    var sandboxEnabled: Boolean
     
     val descriptionProperty: GraphProperty<String>
     var description: String

@@ -50,6 +50,7 @@ data class BlenderExtensionManifest (
     val addExampleCode: Boolean,
     val author: String,
     val initiateUvInstance: Boolean,
+    val sandboxEnabled: Boolean,
     val projectType: String,
     
     // Blender Manifest Mandatory Settings
