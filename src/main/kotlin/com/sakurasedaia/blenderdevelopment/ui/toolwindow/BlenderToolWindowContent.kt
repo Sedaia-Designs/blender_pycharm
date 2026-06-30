@@ -44,6 +44,7 @@ class BlenderToolWindowContent(private val project: Project) {
         lateinit var blenderPathField: JTextField
         lateinit var addonSymlinkField: JTextField
         lateinit var sourceFolderField: JTextField
+        lateinit var runArgumentsField: JTextField
         lateinit var sandboxCheckBox: javax.swing.JCheckBox
         val statusLabel = JBLabel("")
 
@@ -57,6 +58,7 @@ class BlenderToolWindowContent(private val project: Project) {
             blenderPathField.text = config.getBlenderPath()
             addonSymlinkField.text = config.getAddonSymlinkName()
             sourceFolderField.text = config.getSourceFolder()
+            runArgumentsField.text = config.getRunArguments()
             sandboxCheckBox.isSelected = config.getSandbox()
             statusLabel.text = ""
         }
@@ -78,6 +80,11 @@ class BlenderToolWindowContent(private val project: Project) {
                         .align(AlignX.FILL)
                         .applyToComponent { sourceFolderField = this }
                 }
+                row(MessageBundle.message("ui.toolwindow.group.workspace.run.arguments")) {
+                    textField()
+                        .align(AlignX.FILL)
+                        .applyToComponent { runArgumentsField = this }
+                }
                 row {
                     checkBox(MessageBundle.message("ui.toolwindow.group.workspace.sandbox"))
                         .applyToComponent { sandboxCheckBox = this }
@@ -95,10 +102,12 @@ class BlenderToolWindowContent(private val project: Project) {
                         config.setBlenderPath(blenderPathField.text.trim())
                         config.setAddonSymlinkName(addonSymlinkField.text.trim())
                         config.setSourceFolder(sourceFolder)
+                        config.setRunArguments(runArgumentsField.text.trim())
                         config.setSandbox(sandboxCheckBox.isSelected)
                         logger.debug(
                             "Workspace settings saved (blenderPath='${config.getBlenderPath()}', " +
                                 "addonSymlink='${config.getAddonSymlinkName()}', sourceFolder='${config.getSourceFolder()}', " +
+                                "runArguments='${config.getRunArguments()}', " +
                                 "sandbox=${config.getSandbox()})"
                         )
                         notifications.sendInfo(MessageBundle.message("ui.toolwindow.group.workspace.save.confirmation"))

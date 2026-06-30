@@ -81,6 +81,17 @@ internal class ProjectConfig(private val project: Project): PersistentStateCompo
 		state.sourceFolder = path
 	}
 	fun getSourceFolder(): String = state.sourceFolder
+
+    /**
+     * Stores the run arguments used by the Blender run configuration.
+     *
+     * @param arguments run arguments string.
+     * @return `Unit`.
+     */
+    fun setRunArguments(arguments: String) {
+        state.runArguments = arguments
+    }
+    fun getRunArguments(): String = state.runArguments
 	
 	
 	/**
