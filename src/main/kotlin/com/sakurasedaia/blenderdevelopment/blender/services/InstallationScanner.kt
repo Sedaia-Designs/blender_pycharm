@@ -15,7 +15,7 @@ import kotlin.io.path.listDirectoryEntries
  */
 @Service(Service.Level.PROJECT)
 class InstallationScanner(val project: Project) {
-  val logger = PluginLogger.Companion.getInstance(project)
+  val logger = PluginLogger.getInstance(project)
   
   /**
    * Returns a list of installed Blender versions, both from the system and from the plugin.
@@ -108,7 +108,7 @@ class InstallationScanner(val project: Project) {
     val blenderInstalls = linkedSetOf<String>()
 
     // Fast path: prefer shell discovery first to respect current PATH precedence.
-    resolveBinaryPathWithWhich("blender")?.let { blenderInstalls.add(it) }
+    resolveBinaryPathWithWhich()?.let { blenderInstalls.add(it) }
 
     // Fallbacks for package managers (apt/pacman/yum) and Homebrew on Linux.
     val explicitBinaryPaths = listOf(
@@ -149,9 +149,9 @@ class InstallationScanner(val project: Project) {
     return blenderInstalls.toList()
   }
 
-  private fun resolveBinaryPathWithWhich(binaryName: String): String? {
+  private fun resolveBinaryPathWithWhich(): String? {
     return try {
-      val process = ProcessBuilder("which", binaryName).start()
+      val process = ProcessBuilder("which", "blender").start()
       val output = process.inputStream.bufferedReader().use { it.readText().trim() }
       process.waitFor()
       output.takeIf { it.isNotBlank() }?.let { locatedPath ->
@@ -159,14 +159,14 @@ class InstallationScanner(val project: Project) {
         if (isExecutableFile(binary)) binary.absolutePath else null
       }
     } catch (exception: IOException) {
-      logger.warn("Failed to execute `which $binaryName` while scanning Blender binaries", exception)
+      logger.warn("Failed to execute `which blender` while scanning Blender binaries", exception)
       null
     } catch (exception: InterruptedException) {
       Thread.currentThread().interrupt()
-      logger.warn("Interrupted while scanning Blender binaries with `which $binaryName`", exception)
+      logger.warn("Interrupted while scanning Blender binaries with `which blender`", exception)
       null
     } catch (exception: Exception) {
-      logger.warn("Unexpected error while scanning Blender binaries with `which $binaryName`", exception)
+      logger.warn("Unexpected error while scanning Blender binaries with `which blender`", exception)
       null
     }
   }
