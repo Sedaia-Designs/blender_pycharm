@@ -1,5 +1,0 @@
-import os
-import runpy
-
-os.environ["BLENDER_PYCHARM_CONFIG"] = __CONFIG_PATH_LITERAL__
-runpy.run_path(__BOOTSTRAP_PATH_LITERAL__, run_name="__main__")
