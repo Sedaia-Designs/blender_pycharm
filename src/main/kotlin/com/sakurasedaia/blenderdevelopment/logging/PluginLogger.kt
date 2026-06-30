@@ -24,7 +24,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.util.io.createDirectories
-import com.sakurasedaia.blenderdevelopment.config.BlenderPluginConfig
+import com.sakurasedaia.blenderdevelopment.config.PluginConfig
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
@@ -38,7 +38,7 @@ import kotlin.io.path.exists
  * Project-level logger that mirrors messages to:
  *  - the IntelliJ platform logger (`idea.log`), respecting its level configuration, and
  *  - a plugin-specific daily file under the configured plugin log path
- *    (`BlenderPluginConfig.logPath`) using `blender_plugin_<yyyy-MM-dd>.log`.
+ *    (`PluginConfig.logPath`) using `blender_plugin_<yyyy-MM-dd>.log`.
  *
  * File I/O is dispatched to a pooled thread and serialized to avoid interleaving and to keep the EDT responsive.
  */
@@ -86,7 +86,7 @@ internal class PluginLogger(private val project: Project) {
     }
 
     private fun resolveLogDir(): Path {
-        val configuredPath = BlenderPluginConfig.getInstance().state.logPath.trim()
+        val configuredPath = PluginConfig.getInstance().state.logPath.trim()
         if (configuredPath.isBlank()) return defaultLogDir
 
         return try {

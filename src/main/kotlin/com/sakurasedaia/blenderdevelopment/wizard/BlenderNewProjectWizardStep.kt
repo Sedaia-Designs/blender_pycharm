@@ -305,7 +305,7 @@ class BlenderNewProjectWizardStep(parent: NewProjectWizardStep) :
     }
     // --- 5. Project Generation ---
     /**
-     * Converts wizard input into [ProjectConfig] and triggers generation.
+     * Converts wizard input into [BlenderExtensionManifest] and triggers generation.
      *
      * @param project target project being created.
      * @return `Unit`.
@@ -317,7 +317,7 @@ class BlenderNewProjectWizardStep(parent: NewProjectWizardStep) :
         val isGitInitialized = gitData?.git ?: false
         
         // Call your service to handle file creation
-        val data = ProjectConfig(
+        val data = BlenderExtensionManifest(
             name = name,
             path = path,
             description = description,

@@ -24,16 +24,16 @@ import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
 import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
-import com.sakurasedaia.blenderdevelopment.config.BlenderPluginConfig
+import com.sakurasedaia.blenderdevelopment.config.PluginConfig
 import javax.swing.JComponent
 
 /** Settings panel content for global Blender plugin configuration. */
 internal class BlenderSettingsContent {
     private data class SettingBinding(
-        val getFromConfig: (BlenderPluginConfig) -> String,
-        val getFromField: () -> String,
-        val setToField: (String) -> Unit,
-        val setToConfig: (BlenderPluginConfig, String) -> Unit,
+      val getFromConfig: (PluginConfig) -> String,
+      val getFromField: () -> String,
+      val setToField: (String) -> Unit,
+      val setToConfig: (PluginConfig, String) -> Unit,
     )
 
     private lateinit var customBlenderInstallPath: TextFieldWithBrowseButton
@@ -110,18 +110,18 @@ internal class BlenderSettingsContent {
 
     internal fun component(): JComponent = root
 
-    internal fun reset(config: BlenderPluginConfig) {
+    internal fun reset(config: PluginConfig) {
         settingsBindings.forEach { binding ->
             binding.setToField(binding.getFromConfig(config))
         }
     }
 
-    internal fun isModified(config: BlenderPluginConfig): Boolean =
+    internal fun isModified(config: PluginConfig): Boolean =
         settingsBindings.any { binding ->
             binding.getFromConfig(config) != binding.getFromField()
         }
 
-    internal fun apply(config: BlenderPluginConfig) {
+    internal fun apply(config: PluginConfig) {
         settingsBindings.forEach { binding ->
             binding.setToConfig(config, binding.getFromField())
         }

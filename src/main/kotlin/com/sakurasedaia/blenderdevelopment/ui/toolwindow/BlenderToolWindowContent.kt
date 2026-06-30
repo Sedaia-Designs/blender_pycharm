@@ -25,7 +25,7 @@ import com.intellij.util.ui.JBUI
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
-import com.sakurasedaia.blenderdevelopment.config.BlenderProjectConfig
+import com.sakurasedaia.blenderdevelopment.config.ProjectConfig
 import javax.swing.JComponent
 import javax.swing.JTextField
 
@@ -37,7 +37,7 @@ class BlenderToolWindowContent(private val project: Project) {
      * @return root Swing component for the Blender tool window.
      */
     fun getContent(): JComponent {
-        val config = BlenderProjectConfig.getInstance(project)
+        val config = ProjectConfig.getInstance(project)
         val notifications = NotificationModal.getInstance(project)
         val logger = PluginLogger.getInstance(project)
 

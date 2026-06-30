@@ -22,14 +22,15 @@ import com.intellij.openapi.project.Project
 
 /** Workspace-level persisted configuration for Blender project settings. */
 @Service(Service.Level.PROJECT)
-@State(name = "BlenderProjectConfig", storages = [Storage(StoragePathMacros.WORKSPACE_FILE)])
-internal class BlenderProjectConfig(private val project: Project): PersistentStateComponent<BlenderProjectConfig.ProjectState> {
+@State(name = "BlenderExtensionManifest", storages = [Storage(StoragePathMacros.WORKSPACE_FILE)])
+internal class ProjectConfig(private val project: Project): PersistentStateComponent<ProjectConfig.ProjectState> {
 	/** Persistent state stored in the workspace file. */
 	data class ProjectState(
 		var blenderPath: String = "",
 		var addonSymlinkName: String = "",
 		var sandbox: Boolean = true,
 		var sourceFolder: String = "src/",
+        var runArguments: String = "",
 	)
 	
 	private var state: ProjectState = ProjectState()
@@ -98,9 +99,9 @@ internal class BlenderProjectConfig(private val project: Project): PersistentSta
 		 * Returns this configuration service for the given project.
 		 *
 		 * @param project target project.
-		 * @return project-level [BlenderProjectConfig] service.
+		 * @return project-level [ProjectConfig] service.
 		 */
-		fun getInstance(project: Project): BlenderProjectConfig = project.service()
+		fun getInstance(project: Project): ProjectConfig = project.service()
 	}
 }
 

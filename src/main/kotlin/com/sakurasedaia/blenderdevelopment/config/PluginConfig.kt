@@ -23,8 +23,8 @@ import com.intellij.openapi.application.PathManager
 
 /** Application-level persisted configuration for global Blender plugin settings. */
 @Service(Service.Level.APP)
-@State(name = "BlenderPluginConfig", storages = [Storage("blender_pycharm.config.xml")])
-internal class BlenderPluginConfig : PersistentStateComponent<BlenderPluginConfig.PluginState> {
+@State(name = "PluginConfig", storages = [Storage("blender_pycharm.config.xml")])
+internal class PluginConfig : PersistentStateComponent<PluginConfig.PluginState> {
 	data class PluginState(
 		// Temporary example setting will be filled out later with proper settings
 		var blenderInstallPath: String = "${PathManager.getSystemPath()}/BlenderExtensions/Applications/", // Portable Blender application bundles
@@ -33,6 +33,8 @@ internal class BlenderPluginConfig : PersistentStateComponent<BlenderPluginConfi
 		
 		var downloadPath: String = "${PathManager.getSystemPath()}/BlenderExtensions/Downloads/",
 		var clearDownloadsAfterInstall: Boolean = true,
+		
+		var downloadCacheMaxSize: Int = 2,
 		
 		var logPath: String = "${PathManager.getLogPath()}/BlenderExtensions/", // TODO: Change the default to the same path as the Intellij `idea.log` file, but save alongside in a `blender-development.log` file.
 	)
@@ -89,6 +91,16 @@ internal class BlenderPluginConfig : PersistentStateComponent<BlenderPluginConfi
 	}
 	fun getClearDownloadsAfterInstall(): Boolean = state.clearDownloadsAfterInstall
 	
+	/**
+	 * The maxumum size of the download cache (in Gigabytes)
+	 *
+	 * @param size The maxumum size of the download cache (in Gigabytes)
+	 */
+	fun setDownloadCacheSize(size: Int) {
+		state.downloadCacheMaxSize = size
+	}
+	fun getDownloadCacheSize(): Int = state.downloadCacheMaxSize
+	
 	override fun getState(): PluginState = state
 
 	override fun loadState(state: PluginState) {
@@ -99,9 +111,9 @@ internal class BlenderPluginConfig : PersistentStateComponent<BlenderPluginConfi
 		/**
 		 * Returns the global plugin configuration service.
 		 *
-		 * @return application-level [BlenderPluginConfig] service.
+		 * @return application-level [PluginConfig] service.
 		 */
-		fun getInstance(): BlenderPluginConfig = ApplicationManager.getApplication().getService(BlenderPluginConfig::class.java)
+		fun getInstance(): PluginConfig = ApplicationManager.getApplication().getService(PluginConfig::class.java)
 	}
 }
 

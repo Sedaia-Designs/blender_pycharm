@@ -24,6 +24,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.components.service
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.model.BlenderVersions
@@ -36,7 +37,7 @@ import org.jetbrains.jps.model.java.JavaSourceRootType
 import java.util.Properties
 
 /** Immutable configuration payload consumed by [BlenderProjectGenerator]. */
-data class ProjectConfig (
+data class BlenderExtensionManifest (
     // Base Project Info
     val name: String,
     val path: String,
@@ -73,11 +74,11 @@ data class ProjectConfig (
 /**
  * The `BlenderProjectGenerator` class is the core logic and distribution center of
  * the new project wizard. Its primary purpose is to create the new project directory
- * based on the user provided input, and the ProjectConfig data class passed to it by
+ * based on the user provided input, and the BlenderExtensionManifest data class passed to it by
  * the NewProjectWizard. On top of handling the project creation, the generator functions
  * below the main `generate` function can be called after project creation
  */
-class BlenderProjectGenerator(val data: ProjectConfig) {
+class BlenderProjectGenerator(val data: BlenderExtensionManifest) {
     /**
      * Must only be called by the NewProjectWizard, as it generates the new Project itself.
      *
@@ -131,14 +132,14 @@ class BlenderProjectGenerator(val data: ProjectConfig) {
                 
             } catch (e: Exception) {
                 logger.warn("Project generation failed for ${data.name} at ${baseDir.path}", e)
-                notifications.sendError("Project generation failed. Check plugin logs for details.", throwable = e)
+                notifications.sendError(MessageBundle.message("notification.project.generation.failed"), throwable = e)
             }
         }
         
         VfsUtil.markDirtyAndRefresh(false, true, true, baseDir)
          
         @Suppress("UNUSED_VARIABLE", "unused")
-        val projectConfig = BlenderProjectConfig.getInstance(project).apply {
+        val projectConfig = ProjectConfig.getInstance(project).apply {
             setAddonSymlinkName(data.extensionId)
             setSandbox(true)
             setSourceFolder("src/")

@@ -20,7 +20,7 @@ package com.sakurasedaia.blenderdevelopment.ui.settings
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.options.SearchableConfigurable
 import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
-import com.sakurasedaia.blenderdevelopment.config.BlenderPluginConfig
+import com.sakurasedaia.blenderdevelopment.config.PluginConfig
 import javax.swing.JComponent
 
 /** Global plugin settings configurable for Blender plugin state. */
@@ -33,23 +33,23 @@ class BlenderSettingsFactory : SearchableConfigurable, Configurable.NoScroll {
 
     override fun createComponent(): JComponent {
         val ui = content ?: BlenderSettingsContent().also { content = it }
-        ui.reset(BlenderPluginConfig.getInstance())
+        ui.reset(PluginConfig.getInstance())
         return ui.component()
     }
 
     override fun isModified(): Boolean {
         val ui = content ?: return false
-        return ui.isModified(BlenderPluginConfig.getInstance())
+        return ui.isModified(PluginConfig.getInstance())
     }
 
     override fun apply() {
         val ui = content ?: return
-        ui.apply(BlenderPluginConfig.getInstance())
+        ui.apply(PluginConfig.getInstance())
     }
 
     override fun reset() {
         val ui = content ?: return
-        ui.reset(BlenderPluginConfig.getInstance())
+        ui.reset(PluginConfig.getInstance())
     }
 
     override fun disposeUIResources() {
