@@ -17,25 +17,42 @@
 
 package com.sakurasedaia.blenderdevelopment.run
 
-import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.CommandLineState
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.runners.ExecutionEnvironment
-import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
-import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
+import java.io.OutputStream
 
-/** Command-line state placeholder for Blender run configuration execution. */
+/** Temporarily disabled run state while Blender process flow is being rewritten. */
 class BlenderRunCommandLineState(
     environment: ExecutionEnvironment,
     private val configuration: BlenderRunConfiguration,
 ) : CommandLineState(environment) {
 
     override fun startProcess(): ProcessHandler {
-        val message = MessageBundle.message("run.configuration.execution.not.implemented", configuration.name)
         val project = environment.project
-        PluginLogger.warn(project, "Run configuration execution requested but not implemented: ${configuration.name}")
-        NotificationModal.getInstance(project).sendError(message)
-        throw ExecutionException(message)
+        PluginLogger.warn(
+            project,
+            "Run configuration '${configuration.name}' is temporarily disabled while Blender process flow is being rewritten."
+        )
+
+        val handler = object : ProcessHandler() {
+            override fun destroyProcessImpl() = Unit
+
+            override fun detachProcessImpl() = notifyProcessDetached()
+
+            override fun detachIsDefault(): Boolean = false
+
+            override fun getProcessInput(): OutputStream? = null
+
+            fun terminateDisabledState() {
+                notifyProcessTerminated(0)
+            }
+        }
+
+        handler.startNotify()
+        handler.terminateDisabledState()
+
+        return handler
     }
 }

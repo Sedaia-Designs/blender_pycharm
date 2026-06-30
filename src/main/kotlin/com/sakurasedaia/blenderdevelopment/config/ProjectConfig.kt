@@ -31,6 +31,7 @@ internal class ProjectConfig(private val project: Project): PersistentStateCompo
 		var sandbox: Boolean = true,
 		var sourceFolder: String = "src/",
         var runArguments: String = "",
+		var runArguments: String = "",
 	)
 	
 	private var state: ProjectState = ProjectState()

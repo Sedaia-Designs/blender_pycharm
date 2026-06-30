@@ -22,6 +22,7 @@ import com.intellij.execution.configurations.ConfigurationType
 import com.intellij.execution.configurations.RunConfiguration
 import com.intellij.openapi.components.BaseState
 import com.intellij.openapi.project.Project
+import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
 
 /** Factory that creates Blender run configuration instances. */
 class BlenderRunConfigurationFactory(type: ConfigurationType) : ConfigurationFactory(type) {
@@ -33,4 +34,3 @@ class BlenderRunConfigurationFactory(type: ConfigurationType) : ConfigurationFac
 
     override fun getOptionsClass(): Class<out BaseState?>? = null
 }
-

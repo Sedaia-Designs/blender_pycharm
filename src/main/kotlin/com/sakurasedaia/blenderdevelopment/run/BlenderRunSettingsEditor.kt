@@ -17,17 +17,20 @@
 
 package com.sakurasedaia.blenderdevelopment.run
 
+import com.sakurasedaia.blenderdevelopment.config.ProjectConfig
+import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
 import javax.swing.JComponent
+import javax.swing.JCheckBox
 import javax.swing.JPanel
 
 /** Basic editor UI for Blender run configuration settings. */
 class BlenderRunSettingsEditor : SettingsEditor<BlenderRunConfiguration>() {
-    private lateinit var scriptPathField: JBTextField
-    private lateinit var workingDirectoryField: JBTextField
+    private lateinit var sourcePathField: JBTextField
+    private lateinit var projectDirectoryField: JBTextField
     private lateinit var sandboxCheckBox: JCheckBox
     private lateinit var argumentsField: JBTextField
 
@@ -35,7 +38,7 @@ class BlenderRunSettingsEditor : SettingsEditor<BlenderRunConfiguration>() {
         row(MessageBundle.message("run.configuration.editor.source.path")) {
             textField()
                 .align(AlignX.FILL)
-                .applyToComponent { scriptPathField = this }
+                .applyToComponent { sourcePathField = this }
         }
         row {
             checkBox(MessageBundle.message("ui.toolwindow.group.workspace.sandbox"))
@@ -44,7 +47,8 @@ class BlenderRunSettingsEditor : SettingsEditor<BlenderRunConfiguration>() {
         row(MessageBundle.message("run.configuration.editor.working.directory")) {
             textField()
                 .align(AlignX.FILL)
-                .applyToComponent { workingDirectoryField = this }
+                .enabled(false)
+                .applyToComponent { projectDirectoryField = this }
         }
         row(MessageBundle.message("run.configuration.editor.arguments")) {
             textField()
@@ -54,21 +58,19 @@ class BlenderRunSettingsEditor : SettingsEditor<BlenderRunConfiguration>() {
     }
 
     override fun resetEditorFrom(configuration: BlenderRunConfiguration) {
-        scriptPathField.text = configuration.data.scriptPath
-        workingDirectoryField.text = configuration.data.workingDirectory
-        argumentsField.text = configuration.data.arguments
         val projectConfig = ProjectConfig.getInstance(configuration.project)
+        sourcePathField.text = projectConfig.getSourceFolder()
         sandboxCheckBox.isSelected = projectConfig.getSandbox()
+        projectDirectoryField.text = configuration.project.basePath.orEmpty()
+        argumentsField.text = projectConfig.getRunArguments()
     }
 
     override fun applyEditorTo(configuration: BlenderRunConfiguration) {
-        configuration.data.scriptPath = scriptPathField.text.trim()
-        configuration.data.workingDirectory = workingDirectoryField.text.trim()
-        configuration.data.arguments = argumentsField.text.trim()
         val projectConfig = ProjectConfig.getInstance(configuration.project)
+        projectConfig.setSourceFolder(sourcePathField.text.trim())
         projectConfig.setSandbox(sandboxCheckBox.isSelected)
+        projectConfig.setRunArguments(argumentsField.text.trim())
     }
 
     override fun createEditor(): JComponent = root
 }
-
