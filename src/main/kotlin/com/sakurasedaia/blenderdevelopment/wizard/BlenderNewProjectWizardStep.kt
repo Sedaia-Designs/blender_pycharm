@@ -81,7 +81,8 @@ class BlenderNewProjectWizardStep(parent: NewProjectWizardStep) :
     override val manifestIDProperty: GraphProperty<String> = propertyGraph.property(name)
     override var manifestID: String by manifestIDProperty
     
-    override val manifestExtensionTypeProperty: GraphProperty<String> = propertyGraph.property("Extension")
+    override val manifestExtensionTypeProperty: GraphProperty<String> =
+        propertyGraph.property(BlenderProjectGenerator.PROJECT_TYPE_EXTENSION)
     override var manifestExtensionType: String by manifestExtensionTypeProperty
     
     override val manifestLicenseProperty: GraphProperty<String> = propertyGraph.property("SPDX:GPL-3.0-or-later")
@@ -152,10 +153,24 @@ class BlenderNewProjectWizardStep(parent: NewProjectWizardStep) :
      * @return `Unit`.
      */
     override fun setupUI(builder: Panel) {
+        val extensionTypeOptions = listOf(
+            BlenderProjectGenerator.PROJECT_TYPE_EXTENSION,
+            BlenderProjectGenerator.PROJECT_TYPE_ADD_ON,
+        )
+        val noneVersionLabel = MessageBundle.message("ui.project.wizard.option.none")
+
         with(builder) {
             
             row(MessageBundle.message("ui.project.wizard.row.label.extension.type")) {
-                segmentedButton(listOf("Extension", "Add-on")) { text = it }
+                segmentedButton(extensionTypeOptions) {
+                    text = when (it) {
+                        BlenderProjectGenerator.PROJECT_TYPE_EXTENSION ->
+                            MessageBundle.message("ui.project.wizard.option.extension.type.extension")
+                        BlenderProjectGenerator.PROJECT_TYPE_ADD_ON ->
+                            MessageBundle.message("ui.project.wizard.option.extension.type.addon")
+                        else -> it
+                    }
+                }
                     .bind(manifestExtensionTypeProperty)
             }.bottomGap(BottomGap.SMALL)
             
@@ -185,7 +200,7 @@ class BlenderNewProjectWizardStep(parent: NewProjectWizardStep) :
                             }
                         }
                         .comment(MessageBundle.message("ui.project.wizard.ui.group.manifest.website.description"))
-                }.visibleIf(manifestExtensionTypeProperty.equalsTo("Addon"))
+                }.visibleIf(manifestExtensionTypeProperty.equalsTo(BlenderProjectGenerator.PROJECT_TYPE_ADD_ON))
                 
                 row(MessageBundle.message("ui.project.wizard.ui.group.project.description")) {
                     textArea().bindText(descriptionProperty)
@@ -215,19 +230,19 @@ class BlenderNewProjectWizardStep(parent: NewProjectWizardStep) :
                             val min = manifestMinBlenderVersionProperty.get()
                             val max = manifestMaxBlenderVersionProperty.get()
                             
-                            if (max != "None" && VersionComparatorUtil.compare(min, max) > 0) {
+                            if (max != noneVersionLabel && VersionComparatorUtil.compare(min, max) > 0) {
                                 error(MessageBundle.message("ui.project.wizard.ui.group.manifest.min.blender.error"))
                             } else null
                         }
                 }
                 
                 row(MessageBundle.message("ui.project.wizard.ui.group.manifest.max.blender")) {
-                    comboBox(listOf("None") + BlenderVersions.LIST.map { it.blMajorMinor })
+                    comboBox(listOf(noneVersionLabel) + BlenderVersions.LIST.map { it.blMajorMinor })
                         .bindItem(manifestMaxBlenderVersionProperty)
                         .validationOnInput {val min = manifestMinBlenderVersionProperty.get()
                             val max = manifestMaxBlenderVersionProperty.get()
                             
-                            if (max != "None" && VersionComparatorUtil.compare(min, max) > 0) {
+                            if (max != noneVersionLabel && VersionComparatorUtil.compare(min, max) > 0) {
                                 error(MessageBundle.message("ui.project.wizard.ui.group.manifest.max.blender.error"))
                             } else null
                         }
@@ -278,7 +293,7 @@ class BlenderNewProjectWizardStep(parent: NewProjectWizardStep) :
                             .align(AlignX.FILL)
                     }
                 }
-            }.visibleIf(manifestExtensionTypeProperty.equalsTo("Extension"))
+            }.visibleIf(manifestExtensionTypeProperty.equalsTo(BlenderProjectGenerator.PROJECT_TYPE_EXTENSION))
         }
         
         // Update Python Label on UI
@@ -311,6 +326,7 @@ class BlenderNewProjectWizardStep(parent: NewProjectWizardStep) :
      * @return `Unit`.
      */
     override fun setupProject(project: Project) {
+        val noneVersionLabel = MessageBundle.message("ui.project.wizard.option.none")
         
         val gitData = data.getUserData(GitNewProjectWizardData.KEY)
         

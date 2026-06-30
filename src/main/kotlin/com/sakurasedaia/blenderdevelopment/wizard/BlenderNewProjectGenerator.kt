@@ -115,7 +115,7 @@ class BlenderProjectGenerator(val data: BlenderExtensionManifest) {
                 }
                 
                 // Necessary Components for a Blender Project
-                if (data.projectType != "Add-on" ) generateManifest(project, sourceDir)
+                if (data.projectType != PROJECT_TYPE_ADD_ON) generateManifest(project, sourceDir)
                 generateMainScript(project, sourceDir)
                 
                 // Repository Extras
@@ -141,7 +141,7 @@ class BlenderProjectGenerator(val data: BlenderExtensionManifest) {
         @Suppress("UNUSED_VARIABLE", "unused")
         val projectConfig = ProjectConfig.getInstance(project).apply {
             setAddonSymlinkName(data.extensionId)
-            setSandbox(true)
+            setSandbox(data.sandboxEnabled)
             setSourceFolder("src/")
         }
 
@@ -258,8 +258,8 @@ class BlenderProjectGenerator(val data: BlenderExtensionManifest) {
         
         // Convert Extension to 'add-on', since the type key in the blender_manifest expects "add-on" or "theme", not extension.
         val projectType = when (data.projectType) {
-            "Extension" -> "add-on"
-            "Theme" -> "theme"
+            PROJECT_TYPE_EXTENSION -> "add-on"
+            PROJECT_TYPE_THEME -> "theme"
             else -> ""
         }
         
@@ -376,5 +376,11 @@ class BlenderProjectGenerator(val data: BlenderExtensionManifest) {
             "name" to data.name.valOrEmpty(),
             "description" to data.description.valOrEmpty(),
         )
+    }
+
+    companion object {
+        const val PROJECT_TYPE_EXTENSION: String = "extension"
+        const val PROJECT_TYPE_ADD_ON: String = "add-on"
+        const val PROJECT_TYPE_THEME: String = "theme"
     }
 }
