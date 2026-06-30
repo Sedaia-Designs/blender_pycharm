@@ -17,6 +17,9 @@
 
 package com.sakurasedaia.blenderdevelopment.model
 
+import com.intellij.openapi.application.PathManager
+import java.nio.file.Path
+
 /** Normalized host platform information used by Blender compatibility checks. */
 data class SysInfo(
     val osName: String,
@@ -24,11 +27,12 @@ data class SysInfo(
     val osArch: String,
     val isWSL: Boolean? = null,
     val bundleFileType: String,
+    val tempDir: Path
 )
 
 
 /** Helpers for host OS/CPU detection and Blender compatibility validation. */
-object BlenderSystem {
+object SystemHelper {
     private val sysArch = System.getProperty("os.arch").orEmpty().lowercase()
     private val osName = System.getProperty("os.name").orEmpty().lowercase()
     
@@ -66,6 +70,8 @@ object BlenderSystem {
             "macos" -> "dmg"
             "linux" -> "tar.xz"
             else -> "unknown"
-        }
+        },
+        tempDir = PathManager.getTempDir().resolve("blender-development")
     )
+    
 }
