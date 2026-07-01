@@ -21,6 +21,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
+import com.sakurasedaia.blenderdevelopment.lib.services.SettingsInstallationScanService
 
 /** Registers and populates the Blender tool window content. */
 class BlenderToolWindowFactory : ToolWindowFactory {
@@ -33,7 +34,14 @@ class BlenderToolWindowFactory : ToolWindowFactory {
      */
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
         val content = ContentFactory.getInstance().createContent(
-            BlenderToolWindowContent(project).getContent(),
+            BlenderToolWindowContent(
+                project = project,
+                onScanInstallations = { onCompleted ->
+                    SettingsInstallationScanService.getInstance().scanInstallations(projectOverride = project) {
+                        onCompleted()
+                    }
+                },
+            ).getContent(),
             "",
             false
         )

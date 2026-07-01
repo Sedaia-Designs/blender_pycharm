@@ -21,6 +21,7 @@ import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.options.SearchableConfigurable
 import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
 import com.sakurasedaia.blenderdevelopment.lib.PluginConfig
+import com.sakurasedaia.blenderdevelopment.lib.services.SettingsInstallationScanService
 import javax.swing.JComponent
 
 /** Global plugin settings configurable for Blender plugin state. */
