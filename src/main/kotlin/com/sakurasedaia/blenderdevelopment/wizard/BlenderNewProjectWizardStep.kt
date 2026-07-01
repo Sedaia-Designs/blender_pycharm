@@ -56,9 +56,6 @@ class BlenderNewProjectWizardStep(parent: NewProjectWizardStep) :
     override var authorName: String by authorNameProperty
     
 
-    override val sandboxEnabledProperty: GraphProperty<Boolean> = propertyGraph.property(true)
-    override var sandboxEnabled: Boolean by sandboxEnabledProperty
-    
     override val descriptionProperty: GraphProperty<String> = propertyGraph.property("")
     override var description: String by descriptionProperty
     
@@ -181,9 +178,6 @@ class BlenderNewProjectWizardStep(parent: NewProjectWizardStep) :
                 }
                 row {
                     checkBox(MessageBundle.message("ui.project.wizard.ui.group.project.add_example_code")).bindSelected(addExampleCodeProperty)
-                }
-                row {
-                    checkBox(MessageBundle.message("ui.toolwindow.group.workspace.sandbox")).bindSelected(sandboxEnabledProperty)
                 }
                 row(MessageBundle.message("ui.project.wizard.ui.group.project.license")) {
                     textField().bindText(manifestLicenseProperty).enabled(false)
@@ -319,7 +313,6 @@ class BlenderNewProjectWizardStep(parent: NewProjectWizardStep) :
             addExampleCode = addExampleCode,
             isGitInitialized = isGitInitialized,
             author = authorName,
-            sandboxEnabled = sandboxEnabled,
             projectType = manifestExtensionType,
             extensionId = manifestID,
             projectLicense = manifestLicense,

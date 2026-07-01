@@ -45,7 +45,6 @@ data class BlenderExtensionManifest (
     val blenderVersion: String,
     val addExampleCode: Boolean,
     val author: String,
-    val sandboxEnabled: Boolean,
     val projectType: String,
     
     // Blender Manifest Mandatory Settings
@@ -133,7 +132,6 @@ class BlenderProjectGenerator(val data: BlenderExtensionManifest) {
         @Suppress("UNUSED_VARIABLE", "unused")
         val projectConfig = ProjectConfig.getInstance(project).apply {
             setAddonSymlinkName(data.extensionId)
-            setSandbox(data.sandboxEnabled)
             setSourceFolder("src/")
         }
 

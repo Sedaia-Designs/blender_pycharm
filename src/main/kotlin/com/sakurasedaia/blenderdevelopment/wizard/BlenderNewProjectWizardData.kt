@@ -29,9 +29,6 @@ interface BlenderNewProjectWizardData : NewProjectWizardBaseData {
     val authorNameProperty: GraphProperty<String>
     var authorName: String
 
-    val sandboxEnabledProperty: GraphProperty<Boolean>
-    var sandboxEnabled: Boolean
-    
     val descriptionProperty: GraphProperty<String>
     var description: String
     

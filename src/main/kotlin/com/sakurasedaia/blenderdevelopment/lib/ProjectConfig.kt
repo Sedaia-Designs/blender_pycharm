@@ -28,7 +28,6 @@ internal class ProjectConfig(private val project: Project): PersistentStateCompo
 	data class ProjectState(
 		var blenderPath: String = "",
 		var addonSymlinkName: String = "",
-		var sandbox: Boolean = true,
 		var sourceFolder: String = "src/",
 		var runArguments: String = "",
 	)
@@ -58,18 +57,6 @@ internal class ProjectConfig(private val project: Project): PersistentStateCompo
 	}
 	/** Returns the configured add-on symlink name. */
 	fun getAddonSymlinkName(): String = state.addonSymlinkName
-	
-	/**
-	 * Stores sandbox mode preference.
-	 *
-	 * @param sandbox sandbox enabled flag.
-	 */
-	fun setSandbox(sandbox: Boolean) {
-		state.sandbox = sandbox
-	}
-	/** Returns whether sandbox mode is enabled for project runs. */
-	fun getSandbox(): Boolean = state.sandbox
-	
 	
 	/**
 	 * Stores the source folder path.

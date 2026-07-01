@@ -34,7 +34,6 @@ data class BlenderArguments(
   val blenderPath: String,
   val scriptPath: Path? = null,
   val additionalArgs: List<String> = mutableListOf(),
-  val sandbox: Boolean = false,
   val debugger: Boolean = false
 )
 

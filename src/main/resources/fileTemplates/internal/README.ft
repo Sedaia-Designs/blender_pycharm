@@ -24,7 +24,7 @@ To get the best development experience, follow these steps to configure your Pyt
 The Template comes pre-configured with three Run Configurations:
 - **Validate Extension**: Checks your extension for errors and compliance with Blender's requirements.
 - **Build Extension**: Packages your extension into a `.zip` file ready for distribution.
-- **Run Extension**: Runs your extension in Blender (Sandboxed by default), and auto-reloads the extension when a file is saved
+- **Run Extension**: Runs your extension in Blender and auto-reloads the extension when a file is saved
 
 1.  Open **Run > Edit Configurations...**.
 2.  Select the **Start Blender** configuration.
@@ -35,7 +35,7 @@ The Template comes pre-configured with three Run Configurations:
 You can use the provided Run Configurations to validate and build your extension:
 - **Validate Extension**: Checks your extension for errors and compliance with Blender's requirements.
 - **Build Extension**: Packages your extension into a `.zip` file ready for distribution.
-- **Run Extension**: Runs your extension in Blender (Sandboxed by default), and auto-reloads the extension when a file is saved
+- **Run Extension**: Runs your extension in Blender and auto-reloads the extension when a file is saved
 
 ## Useful Resources
 
