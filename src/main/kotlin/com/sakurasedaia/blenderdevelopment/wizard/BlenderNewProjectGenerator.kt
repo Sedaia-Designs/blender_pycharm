@@ -45,7 +45,6 @@ data class BlenderExtensionManifest (
     val blenderVersion: String,
     val addExampleCode: Boolean,
     val author: String,
-    val initiateUvInstance: Boolean,
     val sandboxEnabled: Boolean,
     val projectType: String,
     
@@ -116,10 +115,6 @@ class BlenderProjectGenerator(val data: BlenderExtensionManifest) {
                 generateMainScript(project, sourceDir)
                 
                 // Repository Extras
-                if (data.initiateUvInstance) {
-                    generatePyproject(project, baseDir)
-                    logger.log("Initializing UV Instance")
-                }
                 if (data.isGitInitialized) {
                     logger.log("Initializing Git instance")
                     generateGitIgnore(project, baseDir)

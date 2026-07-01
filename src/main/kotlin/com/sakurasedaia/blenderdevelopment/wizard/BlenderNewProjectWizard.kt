@@ -14,9 +14,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 /**
  * Entry point level of the entire Project Wizard. This file defines the entry itself into the New Project Wizard for Intellij-based applications.
- * */
+ */
 package com.sakurasedaia.blenderdevelopment.wizard
 
 import com.intellij.ide.util.projectWizard.WizardContext
