@@ -21,6 +21,8 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.components.service
 import com.intellij.openapi.application.PathManager
+import com.intellij.execution.process.OSProcessHandler
+import com.intellij.execution.process.ProcessTerminatedListener
 import com.intellij.util.execution.ParametersListUtil
 import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
@@ -52,15 +54,43 @@ internal class Launcher(private val project: Project) {
   companion object {
     fun getInstance(project: Project): Launcher = project.service()
   }
-  
+
+  fun createProcessHandler(args: BlenderArguments): OSProcessHandler {
+    val blenderPath = resolveBlenderPath(args)
+    val processBuilder = ExternalProcessBuilder(project)
+    val processHandler = processBuilder.startProcessHandler(
+      command = blenderPath,
+      args = buildLaunchArguments(args),
+      workDirectory = project.basePath,
+      internalBinary = resolveMacInternalBinary(blenderPath),
+    )
+    ProcessTerminatedListener.attach(processHandler)
+    return processHandler
+  }
+
   fun startProcess(args: BlenderArguments) {
-    val blenderPath = args.blenderPath.ifBlank { projectConfig.getBlenderPath().trim() }
-    if (blenderPath.isEmpty()) {
-      // Prevent process execution if neither the project nor the run configuration config have a Blender path set.
-      return
+    logger.log(MessageBundle.message("notification.blender.launching"))
+    try {
+      val processHandler = createProcessHandler(args)
+      processHandler.startNotify()
+    } catch (e: Exception) {
+      logger.error(ErrorTypes.BLENDER_LAUNCH_ERROR, e)
+      notifModal.sendError(
+        e.message ?: "",
+        MessageBundle.message("notification.blender.launching.error", "")
+      )
     }
-    
-    
+  }
+
+  private fun resolveBlenderPath(args: BlenderArguments): String {
+    val blenderPath = args.blenderPath.ifBlank { projectConfig.getBlenderPath().trim() }
+    require(blenderPath.isNotEmpty()) {
+      MessageBundle.message("run.configuration.blender.launch.error.blender.path.empty")
+    }
+    return blenderPath
+  }
+
+  private fun buildLaunchArguments(args: BlenderArguments): List<String> {
     val argList: MutableList<String> = mutableListOf()
     argList.addAll(buildDebugArguments(projectConfig.getBlenderLogLevel()))
 
@@ -72,28 +102,18 @@ internal class Launcher(private val project: Project) {
     if (args.debugger) {
       // TODO: Implement Debugger integration
     }
-    
+
     if (args.scriptPath != null) {
       argList.add("--python")
       argList.add(args.scriptPath.toString())
     }
+
     argList.addAll(args.additionalArgs)
-    
-    logger.log(MessageBundle.message("notification.blender.launching"))
-    
-    try {
-      val processHandler = ExternalProcessBuilder(project).startProcessHandler(
-        command = blenderPath,
-        args = argList,
-        workDirectory = project.basePath,
-      )
-      processHandler.startNotify()
-    } catch (e: Exception) {
-      logger.error(ErrorTypes.BLENDER_LAUNCH_ERROR, e)
-      notifModal.sendError(e.message ?: "",
-      MessageBundle.message("notification.blender.launching.error", "")
-      )
-    }
+    return argList
+  }
+
+  private fun resolveMacInternalBinary(blenderPath: String): String? {
+    return if (blenderPath.removeSuffix("/").endsWith(".app", ignoreCase = true)) "Blender" else null
   }
 
   private fun buildDebugArguments(logLevel: ProjectConfig.BlenderLogLevel): List<String> {

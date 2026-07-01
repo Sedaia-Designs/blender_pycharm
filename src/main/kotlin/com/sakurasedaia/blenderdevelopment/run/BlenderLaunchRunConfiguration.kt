@@ -27,10 +27,10 @@ import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
-import com.intellij.util.execution.ParametersListUtil
+import com.sakurasedaia.blenderdevelopment.blender.BlenderArguments
+import com.sakurasedaia.blenderdevelopment.blender.Launcher
 import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
 import com.sakurasedaia.blenderdevelopment.lib.ProjectConfig
-import com.sakurasedaia.blenderdevelopment.process.ExternalProcessBuilder
 import javax.swing.JComponent
 import javax.swing.JPanel
 
@@ -58,17 +58,12 @@ internal class BlenderLaunchRunConfiguration(
     }
 
     override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState {
-        val projectConfig = ProjectConfig.getInstance(project)
-        val blenderPath = projectConfig.getBlenderPath().trim()
-        val runArguments = projectConfig.getRunArguments().trim()
-
         return object : CommandLineState(environment) {
             override fun startProcess(): OSProcessHandler {
-                val argumentList = if (runArguments.isNotEmpty()) ParametersListUtil.parse(runArguments) else emptyList()
-                return ExternalProcessBuilder(project).startProcessHandler(
-                    command = blenderPath,
-                    args = argumentList,
-                    workDirectory = project.basePath,
+                return Launcher.getInstance(project).createProcessHandler(
+                    BlenderArguments(
+                        blenderPath = ProjectConfig.getInstance(project).getBlenderPath().trim(),
+                    )
                 )
             }
         }
