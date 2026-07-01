@@ -21,8 +21,8 @@ import com.intellij.openapi.observable.properties.GraphProperty
 import com.intellij.openapi.observable.properties.PropertyGraph
 import com.intellij.openapi.observable.util.equalsTo
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
-import com.intellij.ui.components.JBLabel
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.panel
@@ -41,6 +41,10 @@ import javax.swing.JTextField
 /** Builds the Blender tool window UI for editing workspace configuration values. */
 class BlenderToolWindowContent(private val project: Project,
                                private val onScanInstallations: (onCompleted: () -> Unit) -> Unit,) {
+    private data class UiState(
+        var detectedBlenderInstalls: List<PluginConfig.BlendInstallInfo> = emptyList(),
+    )
+
     /**
      * Creates and returns the tool window Swing content component.
      *
@@ -58,23 +62,77 @@ class BlenderToolWindowContent(private val project: Project,
         lateinit var runArgumentsField: JTextField
         lateinit var useCustomBlenderInstall: JCheckBox
         lateinit var availableBlenderInstalls: JComboBox<String>
-        val statusLabel = JBLabel("")
-        var detectedBlenderInstalls: List<PluginConfig.BlendInstallInfo> = emptyList()
-
-        fun syncBlenderPathFromInstallSelection() {
-            if (useCustomBlenderInstall.isSelected) return
-
-            val selectedIndex = availableBlenderInstalls.selectedIndex
-            if (selectedIndex in detectedBlenderInstalls.indices) {
-                blenderPathField.text = detectedBlenderInstalls[selectedIndex].path
-            }
-        }
+        val uiState = UiState()
 
         fun updateInstallControlState() {
             val useCustomPath = useCustomBlenderInstall.isSelected
             blenderPathField.isEnabled = useCustomPath
-            availableBlenderInstalls.isEnabled = !useCustomPath && detectedBlenderInstalls.isNotEmpty()
-            syncBlenderPathFromInstallSelection()
+            availableBlenderInstalls.isEnabled = !useCustomPath && uiState.detectedBlenderInstalls.isNotEmpty()
+        }
+
+        fun selectedInstallPath(): String? {
+            val selectedIndex = availableBlenderInstalls.selectedIndex
+            return uiState.detectedBlenderInstalls.getOrNull(selectedIndex)?.path
+        }
+
+        fun syncBlenderPathFromInstallSelection() {
+            if (useCustomBlenderInstall.isSelected) return
+            selectedInstallPath()?.let { blenderPathField.text = it }
+        }
+
+        fun installDisplayValues(installs: List<PluginConfig.BlendInstallInfo>): Array<String> {
+            return installs.map { install ->
+                val label = install.name.trim()
+                if (label.isNotBlank()) label else install.path
+            }.toTypedArray()
+        }
+
+        fun refreshInstallWidgetsFromPluginState() {
+            val previousSelectedPath = if (useCustomBlenderInstall.isSelected) null else selectedInstallPath()
+
+            uiState.detectedBlenderInstalls = pluginConfig.getDetectedBlenderInstalls()
+            availableBlenderInstalls.model = DefaultComboBoxModel(installDisplayValues(uiState.detectedBlenderInstalls))
+
+            if (!useCustomBlenderInstall.isSelected) {
+                val indexToSelect = when {
+                    previousSelectedPath != null ->
+                        uiState.detectedBlenderInstalls.indexOfFirst { it.path == previousSelectedPath }
+                    else -> -1
+                }
+
+                if (indexToSelect >= 0) {
+                    availableBlenderInstalls.selectedIndex = indexToSelect
+                } else if (uiState.detectedBlenderInstalls.isNotEmpty()) {
+                    availableBlenderInstalls.selectedIndex = 0
+                }
+                syncBlenderPathFromInstallSelection()
+            }
+
+            updateInstallControlState()
+        }
+
+        fun applyBlenderInstallSelectionFromProjectConfig() {
+            val configuredBlenderPath = config.getBlenderPath().trim()
+            val selectedDetectedInstallIndex =
+                uiState.detectedBlenderInstalls.indexOfFirst { it.path == configuredBlenderPath }
+
+            if (selectedDetectedInstallIndex >= 0) {
+                useCustomBlenderInstall.isSelected = false
+                availableBlenderInstalls.selectedIndex = selectedDetectedInstallIndex
+                blenderPathField.text = uiState.detectedBlenderInstalls[selectedDetectedInstallIndex].path
+            } else if (configuredBlenderPath.isBlank()) {
+                useCustomBlenderInstall.isSelected = false
+                if (uiState.detectedBlenderInstalls.isNotEmpty()) {
+                    availableBlenderInstalls.selectedIndex = 0
+                    blenderPathField.text = uiState.detectedBlenderInstalls.first().path
+                } else {
+                    blenderPathField.text = ""
+                }
+            } else {
+                useCustomBlenderInstall.isSelected = true
+                blenderPathField.text = configuredBlenderPath
+            }
+            updateInstallControlState()
         }
 
         /**
@@ -87,35 +145,8 @@ class BlenderToolWindowContent(private val project: Project,
             sourceFolderField.text = config.getSourceFolder()
             runArgumentsField.text = config.getRunArguments()
 
-            detectedBlenderInstalls = pluginConfig.getDetectedBlenderInstalls()
-            availableBlenderInstalls.model = DefaultComboBoxModel(
-                detectedBlenderInstalls
-                    .map { it.name.trim() }
-                    .toTypedArray()
-            )
-
-            val configuredBlenderPath = config.getBlenderPath()
-            val selectedDetectedInstallIndex = detectedBlenderInstalls.indexOfFirst { it.path == configuredBlenderPath }
-
-            when {
-                selectedDetectedInstallIndex >= 0 -> {
-                    useCustomBlenderInstall.isSelected = false
-                    availableBlenderInstalls.selectedIndex = selectedDetectedInstallIndex
-                    blenderPathField.text = detectedBlenderInstalls[selectedDetectedInstallIndex].path
-                }
-                configuredBlenderPath.isBlank() && detectedBlenderInstalls.isNotEmpty() -> {
-                    useCustomBlenderInstall.isSelected = false
-                    availableBlenderInstalls.selectedIndex = 0
-                    blenderPathField.text = detectedBlenderInstalls.first().path
-                }
-                else -> {
-                    useCustomBlenderInstall.isSelected = true
-                    blenderPathField.text = configuredBlenderPath
-                }
-            }
-
-            updateInstallControlState()
-            statusLabel.text = ""
+            refreshInstallWidgetsFromPluginState()
+            applyBlenderInstallSelectionFromProjectConfig()
         }
 
         return panel {
@@ -128,11 +159,11 @@ class BlenderToolWindowContent(private val project: Project,
                             .align(AlignX.FILL)
                             .applyToComponent {
                                 availableBlenderInstalls = this
-                                addActionListener { updateInstallControlState() }
+                                addActionListener { syncBlenderPathFromInstallSelection() }
                             }
                     }.visibleIf(useCustomBlenderInstallProperty.equalsTo(false))
                     row {
-                        textFieldWithBrowseButton(fileChooserDescriptor = com.intellij.openapi.fileChooser.FileChooserDescriptorFactory.createSingleFileOrFolderDescriptor())
+                        textFieldWithBrowseButton(fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileOrFolderDescriptor())
                             .align(AlignX.FILL)
                             .applyToComponent { blenderPathField = this }
                     }.visibleIf(useCustomBlenderInstallProperty.equalsTo(true))
@@ -144,7 +175,7 @@ class BlenderToolWindowContent(private val project: Project,
                                 addActionListener { updateInstallControlState() }
                             }
                         button(MessageBundle.message("ui.settings.group.discovery.scan.button")) {
-                            onScanInstallations { loadFromConfig() }
+                            onScanInstallations { refreshInstallWidgetsFromPluginState() }
                         }
                     }
                 }
@@ -191,9 +222,6 @@ class BlenderToolWindowContent(private val project: Project,
                         logger.log("Reloaded workspace settings in Blender tool window")
                         notifications.sendInfo(MessageBundle.message("ui.toolwindow.group.workspace.reload.confirmation"))
                     }
-                }
-                row {
-                    cell(statusLabel)
                 }
             }
         }.apply {
