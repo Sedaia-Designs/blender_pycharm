@@ -37,10 +37,17 @@ import javax.swing.JCheckBox
 import javax.swing.JComboBox
 import javax.swing.JComponent
 import javax.swing.JTextField
+import javax.swing.Timer
+import javax.swing.event.DocumentEvent
+import javax.swing.event.DocumentListener
 
 /** Builds the Blender tool window UI for editing workspace configuration values. */
 class BlenderToolWindowContent(private val project: Project,
                                private val onScanInstallations: (onCompleted: () -> Unit) -> Unit,) {
+    private companion object {
+        const val AUTOSAVE_DEBOUNCE_MS = 500
+    }
+
     private data class UiState(
         var detectedBlenderInstalls: List<PluginConfig.BlendInstallInfo> = emptyList(),
     )
@@ -63,6 +70,46 @@ class BlenderToolWindowContent(private val project: Project,
         lateinit var useCustomBlenderInstall: JCheckBox
         lateinit var availableBlenderInstalls: JComboBox<String>
         val uiState = UiState()
+        var isLoadingFromConfig = false
+
+        fun saveToConfig(showValidationNotification: Boolean): Boolean {
+            val sourceFolder = sourceFolderField.text.trim()
+            if (sourceFolder.isEmpty()) {
+                if (showValidationNotification) {
+                    logger.warn("Workspace save blocked: source folder is empty")
+                    notifications.sendWarning(MessageBundle.message("ui.toolwindow.group.workspace.save.validation.source.empty"))
+                }
+                return false
+            }
+
+            config.setBlenderPath(blenderPathField.text.trim())
+            config.setAddonSymlinkName(addonSymlinkField.text.trim())
+            config.setSourceFolder(sourceFolder)
+            config.setRunArguments(runArgumentsField.text.trim())
+            return true
+        }
+
+        val autosaveTimer = Timer(AUTOSAVE_DEBOUNCE_MS) {
+            if (isLoadingFromConfig) return@Timer
+            if (saveToConfig(showValidationNotification = false)) {
+                logger.debug("Autosaved workspace settings from Blender tool window.")
+            }
+        }.apply {
+            isRepeats = false
+        }
+
+        fun scheduleAutosave() {
+            if (isLoadingFromConfig) return
+            autosaveTimer.restart()
+        }
+
+        fun addAutosaveListener(textField: JTextField) {
+            textField.document.addDocumentListener(object : DocumentListener {
+                override fun insertUpdate(e: DocumentEvent?) = scheduleAutosave()
+                override fun removeUpdate(e: DocumentEvent?) = scheduleAutosave()
+                override fun changedUpdate(e: DocumentEvent?) = scheduleAutosave()
+            })
+        }
 
         fun updateInstallControlState() {
             val useCustomPath = useCustomBlenderInstall.isSelected
@@ -77,7 +124,10 @@ class BlenderToolWindowContent(private val project: Project,
 
         fun syncBlenderPathFromInstallSelection() {
             if (useCustomBlenderInstall.isSelected) return
-            selectedInstallPath()?.let { blenderPathField.text = it }
+            val installPath = selectedInstallPath() ?: return
+            if (blenderPathField.text != installPath) {
+                blenderPathField.text = installPath
+            }
         }
 
         fun installDisplayValues(installs: List<PluginConfig.BlendInstallInfo>): Array<String> {
@@ -141,12 +191,14 @@ class BlenderToolWindowContent(private val project: Project,
          * @return `Unit`.
          */
         fun loadFromConfig() {
+            isLoadingFromConfig = true
             addonSymlinkField.text = config.getAddonSymlinkName()
             sourceFolderField.text = config.getSourceFolder()
             runArgumentsField.text = config.getRunArguments()
 
             refreshInstallWidgetsFromPluginState()
             applyBlenderInstallSelectionFromProjectConfig()
+            isLoadingFromConfig = false
         }
 
         return panel {
@@ -159,20 +211,29 @@ class BlenderToolWindowContent(private val project: Project,
                             .align(AlignX.FILL)
                             .applyToComponent {
                                 availableBlenderInstalls = this
-                                addActionListener { syncBlenderPathFromInstallSelection() }
+                                addActionListener {
+                                    syncBlenderPathFromInstallSelection()
+                                    scheduleAutosave()
+                                }
                             }
                     }.visibleIf(useCustomBlenderInstallProperty.equalsTo(false))
                     row {
                         textFieldWithBrowseButton(fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileOrFolderDescriptor())
                             .align(AlignX.FILL)
-                            .applyToComponent { blenderPathField = this }
+                            .applyToComponent {
+                                blenderPathField = this
+                                addAutosaveListener(textField)
+                            }
                     }.visibleIf(useCustomBlenderInstallProperty.equalsTo(true))
                     row {
                         checkBox(MessageBundle.message("ui.toolwindow.group.workspace.blender.path.use.custom"))
                             .bindSelected(useCustomBlenderInstallProperty)
                             .applyToComponent {
                                 useCustomBlenderInstall = this
-                                addActionListener { updateInstallControlState() }
+                                addActionListener {
+                                    updateInstallControlState()
+                                    scheduleAutosave()
+                                }
                             }
                         button(MessageBundle.message("ui.settings.group.discovery.scan.button")) {
                             onScanInstallations { refreshInstallWidgetsFromPluginState() }
@@ -183,32 +244,31 @@ class BlenderToolWindowContent(private val project: Project,
                 row(MessageBundle.message("ui.toolwindow.group.workspace.addon.symlink.name")) {
                     textField()
                         .align(AlignX.FILL)
-                        .applyToComponent { addonSymlinkField = this }
+                        .applyToComponent {
+                            addonSymlinkField = this
+                            addAutosaveListener(this)
+                        }
                 }
                 row(MessageBundle.message("ui.toolwindow.group.workspace.source.folder")) {
                     textField()
                         .align(AlignX.FILL)
-                        .applyToComponent { sourceFolderField = this }
+                        .applyToComponent {
+                            sourceFolderField = this
+                            addAutosaveListener(this)
+                        }
                 }
                 row(MessageBundle.message("ui.toolwindow.group.workspace.run.arguments")) {
                     textField()
                         .align(AlignX.FILL)
-                        .applyToComponent { runArgumentsField = this }
+                        .applyToComponent {
+                            runArgumentsField = this
+                            addAutosaveListener(this)
+                        }
                 }
                 row {
                     button(MessageBundle.message("ui.toolwindow.group.workspace.save")) {
-                        val sourceFolder = sourceFolderField.text.trim()
-                        if (sourceFolder.isEmpty()) {
-                            logger.warn("Workspace save blocked: source folder is empty")
-                            notifications.sendWarning(MessageBundle.message("ui.toolwindow.group.workspace.save.validation.source.empty"))
-                            return@button
-                        }
-
                         logger.log("Saving workspace settings from Blender tool window")
-                        config.setBlenderPath(blenderPathField.text.trim())
-                        config.setAddonSymlinkName(addonSymlinkField.text.trim())
-                        config.setSourceFolder(sourceFolder)
-                        config.setRunArguments(runArgumentsField.text.trim())
+                        if (!saveToConfig(showValidationNotification = true)) return@button
                         logger.debug(
                             "Workspace settings saved (blenderPath='${config.getBlenderPath()}', " +
                                 "addonSymlink='${config.getAddonSymlinkName()}', sourceFolder='${config.getSourceFolder()}', " +
@@ -219,6 +279,7 @@ class BlenderToolWindowContent(private val project: Project,
 
                     button(MessageBundle.message("ui.toolwindow.group.workspace.reload")) {
                         loadFromConfig()
+                        autosaveTimer.stop()
                         logger.log("Reloaded workspace settings in Blender tool window")
                         notifications.sendInfo(MessageBundle.message("ui.toolwindow.group.workspace.reload.confirmation"))
                     }
