@@ -17,6 +17,8 @@
 
 package com.sakurasedaia.blenderdevelopment.process
 
+import com.intellij.execution.configurations.GeneralCommandLine
+import com.intellij.execution.process.OSProcessHandler
 import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.openapi.project.Project
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
@@ -162,6 +164,30 @@ class ExternalProcessBuilder(val project: Project) {
     return AppExecutorUtil.getAppExecutorService().submit<ProcessExecutionResult> {
       launchAndCaptureOutput(processedCommand, argumentList, shouldCancel = shouldCancel)
     }
+  }
+
+  /**
+   * Builds and starts an IDE-managed process handler for run/debug flows.
+   *
+   * @param command executable path or command name to run.
+   * @param args command arguments.
+   * @param workDirectory optional working directory for process execution.
+   * @param internalBinary optional macOS app bundle binary name used when [command] points to an app bundle.
+   * @return started [OSProcessHandler].
+   */
+  fun startProcessHandler(
+    command: String,
+    args: List<String> = emptyList(),
+    workDirectory: String? = null,
+    internalBinary: String? = null,
+  ): OSProcessHandler {
+    val argumentList = args.toMutableList()
+    val processedCommand = prepareCommandForLaunch(command, argumentList, internalBinary)
+    val commandLine = GeneralCommandLine(processedCommand).withWorkDirectory(workDirectory)
+    if (argumentList.isNotEmpty()) {
+      commandLine.addParameters(argumentList)
+    }
+    return OSProcessHandler(commandLine)
   }
 
   private fun waitForTermination(process: Process, shouldCancel: (() -> Boolean)?): Boolean {

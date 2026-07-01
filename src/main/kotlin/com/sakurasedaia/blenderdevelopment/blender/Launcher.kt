@@ -21,12 +21,14 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.components.service
 import com.intellij.openapi.application.PathManager
+import com.intellij.util.execution.ParametersListUtil
 import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
 import com.sakurasedaia.blenderdevelopment.lib.PluginConfig
 import com.sakurasedaia.blenderdevelopment.lib.ProjectConfig
+import com.sakurasedaia.blenderdevelopment.process.ExternalProcessBuilder
 
 import java.nio.file.Path
 
@@ -44,7 +46,7 @@ internal class Launcher(private val project: Project) {
   val projectPath = project.basePath ?: ""
   val scratchPath = PathManager.getScratchDir()
   val pluginConfig = PluginConfig.getInstance().state
-  val projectConfig = ProjectConfig.getInstance(project).state
+  val projectConfig = ProjectConfig.getInstance(project)
   
   
   companion object {
@@ -52,13 +54,21 @@ internal class Launcher(private val project: Project) {
   }
   
   fun startProcess(args: BlenderArguments) {
-    if (args.blenderPath.isEmpty() && projectConfig.blenderPath.isEmpty()) {
+    val blenderPath = args.blenderPath.ifBlank { projectConfig.getBlenderPath().trim() }
+    if (blenderPath.isEmpty()) {
       // Prevent process execution if neither the project nor the run configuration config have a Blender path set.
       return
     }
     
     
     val argList: MutableList<String> = mutableListOf()
+    argList.addAll(buildDebugArguments(projectConfig.getBlenderLogLevel()))
+
+    val workspaceRunArguments = projectConfig.getRunArguments().trim()
+    if (workspaceRunArguments.isNotEmpty()) {
+      argList.addAll(ParametersListUtil.parse(workspaceRunArguments))
+    }
+
     if (args.debugger) {
       // TODO: Implement Debugger integration
     }
@@ -67,11 +77,17 @@ internal class Launcher(private val project: Project) {
       argList.add("--python")
       argList.add(args.scriptPath.toString())
     }
+    argList.addAll(args.additionalArgs)
     
     logger.log(MessageBundle.message("notification.blender.launching"))
     
     try {
-    
+      val processHandler = ExternalProcessBuilder(project).startProcessHandler(
+        command = blenderPath,
+        args = argList,
+        workDirectory = project.basePath,
+      )
+      processHandler.startNotify()
     } catch (e: Exception) {
       logger.error(ErrorTypes.BLENDER_LAUNCH_ERROR, e)
       notifModal.sendError(e.message ?: "",
@@ -79,6 +95,13 @@ internal class Launcher(private val project: Project) {
       )
     }
   }
-  
-  
+
+  private fun buildDebugArguments(logLevel: ProjectConfig.BlenderLogLevel): List<String> {
+    return when (logLevel) {
+      ProjectConfig.BlenderLogLevel.DEBUG -> listOf("--debug", "--log-level", "3")
+      ProjectConfig.BlenderLogLevel.INFO -> listOf("--log-level", "2")
+      ProjectConfig.BlenderLogLevel.WARNING -> listOf("--log-level", "1")
+      ProjectConfig.BlenderLogLevel.ERROR -> listOf("--log-level", "0")
+    }
+  }
 }

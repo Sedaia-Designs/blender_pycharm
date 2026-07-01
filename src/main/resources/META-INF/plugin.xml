@@ -64,6 +64,7 @@
         />
         <postStartupActivity implementation="com.sakurasedaia.blenderdevelopment.lib.services.ProjectConfigStartupLoader"/>
         <directoryProjectGenerator implementation="com.sakurasedaia.blenderdevelopment.wizard.legacy.BlenderProjectDirectoryGenerator" />
+        <configurationType implementation="com.sakurasedaia.blenderdevelopment.run.BlenderLaunchConfigurationType"/>
 
         <internalFileTemplate name="Pyproject"/>
         <internalFileTemplate name="BlenderManifest"/>
