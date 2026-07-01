@@ -67,10 +67,35 @@ class BlenderToolWindowContent(private val project: Project,
         lateinit var addonSymlinkField: JTextField
         lateinit var sourceFolderField: JTextField
         lateinit var runArgumentsField: JTextField
+        lateinit var blenderLogLevelCombo: JComboBox<String>
         lateinit var useCustomBlenderInstall: JCheckBox
         lateinit var availableBlenderInstalls: JComboBox<String>
+        val blenderLogLevels = ProjectConfig.BlenderLogLevel.entries
         val uiState = UiState()
         var isLoadingFromConfig = false
+
+        fun logLevelLabel(level: ProjectConfig.BlenderLogLevel): String {
+            return when (level) {
+                ProjectConfig.BlenderLogLevel.DEBUG ->
+                    MessageBundle.message("ui.toolwindow.group.workspace.log.level.debug")
+                ProjectConfig.BlenderLogLevel.INFO ->
+                    MessageBundle.message("ui.toolwindow.group.workspace.log.level.info")
+                ProjectConfig.BlenderLogLevel.WARNING ->
+                    MessageBundle.message("ui.toolwindow.group.workspace.log.level.warning")
+                ProjectConfig.BlenderLogLevel.ERROR ->
+                    MessageBundle.message("ui.toolwindow.group.workspace.log.level.error")
+            }
+        }
+
+        fun getSelectedBlenderLogLevel(): ProjectConfig.BlenderLogLevel {
+            val selectedIndex = blenderLogLevelCombo.selectedIndex
+            return blenderLogLevels.getOrNull(selectedIndex) ?: ProjectConfig.BlenderLogLevel.INFO
+        }
+
+        fun selectBlenderLogLevel(logLevel: ProjectConfig.BlenderLogLevel) {
+            val selectedIndex = blenderLogLevels.indexOf(logLevel).takeIf { it >= 0 } ?: 0
+            blenderLogLevelCombo.selectedIndex = selectedIndex
+        }
 
         fun saveToConfig(showValidationNotification: Boolean): Boolean {
             val sourceFolder = sourceFolderField.text.trim()
@@ -86,6 +111,7 @@ class BlenderToolWindowContent(private val project: Project,
             config.setAddonSymlinkName(addonSymlinkField.text.trim())
             config.setSourceFolder(sourceFolder)
             config.setRunArguments(runArgumentsField.text.trim())
+            config.setBlenderLogLevel(getSelectedBlenderLogLevel())
             return true
         }
 
@@ -195,6 +221,7 @@ class BlenderToolWindowContent(private val project: Project,
             addonSymlinkField.text = config.getAddonSymlinkName()
             sourceFolderField.text = config.getSourceFolder()
             runArgumentsField.text = config.getRunArguments()
+            selectBlenderLogLevel(config.getBlenderLogLevel())
 
             refreshInstallWidgetsFromPluginState()
             applyBlenderInstallSelectionFromProjectConfig()
@@ -265,6 +292,14 @@ class BlenderToolWindowContent(private val project: Project,
                             addAutosaveListener(this)
                         }
                 }
+                row(MessageBundle.message("ui.toolwindow.group.workspace.log.level")) {
+                    comboBox(blenderLogLevels.map(::logLevelLabel))
+                        .align(AlignX.FILL)
+                        .applyToComponent {
+                            blenderLogLevelCombo = this
+                            addActionListener { scheduleAutosave() }
+                        }
+                }
                 row {
                     button(MessageBundle.message("ui.toolwindow.group.workspace.save")) {
                         logger.log("Saving workspace settings from Blender tool window")
@@ -272,7 +307,7 @@ class BlenderToolWindowContent(private val project: Project,
                         logger.debug(
                             "Workspace settings saved (blenderPath='${config.getBlenderPath()}', " +
                                 "addonSymlink='${config.getAddonSymlinkName()}', sourceFolder='${config.getSourceFolder()}', " +
-                                "runArguments='${config.getRunArguments()}')"
+                                "runArguments='${config.getRunArguments()}', blenderLogLevel='${config.getBlenderLogLevel()}')"
                         )
                         notifications.sendInfo(MessageBundle.message("ui.toolwindow.group.workspace.save.confirmation"))
                     }

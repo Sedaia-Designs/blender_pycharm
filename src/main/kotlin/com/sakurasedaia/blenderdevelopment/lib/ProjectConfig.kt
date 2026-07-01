@@ -30,12 +30,20 @@ import com.intellij.openapi.project.Project
 	]
 )
 internal class ProjectConfig(private val project: Project): PersistentStateComponent<ProjectConfig.ProjectState> {
+	enum class BlenderLogLevel {
+		DEBUG,
+		INFO,
+		WARNING,
+		ERROR,
+	}
+
 	/** Persisted project-scoped settings stored in project-level configuration. */
 	data class ProjectState(
 		var blenderPath: String = "",
 		var addonSymlinkName: String = "",
 		var sourceFolder: String = "src/",
 		var runArguments: String = "",
+		var blenderLogLevel: String = BlenderLogLevel.DEBUG.name,
 	)
 	
 	private var state: ProjectState = ProjectState()
@@ -85,6 +93,19 @@ internal class ProjectConfig(private val project: Project): PersistentStateCompo
 	}
 	/** Returns the stored Blender run arguments string. */
 	fun getRunArguments(): String = state.runArguments
+
+	/**
+	 * Stores the configured Blender log level used by launch workflows.
+	 *
+	 * @param logLevel selected log level.
+	 */
+	fun setBlenderLogLevel(logLevel: BlenderLogLevel) {
+		state.blenderLogLevel = logLevel.name
+	}
+	/** Returns the configured Blender log level. */
+	fun getBlenderLogLevel(): BlenderLogLevel {
+		return BlenderLogLevel.entries.firstOrNull { it.name == state.blenderLogLevel } ?: BlenderLogLevel.INFO
+	}
 
 	/**
 	 * Forces initialization of persisted workspace settings for this project.
