@@ -26,16 +26,14 @@ import com.intellij.openapi.observable.util.equalsTo
 import com.intellij.openapi.observable.util.whenTextChangedFromUi
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
-import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.BottomGap
-import com.intellij.ui.dsl.builder.Cell
 import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.bindText
 import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
-import com.sakurasedaia.blenderdevelopment.model.BlenderVersions
+import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
 import com.intellij.util.text.VersionComparatorUtil
 import java.nio.file.Path
 

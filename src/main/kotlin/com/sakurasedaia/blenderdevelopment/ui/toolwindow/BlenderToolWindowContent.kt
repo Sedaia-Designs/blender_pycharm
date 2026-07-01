@@ -25,7 +25,7 @@ import com.intellij.util.ui.JBUI
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
-import com.sakurasedaia.blenderdevelopment.config.ProjectConfig
+import com.sakurasedaia.blenderdevelopment.lib.ProjectConfig
 import javax.swing.JComponent
 import javax.swing.JTextField
 

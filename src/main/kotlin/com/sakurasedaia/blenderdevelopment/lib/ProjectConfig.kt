@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakurasedaia.blenderdevelopment.config
+package com.sakurasedaia.blenderdevelopment.lib
 
 import com.intellij.openapi.components.*
 import com.intellij.openapi.project.Project
@@ -24,13 +24,12 @@ import com.intellij.openapi.project.Project
 @Service(Service.Level.PROJECT)
 @State(name = "BlenderExtensionManifest", storages = [Storage(StoragePathMacros.WORKSPACE_FILE)])
 internal class ProjectConfig(private val project: Project): PersistentStateComponent<ProjectConfig.ProjectState> {
-	/** Persistent state stored in the workspace file. */
+	/** Persisted project-scoped settings stored in the workspace file. */
 	data class ProjectState(
 		var blenderPath: String = "",
 		var addonSymlinkName: String = "",
 		var sandbox: Boolean = true,
 		var sourceFolder: String = "src/",
-        var runArguments: String = "",
 		var runArguments: String = "",
 	)
 	
@@ -45,6 +44,7 @@ internal class ProjectConfig(private val project: Project): PersistentStateCompo
 	fun setBlenderPath(path: String) {
 		state.blenderPath = path
 	}
+	/** Returns the configured Blender executable path for this project. */
 	fun getBlenderPath(): String = state.blenderPath
 	
 	
@@ -52,22 +52,22 @@ internal class ProjectConfig(private val project: Project): PersistentStateCompo
 	 * Stores the add-on symlink name.
 	 *
 	 * @param name add-on symlink name.
-	 * @return `Unit`.
 	 */
 	fun setAddonSymlinkName(name: String) {
 		state.addonSymlinkName = name
 	}
+	/** Returns the configured add-on symlink name. */
 	fun getAddonSymlinkName(): String = state.addonSymlinkName
 	
 	/**
 	 * Stores sandbox mode preference.
 	 *
 	 * @param sandbox sandbox enabled flag.
-	 * @return `Unit`.
 	 */
 	fun setSandbox(sandbox: Boolean) {
 		state.sandbox = sandbox
 	}
+	/** Returns whether sandbox mode is enabled for project runs. */
 	fun getSandbox(): Boolean = state.sandbox
 	
 	
@@ -75,34 +75,34 @@ internal class ProjectConfig(private val project: Project): PersistentStateCompo
 	 * Stores the source folder path.
 	 *
 	 * @param path source folder path.
-	 * @return `Unit`.
 	 */
 	fun setSourceFolder(path: String) {
 		state.sourceFolder = path
 	}
+	/** Returns the configured source folder path used by project workflows. */
 	fun getSourceFolder(): String = state.sourceFolder
 
-    /**
-     * Stores the run arguments used by the Blender run configuration.
-     *
-     * @param arguments run arguments string.
-     * @return `Unit`.
-     */
-    fun setRunArguments(arguments: String) {
-        state.runArguments = arguments
-    }
-    fun getRunArguments(): String = state.runArguments
+	/**
+	 * Stores the run arguments used by the Blender run configuration.
+	 *
+	 * @param arguments run arguments string.
+	 */
+	fun setRunArguments(arguments: String) {
+		state.runArguments = arguments
+	}
+	/** Returns the stored Blender run arguments string. */
+	fun getRunArguments(): String = state.runArguments
 	
 	
 	/**
 	 * Loads workspace state from persistent storage.
 	 *
 	 * @param p0 deserialized state payload.
-	 * @return `Unit`.
 	 */
 	override fun loadState(p0: ProjectState) {
 		state = p0
 	}
+	/** Returns the current persisted workspace state payload. */
 	override fun getState(): ProjectState = state
 	
 	

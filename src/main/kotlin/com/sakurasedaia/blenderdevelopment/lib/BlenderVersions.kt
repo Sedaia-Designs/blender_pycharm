@@ -15,24 +15,37 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakurasedaia.blenderdevelopment.model
+package com.sakurasedaia.blenderdevelopment.lib
 
-/** Version mapping row between Blender and the bundled Python runtime. */
+/**
+ * Version mapping row between a Blender release and its bundled Python runtime.
+ *
+ * @property compatWithOs compatibility matrix keyed by OS alias (`win`, `mac`, `linux`)
+ * with supported architecture values (for example, `x64`, `arm64`).
+ */
 data class BlenderVersion(
     private val blender: List<Int>,
     private val python: List<Int>,
     val compatWithOs: Map<String, List<String>>
 ) {
+    /** Full Blender version in `major.minor.patch` format. */
     val blVersion: String get() = blender.joinToString(separator = ".")
+    /** Full Python version in `major.minor.patch` format. */
     val pyVersion: String get() = python.joinToString(separator = ".")
     
+    /** Blender version selector in `major.minor` format. */
     val blMajorMinor: String get() = "${blender[0]}.${blender[1]}"
+    /** Python version selector in `major.minor` format. */
     val pyMajorMinor: String get() = "${python[0]}.${python[1]}"
     
+    /** Blender patch component as a string. */
     val blFallback: String get() = blender[2].toString()
+    /** Python patch component as a string. */
     val pyFallback: String get() = python[2].toString()
     
+    /** Blender version components as `[major, minor, patch]`. */
     val blVersionList: List<Int> get() = blender
+    /** Python version components as `[major, minor, patch]`. */
     val pyVersionList: List<Int> get() = python
 }
 
@@ -92,6 +105,7 @@ object BlenderVersions {
         return getVersionTableSafe()
     }
     
+    /** Public alias for [getVersionTable]. */
     val LIST: List<BlenderVersion>
         get() = getVersionTable()
     
@@ -99,7 +113,7 @@ object BlenderVersions {
     /**
      * Returns full Blender version (e.g. `4.5.8`) for a major/minor selector (e.g. `4.5`).
      *
-     * @param blMajorMinor Blender version selector in major/minor form.
+     * @param blMajorMinor Blender version selector in `major.minor` form (also accepts full versions).
      * @return full Blender version string, or `null` when not found.
      */
     fun getBlenderVersion(blMajorMinor: String): String? {
@@ -111,7 +125,7 @@ object BlenderVersions {
     /**
      * Returns full Python version that corresponds to the provided Blender major/minor value.
      *
-     * @param blMajorMinor Blender version selector in major/minor form.
+     * @param blMajorMinor Blender version selector in `major.minor` form (also accepts full versions).
      * @return full Python version string, or `null` when no mapping exists.
      */
     fun getPythonVersion(blMajorMinor: String): String? {
@@ -123,8 +137,8 @@ object BlenderVersions {
     /**
      * Returns OS/architecture compatibility matrix for the selected Blender version.
      *
-     * @param blMajorMinor Blender version selector in major/minor form.
-     * @return compatibility map keyed by OS shorthand, or `null` when not found.
+     * @param blMajorMinor Blender version selector in `major.minor` form (also accepts full versions).
+     * @return compatibility map keyed by `win`, `mac`, or `linux`, or `null` when not found.
      */
     fun getCompatibleArch(blMajorMinor: String): Map<String, List<String>>? {
         val normalized = normalizeVersion(blMajorMinor)

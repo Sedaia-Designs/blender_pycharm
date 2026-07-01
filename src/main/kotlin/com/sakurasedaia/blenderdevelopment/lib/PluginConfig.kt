@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakurasedaia.blenderdevelopment.config
+package com.sakurasedaia.blenderdevelopment.lib
 
 import com.intellij.openapi.components.*
 import com.intellij.openapi.application.ApplicationManager
@@ -24,7 +24,11 @@ import com.intellij.openapi.application.PathManager
 /** Application-level persisted configuration for global Blender plugin settings. */
 @Service(Service.Level.APP)
 @State(name = "PluginConfig", storages = [Storage("blender_pycharm.config.xml")])
-internal class PluginConfig : PersistentStateComponent<PluginConfig.PluginState> {
+class PluginConfig : PersistentStateComponent<PluginConfig.PluginState> {
+	/** Descriptor for an installed Blender instance discovered on disk. */
+	data class BlendInstallInfo(val name: String = "", val version: String, val path: String)
+	
+	/** Persisted application-scoped settings for the plugin. */
 	data class PluginState(
 		// Temporary example setting will be filled out later with proper settings
 		var blenderInstallPath: String = "${PathManager.getSystemPath()}/BlenderExtensions/Applications/", // Portable Blender application bundles
@@ -37,8 +41,11 @@ internal class PluginConfig : PersistentStateComponent<PluginConfig.PluginState>
 		var downloadCacheMaxSize: Int = 2,
 		
 		var logPath: String = "${PathManager.getLogPath()}/BlenderExtensions/", // TODO: Change the default to the same path as the Intellij `idea.log` file, but save alongside in a `blender-development.log` file.
-	)
-
+		
+		var detectedBlender: List<BlendInstallInfo> = mutableListOf()
+		)
+	
+	
 	private var state: PluginState = PluginState()
 	
 	/**
@@ -49,6 +56,7 @@ internal class PluginConfig : PersistentStateComponent<PluginConfig.PluginState>
 	fun setBlenderInstallPath(path: String) {
 		state.blenderInstallPath = path
 	}
+	/** Returns the configured folder used to store Blender application bundles. */
 	fun getBlenderInstallPath(): String = state.blenderInstallPath
 	
 	/**
@@ -59,6 +67,7 @@ internal class PluginConfig : PersistentStateComponent<PluginConfig.PluginState>
 	fun setCodeCompletionPath(path: String) {
 		state.bpyApiInstallPath = path
 	}
+	/** Returns the configured installation folder for Fake-Bpy-Module stubs. */
 	fun getCodeCompletionPath(): String = state.bpyApiInstallPath
 	
 	/**
@@ -69,6 +78,7 @@ internal class PluginConfig : PersistentStateComponent<PluginConfig.PluginState>
 	fun setLogPath(path: String) {
 		state.logPath = path
 	}
+	/** Returns the configured directory for plugin log files. */
 	fun getLogPath(): String = state.logPath
 	
 	/**
@@ -79,6 +89,7 @@ internal class PluginConfig : PersistentStateComponent<PluginConfig.PluginState>
 	fun setDownloadPath(path: String) {
 		state.downloadPath = path
 	}
+	/** Returns the configured directory used for downloaded artifacts. */
 	fun getDownloadPath(): String = state.downloadPath
 	
 	/**
@@ -89,20 +100,39 @@ internal class PluginConfig : PersistentStateComponent<PluginConfig.PluginState>
 	fun setClearDownloadsAfterInstall(clear: Boolean) {
 		state.clearDownloadsAfterInstall = clear
 	}
+	/** Returns whether downloads are deleted automatically after installation. */
 	fun getClearDownloadsAfterInstall(): Boolean = state.clearDownloadsAfterInstall
 	
 	/**
-	 * The maxumum size of the download cache (in Gigabytes)
+	 * Sets the maximum download cache size in gigabytes.
 	 *
-	 * @param size The maxumum size of the download cache (in Gigabytes)
+	 * @param size maximum cache size in gigabytes.
 	 */
 	fun setDownloadCacheSize(size: Int) {
 		state.downloadCacheMaxSize = size
 	}
+	/** Returns the configured maximum download cache size in gigabytes. */
 	fun getDownloadCacheSize(): Int = state.downloadCacheMaxSize
+
+	/**
+	 * Stores the most recent discovered Blender installations.
+	 *
+	 * @param installs discovered Blender installations.
+	 */
+	fun setDetectedBlenderInstalls(installs: List<BlendInstallInfo>) {
+		state.detectedBlender = installs
+	}
+	/** Returns the cached list of discovered Blender installations. */
+	fun getDetectedBlenderInstalls(): List<BlendInstallInfo> = state.detectedBlender
 	
+	/** Returns the current persisted state payload. */
 	override fun getState(): PluginState = state
 
+	/**
+	 * Replaces the current persisted state with deserialized storage data.
+	 *
+	 * @param state deserialized plugin state from persistent storage.
+	 */
 	override fun loadState(state: PluginState) {
 		this.state = state
 	}

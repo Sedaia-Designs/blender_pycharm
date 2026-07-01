@@ -17,11 +17,12 @@
 
 package com.sakurasedaia.blenderdevelopment.model
 
+import com.sakurasedaia.blenderdevelopment.lib.SystemHelper
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Unit tests for host/platform compatibility checks in [SystemHelper]. */
+/** Unit tests for host/platform compatibility checks in [com.sakurasedaia.blenderdevelopment.lib.SystemHelper]. */
 class BlenderVersionsTest {
     @Test
     /**

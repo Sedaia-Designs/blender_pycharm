@@ -15,12 +15,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakurasedaia.blenderdevelopment.model
+package com.sakurasedaia.blenderdevelopment.lib
 
 import com.intellij.openapi.application.PathManager
 import java.nio.file.Path
 
-/** Normalized host platform information used by Blender compatibility checks. */
+/**
+ * Normalized host platform information used by Blender compatibility checks.
+ *
+ * @property osName normalized operating system identifier (`windows`, `macos`, `linux`, or `unknown`).
+ * @property osVersion raw host OS version string from the JVM `os.version` property.
+ * @property osArch normalized CPU architecture (`arm64`, `x64`, or `unknown`).
+ * @property isWSL whether execution appears to be under Windows Subsystem for Linux.
+ * @property bundleFileType expected Blender distribution file suffix for the current platform.
+ * @property tempDir plugin-specific temporary directory under the IDE temp path.
+ */
 data class SysInfo(
     val osName: String,
     val osVersion: String,
@@ -31,7 +40,9 @@ data class SysInfo(
 )
 
 
-/** Helpers for host OS/CPU detection and Blender compatibility validation. */
+/**
+ * Helpers for host OS/CPU detection and Blender version compatibility validation.
+ */
 object SystemHelper {
     private val sysArch = System.getProperty("os.arch").orEmpty().lowercase()
     private val osName = System.getProperty("os.name").orEmpty().lowercase()
@@ -39,6 +50,15 @@ object SystemHelper {
     private fun isArch(input: String): Boolean = input in sysArch
     private fun isOS(input: String): Boolean = input in osName
     
+    /**
+     * Checks whether the current host platform is supported for the provided Blender major/minor version.
+     *
+     * Compatibility is evaluated using [BlenderVersions.getCompatibleArch], matching the normalized
+     * [getSysInfo.osName] and [getSysInfo.osArch] values.
+     *
+     * @param blMajorMinor Blender version key in `major.minor` form (for example, `4.5`).
+     * @return `true` when the current platform is listed as compatible for that Blender version.
+     */
     fun isOSCompatible(blMajorMinor: String): Boolean {
         val systemInfo = getSysInfo
         
@@ -51,6 +71,11 @@ object SystemHelper {
         return compatWithOs?.get(systemInfo.osName)?.contains(systemInfo.osArch) ?: false
     }
     
+    /**
+     * Snapshot of normalized host system information resolved at object initialization time.
+     *
+     * Values are derived from JVM system properties and environment variables.
+     */
     val getSysInfo: SysInfo = SysInfo(
         osName = when {
             isOS("windows") -> "windows"

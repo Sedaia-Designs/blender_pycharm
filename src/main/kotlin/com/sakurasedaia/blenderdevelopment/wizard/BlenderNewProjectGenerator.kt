@@ -24,13 +24,11 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.openapi.components.service
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
-import com.sakurasedaia.blenderdevelopment.model.BlenderVersions
+import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
 import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
-import com.sakurasedaia.blenderdevelopment.config.ProjectConfig
-import kotlinx.coroutines.launch
+import com.sakurasedaia.blenderdevelopment.lib.ProjectConfig
 import org.jetbrains.jps.model.java.JavaSourceRootType
 import java.util.Properties
 

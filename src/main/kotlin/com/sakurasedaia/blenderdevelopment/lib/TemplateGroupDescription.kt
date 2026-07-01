@@ -15,22 +15,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakurasedaia.blenderdevelopment.project
+package com.sakurasedaia.blenderdevelopment.lib
 
 import com.intellij.ide.fileTemplates.FileTemplateDescriptor
 import com.intellij.ide.fileTemplates.FileTemplateGroupDescriptor
 import com.intellij.ide.fileTemplates.FileTemplateGroupDescriptorFactory
-import com.sakurasedaia.blenderdevelopment.lib.IconBundle
 
-/** Registers the plugin's file templates under the Blender template group. */
-class BlenderTemplateGroupDescription : FileTemplateGroupDescriptorFactory {
-    /**
-     * Builds the template group descriptor shown in the New File dialog.
-     *
-     * @return file template group descriptor with Blender templates.
-     */
-    override fun getFileTemplatesDescriptor(): FileTemplateGroupDescriptor {
-        val group = FileTemplateGroupDescriptor("Blender", IconBundle.BlenderColor)
+/**
+ * Contributes Blender Python templates to IntelliJ's "New File" template groups.
+ */
+class TemplateGroupDescription : FileTemplateGroupDescriptorFactory {
+  /**
+   * Creates the Blender file template group descriptor shown in the "New File" dialog.
+   *
+   * @return descriptor containing the plugin's predefined Blender Python templates.
+   */
+  override fun getFileTemplatesDescriptor(): FileTemplateGroupDescriptor {
+    val group = FileTemplateGroupDescriptor("Blender", IconBundle.BlenderColor)
         group.addTemplate(FileTemplateDescriptor("Main Script.py", IconBundle.PythonIcon))
         group.addTemplate(FileTemplateDescriptor("Component.py", IconBundle.PythonIcon))
         return group

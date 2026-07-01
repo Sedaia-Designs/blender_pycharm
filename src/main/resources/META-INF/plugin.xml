@@ -61,8 +61,6 @@
                 displayName="Blender Development"
                 instance="com.sakurasedaia.blenderdevelopment.ui.settings.BlenderSettingsFactory"
         />
-        <configurationType implementation="com.sakurasedaia.blenderdevelopment.run.BlenderRunConfigurationType" />
-
         <directoryProjectGenerator implementation="com.sakurasedaia.blenderdevelopment.wizard.legacy.BlenderProjectDirectoryGenerator" />
 
         <internalFileTemplate name="Pyproject"/>
@@ -70,7 +68,7 @@
         <internalFileTemplate name="GitIgnore"/>
         <internalFileTemplate name="GplLicenseV3"/>
         <internalFileTemplate name="README"/>
-        <fileTemplateGroup implementation="com.sakurasedaia.blenderdevelopment.project.BlenderTemplateGroupDescription"/>
+        <fileTemplateGroup implementation="com.sakurasedaia.blenderdevelopment.lib.TemplateGroupDescription"/>
     </extensions>
 
     <extensions defaultExtensionNs="Pythonid">

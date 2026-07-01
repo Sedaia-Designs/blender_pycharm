@@ -20,7 +20,7 @@ package com.sakurasedaia.blenderdevelopment.ui.settings
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.options.SearchableConfigurable
 import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
-import com.sakurasedaia.blenderdevelopment.config.PluginConfig
+import com.sakurasedaia.blenderdevelopment.lib.PluginConfig
 import javax.swing.JComponent
 
 /** Global plugin settings configurable for Blender plugin state. */

@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakurasedaia.blenderdevelopment.logging
+package com.sakurasedaia.blenderdevelopment.lib
 
 /**
  * Canonical plugin error codes used by logging and diagnostics.
