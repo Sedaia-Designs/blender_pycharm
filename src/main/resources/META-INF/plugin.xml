@@ -62,6 +62,7 @@
                 key="ui.settings.title"
                 instance="com.sakurasedaia.blenderdevelopment.ui.settings.BlenderSettingsFactory"
         />
+        <postStartupActivity implementation="com.sakurasedaia.blenderdevelopment.lib.services.ProjectConfigStartupLoader"/>
         <directoryProjectGenerator implementation="com.sakurasedaia.blenderdevelopment.wizard.legacy.BlenderProjectDirectoryGenerator" />
 
         <internalFileTemplate name="Pyproject"/>

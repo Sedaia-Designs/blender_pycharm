@@ -124,6 +124,16 @@ class PluginConfig : PersistentStateComponent<PluginConfig.PluginState> {
 	}
 	/** Returns the cached list of discovered Blender installations. */
 	fun getDetectedBlenderInstalls(): List<BlendInstallInfo> = state.detectedBlender
+
+	/**
+	 * Forces initialization of persisted plugin settings.
+	 *
+	 * This is used at startup so application-level state is loaded before
+	 * project UI and workflows read plugin configuration.
+	 *
+	 * @return currently loaded plugin state.
+	 */
+	fun loadPluginState(): PluginState = state
 	
 	/** Returns the current persisted state payload. */
 	override fun getState(): PluginState = state

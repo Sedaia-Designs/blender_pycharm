@@ -20,11 +20,17 @@ package com.sakurasedaia.blenderdevelopment.lib
 import com.intellij.openapi.components.*
 import com.intellij.openapi.project.Project
 
-/** Workspace-level persisted configuration for Blender project settings. */
+/** Project-level persisted configuration for Blender project settings. */
 @Service(Service.Level.PROJECT)
-@State(name = "BlenderExtensionManifest", storages = [Storage(StoragePathMacros.WORKSPACE_FILE)])
+@State(
+	name = "BlenderExtensionManifest",
+	storages = [
+		Storage("\$PROJECT_CONFIG_DIR\$/blender-workspace.xml"),
+		Storage(value = StoragePathMacros.WORKSPACE_FILE, deprecated = true),
+	]
+)
 internal class ProjectConfig(private val project: Project): PersistentStateComponent<ProjectConfig.ProjectState> {
-	/** Persisted project-scoped settings stored in the workspace file. */
+	/** Persisted project-scoped settings stored in project-level configuration. */
 	data class ProjectState(
 		var blenderPath: String = "",
 		var addonSymlinkName: String = "",
@@ -79,6 +85,16 @@ internal class ProjectConfig(private val project: Project): PersistentStateCompo
 	}
 	/** Returns the stored Blender run arguments string. */
 	fun getRunArguments(): String = state.runArguments
+
+	/**
+	 * Forces initialization of persisted workspace settings for this project.
+	 *
+	 * This should be called during project startup to ensure state from
+	 * the project-level workspace file is loaded before UI and run flows use it.
+	 *
+	 * @return currently loaded project state.
+	 */
+	fun loadWorkspaceState(): ProjectState = state
 	
 	
 	/**
