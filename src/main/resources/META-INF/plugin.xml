@@ -25,7 +25,7 @@
         <ul>
         </ul>
 
-        <p>Inspired by and uses code from the <a href="https://github.com/JacquesLucke/blender_vscode">Blender Development extension</a> for VS Code by <b>Jacques Lucke</b> and optimized for the PyCharm ecosystem.</p>
+        <p>Inspired by the <a href="https://github.com/JacquesLucke/blender_vscode">Blender Development extension</a> for VS Code by <b>Jacques Lucke</b> and optimized for the PyCharm ecosystem.</p>
 
         <p><small><i>Licensed under GPL-3.0. This project is not affiliated with or endorsed by the Blender Foundation.</i></small></p>
     ]]></description>
@@ -58,7 +58,8 @@
         <applicationConfigurable
                 id="com.sakurasedaia.blenderdevelopment.settings.plugin"
                 groupId="tools"
-                displayName="Blender Development"
+                bundle="messages.MessageBundle"
+                key="ui.settings.title"
                 instance="com.sakurasedaia.blenderdevelopment.ui.settings.BlenderSettingsFactory"
         />
         <directoryProjectGenerator implementation="com.sakurasedaia.blenderdevelopment.wizard.legacy.BlenderProjectDirectoryGenerator" />
