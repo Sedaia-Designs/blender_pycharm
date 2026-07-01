@@ -9,7 +9,7 @@ import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
 
 /** Project service wrapper around IntelliJ notifications for plugin UI feedback. */
 @Service(Service.Level.PROJECT)
-internal class NotificationModal(private val project: Project) {
+class NotificationModal(private val project: Project) {
     private val logger by lazy { PluginLogger.getInstance(project) }
 
     companion object {

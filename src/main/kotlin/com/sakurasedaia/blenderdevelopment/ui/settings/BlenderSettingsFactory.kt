@@ -32,7 +32,9 @@ class BlenderSettingsFactory : SearchableConfigurable, Configurable.NoScroll {
     override fun getDisplayName(): String = MessageBundle.message("ui.settings.title")
 
     override fun createComponent(): JComponent {
-        val ui = content ?: BlenderSettingsContent().also { content = it }
+        val ui = content ?: BlenderSettingsContent(
+            onScanInstallations = { SettingsInstallationScanService.getInstance().scanInstallations() },
+        ).also { content = it }
         ui.reset(PluginConfig.getInstance())
         return ui.component()
     }

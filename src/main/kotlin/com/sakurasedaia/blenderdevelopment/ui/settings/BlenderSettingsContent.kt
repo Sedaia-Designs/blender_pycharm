@@ -28,7 +28,9 @@ import com.sakurasedaia.blenderdevelopment.lib.PluginConfig
 import javax.swing.JComponent
 
 /** Settings panel content for global Blender plugin configuration. */
-internal class BlenderSettingsContent {
+internal class BlenderSettingsContent(
+    private val onScanInstallations: () -> Unit,
+) {
     private data class SettingBinding(
       val getFromConfig: (PluginConfig) -> String,
       val getFromField: () -> String,
@@ -83,6 +85,13 @@ internal class BlenderSettingsContent {
                     .applyToComponent { clearDownloadAfterInstall = this }
                     .align(AlignX.FILL)
             }
+        }
+        group(MessageBundle.message("ui.settings.group.discovery.title")) {
+            row {
+                button(MessageBundle.message("ui.settings.group.discovery.scan.button")) {
+                    onScanInstallations()
+                }
+            }.comment(MessageBundle.message("ui.settings.group.discovery.scan.comment"))
         }
     }
 
