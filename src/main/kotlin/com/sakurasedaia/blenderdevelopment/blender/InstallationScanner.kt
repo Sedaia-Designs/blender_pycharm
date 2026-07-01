@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakurasedaia.blenderdevelopment.blender
+package com.sakurasedaia.blenderdevelopment.blender.utils
 
 import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
@@ -25,6 +25,7 @@ import com.sakurasedaia.blenderdevelopment.lib.SystemHelper
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.sakurasedaia.blenderdevelopment.lib.PluginConfig
+import com.sakurasedaia.blenderdevelopment.lib.PluginConfig.BlendInstallInfo
 import com.sakurasedaia.blenderdevelopment.process.ExternalProcessBuilder
 import java.io.File
 import java.io.IOException
@@ -37,7 +38,7 @@ import kotlin.io.path.listDirectoryEntries
 @Service(Service.Level.PROJECT)
 class InstallationScanner(val project: Project) {
   val logger = PluginLogger.Companion.getInstance(project)
-  private val notification = NotificationModal.Companion.getInstance(project)
+  private val notification = NotificationModal.getInstance(project)
 
   private data class ScanDiagnostics(
     var inaccessibleRoots: Int = 0,
@@ -48,7 +49,7 @@ class InstallationScanner(val project: Project) {
   fun refreshInstalledVersionsCache() {
     val systemInfo: SysInfo = SystemHelper.getSysInfo
     val diagnostics = ScanDiagnostics()
-    val installedVersions = mutableListOf<PluginConfig.BlendInstallInfo>()
+    val installedVersions = mutableListOf<BlendInstallInfo>()
     
     when (systemInfo.osName) {
       "windows" -> installedVersions.addAll(getWindowsBlenderInstalls(diagnostics))
@@ -57,7 +58,7 @@ class InstallationScanner(val project: Project) {
       else -> notification.sendError(MessageBundle.message("notification.settings.scan.unsupported.os", systemInfo.osName))
     }
     
-    PluginConfig.Companion.getInstance().setDetectedBlenderInstalls(installedVersions)
+    PluginConfig.getInstance().setDetectedBlenderInstalls(installedVersions)
     notifyCriticalScanFeedback(installedVersions.size, diagnostics)
   }
   
@@ -89,9 +90,9 @@ class InstallationScanner(val project: Project) {
     return firstLine
   }
 
-  private fun buildInstallInfo(binary: File, installPath: String, diagnostics: ScanDiagnostics, internalBinary: String? = null): PluginConfig.BlendInstallInfo? {
+  private fun buildInstallInfo(binary: File, installPath: String, diagnostics: ScanDiagnostics, internalBinary: String? = null): BlendInstallInfo? {
     val detectedVersion = getBlenderVersion(binary, diagnostics, internalBinary) ?: return null
-    return PluginConfig.BlendInstallInfo(
+    return BlendInstallInfo(
       name = detectedVersion,
       version = formSemanticVersion(detectedVersion),
       path = installPath,
@@ -123,8 +124,8 @@ class InstallationScanner(val project: Project) {
    * Simple discovery logic for Blender Installs on Windows, does not attempt to locate
    * Portable Installs due to increased complexity, and user can set their own paths
    */
-  private fun getWindowsBlenderInstalls(diagnostics: ScanDiagnostics): List<PluginConfig.BlendInstallInfo> {
-    val blenderInstalls = mutableListOf<PluginConfig.BlendInstallInfo>()
+  private fun getWindowsBlenderInstalls(diagnostics: ScanDiagnostics): List<BlendInstallInfo> {
+    val blenderInstalls = mutableListOf<BlendInstallInfo>()
     val blenderProgramFiles: Path = Path.of("Blender Foundation", "Blender")
     // Default Install location of all Blender Apps
     val programFiles: List<Path> = listOf(
@@ -156,8 +157,8 @@ class InstallationScanner(val project: Project) {
    * Simple discovery logic for Blender Installs on MacOS, does not attempt to locate
    * portable installations due to increased complexity, and user can set their own paths.
    */
-  private fun getMacBlenderInstalls(diagnostics: ScanDiagnostics): List<PluginConfig.BlendInstallInfo> {
-    val blenderInstalls = mutableListOf<PluginConfig.BlendInstallInfo>()
+  private fun getMacBlenderInstalls(diagnostics: ScanDiagnostics): List<BlendInstallInfo> {
+    val blenderInstalls = mutableListOf<BlendInstallInfo>()
     
     val blenderBinaryRelative = "Contents/MacOS/Blender"
     
@@ -194,8 +195,8 @@ class InstallationScanner(val project: Project) {
    *
    * Scans common Linux package managers and Linux Homebrew installations.
    */
-  private fun getLinuxBlenderInstalls(diagnostics: ScanDiagnostics): List<PluginConfig.BlendInstallInfo> {
-    val blenderInstalls = linkedSetOf<PluginConfig.BlendInstallInfo>()
+  private fun getLinuxBlenderInstalls(diagnostics: ScanDiagnostics): List<BlendInstallInfo> {
+    val blenderInstalls = linkedSetOf<BlendInstallInfo>()
 
     // Fast path: prefer shell discovery first to respect current PATH precedence.
     resolveBinaryPathWithWhich()?.let {
@@ -287,11 +288,11 @@ class InstallationScanner(val project: Project) {
   private fun isExecutableFile(file: File): Boolean = file.exists() && file.isFile && file.canExecute()
   
   /**
-   * Extracts the semantic version from the Blender version string, returned
+   * Extracts the semantic version from the Blender version string, returned 
    * from `blender --version`, which usually is formatted "Blender X.X.X"
-   * Function attempts a simple extraction of the semantic version from the
+   * Function attempts a simple extraction of the semantic version from the 
    * Blender version string, before falling back to more complex extraction methods.
-   *
+   * 
    * @param commandOutput Blender version string from `blender --version`
    */
   private fun formSemanticVersion(commandOutput: String): String {
