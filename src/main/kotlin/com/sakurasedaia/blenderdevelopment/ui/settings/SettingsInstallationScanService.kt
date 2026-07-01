@@ -3,7 +3,7 @@ package com.sakurasedaia.blenderdevelopment.ui.settings
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.ProjectManager
-import com.sakurasedaia.blenderdevelopment.blender.utils.InstallationScanner
+import com.sakurasedaia.blenderdevelopment.blender.InstallationScanner
 import com.sakurasedaia.blenderdevelopment.lib.PluginConfig
 import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
