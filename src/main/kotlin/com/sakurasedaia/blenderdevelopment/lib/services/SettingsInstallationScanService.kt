@@ -4,7 +4,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
-import com.sakurasedaia.blenderdevelopment.blender.InstallationScanner
+import com.sakurasedaia.blenderdevelopment.core.BlenderInstallationScanner
 import com.sakurasedaia.blenderdevelopment.lib.PluginConfig
 import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
@@ -34,7 +34,7 @@ class SettingsInstallationScanService {
             try {
                 logger.log("Starting user-initiated Blender installation scan from settings.")
                 val pluginConfig = PluginConfig.Companion.getInstance()
-                project.getService(InstallationScanner::class.java).refreshInstalledVersionsCache()
+                project.getService(BlenderInstallationScanner::class.java).refreshInstalledVersionsCache()
                 val installs = pluginConfig.getDetectedBlenderInstalls()
                 logger.log("Blender installation scan completed with ${installs.size} result(s).")
 

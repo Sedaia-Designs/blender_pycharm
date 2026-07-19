@@ -15,8 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakurasedaia.blenderdevelopment.lib
+package com.sakurasedaia.blenderdevelopment.util
 
+import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
 import com.intellij.openapi.application.PathManager
 import java.nio.file.Path
 
@@ -53,7 +54,7 @@ object SystemHelper {
     /**
      * Checks whether the current host platform is supported for the provided Blender major/minor version.
      *
-     * Compatibility is evaluated using [BlenderVersions.getCompatibleArch], matching the normalized
+     * Compatibility is evaluated using [com.sakurasedaia.blenderdevelopment.lib.BlenderVersions.getCompatibleArch], matching the normalized
      * [getSysInfo.osName] and [getSysInfo.osArch] values.
      *
      * @param blMajorMinor Blender version key in `major.minor` form (for example, `4.5`).

@@ -22,7 +22,7 @@ import com.intellij.execution.process.OSProcessHandler
 import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.openapi.project.Project
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
-import com.sakurasedaia.blenderdevelopment.lib.SystemHelper
+import com.sakurasedaia.blenderdevelopment.util.SystemHelper
 import java.io.IOException
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit

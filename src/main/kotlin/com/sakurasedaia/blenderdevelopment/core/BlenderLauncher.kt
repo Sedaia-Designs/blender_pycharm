@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakurasedaia.blenderdevelopment.blender
+package com.sakurasedaia.blenderdevelopment.core
 
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project

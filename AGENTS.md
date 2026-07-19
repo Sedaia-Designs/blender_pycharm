@@ -2,6 +2,11 @@
 
 This document defines practical coding guidance for AI/code agents working in this repository.
 
+## Local IntelliJ Community Reference
+
+- Local clone path: `/Users/Sakura/Documents/IdeaProjects/intellij-community`
+- Prefer referencing this local repository over the online `intellij-community` repository whenever possible.
+
 ## Source References Reviewed
 
 - `intellij-community/AGENTS.md`
@@ -57,4 +62,3 @@ This document defines practical coding guidance for AI/code agents working in th
 - Do not edit generated artifacts unnecessarily.
 - Keep Gradle and plugin metadata changes minimal and intentional.
 - If module/build metadata is changed, verify the project still compiles cleanly.
-

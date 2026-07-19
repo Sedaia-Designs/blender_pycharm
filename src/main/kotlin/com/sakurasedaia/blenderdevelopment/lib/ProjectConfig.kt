@@ -29,7 +29,7 @@ import com.intellij.openapi.project.Project
 		Storage(value = StoragePathMacros.WORKSPACE_FILE, deprecated = true),
 	]
 )
-internal class ProjectConfig(private val project: Project): PersistentStateComponent<ProjectConfig.ProjectState> {
+class ProjectConfig(private val project: Project): PersistentStateComponent<ProjectConfig.ProjectState> {
 	enum class BlenderLogLevel {
 		DEBUG,
 		INFO,
@@ -40,6 +40,7 @@ internal class ProjectConfig(private val project: Project): PersistentStateCompo
 	/** Persisted project-scoped settings stored in project-level configuration. */
 	data class ProjectState(
 		var blenderPath: String = "",
+		var blenderVersion: List<Int> = listOf(5, 1),
 		var addonSymlinkName: String = "",
 		var sourceFolder: String = "src/",
 		var runArguments: String = "",
@@ -61,6 +62,17 @@ internal class ProjectConfig(private val project: Project): PersistentStateCompo
 	fun getBlenderPath(): String = state.blenderPath
 	
 	
+	/**
+	 * Stores the Blender Version desired
+	 *
+	 * @param majorMinor Blender Major Minor version desired.
+	 */
+	fun setBlenderVersion(majorMinor: String) {
+		val input = majorMinor.split(".")
+		state.blenderVersion = listOf(input[0].toInt(), input[1].toInt())
+	}
+	
+	fun getBlenderVersion(): List<Int> = state.blenderVersion
 	/**
 	 * Stores the add-on symlink name.
 	 *

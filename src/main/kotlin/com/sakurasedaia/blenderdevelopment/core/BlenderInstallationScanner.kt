@@ -15,13 +15,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakurasedaia.blenderdevelopment.blender
+package com.sakurasedaia.blenderdevelopment.core
 
 import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
-import com.sakurasedaia.blenderdevelopment.lib.SysInfo
-import com.sakurasedaia.blenderdevelopment.lib.SystemHelper
+import com.sakurasedaia.blenderdevelopment.util.SysInfo
+import com.sakurasedaia.blenderdevelopment.util.SystemHelper
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.sakurasedaia.blenderdevelopment.lib.PluginConfig
@@ -36,7 +36,7 @@ import kotlin.io.path.listDirectoryEntries
 
 /** Project service that discovers Blender installations and updates plugin cache state. */
 @Service(Service.Level.PROJECT)
-class InstallationScanner(val project: Project) {
+class BlenderInstallationScanner(val project: Project) {
   val logger = PluginLogger.Companion.getInstance(project)
   private val notification = NotificationModal.getInstance(project)
 
@@ -90,10 +90,10 @@ class InstallationScanner(val project: Project) {
     return firstLine
   }
 
-  private fun buildInstallInfo(binary: File, installPath: String, diagnostics: ScanDiagnostics, internalBinary: String? = null): BlendInstallInfo? {
+  private fun buildInstallInfo(binary: File, installPath: String, diagnostics: ScanDiagnostics, internalBinary: String? = null, whereIsInstall: String = "User"): BlendInstallInfo? {
     val detectedVersion = getBlenderVersion(binary, diagnostics, internalBinary) ?: return null
     return BlendInstallInfo(
-      name = detectedVersion,
+      name = "$detectedVersion ($whereIsInstall)",
       version = formSemanticVersion(detectedVersion),
       path = installPath,
     )

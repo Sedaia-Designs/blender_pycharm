@@ -27,8 +27,8 @@ import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
-import com.sakurasedaia.blenderdevelopment.blender.BlenderArguments
-import com.sakurasedaia.blenderdevelopment.blender.Launcher
+import com.sakurasedaia.blenderdevelopment.core.BlenderArguments
+import com.sakurasedaia.blenderdevelopment.core.Launcher
 import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
 import com.sakurasedaia.blenderdevelopment.lib.ProjectConfig
 import javax.swing.JComponent
