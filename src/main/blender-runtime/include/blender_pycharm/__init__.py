@@ -17,11 +17,18 @@ class AddonInfo:
     module_name: str
 
 
-def startup(editor_address=None, addons_to_load: List[AddonInfo] = None, project_root="", source_folder="", addon_symlink_name=""):
+def startup(
+    editor_address=None,
+    addons_to_load: List[AddonInfo] = None,
+    wait_for_debugger: bool = True,
+    project_root="",
+    source_folder="",
+    addon_symlink_name="",
+):
     if bpy.app.version < (2, 80, 34):
         handle_fatal_error("Please use a newer version of Blender")
 
-    if editor_address is None or addons_to_load is None:
+    if editor_address is None:
         LOG.info(
             "Phase 1 runtime bootstrap loaded (project_root=%s, source_folder=%s, addon_symlink_name=%s).",
             project_root,
@@ -37,11 +44,14 @@ def startup(editor_address=None, addons_to_load: List[AddonInfo] = None, project
 
     from . import load_addons
 
+    if addons_to_load is None:
+        addons_to_load = []
+
     path_mappings = load_addons.setup_addon_links(addons_to_load)
 
     from . import communication
 
-    communication.setup(editor_address, path_mappings)
+    communication.setup(editor_address, path_mappings, wait_for_debugger=wait_for_debugger)
 
     from . import operators, ui
 

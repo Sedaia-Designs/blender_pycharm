@@ -76,9 +76,9 @@
         <internalFileTemplate name="GitIgnore"/>
         <internalFileTemplate name="GplLicenseV3"/>
         <internalFileTemplate name="README"/>
-        <internalFileTemplate name="BlenderBaseLaunchScript"/>
         <internalFileTemplate name="BlenderDebugLaunchScript"/>
         <internalFileTemplate name="BlenderRuntimeLaunch"/>
+        <internalFileTemplate name="BlenderRuntimeRepoSyncLaunch"/>
 
         <fileTemplateGroup implementation="com.sakurasedaia.blenderdevelopment.lib.TemplateGroupDescription"/>
 
@@ -87,4 +87,23 @@
     <extensions defaultExtensionNs="Pythonid">
         <pythonFlavorProvider implementation="com.jetbrains.python.sdk.uv.UvSdkFlavorProvider"/>
     </extensions>
+
+    <actions>
+        <group id="Blender.RuntimeCommandsGroup" popup="true"
+               class="com.sakurasedaia.blenderdevelopment.ui.actions.BlenderRuntimeCommandGroup">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+
+            <action id="Blender.Runtime.RunScript"
+                    class="com.sakurasedaia.blenderdevelopment.ui.actions.BlenderRuntimeRunScriptAction"/>
+            <action id="Blender.Runtime.ReloadAddon"
+                    class="com.sakurasedaia.blenderdevelopment.ui.actions.BlenderRuntimeReloadAction"/>
+            <action id="Blender.Runtime.Stop"
+                    class="com.sakurasedaia.blenderdevelopment.ui.actions.BlenderRuntimeStopAction"/>
+        </group>
+
+        <action id="Blender.Runtime.RunScriptFromEditor"
+                class="com.sakurasedaia.blenderdevelopment.ui.actions.BlenderRuntimeRunScriptAction">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </action>
+    </actions>
 </idea-plugin>

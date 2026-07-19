@@ -3,6 +3,7 @@ from pathlib import Path
 import bpy
 import queue
 import traceback
+import tomllib
 
 
 def is_addon_legacy(addon_dir: Path) -> bool:
@@ -16,17 +17,38 @@ def is_addon_legacy(addon_dir: Path) -> bool:
 
 def addon_has_bl_info(addon_dir: Path) -> bool:
     """Perform best effort check to find bl_info. Does not perform an import on file to avoid code execution."""
-    with open(addon_dir / "__init__.py") as init_addon_file:
-        node = ast.parse(init_addon_file.read())
-        for element in node.body:
-            if not isinstance(element, ast.Assign):
+    init_file = addon_dir / "__init__.py"
+    if not init_file.exists():
+        return False
+    try:
+        with open(init_file) as init_addon_file:
+            node = ast.parse(init_addon_file.read())
+    except (OSError, SyntaxError):
+        return False
+    for element in node.body:
+        if not isinstance(element, ast.Assign):
+            continue
+        for target in element.targets:
+            if not isinstance(target, ast.Name):
                 continue
-            for target in element.targets:
-                if not isinstance(target, ast.Name):
-                    continue
-                if target.id == "bl_info":
-                    return True
+            if target.id == "bl_info":
+                return True
     return False
+
+
+def extension_manifest_id(addon_dir: Path) -> str:
+    manifest_path = addon_dir / "blender_manifest.toml"
+    if not manifest_path.exists():
+        return ""
+    try:
+        with open(manifest_path, "rb") as manifest_file:
+            manifest_data = tomllib.load(manifest_file)
+    except (OSError, tomllib.TOMLDecodeError):
+        return ""
+    extension_id = manifest_data.get("id", "")
+    if isinstance(extension_id, str):
+        return extension_id.strip()
+    return ""
 
 
 def redraw_all():

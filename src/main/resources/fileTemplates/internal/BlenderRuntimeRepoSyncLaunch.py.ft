@@ -1,0 +1,107 @@
+import re
+import traceback
+from pathlib import Path
+from typing import List, Optional
+
+import bpy
+
+project_root = Path('${projectPathLiteral}')
+source_folder = '${sourceFolderLiteral}'.strip()
+addon_symlink_name = '${addonSymlinkNameLiteral}'.strip()
+extensions_repository = '${extensionsRepositoryLiteral}'.strip() or "user_default"
+
+
+def is_addon_root(directory: Path) -> bool:
+    return (directory / "__init__.py").is_file() or (directory / "blender_manifest.toml").is_file()
+
+
+def extension_manifest_id(directory: Path) -> str:
+    manifest_path = directory / "blender_manifest.toml"
+    if not manifest_path.is_file():
+        return ""
+    try:
+        manifest_text = manifest_path.read_text(encoding="utf-8")
+    except Exception:
+        return ""
+
+    id_match = re.search(r'(?m)^\\s*id\\s*=\\s*"([^"]+)"', manifest_text)
+    if not id_match:
+        return ""
+    return id_match.group(1).strip()
+
+
+def resolve_source_path() -> Optional[Path]:
+    if not source_folder:
+        return None
+    source_path = Path(source_folder)
+    if not source_path.is_absolute():
+        source_path = (project_root / source_path).resolve()
+    if not source_path.exists() or not source_path.is_dir():
+        return None
+    if not is_addon_root(source_path):
+        return None
+    return source_path
+
+
+def refresh_addons_and_extensions():
+    try:
+        bpy.ops.preferences.addon_refresh()
+    except Exception:
+        pass
+    try:
+        bpy.ops.extensions.repo_refresh_all()
+    except Exception:
+        pass
+
+
+def try_reload_module(module_name: str) -> bool:
+    if not module_name:
+        return False
+
+    try:
+        bpy.ops.preferences.addon_disable(module=module_name)
+    except Exception:
+        pass
+
+    refresh_addons_and_extensions()
+
+    try:
+        bpy.ops.preferences.addon_enable(module=module_name)
+        return True
+    except Exception:
+        return False
+
+
+def build_module_candidates(source_path: Optional[Path]) -> List[str]:
+    candidates: List[str] = []
+    seen = set()
+
+    def append(name: str):
+        candidate = name.strip()
+        if not candidate or candidate in seen:
+            return
+        seen.add(candidate)
+        candidates.append(candidate)
+
+    append(addon_symlink_name)
+    if addon_symlink_name and not addon_symlink_name.startswith("bl_ext."):
+        append(f"bl_ext.{extensions_repository}.{addon_symlink_name}")
+
+    if source_path:
+        append(source_path.name)
+        manifest_id = extension_manifest_id(source_path)
+        append(manifest_id)
+        if manifest_id:
+            append(f"bl_ext.{extensions_repository}.{manifest_id}")
+
+    return candidates
+
+
+try:
+    source_path = resolve_source_path()
+    refresh_addons_and_extensions()
+    for module_name in build_module_candidates(source_path):
+        if try_reload_module(module_name):
+            break
+except Exception:
+    traceback.print_exc()

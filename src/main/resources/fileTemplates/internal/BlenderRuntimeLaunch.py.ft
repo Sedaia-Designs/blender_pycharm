@@ -1,6 +1,9 @@
+import os
+import inspect
 import sys
 import traceback
 from pathlib import Path
+import tomllib
 
 include_dir = Path('${includeDirLiteral}')
 if include_dir.exists():
@@ -9,11 +12,103 @@ if include_dir.exists():
 try:
     import blender_pycharm
 
-    blender_pycharm.startup(
-        project_root='${projectPathLiteral}',
-        source_folder='${sourceFolderLiteral}',
-        addon_symlink_name='${addonSymlinkNameLiteral}',
+    editor_port = os.environ.get("EDITOR_PORT", "").strip()
+    editor_address = f"http://127.0.0.1:{editor_port}/" if editor_port else None
+    project_root = Path('${projectPathLiteral}')
+    source_folder = '${sourceFolderLiteral}'.strip()
+    addon_symlink_name = '${addonSymlinkNameLiteral}'.strip()
+
+    addons_to_load = []
+    seen_paths = set()
+
+    def is_addon_root(directory: Path) -> bool:
+        return (directory / "__init__.py").is_file() or (directory / "blender_manifest.toml").is_file()
+
+    def append_addon(load_dir: Path, module_name: str):
+        if not module_name:
+            return
+        resolved_dir = load_dir.resolve()
+        if not resolved_dir.exists() or not resolved_dir.is_dir():
+            return
+        if not is_addon_root(resolved_dir):
+            return
+        resolved_key = str(resolved_dir)
+        if resolved_key in seen_paths:
+            return
+        seen_paths.add(resolved_key)
+        addons_to_load.append(
+            blender_pycharm.AddonInfo(load_dir=resolved_dir, module_name=module_name)
+        )
+
+    def extension_manifest_id(directory: Path) -> str:
+        manifest_path = directory / "blender_manifest.toml"
+        if not manifest_path.is_file():
+            return ""
+        try:
+            with open(manifest_path, "rb") as manifest_file:
+                manifest_data = tomllib.load(manifest_file)
+        except Exception:
+            return ""
+        manifest_id = manifest_data.get("id", "")
+        if isinstance(manifest_id, str):
+            return manifest_id.strip()
+        return ""
+
+    def resolve_module_name(directory: Path, preferred_name: str = "") -> str:
+        manifest_id = extension_manifest_id(directory)
+        if manifest_id:
+            return manifest_id
+        if preferred_name:
+            return preferred_name
+        return directory.name
+
+    if source_folder:
+        source_path = Path(source_folder)
+        if not source_path.is_absolute():
+            source_path = (project_root / source_path).resolve()
+        source_module_name = resolve_module_name(source_path, addon_symlink_name)
+        append_addon(source_path, source_module_name)
+
+    configured_script_dirs = os.environ.get("BLENDER_PYCHARM_SCRIPT_DIRECTORIES", "")
+    if configured_script_dirs:
+        for configured_dir in configured_script_dirs.split(os.pathsep):
+            stripped_dir = configured_dir.strip()
+            if not stripped_dir:
+                continue
+            script_path = Path(stripped_dir)
+            resolved_script_path = script_path.resolve()
+            if not resolved_script_path.exists() or not resolved_script_path.is_dir():
+                continue
+            if is_addon_root(resolved_script_path):
+                append_addon(resolved_script_path, resolve_module_name(resolved_script_path))
+                continue
+            for child in resolved_script_path.iterdir():
+                if not child.is_dir():
+                    continue
+                append_addon(child, resolve_module_name(child))
+
+    startup_kwargs = {
+        "editor_address": editor_address,
+        "addons_to_load": addons_to_load,
+        "wait_for_debugger": False,
+        "project_root": str(project_root),
+        "source_folder": source_folder,
+        "addon_symlink_name": addon_symlink_name,
+    }
+    startup_signature = inspect.signature(blender_pycharm.startup)
+    supports_var_kwargs = any(
+        parameter.kind == inspect.Parameter.VAR_KEYWORD
+        for parameter in startup_signature.parameters.values()
     )
+    if supports_var_kwargs:
+        blender_pycharm.startup(**startup_kwargs)
+    else:
+        filtered_kwargs = {
+            key: value
+            for key, value in startup_kwargs.items()
+            if key in startup_signature.parameters
+        }
+        blender_pycharm.startup(**filtered_kwargs)
 except Exception:
     traceback.print_exc()
     raise

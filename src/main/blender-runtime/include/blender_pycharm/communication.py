@@ -26,7 +26,7 @@ SERVER.logger.setLevel(logging.DEBUG if LOG_FLASK else logging.ERROR)
 POST_HANDLERS = {}
 
 
-def setup(address: str, path_mappings):
+def setup(address: str, path_mappings, wait_for_debugger: bool = True):
     global EDITOR_ADDRESS, OWN_SERVER_PORT, DEBUGPY_PORT
     EDITOR_ADDRESS = address
 
@@ -35,9 +35,10 @@ def setup(address: str, path_mappings):
 
     send_connection_information(path_mappings)
 
-    LOG.info("Waiting for debug client.")
-    debugpy.wait_for_client()
-    LOG.info("Debug client attached.")
+    if wait_for_debugger:
+        LOG.info("Waiting for debug client.")
+        debugpy.wait_for_client()
+        LOG.info("Debug client attached.")
 
 
 def start_own_server():
@@ -152,9 +153,12 @@ def send_connection_information(path_mappings: Dict):
             "type": "setup",
             "blenderPort": OWN_SERVER_PORT,
             "debugpyPort": DEBUGPY_PORT,
+            "debugProtocol": "debugpy-dap",
             "blenderPath": str(blender_path),
             "scriptsFolder": str(scripts_folder),
+            "pathMappings": path_mappings,
             "addonPathMappings": path_mappings,
+            "identifier": VSCODE_IDENTIFIER,
             "vscodeIdentifier": VSCODE_IDENTIFIER,
         }
     )

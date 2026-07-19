@@ -18,6 +18,7 @@
 package com.sakurasedaia.blenderdevelopment.run
 
 import com.intellij.execution.Executor
+import com.intellij.execution.ExecutionResult
 import com.intellij.execution.configurations.CommandLineState
 import com.intellij.execution.configurations.ConfigurationFactory
 import com.intellij.execution.configurations.RunConfigurationBase
@@ -25,10 +26,12 @@ import com.intellij.execution.configurations.RunProfileState
 import com.intellij.execution.configurations.RuntimeConfigurationError
 import com.intellij.execution.executors.DefaultDebugExecutor
 import com.intellij.execution.process.OSProcessHandler
+import com.intellij.execution.runners.ProgramRunner
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
 import com.sakurasedaia.blenderdevelopment.core.BlenderArguments
+import com.sakurasedaia.blenderdevelopment.core.BlenderDebugAttachService
 import com.sakurasedaia.blenderdevelopment.core.Launcher
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
@@ -59,16 +62,31 @@ internal class BlenderLaunchRunConfiguration(
     }
 
     override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState {
-        val isDebugMode = executor.id == DefaultDebugExecutor.EXECUTOR_ID
-
+        val shouldAttachDebugger = executor.id == DefaultDebugExecutor.EXECUTOR_ID
         return object : CommandLineState(environment) {
             override fun startProcess(): OSProcessHandler {
                 return Launcher.getInstance(project).startBlender(
                     BlenderArguments(
                         blenderPath = ProjectConfig.getInstance(project).getBlenderPath().trim(),
-                        debugger = isDebugMode,
+                        debugger = shouldAttachDebugger,
                     )
                 )
+            }
+
+            override fun execute(executor: Executor, runner: ProgramRunner<*>): ExecutionResult {
+                val executionResult = super.execute(executor, runner)
+                if (shouldAttachDebugger) {
+                    val sessionIdentifier = executionResult.processHandler
+                        .getUserData(Launcher.LAUNCH_SESSION_IDENTIFIER_KEY)
+                    if (!sessionIdentifier.isNullOrBlank()) {
+                        BlenderDebugAttachService.getInstance(project).scheduleAttach(
+                            environment = environment,
+                            executionResult = executionResult,
+                            sessionIdentifier = sessionIdentifier,
+                        )
+                    }
+                }
+                return executionResult
             }
         }
     }

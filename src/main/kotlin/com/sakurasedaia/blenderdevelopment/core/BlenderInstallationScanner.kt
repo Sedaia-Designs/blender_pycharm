@@ -49,16 +49,18 @@ class BlenderInstallationScanner(val project: Project) {
   fun refreshInstalledVersionsCache() {
     val systemInfo: SysInfo = SystemHelper.getSysInfo
     val diagnostics = ScanDiagnostics()
-    val installedVersions = mutableListOf<BlendInstallInfo>()
+    val installedVersions = linkedMapOf<String, BlendInstallInfo>()
     
     when (systemInfo.osName) {
-      "windows" -> installedVersions.addAll(getWindowsBlenderInstalls(diagnostics))
-      "macos" -> installedVersions.addAll(getMacBlenderInstalls(diagnostics))
-      "linux" -> installedVersions.addAll(getLinuxBlenderInstalls(diagnostics))
+      "windows" -> getWindowsBlenderInstalls(diagnostics).forEach { installedVersions.putIfAbsent(it.path, it) }
+      "macos" -> getMacBlenderInstalls(diagnostics).forEach { installedVersions.putIfAbsent(it.path, it) }
+      "linux" -> getLinuxBlenderInstalls(diagnostics).forEach { installedVersions.putIfAbsent(it.path, it) }
       else -> notification.sendError(MessageBundle.message("notification.settings.scan.unsupported.os", systemInfo.osName))
     }
+
+    getConfiguredRootBlenderInstalls(diagnostics).forEach { installedVersions.putIfAbsent(it.path, it) }
     
-    PluginConfig.getInstance().setDetectedBlenderInstalls(installedVersions)
+    PluginConfig.getInstance().setDetectedBlenderInstalls(installedVersions.values.toList())
     notifyCriticalScanFeedback(installedVersions.size, diagnostics)
   }
   
@@ -272,6 +274,67 @@ class BlenderInstallationScanner(val project: Project) {
         )
       )
     }
+  }
+
+  private fun getConfiguredRootBlenderInstalls(diagnostics: ScanDiagnostics): List<BlendInstallInfo> {
+    val rawConfiguredRoot = PluginConfig.getInstance().getBlenderInstallPath().trim()
+    if (rawConfiguredRoot.isBlank()) {
+      return emptyList()
+    }
+
+    val configuredRoot = resolveUserPath(rawConfiguredRoot)
+    if (!configuredRoot.toFile().isDirectory) {
+      return emptyList()
+    }
+
+    val discovered = linkedMapOf<String, BlendInstallInfo>()
+    scanInstallCandidate(configuredRoot, diagnostics)?.let { install ->
+      discovered[install.path] = install
+    }
+
+    listDirectoryEntriesSafely(configuredRoot, onFailure = { diagnostics.inaccessibleRoots += 1 }) { entry ->
+      if (!entry.toFile().isDirectory) return@listDirectoryEntriesSafely
+      scanInstallCandidate(entry, diagnostics)?.let { install ->
+        discovered[install.path] = install
+      }
+    }
+
+    return discovered.values.toList()
+  }
+
+  private fun scanInstallCandidate(candidatePath: Path, diagnostics: ScanDiagnostics): BlendInstallInfo? {
+    val candidateDir = candidatePath.toFile()
+
+    if (candidateDir.name.endsWith(".app", ignoreCase = true)) {
+      val appBinary = candidatePath.resolve("Contents").resolve("MacOS").resolve("Blender").toFile()
+      if (isExecutableFile(appBinary)) {
+        return buildInstallInfo(candidateDir, candidateDir.absolutePath, diagnostics, internalBinary = "Blender", whereIsInstall = "Custom")
+      }
+    }
+
+    val directBinaries = listOf(
+      candidatePath.resolve("blender").toFile(),
+      candidatePath.resolve("blender.exe").toFile(),
+      candidatePath.resolve("blender-runtime").toFile(),
+      candidatePath.resolve("bin").resolve("blender").toFile(),
+      candidatePath.resolve("bin").resolve("blender.exe").toFile(),
+      candidatePath.resolve("bin").resolve("blender-runtime").toFile(),
+    )
+
+    directBinaries.firstOrNull { isExecutableFile(it) }?.let { binary ->
+      return buildInstallInfo(binary, candidateDir.absolutePath, diagnostics, whereIsInstall = "Custom")
+    }
+
+    return null
+  }
+
+  private fun resolveUserPath(value: String): Path {
+    if (!value.startsWith("~")) {
+      return Path.of(value).normalize()
+    }
+    val home = System.getProperty("user.home")
+    val withoutTilde = value.removePrefix("~").removePrefix("/")
+    return Path.of(home).resolve(withoutTilde).normalize()
   }
   
   private fun resolveBinaryPathWithWhich(): String? {

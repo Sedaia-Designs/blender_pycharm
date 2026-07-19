@@ -70,11 +70,11 @@ internal class EnvironmentVariablesTable {
         .setPreferredSize(Dimension(-1, 160))
         .createPanel()
         .also {
-            model.addTableModelListener(TableModelListener {
-                if (!isApplyingState) {
-                    onChange?.invoke()
-                }
-            })
+            model.addTableModelListener {
+              if (! isApplyingState) {
+                onChange?.invoke()
+              }
+            }
         }
 
     fun component(): JComponent = root

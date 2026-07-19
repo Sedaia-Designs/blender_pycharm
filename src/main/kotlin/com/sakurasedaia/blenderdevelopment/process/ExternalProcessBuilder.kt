@@ -179,11 +179,13 @@ class ExternalProcessBuilder(val project: Project) {
     command: String,
     args: List<String> = emptyList(),
     workDirectory: String? = null,
+    environment: Map<String, String> = emptyMap(),
     internalBinary: String? = null,
   ): OSProcessHandler {
     val argumentList = args.toMutableList()
     val processedCommand = prepareCommandForLaunch(command, argumentList, internalBinary)
     val commandLine = GeneralCommandLine(processedCommand).withWorkDirectory(workDirectory)
+    commandLine.environment.putAll(environment)
     if (argumentList.isNotEmpty()) {
       commandLine.addParameters(argumentList)
     }

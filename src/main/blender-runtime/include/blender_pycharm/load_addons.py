@@ -10,7 +10,7 @@ import bpy
 from . import AddonInfo, log
 from .communication import send_dict_as_json
 from .environment import addon_directories, EXTENSIONS_REPOSITORY
-from .utils import is_addon_legacy, addon_has_bl_info
+from .utils import is_addon_legacy, addon_has_bl_info, extension_manifest_id
 
 LOG = log.getLogger()
 
@@ -218,7 +218,8 @@ def load(addons_to_load: List[AddonInfo]):
             addon_name = addon_info.module_name
         else:
             bpy.ops.extensions.repo_refresh_all()
-            addon_name = "bl_ext." + EXTENSIONS_REPOSITORY + "." + addon_info.module_name
+            extension_id = extension_manifest_id(Path(addon_info.load_dir)) or addon_info.module_name
+            addon_name = "bl_ext." + EXTENSIONS_REPOSITORY + "." + extension_id
 
         try:
             bpy.ops.preferences.addon_enable(module=addon_name)

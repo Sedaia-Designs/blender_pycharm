@@ -16,7 +16,7 @@ dependencies {
     
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
-        pycharm("2025.3")
+        pycharm("2026.1")
         testFramework(TestFrameworkType.Platform)
         
         // Add plugin dependencies for compilation here:
@@ -32,7 +32,7 @@ intellijPlatform {
         }
         
         ideaVersion {
-            sinceBuild = "253.28294"
+            sinceBuild = "261"
         }
         
         changeNotes = """

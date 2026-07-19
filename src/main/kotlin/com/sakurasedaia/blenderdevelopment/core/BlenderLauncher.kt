@@ -26,6 +26,7 @@ import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessListener
 import com.intellij.execution.process.ProcessTerminatedListener
+import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.util.execution.ParametersListUtil
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
@@ -37,6 +38,7 @@ import com.sakurasedaia.blenderdevelopment.util.BlenderRuntimeResources
 import com.sakurasedaia.blenderdevelopment.util.PluginResources
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig.BlenderLogLevel
+import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import com.sakurasedaia.blenderdevelopment.process.ExternalProcessBuilder
 
 import java.nio.file.Files
@@ -54,9 +56,13 @@ internal class Launcher(private val project: Project) {
   val logger = PluginLogger.getInstance(project)
   val notifModal = NotificationModal.getInstance(project)
   val projectConfig = ProjectConfig.getInstance(project)
+  val pluginConfig = PluginConfig.getInstance()
   
   
   companion object {
+    val LAUNCH_SESSION_IDENTIFIER_KEY: Key<String> =
+      Key.create("com.sakurasedaia.blenderdevelopment.runtime.launchSessionIdentifier")
+
     fun getInstance(project: Project): Launcher = project.service()
   }
 
@@ -68,23 +74,35 @@ internal class Launcher(private val project: Project) {
       command = blenderPath,
       args = launchCommand.arguments,
       workDirectory = project.basePath,
+      environment = launchCommand.environmentVariables,
       internalBinary = resolveMacInternalBinary(blenderPath),
     )
-    if (launchCommand.generatedBootstrapScript != null) {
+    if (launchCommand.generatedBootstrapScript != null || launchCommand.sessionIdentifier != null) {
+      processHandler.putUserData(LAUNCH_SESSION_IDENTIFIER_KEY, launchCommand.sessionIdentifier)
       processHandler.addProcessListener(object : ProcessListener {
         override fun processTerminated(event: ProcessEvent) {
-          BlenderBootstrapScriptCleanup.cleanupScript(
-            path = launchCommand.generatedBootstrapScript,
-            debugLog = logger::debug,
-            warnLog = logger::warn,
-          )
+          if (launchCommand.generatedBootstrapScript != null) {
+            BlenderBootstrapScriptCleanup.cleanupScript(
+              path = launchCommand.generatedBootstrapScript,
+              debugLog = logger::debug,
+              warnLog = logger::warn,
+            )
+          }
+          if (launchCommand.sessionIdentifier != null) {
+            BlenderEditorServerService.getInstance(project).unregisterSession(launchCommand.sessionIdentifier)
+          }
         }
       })
     }
     ProcessTerminatedListener.attach(processHandler)
     return processHandler
   }
-
+  
+  /**
+   * Start Process, typically needing to be overridden
+   *
+   * @param args Arguments to launch Blender from
+   */
   fun startProcess(args: BlenderArguments) {
     logger.log(MessageBundle.message("notification.blender.launching"))
     try {
@@ -110,14 +128,23 @@ internal class Launcher(private val project: Project) {
   private fun buildLaunchCommand(args: BlenderArguments): LaunchCommand {
     val argList: MutableList<String> = mutableListOf()
     argList.addAll(buildDebugArguments(projectConfig.getBlenderLogLevel()))
+    val launchSession = if (args.debugger) {
+      BlenderEditorServerService.getInstance(project).prepareLaunchSession()
+    } else {
+      null
+    }
 
     val workspaceRunArguments = projectConfig.getRunArguments().trim()
     if (workspaceRunArguments.isNotEmpty()) {
       argList.addAll(ParametersListUtil.parse(workspaceRunArguments))
     }
 
-    val debugScriptPath = if (args.debugger) createScratchDebugLaunchScript() else null
-    val scriptPath = args.scriptPath ?: debugScriptPath
+    val generatedScriptPath = when {
+      args.scriptPath != null -> null
+      args.debugger -> createScratchDebugLaunchScript()
+      else -> createScratchRuntimeSyncLaunchScript()
+    }
+    val scriptPath = args.scriptPath ?: generatedScriptPath
     if (scriptPath != null) {
       argList.add("--python")
       argList.add(scriptPath.toString())
@@ -126,8 +153,41 @@ internal class Launcher(private val project: Project) {
     argList.addAll(args.additionalArgs)
     return LaunchCommand(
       arguments = argList,
-      generatedBootstrapScript = debugScriptPath,
+      environmentVariables = buildLaunchEnvironment(launchSession),
+      generatedBootstrapScript = generatedScriptPath,
+      sessionIdentifier = launchSession?.identifier,
     )
+  }
+
+  private fun buildLaunchEnvironment(launchSession: BlenderRuntimeLaunchSession?): Map<String, String> {
+    val environment = pluginConfig.getGlobalEnvironmentVariables()
+      .filterKeys { it.isNotBlank() }
+      .filterValues { it.isNotBlank() }
+      .toMutableMap()
+
+    environment.putAll(
+      projectConfig.getEnvironmentVariables()
+      .filterKeys { it.isNotBlank() }
+      .filterValues { it.isNotBlank() }
+    )
+
+    environment["VSCODE_LOG_LEVEL"] = toRuntimeLogLevel(projectConfig.getBlenderLogLevel())
+    val extensionsRepository = projectConfig.getExtensionsRepository().trim()
+    if (extensionsRepository.isNotEmpty()) {
+      environment["VSCODE_EXTENSIONS_REPOSITORY"] = extensionsRepository
+    }
+    val configuredScriptDirectories = resolveConfiguredScriptDirectories()
+    if (configuredScriptDirectories.isNotEmpty()) {
+      environment["BLENDER_PYCHARM_SCRIPT_DIRECTORIES"] = configuredScriptDirectories
+        .joinToString(separator = java.io.File.pathSeparator)
+    }
+
+    if (launchSession != null) {
+      environment["EDITOR_PORT"] = launchSession.editorPort.toString()
+      environment["VSCODE_IDENTIFIER"] = launchSession.identifier
+    }
+
+    return environment
   }
 
   private fun createScratchDebugLaunchScript(): Path {
@@ -166,6 +226,42 @@ internal class Launcher(private val project: Project) {
     return Path.of(scratchVfsDirectory.path, scriptFileName)
   }
 
+  private fun createScratchRuntimeSyncLaunchScript(): Path {
+    val scratchDirPath = PathManager.getScratchDir()
+    require(scratchDirPath.toString().isNotBlank()) {
+      MessageBundle.message("run.configuration.blender.launch.error.scratch.path.empty")
+    }
+
+    Files.createDirectories(scratchDirPath)
+
+    val scratchVfsDirectory = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(scratchDirPath)
+      ?: throw IllegalStateException(
+        MessageBundle.message("run.configuration.blender.launch.error.scratch.directory.missing", scratchDirPath.toString())
+      )
+
+    val scriptFileName = BlenderBootstrapScriptCleanup.newScriptFileName()
+    val projectBasePath = project.basePath ?: ""
+    val sourceFolder = projectConfig.getSourceFolder()
+    val addonSymlinkName = projectConfig.getAddonSymlinkName()
+    val extensionsRepository = projectConfig.getExtensionsRepository()
+
+    WriteAction.run<Throwable> {
+      PluginResources.createFromTemplate(
+        project = project,
+        name = scriptFileName,
+        template = "BlenderRuntimeRepoSyncLaunch",
+        destination = scratchVfsDirectory,
+        internal = true,
+        "projectPathLiteral" to toPythonStringLiteral(projectBasePath),
+        "sourceFolderLiteral" to toPythonStringLiteral(sourceFolder),
+        "addonSymlinkNameLiteral" to toPythonStringLiteral(addonSymlinkName),
+        "extensionsRepositoryLiteral" to toPythonStringLiteral(extensionsRepository),
+      )
+    }
+
+    return Path.of(scratchVfsDirectory.path, scriptFileName)
+  }
+
   private fun toPythonStringLiteral(value: String): String {
     val builder = StringBuilder(value.length + 8)
     value.forEach { ch ->
@@ -195,8 +291,41 @@ internal class Launcher(private val project: Project) {
       BlenderLogLevel.TRACE -> listOf("--log-level", "trace")
     }
   }
-}
+
+  private fun toRuntimeLogLevel(logLevel: BlenderLogLevel): String {
+    return when (logLevel) {
+      BlenderLogLevel.FATAL -> "critical"
+      BlenderLogLevel.ERROR -> "error"
+      BlenderLogLevel.WARNING -> "warning"
+      BlenderLogLevel.INFO -> "info"
+      BlenderLogLevel.DEBUG -> "debug"
+      BlenderLogLevel.TRACE -> "debug"
+    }
+  }
+
+  private fun resolveConfiguredScriptDirectories(): List<String> {
+    val basePath = project.basePath
+    return projectConfig.getScriptDirectories().orEmpty()
+      .asSequence()
+      .map { it.trim() }
+      .filter { it.isNotBlank() }
+      .mapNotNull { configuredPath ->
+        val path = Path.of(configuredPath)
+        when {
+          path.isAbsolute -> path.normalize()
+          basePath != null -> Path.of(basePath).resolve(path).normalize()
+          else -> null
+        }
+      }
+      .map { it.toString() }
+      .distinct()
+      .toList()
+  }
+
   private data class LaunchCommand(
     val arguments: List<String>,
+    val environmentVariables: Map<String, String> = emptyMap(),
     val generatedBootstrapScript: Path? = null,
+    val sessionIdentifier: String? = null,
   )
+}

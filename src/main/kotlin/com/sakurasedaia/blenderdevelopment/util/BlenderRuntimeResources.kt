@@ -21,6 +21,7 @@ import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.extensions.PluginId
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
+import java.security.MessageDigest
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.zip.ZipInputStream
@@ -37,9 +38,9 @@ internal object BlenderRuntimeResources {
     val debugRunnerDirectory = resolveDebugRunnerDirectory()
     val runtimeDirectory = debugRunnerDirectory.resolve("runtime")
     val includeDirectory = runtimeDirectory.resolve("include")
-    val runtimeVersion = resolvePluginVersion()
+    val runtimeFingerprint = resolveRuntimeFingerprint()
 
-    if (isRuntimeCurrent(runtimeDirectory, includeDirectory, runtimeVersion)) {
+    if (isRuntimeCurrent(runtimeDirectory, includeDirectory, runtimeFingerprint)) {
       return includeDirectory
     }
 
@@ -48,7 +49,7 @@ internal object BlenderRuntimeResources {
     }
     Files.createDirectories(runtimeDirectory)
     extractArchive(runtimeDirectory)
-    Files.writeString(runtimeDirectory.resolve(RUNTIME_VERSION_MARKER), runtimeVersion)
+    Files.writeString(runtimeDirectory.resolve(RUNTIME_VERSION_MARKER), runtimeFingerprint)
 
     return includeDirectory
   }
@@ -65,7 +66,34 @@ internal object BlenderRuntimeResources {
     return PluginManagerCore.getPlugin(PluginId.getId(PLUGIN_ID))?.version ?: "dev"
   }
 
-  private fun isRuntimeCurrent(runtimeDirectory: Path, includeDirectory: Path, runtimeVersion: String): Boolean {
+  private fun resolveRuntimeFingerprint(): String {
+    val pluginVersion = resolvePluginVersion()
+    val archiveHash = computeRuntimeArchiveSha256()
+    return "$pluginVersion:$archiveHash"
+  }
+
+  private fun computeRuntimeArchiveSha256(): String {
+    val archiveStream = PluginResources::class.java.classLoader.getResourceAsStream(RUNTIME_ARCHIVE_RESOURCE)
+      ?: throw IllegalStateException(
+        MessageBundle.message("run.configuration.blender.launch.error.runtime.archive.missing", RUNTIME_ARCHIVE_RESOURCE)
+      )
+    val digest = MessageDigest.getInstance("SHA-256")
+    archiveStream.use { stream ->
+      val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+      while (true) {
+        val read = stream.read(buffer)
+        if (read < 0) {
+          break
+        }
+        if (read > 0) {
+          digest.update(buffer, 0, read)
+        }
+      }
+    }
+    return digest.digest().joinToString("") { byte -> "%02x".format(byte) }
+  }
+
+  private fun isRuntimeCurrent(runtimeDirectory: Path, includeDirectory: Path, runtimeFingerprint: String): Boolean {
     if (!runtimeDirectory.exists() || !includeDirectory.isDirectory()) {
       return false
     }
@@ -76,7 +104,7 @@ internal object BlenderRuntimeResources {
     }
 
     return runCatching { Files.readString(markerPath).trim() }
-      .getOrNull() == runtimeVersion
+      .getOrNull() == runtimeFingerprint
   }
 
   private fun extractArchive(destinationDirectory: Path) {
