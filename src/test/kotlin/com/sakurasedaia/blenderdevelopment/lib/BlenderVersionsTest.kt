@@ -33,7 +33,7 @@ class BlenderVersionsTest {
 
   @Test
   fun normalizeVersionFromListHandlesShortAndLongLists() {
-    assertEquals("5.1", BlenderVersions.normalizeVersionFromList(listOf(5, 1, 9)))
+    assertEquals("5.2", BlenderVersions.normalizeVersionFromList(listOf(5, 2, 9)))
     assertEquals("5", BlenderVersions.normalizeVersionFromList(listOf(5)))
     assertEquals("", BlenderVersions.normalizeVersionFromList(emptyList()))
   }
@@ -61,6 +61,6 @@ class BlenderVersionsTest {
     assertEquals(3, table.size)
     assertTrue(table.any { it.blVersion == "4.2.19" && it.pyVersion == "3.11.7" })
     assertTrue(table.any { it.blVersion == "4.5.8" && it.pyVersion == "3.11.9" })
-    assertTrue(table.any { it.blVersion == "5.1.1" && it.pyVersion == "3.13.9" })
+    assertTrue(table.any { it.blVersion == "5.2.0" && it.pyVersion == "3.13.13" })
   }
 }

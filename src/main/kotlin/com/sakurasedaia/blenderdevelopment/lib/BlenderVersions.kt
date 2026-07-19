@@ -26,6 +26,7 @@ package com.sakurasedaia.blenderdevelopment.lib
 data class BlenderVersion(
     private val blender: List<Int>,
     private val python: List<Int>,
+    private val fakeBpy: String? = null,
     val compatWithOs: Map<String, List<String>>
 ) {
     /** Full Blender version in `major.minor.patch` format. */
@@ -47,6 +48,8 @@ data class BlenderVersion(
     val blVersionList: List<Int> get() = blender
     /** Python version components as `[major, minor, patch]`. */
     val pyVersionList: List<Int> get() = python
+    
+    val fakeBpyPackage = "fake-bpy-module-${fakeBpy ?: blMajorMinor}"
 }
 
 
@@ -70,8 +73,9 @@ object BlenderVersions {
                 "linux" to listOf("x64")
             )),
         BlenderVersion(
-            blender = listOf(5,1,1),
-            python = listOf(3,13,9),
+            blender = listOf(5,2,0),
+            python = listOf(3,13,13),
+            fakeBpy = "latest",
             compatWithOs = mapOf(
                 "win" to listOf("x64", "arm64"),
                 "mac" to listOf("arm64"),
@@ -120,7 +124,6 @@ object BlenderVersions {
         val normalized = normalizeVersion(blMajorMinor)
         return getVersionTable().find { it.blMajorMinor == normalized }?.blVersion
     }
-
     
     /**
      * Returns full Python version that corresponds to the provided Blender major/minor value.
@@ -133,6 +136,10 @@ object BlenderVersions {
         return getVersionTable().find { it.blMajorMinor == normalized }?.pyVersion
     }
     
+    fun getFakeBpyPackageName(blMajorMinor: String) : String? {
+        val normalized = normalizeVersion(blMajorMinor)
+        return getVersionTable().find { it.blMajorMinor == normalized }?.fakeBpyPackage
+    }
     
     /**
      * Returns OS/architecture compatibility matrix for the selected Blender version.
