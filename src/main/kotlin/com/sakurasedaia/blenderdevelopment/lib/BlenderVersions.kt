@@ -156,4 +156,11 @@ object BlenderVersions {
         val parts = version.split('.')
         return if (parts.size >= 2) "${parts[0]}.${parts[1]}" else version
     }
+    
+    fun normalizeVersionFromList(version: List<Int>): String {
+        if (version.size >= 2) {
+            return version.take(2).joinToString(".")
+        }
+        return version.joinToString(".")
+    }
 }

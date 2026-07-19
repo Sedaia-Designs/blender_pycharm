@@ -55,6 +55,7 @@
                 factoryClass="com.sakurasedaia.blenderdevelopment.ui.toolwindow.BlenderToolWindowFactory"
                 icon="/images/blenderGray.svg"
         />
+
         <applicationConfigurable
                 id="com.sakurasedaia.blenderdevelopment.settings.plugin"
                 groupId="tools"
@@ -62,16 +63,25 @@
                 key="ui.settings.title"
                 instance="com.sakurasedaia.blenderdevelopment.ui.settings.BlenderSettingsFactory"
         />
+
         <postStartupActivity implementation="com.sakurasedaia.blenderdevelopment.lib.services.ProjectConfigStartupLoader"/>
+
         <directoryProjectGenerator implementation="com.sakurasedaia.blenderdevelopment.wizard.legacy.BlenderProjectDirectoryGenerator" />
-        <configurationType implementation="com.sakurasedaia.blenderdevelopment.run.BlenderLaunchConfigurationType"/>
+
+        <configurationType implementation="com.sakurasedaia.blenderdevelopment.run.BlenderConfigurationType"/>
+        <programRunner implementation="com.sakurasedaia.blenderdevelopment.run.BlenderDebugProgramRunner"/>
 
         <internalFileTemplate name="Pyproject"/>
         <internalFileTemplate name="BlenderManifest"/>
         <internalFileTemplate name="GitIgnore"/>
         <internalFileTemplate name="GplLicenseV3"/>
         <internalFileTemplate name="README"/>
+        <internalFileTemplate name="BlenderBaseLaunchScript"/>
+        <internalFileTemplate name="BlenderDebugLaunchScript"/>
+        <internalFileTemplate name="BlenderRuntimeLaunch"/>
+
         <fileTemplateGroup implementation="com.sakurasedaia.blenderdevelopment.lib.TemplateGroupDescription"/>
+
     </extensions>
 
     <extensions defaultExtensionNs="Pythonid">

@@ -1,4 +1,5 @@
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.gradle.api.tasks.bundling.Zip
 
 plugins {
     id("org.jetbrains.kotlin.jvm")
@@ -42,6 +43,21 @@ intellijPlatform {
 }
 
 tasks {
+    val packageBlenderRuntime by registering(Zip::class) {
+        group = "build"
+        description = "Packages Blender runtime API files into an archive for plugin distribution."
+        archiveFileName.set("blender-runtime.zip")
+        destinationDirectory.set(layout.buildDirectory.dir("generated/blender-runtime"))
+        from(layout.projectDirectory.dir("src/main/blender-runtime"))
+    }
+
+    processResources {
+        dependsOn(packageBlenderRuntime)
+        from(packageBlenderRuntime) {
+            into("blender-runtime")
+        }
+    }
+
     withType<JavaCompile> {
         sourceCompatibility = "21"
         targetCompatibility = "21"

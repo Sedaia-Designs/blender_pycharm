@@ -1,0 +1,19 @@
+import sys
+import traceback
+from pathlib import Path
+
+include_dir = Path('${includeDirLiteral}')
+if include_dir.exists():
+    sys.path.insert(0, str(include_dir))
+
+try:
+    import blender_pycharm
+
+    blender_pycharm.startup(
+        project_root='${projectPathLiteral}',
+        source_folder='${sourceFolderLiteral}',
+        addon_symlink_name='${addonSymlinkNameLiteral}',
+    )
+except Exception:
+    traceback.print_exc()
+    raise

@@ -10,7 +10,7 @@ class SEDAIA_PT_TestPanel(bpy.types.Panel):
 
     def draw(self, context):
         """Draws the panel itself"""
-        self.layout.label(text="Test Panel")
+        self.layout.label(text="Debug Run Configuration")
 
 def register():
     """Registers the associated classes from Blender"""

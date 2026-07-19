@@ -25,10 +25,10 @@ import com.sakurasedaia.blenderdevelopment.ui.IconBundle
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 
 /** Registers the Blender launch run configuration type. */
-internal class BlenderLaunchConfigurationType : ConfigurationTypeBase(
-    "BlenderLaunchConfigurationType",
-    MessageBundle.message("run.configuration.blender.launch.type.name"),
-    MessageBundle.message("run.configuration.blender.launch.type.description"),
+internal class BlenderConfigurationType : ConfigurationTypeBase(
+    "BlenderConfigurationType",
+    MessageBundle.message("run.configuration.blender.type.name"),
+    MessageBundle.message("run.configuration.blender.type.description"),
     IconBundle.BlenderColor,
 ) {
     init {
@@ -36,10 +36,10 @@ internal class BlenderLaunchConfigurationType : ConfigurationTypeBase(
     }
 }
 
-private class BlenderLaunchConfigurationFactory(type: BlenderLaunchConfigurationType) : ConfigurationFactory(type) {
+private class BlenderLaunchConfigurationFactory(type: BlenderConfigurationType) : ConfigurationFactory(type) {
     override fun getId(): String = "BlenderLaunchConfigurationFactory"
 
-    override fun getName(): String = MessageBundle.message("run.configuration.blender.launch.factory.name")
+    override fun getName(): String = MessageBundle.message("run.configuration.blender.launch.basic.factory.name")
 
     override fun createTemplateConfiguration(project: Project): RunConfiguration {
         return BlenderLaunchRunConfiguration(

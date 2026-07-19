@@ -19,9 +19,13 @@ package com.sakurasedaia.blenderdevelopment.lib.services
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
+import com.intellij.openapi.application.PathManager
+import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
+import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
-import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
+import com.sakurasedaia.blenderdevelopment.util.BlenderBootstrapScriptCleanup
+import com.sakurasedaia.blenderdevelopment.util.BlenderRuntimeResources
 
 /** Eagerly loads project workspace configuration when the IDE opens a project. */
 internal class ProjectConfigStartupLoader : ProjectActivity {
@@ -29,6 +33,21 @@ internal class ProjectConfigStartupLoader : ProjectActivity {
         PluginConfig.getInstance().loadPluginState()
         val config = ProjectConfig.getInstance(project)
         config.loadWorkspaceState()
-        PluginLogger.getInstance(project).debug("Loaded plugin and project workspace configuration on startup.")
+        val logger = PluginLogger.getInstance(project)
+        runCatching {
+            BlenderRuntimeResources.ensureRuntimeExtracted()
+        }.onFailure { error ->
+            logger.error(ErrorTypes.BLENDER_LAUNCH_ERROR, error)
+        }
+        runCatching {
+            BlenderBootstrapScriptCleanup.cleanupStaleScripts(
+                directory = PathManager.getScratchDir(),
+                debugLog = logger::debug,
+                warnLog = logger::warn,
+            )
+        }.onFailure { error ->
+            logger.warn("Failed to run stale bootstrap cleanup.", error)
+        }
+        logger.debug("Loaded plugin and project workspace configuration on startup.")
     }
 }

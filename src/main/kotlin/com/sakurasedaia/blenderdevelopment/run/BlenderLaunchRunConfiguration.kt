@@ -23,6 +23,7 @@ import com.intellij.execution.configurations.ConfigurationFactory
 import com.intellij.execution.configurations.RunConfigurationBase
 import com.intellij.execution.configurations.RunProfileState
 import com.intellij.execution.configurations.RuntimeConfigurationError
+import com.intellij.execution.executors.DefaultDebugExecutor
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.openapi.options.SettingsEditor
@@ -58,11 +59,14 @@ internal class BlenderLaunchRunConfiguration(
     }
 
     override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState {
+        val isDebugMode = executor.id == DefaultDebugExecutor.EXECUTOR_ID
+
         return object : CommandLineState(environment) {
             override fun startProcess(): OSProcessHandler {
-                return Launcher.getInstance(project).createProcessHandler(
+                return Launcher.getInstance(project).startBlender(
                     BlenderArguments(
                         blenderPath = ProjectConfig.getInstance(project).getBlenderPath().trim(),
+                        debugger = isDebugMode,
                     )
                 )
             }

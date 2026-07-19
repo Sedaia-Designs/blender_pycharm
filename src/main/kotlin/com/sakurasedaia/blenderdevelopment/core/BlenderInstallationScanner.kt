@@ -228,18 +228,18 @@ class BlenderInstallationScanner(val project: Project) {
     ).distinct()
 
     brewPrefixes.forEach { prefix ->
-      val linkedBinary = prefix.resolve("bin").resolve("blender").toFile()
+      val linkedBinary = prefix.resolve("bin").resolve("blender-runtime").toFile()
       if (isExecutableFile(linkedBinary)) {
         buildInstallInfo(linkedBinary, linkedBinary.absolutePath, diagnostics)?.let { install ->
           blenderInstalls.add(install)
         }
       }
 
-      val blenderCellar = prefix.resolve("Cellar").resolve("blender")
+      val blenderCellar = prefix.resolve("Cellar").resolve("blender-runtime")
       if (blenderCellar.toFile().isDirectory) {
         listDirectoryEntriesSafely(blenderCellar, onFailure = { diagnostics.inaccessibleRoots += 1 }) { versionPath ->
           if (!versionPath.toFile().isDirectory) return@listDirectoryEntriesSafely
-          val cellarBinary = versionPath.resolve("bin").resolve("blender").toFile()
+          val cellarBinary = versionPath.resolve("bin").resolve("blender-runtime").toFile()
           if (!isExecutableFile(cellarBinary)) return@listDirectoryEntriesSafely
 
           buildInstallInfo(cellarBinary, cellarBinary.absolutePath, diagnostics)?.let { install ->
@@ -275,7 +275,7 @@ class BlenderInstallationScanner(val project: Project) {
   }
   
   private fun resolveBinaryPathWithWhich(): String? {
-    val result = ExternalProcessBuilder(project).launchAndCaptureOutput("which", "blender")
+    val result = ExternalProcessBuilder(project).launchAndCaptureOutput("which", "blender-runtime")
     if (result.cancelled || result.failure != null || result.exitCode != 0) return null
 
     val locatedPath = result.firstLine.trim()

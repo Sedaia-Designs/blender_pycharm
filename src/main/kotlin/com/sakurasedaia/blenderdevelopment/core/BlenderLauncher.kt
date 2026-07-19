@@ -21,18 +21,25 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.components.service
 import com.intellij.openapi.application.PathManager
+import com.intellij.openapi.application.WriteAction
 import com.intellij.execution.process.OSProcessHandler
+import com.intellij.execution.process.ProcessEvent
+import com.intellij.execution.process.ProcessListener
 import com.intellij.execution.process.ProcessTerminatedListener
+import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.util.execution.ParametersListUtil
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
-import com.sakurasedaia.blenderdevelopment.state.PluginConfig
+import com.sakurasedaia.blenderdevelopment.util.BlenderBootstrapScriptCleanup
+import com.sakurasedaia.blenderdevelopment.util.BlenderRuntimeResources
+import com.sakurasedaia.blenderdevelopment.util.PluginResources
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig.BlenderLogLevel
 import com.sakurasedaia.blenderdevelopment.process.ExternalProcessBuilder
 
+import java.nio.file.Files
 import java.nio.file.Path
 
 data class BlenderArguments(
@@ -46,9 +53,6 @@ data class BlenderArguments(
 internal class Launcher(private val project: Project) {
   val logger = PluginLogger.getInstance(project)
   val notifModal = NotificationModal.getInstance(project)
-  val projectPath = project.basePath ?: ""
-  val scratchPath = PathManager.getScratchDir()
-  val pluginConfig = PluginConfig.getInstance().state
   val projectConfig = ProjectConfig.getInstance(project)
   
   
@@ -56,15 +60,27 @@ internal class Launcher(private val project: Project) {
     fun getInstance(project: Project): Launcher = project.service()
   }
 
-  fun createProcessHandler(args: BlenderArguments): OSProcessHandler {
+  fun startBlender(args: BlenderArguments): OSProcessHandler {
     val blenderPath = resolveBlenderPath(args)
+    val launchCommand = buildLaunchCommand(args)
     val processBuilder = ExternalProcessBuilder(project)
     val processHandler = processBuilder.startProcessHandler(
       command = blenderPath,
-      args = buildLaunchArguments(args),
+      args = launchCommand.arguments,
       workDirectory = project.basePath,
       internalBinary = resolveMacInternalBinary(blenderPath),
     )
+    if (launchCommand.generatedBootstrapScript != null) {
+      processHandler.addProcessListener(object : ProcessListener {
+        override fun processTerminated(event: ProcessEvent) {
+          BlenderBootstrapScriptCleanup.cleanupScript(
+            path = launchCommand.generatedBootstrapScript,
+            debugLog = logger::debug,
+            warnLog = logger::warn,
+          )
+        }
+      })
+    }
     ProcessTerminatedListener.attach(processHandler)
     return processHandler
   }
@@ -72,7 +88,7 @@ internal class Launcher(private val project: Project) {
   fun startProcess(args: BlenderArguments) {
     logger.log(MessageBundle.message("notification.blender.launching"))
     try {
-      val processHandler = createProcessHandler(args)
+      val processHandler = startBlender(args)
       processHandler.startNotify()
     } catch (e: Exception) {
       logger.error(ErrorTypes.BLENDER_LAUNCH_ERROR, e)
@@ -91,7 +107,7 @@ internal class Launcher(private val project: Project) {
     return blenderPath
   }
 
-  private fun buildLaunchArguments(args: BlenderArguments): List<String> {
+  private fun buildLaunchCommand(args: BlenderArguments): LaunchCommand {
     val argList: MutableList<String> = mutableListOf()
     argList.addAll(buildDebugArguments(projectConfig.getBlenderLogLevel()))
 
@@ -100,17 +116,69 @@ internal class Launcher(private val project: Project) {
       argList.addAll(ParametersListUtil.parse(workspaceRunArguments))
     }
 
-    if (args.debugger) {
-      // TODO: Implement Debugger integration
-    }
-
-    if (args.scriptPath != null) {
+    val debugScriptPath = if (args.debugger) createScratchDebugLaunchScript() else null
+    val scriptPath = args.scriptPath ?: debugScriptPath
+    if (scriptPath != null) {
       argList.add("--python")
-      argList.add(args.scriptPath.toString())
+      argList.add(scriptPath.toString())
     }
 
     argList.addAll(args.additionalArgs)
-    return argList
+    return LaunchCommand(
+      arguments = argList,
+      generatedBootstrapScript = debugScriptPath,
+    )
+  }
+
+  private fun createScratchDebugLaunchScript(): Path {
+    val scratchDirPath = PathManager.getScratchDir()
+    require(scratchDirPath.toString().isNotBlank()) {
+      MessageBundle.message("run.configuration.blender.launch.error.scratch.path.empty")
+    }
+
+    Files.createDirectories(scratchDirPath)
+
+    val scratchVfsDirectory = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(scratchDirPath)
+      ?: throw IllegalStateException(
+        MessageBundle.message("run.configuration.blender.launch.error.scratch.directory.missing", scratchDirPath.toString())
+      )
+
+    val includeDirectoryPath = BlenderRuntimeResources.ensureRuntimeExtracted()
+    val scriptFileName = BlenderBootstrapScriptCleanup.newScriptFileName()
+    val projectBasePath = project.basePath ?: ""
+    val sourceFolder = projectConfig.getSourceFolder()
+    val addonSymlinkName = projectConfig.getAddonSymlinkName()
+
+    WriteAction.run<Throwable> {
+      PluginResources.createFromTemplate(
+        project = project,
+        name = scriptFileName,
+        template = "BlenderRuntimeLaunch",
+        destination = scratchVfsDirectory,
+        internal = true,
+        "includeDirLiteral" to toPythonStringLiteral(includeDirectoryPath.toString()),
+        "projectPathLiteral" to toPythonStringLiteral(projectBasePath),
+        "sourceFolderLiteral" to toPythonStringLiteral(sourceFolder),
+        "addonSymlinkNameLiteral" to toPythonStringLiteral(addonSymlinkName),
+      )
+    }
+
+    return Path.of(scratchVfsDirectory.path, scriptFileName)
+  }
+
+  private fun toPythonStringLiteral(value: String): String {
+    val builder = StringBuilder(value.length + 8)
+    value.forEach { ch ->
+      when (ch) {
+        '\\' -> builder.append("\\\\")
+        '\'' -> builder.append("\\'")
+        '\n' -> builder.append("\\n")
+        '\r' -> builder.append("\\r")
+        '\t' -> builder.append("\\t")
+        else -> builder.append(ch)
+      }
+    }
+    return builder.toString()
   }
 
   private fun resolveMacInternalBinary(blenderPath: String): String? {
@@ -128,3 +196,7 @@ internal class Launcher(private val project: Project) {
     }
   }
 }
+  private data class LaunchCommand(
+    val arguments: List<String>,
+    val generatedBootstrapScript: Path? = null,
+  )
