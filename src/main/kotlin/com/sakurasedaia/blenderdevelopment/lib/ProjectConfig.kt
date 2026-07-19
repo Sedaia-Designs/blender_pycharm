@@ -30,11 +30,15 @@ import com.intellij.openapi.project.Project
 	]
 )
 class ProjectConfig(private val project: Project): PersistentStateComponent<ProjectConfig.ProjectState> {
+	
+	/** Available log levels according to Blender Documentation */
 	enum class BlenderLogLevel {
-		DEBUG,
-		INFO,
-		WARNING,
+		FATAL,
 		ERROR,
+		WARNING,
+		INFO,
+		DEBUG,
+		TRACE
 	}
 
 	/** Persisted project-scoped settings stored in project-level configuration. */

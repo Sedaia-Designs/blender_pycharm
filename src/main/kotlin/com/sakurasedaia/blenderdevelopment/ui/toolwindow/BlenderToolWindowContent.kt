@@ -32,6 +32,7 @@ import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
 import com.sakurasedaia.blenderdevelopment.lib.PluginConfig
 import com.sakurasedaia.blenderdevelopment.lib.ProjectConfig
+import com.sakurasedaia.blenderdevelopment.lib.ProjectConfig.BlenderLogLevel
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JCheckBox
 import javax.swing.JComboBox
@@ -70,29 +71,27 @@ class BlenderToolWindowContent(private val project: Project,
         lateinit var blenderLogLevelCombo: JComboBox<String>
         lateinit var useCustomBlenderInstall: JCheckBox
         lateinit var availableBlenderInstalls: JComboBox<String>
-        val blenderLogLevels = ProjectConfig.BlenderLogLevel.entries
+        val blenderLogLevels = BlenderLogLevel.entries
         val uiState = UiState()
         var isLoadingFromConfig = false
 
-        fun logLevelLabel(level: ProjectConfig.BlenderLogLevel): String {
+        fun logLevelLabel(level: BlenderLogLevel): String {
             return when (level) {
-                ProjectConfig.BlenderLogLevel.DEBUG ->
-                    MessageBundle.message("ui.toolwindow.group.workspace.log.level.debug")
-                ProjectConfig.BlenderLogLevel.INFO ->
-                    MessageBundle.message("ui.toolwindow.group.workspace.log.level.info")
-                ProjectConfig.BlenderLogLevel.WARNING ->
-                    MessageBundle.message("ui.toolwindow.group.workspace.log.level.warning")
-                ProjectConfig.BlenderLogLevel.ERROR ->
-                    MessageBundle.message("ui.toolwindow.group.workspace.log.level.error")
+                BlenderLogLevel.FATAL -> MessageBundle.message("ui.toolwindow.group.workspace.log.level.fatal")
+                BlenderLogLevel.ERROR -> MessageBundle.message("ui.toolwindow.group.workspace.log.level.error")
+                BlenderLogLevel.WARNING -> MessageBundle.message("ui.toolwindow.group.workspace.log.level.warning")
+                BlenderLogLevel.INFO -> MessageBundle.message("ui.toolwindow.group.workspace.log.level.info")
+                BlenderLogLevel.DEBUG -> MessageBundle.message("ui.toolwindow.group.workspace.log.level.debug")
+                BlenderLogLevel.TRACE -> MessageBundle.message("ui.toolwindow.group.workspace.log.level.trace")
             }
         }
 
-        fun getSelectedBlenderLogLevel(): ProjectConfig.BlenderLogLevel {
+        fun getSelectedBlenderLogLevel(): BlenderLogLevel {
             val selectedIndex = blenderLogLevelCombo.selectedIndex
-            return blenderLogLevels.getOrNull(selectedIndex) ?: ProjectConfig.BlenderLogLevel.INFO
+            return blenderLogLevels.getOrNull(selectedIndex) ?: BlenderLogLevel.INFO
         }
 
-        fun selectBlenderLogLevel(logLevel: ProjectConfig.BlenderLogLevel) {
+        fun selectBlenderLogLevel(logLevel: BlenderLogLevel) {
             val selectedIndex = blenderLogLevels.indexOf(logLevel).takeIf { it >= 0 } ?: 0
             blenderLogLevelCombo.selectedIndex = selectedIndex
         }

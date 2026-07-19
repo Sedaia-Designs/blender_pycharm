@@ -30,6 +30,7 @@ import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
 import com.sakurasedaia.blenderdevelopment.lib.PluginConfig
 import com.sakurasedaia.blenderdevelopment.lib.ProjectConfig
+import com.sakurasedaia.blenderdevelopment.lib.ProjectConfig.BlenderLogLevel
 import com.sakurasedaia.blenderdevelopment.process.ExternalProcessBuilder
 
 import java.nio.file.Path
@@ -118,10 +119,12 @@ internal class Launcher(private val project: Project) {
 
   private fun buildDebugArguments(logLevel: ProjectConfig.BlenderLogLevel): List<String> {
     return when (logLevel) {
-      ProjectConfig.BlenderLogLevel.DEBUG -> listOf("--debug", "--log-level", "3")
-      ProjectConfig.BlenderLogLevel.INFO -> listOf("--log-level", "2")
-      ProjectConfig.BlenderLogLevel.WARNING -> listOf("--log-level", "1")
-      ProjectConfig.BlenderLogLevel.ERROR -> listOf("--log-level", "0")
+      BlenderLogLevel.FATAL -> listOf("--log-level", "fatal")
+      BlenderLogLevel.ERROR -> listOf("--log-level", "error")
+      BlenderLogLevel.WARNING -> listOf("--log-level", "warning")
+      BlenderLogLevel.INFO -> listOf("--log-level", "info")
+      BlenderLogLevel.DEBUG -> listOf("--log-level", "debug")
+      BlenderLogLevel.TRACE -> listOf("--log-level", "trace")
     }
   }
 }
