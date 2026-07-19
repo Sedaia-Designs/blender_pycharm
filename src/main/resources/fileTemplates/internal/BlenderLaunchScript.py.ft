@@ -1,0 +1,24 @@
+import bpy
+
+class SEDAIA_PT_TestPanel(bpy.types.Panel):
+    """A simple test panel to ensure the script is working"""
+    bl_idname = "SEDAIA_PT_test_panel"
+    bl_label = "Item"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Item"
+
+    def draw(self, context):
+        """Draws the panel itself"""
+        self.layout.label(text="Test Panel")
+
+def register():
+    """Registers the associated classes from Blender"""
+    bpy.utils.register_class(SEDAIA_PT_TestPanel)
+
+def unregister():
+    """Unregisters the associated classes from Blender"""
+    bpy.utils.unregister_class(SEDAIA_PT_TestPanel)
+
+if __name__ == "__main__":
+    register()
