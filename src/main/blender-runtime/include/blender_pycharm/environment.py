@@ -18,6 +18,16 @@ _str_to_log_level = {
 }
 
 
+def _env_with_legacy(primary_name: str, legacy_name: str, default: str = "") -> str:
+    value = os.environ.get(primary_name, "").strip()
+    if value:
+        return value
+    legacy_value = os.environ.get(legacy_name, "").strip()
+    if legacy_value:
+        return legacy_value
+    return default
+
+
 def _parse_log(env_var_name: str) -> Tuple[int, bool]:
     log_env_global = os.environ.get(env_var_name, "info") or "info"
     try:
@@ -39,13 +49,20 @@ version = bpy.app.version
 scripts_folder = blender_path.parent / f"{version[0]}.{version[1]}" / "scripts"
 addon_directories = tuple(map(Path, addon_utils.paths()))
 
-EXTENSIONS_REPOSITORY: Optional[str] = os.environ.get("VSCODE_EXTENSIONS_REPOSITORY", "user_default") or "user_default"
-LOG_LEVEL, LOG_FLASK = _parse_log("VSCODE_LOG_LEVEL")
-VSCODE_IDENTIFIER: Optional[str] = os.environ.get("VSCODE_IDENTIFIER", "") or ""
+EXTENSIONS_REPOSITORY: Optional[str] = _env_with_legacy(
+    "BLENDER_PYCHARM_EXTENSIONS_REPOSITORY",
+    "VSCODE_EXTENSIONS_REPOSITORY",
+    "user_default",
+) or "user_default"
+LOG_LEVEL, LOG_FLASK = _parse_log(
+    "BLENDER_PYCHARM_LOG_LEVEL"
+    if os.environ.get("BLENDER_PYCHARM_LOG_LEVEL")
+    else "VSCODE_LOG_LEVEL"
+)
+PYCHARM_IDENTIFIER: Optional[str] = _env_with_legacy("BLENDER_PYCHARM_IDENTIFIER", "VSCODE_IDENTIFIER", "")
+VSCODE_IDENTIFIER: Optional[str] = PYCHARM_IDENTIFIER
 
 logging.getLogger("werkzeug").setLevel(logging.DEBUG if LOG_FLASK else logging.ERROR)
 # to mute all logs, disable also those logs. Be careful, the libs are extremely popular and it will mute logs for everyone!
 # logging.getLogger("requests").setLevel(logging.DEBUG if LOG_FLASK else logging.INFO)
 # logging.getLogger("urllib3").setLevel(logging.DEBUG if LOG_FLASK else logging.INFO)
-
-VSCODE_IDENTIFIER: Optional[str] = os.environ.get("VSCODE_IDENTIFIER", "") or ""

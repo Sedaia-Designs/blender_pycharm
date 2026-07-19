@@ -21,6 +21,13 @@ else:
 _ADDONS_DEFAULT_DIR = Path(bpy.utils.user_resource("SCRIPTS", path="addons"))
 
 
+def _supports_extensions_repositories() -> bool:
+    preferences = getattr(bpy.context, "preferences", None)
+    extensions = getattr(preferences, "extensions", None)
+    repos = getattr(extensions, "repos", None)
+    return repos is not None
+
+
 def setup_addon_links(addons_to_load: List[AddonInfo]) -> List[Dict]:
     path_mappings: List[Dict] = []
 
@@ -31,7 +38,7 @@ def setup_addon_links(addons_to_load: List[AddonInfo]) -> List[Dict]:
         sys.path.append(str(_ADDONS_DEFAULT_DIR))
 
     remove_broken_addon_links()
-    if bpy.app.version >= (4, 2, 0):
+    if bpy.app.version >= (4, 2, 0) and _supports_extensions_repositories():
         ensure_extension_repo_exists(EXTENSIONS_REPOSITORY)
         remove_broken_extension_links()
 
@@ -154,6 +161,8 @@ def does_addon_link_exist(development_directory: Path) -> Optional[Path]:
 
 def does_extension_link_exist(development_directory: Path) -> Optional[Path]:
     """Search all available extension paths and return path that links to `development_directory"""
+    if not _supports_extensions_repositories():
+        return None
     for repo in bpy.context.preferences.extensions.repos:
         if not repo.enabled:
             continue
@@ -171,6 +180,8 @@ def does_extension_link_exist(development_directory: Path) -> Optional[Path]:
 
 
 def ensure_extension_repo_exists(extensions_repository: str):
+    if not _supports_extensions_repositories():
+        return None
     for repo in bpy.context.preferences.extensions.repos:
         repo: bpy.types.UserExtensionRepo
         if repo.module == extensions_repository:
@@ -191,6 +202,8 @@ def remove_broken_addon_links():
 
 
 def remove_broken_extension_links():
+    if not _supports_extensions_repositories():
+        return
     for repo in bpy.context.preferences.extensions.repos:
         if not repo.enabled:
             continue
@@ -248,6 +261,8 @@ def is_in_any_addon_directory(module_path: Path) -> bool:
 
 
 def is_in_any_extension_directory(module_path: Path) -> Optional["bpy.types.UserExtensionRepo"]:
+    if not _supports_extensions_repositories():
+        return None
     for repo in bpy.context.preferences.extensions.repos:
         if not repo.enabled:
             continue

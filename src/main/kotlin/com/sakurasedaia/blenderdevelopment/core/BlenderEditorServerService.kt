@@ -24,7 +24,9 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.util.concurrency.AppExecutorUtil
+import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
+import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import java.net.InetSocketAddress
@@ -58,10 +60,13 @@ internal data class BlenderSetupPayload(
 @Service(Service.Level.PROJECT)
 internal class BlenderEditorServerService(private val project: Project) : Disposable {
   private val logger = PluginLogger.getInstance(project)
+  private val notifications = NotificationModal.getInstance(project)
   private val objectMapper = ObjectMapper()
   private val pendingSessionIdentifiers = ConcurrentHashMap.newKeySet<String>()
+  private val pendingSessionCreatedAtMs = ConcurrentHashMap<String, Long>()
   private val setupPayloadsByIdentifier = ConcurrentHashMap<String, BlenderSetupPayload>()
   private val activeSessionPayloads = ConcurrentHashMap<String, BlenderSetupPayload>()
+  private val activeSessionUpdatedAtMs = ConcurrentHashMap<String, Long>()
   private val serverLock = Any()
 
   @Volatile
@@ -77,30 +82,62 @@ internal class BlenderEditorServerService(private val project: Project) : Dispos
     val port = ensureServerStarted()
     val identifier = UUID.randomUUID().toString()
     pendingSessionIdentifiers.add(identifier)
+    pendingSessionCreatedAtMs[identifier] = System.currentTimeMillis()
     return BlenderRuntimeLaunchSession(identifier = identifier, editorPort = port)
   }
 
   fun unregisterSession(identifier: String) {
     pendingSessionIdentifiers.remove(identifier)
+    pendingSessionCreatedAtMs.remove(identifier)
     setupPayloadsByIdentifier.remove(identifier)
     activeSessionPayloads.remove(identifier)
+    activeSessionUpdatedAtMs.remove(identifier)
     if (latestActiveSessionIdentifier == identifier) {
       latestActiveSessionIdentifier = activeSessionPayloads.keys.firstOrNull()
     }
   }
 
-  fun findSetupPayload(identifier: String): BlenderSetupPayload? = setupPayloadsByIdentifier[identifier]
-
-  fun removeSetupPayload(identifier: String): BlenderSetupPayload? = setupPayloadsByIdentifier.remove(identifier)
-
-  fun findActiveSessionPayload(identifier: String): BlenderSetupPayload? = activeSessionPayloads[identifier]
-
-  fun findLatestActiveSessionPayload(): BlenderSetupPayload? {
-    val identifier = latestActiveSessionIdentifier ?: return null
-    return activeSessionPayloads[identifier]
+  fun findSetupPayload(identifier: String): BlenderSetupPayload? {
+    cleanupExpiredSessions()
+    return setupPayloadsByIdentifier[identifier]
   }
 
-  fun getActiveSessionPayloads(): List<BlenderSetupPayload> = activeSessionPayloads.values.toList()
+  fun removeSetupPayload(identifier: String): BlenderSetupPayload? {
+    cleanupExpiredSessions()
+    return setupPayloadsByIdentifier.remove(identifier)
+  }
+
+  fun findActiveSessionPayload(identifier: String): BlenderSetupPayload? {
+    cleanupExpiredSessions()
+    val payload = activeSessionPayloads[identifier]
+    if (payload != null) {
+      activeSessionUpdatedAtMs[identifier] = System.currentTimeMillis()
+    }
+    return payload
+  }
+
+  fun findLatestActiveSessionPayload(): BlenderSetupPayload? {
+    cleanupExpiredSessions()
+    val identifier = latestActiveSessionIdentifier ?: return null
+    val payload = activeSessionPayloads[identifier] ?: return null
+    activeSessionUpdatedAtMs[identifier] = System.currentTimeMillis()
+    return payload
+  }
+
+  fun getActiveSessionPayloads(): List<BlenderSetupPayload> {
+    cleanupExpiredSessions()
+    val now = System.currentTimeMillis()
+    activeSessionPayloads.keys.forEach { identifier ->
+      activeSessionUpdatedAtMs[identifier] = now
+    }
+    return activeSessionPayloads.values.toList()
+  }
+
+  fun markSessionActivity(identifier: String) {
+    if (activeSessionPayloads.containsKey(identifier)) {
+      activeSessionUpdatedAtMs[identifier] = System.currentTimeMillis()
+    }
+  }
 
   override fun dispose() {
     synchronized(serverLock) {
@@ -108,8 +145,10 @@ internal class BlenderEditorServerService(private val project: Project) : Dispos
       server = null
       serverPort = -1
       pendingSessionIdentifiers.clear()
+      pendingSessionCreatedAtMs.clear()
       setupPayloadsByIdentifier.clear()
       activeSessionPayloads.clear()
+      activeSessionUpdatedAtMs.clear()
       latestActiveSessionIdentifier = null
     }
   }
@@ -140,8 +179,10 @@ internal class BlenderEditorServerService(private val project: Project) : Dispos
       val payloadNode = objectMapper.readTree(payloadText)
       val type = payloadNode.path("type").asText("")
 
-      if (type == "setup") {
-        registerSetupPayload(payloadNode)
+      when (type) {
+        "setup" -> registerSetupPayload(payloadNode)
+        "dependencyFailure",
+        "bootstrapFailure" -> handleRuntimeFailurePayload(payloadNode)
       }
 
       exchange.sendResponseHeaders(200, 0)
@@ -157,7 +198,7 @@ internal class BlenderEditorServerService(private val project: Project) : Dispos
   }
 
   private fun registerSetupPayload(payloadNode: JsonNode) {
-    val identifier = payloadNode.readFirstTextValue("identifier", "vscodeIdentifier")
+    val identifier = payloadNode.readFirstTextValue("identifier", "pycharmIdentifier", "vscodeIdentifier")
     if (identifier.isBlank()) {
       logger.warn("Blender setup payload is missing identifier: $payloadNode")
       return
@@ -178,9 +219,51 @@ internal class BlenderEditorServerService(private val project: Project) : Dispos
     )
     setupPayloadsByIdentifier[identifier] = setupPayload
     activeSessionPayloads[identifier] = setupPayload
+    activeSessionUpdatedAtMs[identifier] = System.currentTimeMillis()
     latestActiveSessionIdentifier = identifier
     pendingSessionIdentifiers.remove(identifier)
+    pendingSessionCreatedAtMs.remove(identifier)
     logger.debug("Registered Blender setup payload for session `$identifier`: $setupPayload")
+  }
+
+  private fun handleRuntimeFailurePayload(payloadNode: JsonNode) {
+    val identifier = payloadNode.readFirstTextValue("identifier", "pycharmIdentifier", "vscodeIdentifier")
+    if (identifier.isNotBlank()) {
+      pendingSessionIdentifiers.remove(identifier)
+      pendingSessionCreatedAtMs.remove(identifier)
+    }
+
+    val message = payloadNode.path("message").asText("").ifBlank {
+      MessageBundle.message("notification.blender.runtime.bootstrap.failed.generic")
+    }
+    val details = payloadNode.path("details").asText("")
+    if (details.isNotBlank()) {
+      logger.warn("Blender runtime bootstrap reported failure: $message ($details)")
+    } else {
+      logger.warn("Blender runtime bootstrap reported failure: $message")
+    }
+    notifications.sendError(
+      message,
+      MessageBundle.message("notification.blender.runtime.bootstrap.failed"),
+    )
+  }
+
+  private fun cleanupExpiredSessions() {
+    val now = System.currentTimeMillis()
+
+    pendingSessionCreatedAtMs.entries.toList().forEach { (identifier, createdAtMs) ->
+      if (now - createdAtMs > PENDING_SESSION_TTL_MS) {
+        logger.debug("Removing stale pending Blender runtime session `$identifier`.")
+        unregisterSession(identifier)
+      }
+    }
+
+    activeSessionUpdatedAtMs.entries.toList().forEach { (identifier, updatedAtMs) ->
+      if (now - updatedAtMs > ACTIVE_SESSION_TTL_MS) {
+        logger.debug("Removing stale active Blender runtime session `$identifier`.")
+        unregisterSession(identifier)
+      }
+    }
   }
 
   private fun parsePathMappings(pathMappingsNode: JsonNode): List<BlenderPathMapping> {
@@ -218,6 +301,9 @@ internal class BlenderEditorServerService(private val project: Project) : Dispos
   }
 
   companion object {
+    private const val PENDING_SESSION_TTL_MS = 60_000L
+    private const val ACTIVE_SESSION_TTL_MS = 12 * 60 * 60_000L
+
     fun getInstance(project: Project): BlenderEditorServerService = project.service()
   }
 }

@@ -171,9 +171,12 @@ internal class Launcher(private val project: Project) {
       .filterValues { it.isNotBlank() }
     )
 
-    environment["VSCODE_LOG_LEVEL"] = toRuntimeLogLevel(projectConfig.getBlenderLogLevel())
+    val runtimeLogLevel = toRuntimeLogLevel(projectConfig.getBlenderLogLevel())
+    environment["BLENDER_PYCHARM_LOG_LEVEL"] = runtimeLogLevel
+    environment["VSCODE_LOG_LEVEL"] = runtimeLogLevel
     val extensionsRepository = projectConfig.getExtensionsRepository().trim()
     if (extensionsRepository.isNotEmpty()) {
+      environment["BLENDER_PYCHARM_EXTENSIONS_REPOSITORY"] = extensionsRepository
       environment["VSCODE_EXTENSIONS_REPOSITORY"] = extensionsRepository
     }
     val configuredScriptDirectories = resolveConfiguredScriptDirectories()
@@ -184,6 +187,7 @@ internal class Launcher(private val project: Project) {
 
     if (launchSession != null) {
       environment["EDITOR_PORT"] = launchSession.editorPort.toString()
+      environment["BLENDER_PYCHARM_IDENTIFIER"] = launchSession.identifier
       environment["VSCODE_IDENTIFIER"] = launchSession.identifier
     }
 

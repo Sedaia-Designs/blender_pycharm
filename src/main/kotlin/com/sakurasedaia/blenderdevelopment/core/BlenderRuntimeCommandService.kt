@@ -29,11 +29,13 @@ import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import java.net.URI
+import java.net.ConnectException
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.nio.file.Files
 import java.nio.file.Path
+import java.time.Duration
 
 @Service(Service.Level.PROJECT)
 internal class BlenderRuntimeCommandService(private val project: Project) {
@@ -43,7 +45,9 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
   private val notifications = NotificationModal.getInstance(project)
   private val projectConfig = ProjectConfig.getInstance(project)
   private val editorServerService = BlenderEditorServerService.getInstance(project)
-  private val httpClient = HttpClient.newBuilder().build()
+  private val httpClient = HttpClient.newBuilder()
+    .connectTimeout(Duration.ofSeconds(4))
+    .build()
   private val objectMapper = ObjectMapper()
 
   fun sendReloadCommand(showSuccessNotification: Boolean = true) {
@@ -115,11 +119,13 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
         val request = HttpRequest.newBuilder()
           .uri(URI.create(endpoint))
           .header("Content-Type", "application/json")
+          .timeout(Duration.ofSeconds(8))
           .POST(HttpRequest.BodyPublishers.ofString(requestBody))
           .build()
         httpClient.send(request, HttpResponse.BodyHandlers.ofString())
       }.onSuccess { response ->
         if (response.statusCode() in 200..299) {
+          editorServerService.markSessionActivity(activeSession.identifier)
           if (showSuccessNotification) {
             notifications.sendInfo(onSuccessMessage)
           }
@@ -135,6 +141,13 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
         }
       }.onFailure { error ->
         logger.warn("Failed to send Blender runtime command `${payload["type"]}`.", error)
+        if (error is ConnectException) {
+          editorServerService.unregisterSession(activeSession.identifier)
+          notifications.sendWarning(
+            MessageBundle.message("notification.blender.runtime.command.session.unreachable"),
+          )
+          return@onFailure
+        }
         notifications.sendError(
           MessageBundle.message(
             "notification.blender.runtime.command.failed.exception",

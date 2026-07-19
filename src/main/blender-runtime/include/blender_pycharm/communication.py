@@ -11,7 +11,7 @@ import requests
 from werkzeug.serving import make_server
 
 from . import log
-from .environment import (LOG_FLASK, VSCODE_IDENTIFIER, blender_path,
+from .environment import (LOG_FLASK, PYCHARM_IDENTIFIER, VSCODE_IDENTIFIER, blender_path,
                           python_path, scripts_folder)
 from .utils import run_in_main_thread
 
@@ -24,6 +24,7 @@ DEBUGPY_PORT = None
 SERVER = flask.Flask("Blender Server")
 SERVER.logger.setLevel(logging.DEBUG if LOG_FLASK else logging.ERROR)
 POST_HANDLERS = {}
+REQUEST_TIMEOUT_SECONDS = 5
 
 
 def setup(address: str, path_mappings, wait_for_debugger: bool = True):
@@ -85,7 +86,7 @@ def start_own_server():
         if startup_failed.is_set():
             raise RuntimeError("Failed to start Flask server. See logs for details.") from result["exception"]
         time.sleep(0.07)
-    raise TimeoutError(f"Falsk server did not start within {timeout} seconds.")
+    raise TimeoutError(f"Flask server did not start within {timeout} seconds.")
 
 
 def start_debug_server():
@@ -159,6 +160,7 @@ def send_connection_information(path_mappings: Dict):
             "pathMappings": path_mappings,
             "addonPathMappings": path_mappings,
             "identifier": VSCODE_IDENTIFIER,
+            "pycharmIdentifier": PYCHARM_IDENTIFIER,
             "vscodeIdentifier": VSCODE_IDENTIFIER,
         }
     )
@@ -166,7 +168,7 @@ def send_connection_information(path_mappings: Dict):
 
 def send_dict_as_json(data):
     LOG.debug(f"Sending: {data}")
-    requests.post(EDITOR_ADDRESS, json=data)
+    requests.post(EDITOR_ADDRESS, json=data, timeout=REQUEST_TIMEOUT_SECONDS)
 
 
 # Utils

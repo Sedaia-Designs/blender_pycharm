@@ -10,6 +10,10 @@ def is_addon_legacy(addon_dir: Path) -> bool:
     """Return whether an addon uses the legacy bl_info behavior, or the new blender_manifest behavior"""
     if bpy.app.version < (4, 2, 0):
         return True
+    preferences = getattr(bpy.context, "preferences", None)
+    if not hasattr(preferences, "extensions"):
+        # Guard for compatibility with builds where extension APIs are unavailable.
+        return True
     if not (addon_dir / "blender_manifest.toml").exists():
         return True
     return False

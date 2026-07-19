@@ -1,8 +1,12 @@
 import sys
+import os
+import json
+import urllib.error
+import urllib.request
 from pprint import pformat
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import bpy
 
@@ -37,28 +41,48 @@ def startup(
         )
         return
 
-    from . import installation
+    try:
+        from . import installation
 
-    # blender 2.80 'ssl' module is compiled with 'OpenSSL 1.1.0h' what breaks with requests >2.29.0
-    installation.ensure_packages_are_installed(["debugpy", "requests<=2.29.0", "werkzeug<=3.0.3", "flask<=3.0.3"])
+        # blender 2.80 'ssl' module is compiled with 'OpenSSL 1.1.0h' what breaks with requests >2.29.0
+        try:
+            installation.ensure_packages_are_installed(["debugpy", "requests<=2.29.0", "werkzeug<=3.0.3", "flask<=3.0.3"])
+        except installation.DependencyInstallationError as error:
+            _report_bootstrap_failure(
+                editor_address=editor_address,
+                identifier=_read_runtime_identifier(),
+                message=f"Blender runtime dependency setup failed: {error}",
+                details=repr(error),
+                payload_type="dependencyFailure",
+            )
+            handle_fatal_error(f"Blender runtime dependency setup failed.\n{error}")
 
-    from . import load_addons
+        from . import load_addons
 
-    if addons_to_load is None:
-        addons_to_load = []
+        if addons_to_load is None:
+            addons_to_load = []
 
-    path_mappings = load_addons.setup_addon_links(addons_to_load)
+        path_mappings = load_addons.setup_addon_links(addons_to_load)
 
-    from . import communication
+        from . import communication
 
-    communication.setup(editor_address, path_mappings, wait_for_debugger=wait_for_debugger)
+        communication.setup(editor_address, path_mappings, wait_for_debugger=wait_for_debugger)
 
-    from . import operators, ui
+        from . import operators, ui
 
-    ui.register()
-    operators.register()
+        ui.register()
+        operators.register()
 
-    load_addons.load(addons_to_load)
+        load_addons.load(addons_to_load)
+    except Exception as error:
+        _report_bootstrap_failure(
+            editor_address=editor_address,
+            identifier=_read_runtime_identifier(),
+            message=f"Blender runtime bootstrap failed: {error}",
+            details=repr(error),
+            payload_type="bootstrapFailure",
+        )
+        raise
 
 
 def handle_fatal_error(message):
@@ -70,3 +94,38 @@ def handle_fatal_error(message):
     print(f"PATHONPATH: {pformat(sys.path)}")
     print()
     sys.exit(1)
+
+
+def _report_bootstrap_failure(
+    editor_address: Optional[str],
+    identifier: str,
+    message: str,
+    details: str = "",
+    payload_type: str = "bootstrapFailure",
+):
+    if not editor_address:
+        return
+    payload = {
+        "type": payload_type,
+        "identifier": identifier,
+        "pycharmIdentifier": identifier,
+        "vscodeIdentifier": identifier,
+        "message": message,
+        "details": details,
+    }
+    data = json.dumps(payload).encode("utf-8")
+    request = urllib.request.Request(
+        editor_address,
+        data=data,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=5):
+            pass
+    except (urllib.error.URLError, TimeoutError):
+        LOG.exception("Failed to report runtime bootstrap failure to editor.")
+
+
+def _read_runtime_identifier() -> str:
+    return os.environ.get("BLENDER_PYCHARM_IDENTIFIER", "") or os.environ.get("VSCODE_IDENTIFIER", "")

@@ -61,7 +61,7 @@
         <tr><td>Script injection</td><td>Always injects <code>--python &lt;scratch script&gt;</code>: Debug uses runtime bootstrap; normal Run uses a lightweight repo/add-on refresh script.</td></tr>
         <tr><td>Environment merge</td><td>Merges <code>PluginConfig.globalEnvironmentVariables</code> first, then project <code>environmentVariables</code> (project overrides duplicate keys).</td></tr>
         <tr><td>Runtime directory env</td><td>Publishes project <code>scriptDirectories</code> as <code>BLENDER_PYCHARM_SCRIPT_DIRECTORIES</code> for runtime addon loading/reload.</td></tr>
-        <tr><td>Handshake env</td><td>Sets <code>EDITOR_PORT</code> and <code>VSCODE_IDENTIFIER</code>; also forwards runtime env settings such as <code>VSCODE_LOG_LEVEL</code>.</td></tr>
+        <tr><td>Handshake env</td><td>Sets <code>EDITOR_PORT</code> and <code>BLENDER_PYCHARM_IDENTIFIER</code>; also forwards runtime env settings such as <code>BLENDER_PYCHARM_LOG_LEVEL</code>. During migration it still publishes legacy <code>VSCODE_*</code> keys for backward compatibility.</td></tr>
         <tr><td>Debug attach options</td><td>Uses handshake <code>debugpyPort</code> and path mappings and attaches via Python DAP (<code>debugpy</code>).</td></tr>
       </tbody>
     </table>
@@ -104,9 +104,11 @@ blender_pycharm.startup(**filtered_kwargs)</code></pre>
       <li>Custom listener removes generated bootstrap scripts when process exits.</li>
       <li><code>ExternalProcessBuilder</code> handles macOS bundle binary resolution and command adaptation.</li>
       <li><code>BlenderEditorServerService</code> accepts setup payloads from Blender and tracks them by session identifier.</li>
+      <li>Session tracking removes stale pending and inactive session entries after bounded TTL windows.</li>
       <li><code>BlenderDebugAttachService</code> starts a Python DAP attach configuration to <code>127.0.0.1:&lt;debugpyPort&gt;</code>.</li>
       <li>Debug runner save-listener subscription is disconnected when the process terminates.</li>
       <li>On startup, stale scripts are cleaned from scratch directory.</li>
+      <li>Runtime HTTP command calls use bounded connection/request timeouts and evict unreachable sessions from the active cache.</li>
       <li>Normal Run mode executes a small bootstrap that refreshes add-on/extension repos and reloads the configured add-on candidate before interactive use.</li>
     </ul>
   </section>

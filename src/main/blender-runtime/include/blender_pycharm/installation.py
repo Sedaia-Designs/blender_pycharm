@@ -5,12 +5,15 @@ import bpy
 
 from pathlib import Path
 
-from . import handle_fatal_error
 from . import log
 from .environment import python_path
 
 LOG = log.getLogger()
 _CWD_FOR_SUBPROCESSES = python_path.parent
+
+
+class DependencyInstallationError(RuntimeError):
+    pass
 
 
 def ensure_packages_are_installed(package_names):
@@ -43,10 +46,20 @@ def install_package(name: str):
     target = get_package_install_directory()
     command = [str(python_path), "-m", "pip", "install", name, "--target", target]
     LOG.info(f"Execute: {' '.join(command)}")
-    subprocess.run(command, cwd=_CWD_FOR_SUBPROCESSES)
+    result = subprocess.run(command, cwd=_CWD_FOR_SUBPROCESSES, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise DependencyInstallationError(
+            _build_command_failure_message(
+                package_name=name,
+                command=command,
+                return_code=result.returncode,
+                stdout=result.stdout,
+                stderr=result.stderr,
+            )
+        )
 
     if not module_can_be_imported(name):
-        handle_fatal_error(f"could not install {name}")
+        raise DependencyInstallationError(f"Package install finished but module is still unavailable: {name}")
 
 
 def install_pip():
@@ -54,11 +67,32 @@ def install_pip():
     if module_can_be_imported("ensurepip"):
         command = [str(python_path), "-m", "ensurepip", "--upgrade"]
         LOG.info(f"Execute: {' '.join(command)}")
-        subprocess.run(command, cwd=_CWD_FOR_SUBPROCESSES)
+        result = subprocess.run(command, cwd=_CWD_FOR_SUBPROCESSES, capture_output=True, text=True)
+        if result.returncode != 0:
+            raise DependencyInstallationError(
+                _build_command_failure_message(
+                    package_name="pip",
+                    command=command,
+                    return_code=result.returncode,
+                    stdout=result.stdout,
+                    stderr=result.stderr,
+                )
+            )
         return
     # pip can not necessarily be imported into Blender after this
     get_pip_path = Path(__file__).parent / "external" / "get-pip.py"
-    subprocess.run([str(python_path), str(get_pip_path)], cwd=_CWD_FOR_SUBPROCESSES)
+    command = [str(python_path), str(get_pip_path)]
+    result = subprocess.run(command, cwd=_CWD_FOR_SUBPROCESSES, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise DependencyInstallationError(
+            _build_command_failure_message(
+                package_name="pip",
+                command=command,
+                return_code=result.returncode,
+                stdout=result.stdout,
+                stderr=result.stderr,
+            )
+        )
 
 
 def get_package_install_directory() -> str:
@@ -85,3 +119,18 @@ def module_can_be_imported(name: str):
 def _strip_pip_version(name: str) -> str:
     name_strip_comparison_sign = name.replace(">", "=").replace("<", "=")
     return name_strip_comparison_sign.split("=")[0]
+
+
+def _build_command_failure_message(
+    package_name: str,
+    command: list[str],
+    return_code: int,
+    stdout: str,
+    stderr: str,
+) -> str:
+    stdout_tail = (stdout or "").strip()[-700:]
+    stderr_tail = (stderr or "").strip()[-700:]
+    return (
+        f"Failed to install runtime dependency `{package_name}`. Command: {' '.join(command)} "
+        f"(exit={return_code}). stdout={stdout_tail!r} stderr={stderr_tail!r}"
+    )
