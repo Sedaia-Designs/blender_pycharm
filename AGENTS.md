@@ -67,11 +67,17 @@ This document defines practical coding guidance for AI/code agents working in th
 
 ## Git Commit Guidelines
 
+- Avoid committing partially complete changes.
 - Avoid overly verbose commit messages.
 - Commit subject lines must be 150 characters maximum.
 - If a subclass is referenced (for example `PluginConfig.BlendInstallInfo`), include the parent class name when referring to that subclass.
 - All commits must use standardized prefixing: `[Type -> module] Description`.
 - Omit `-> module` when 3 or more modules are touched, using `[Type] Description` instead.
+- If a module is deleted with a new module created in a new location, example below, treat it as a file move instead of a deletion and recreation
+```diff
+- /.../utils/ImageProcessor.kt
++ /.../image/ImageProcessor.kt
+```
 
 ## Documentation
 
@@ -106,3 +112,16 @@ This document defines practical coding guidance for AI/code agents working in th
 - Keep filenames kebab-case and descriptive.
 - When a page is added or renamed in `docs/Wiki/project`, update `docs/Wiki/project/index.html` so navigation remains complete.
 - Include code snippets for complex APIs, workflows, or integration points.
+
+## Planning
+
+- Write plans as checkbox task lists so completion can be tracked step by step.
+- Start each plan with a short scope statement: what will be changed and what is explicitly out of scope.
+- Break work into small, testable steps with clear completion criteria.
+- Order steps by dependency (foundations first, integrations after) to reduce rework.
+- Include explicit validation tasks (for example compile, targeted tests, and manual behavior checks).
+- Include documentation update tasks when behavior, workflows, or configuration are changed.
+- Track risks/unknowns early and add follow-up tasks to resolve them before final integration.
+- Always include `Commit Changes` as the final plan item.
+- Commit completed module work as soon as that module is done, even if the broader feature is still in progress.
+  - Example: if a major feature plan includes a minor sub-feature, commit the minor feature once it is complete and awaiting integration.
