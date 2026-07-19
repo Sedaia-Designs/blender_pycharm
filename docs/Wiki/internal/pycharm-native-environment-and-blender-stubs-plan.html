@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PyCharm Native Environment and Blender Stubs Plan</title>
+  <link rel="stylesheet" href="./wiki.css" />
+</head>
+<body>
+<main>
+  <a class="wiki-home" href="./index.html">Internal Wiki</a>
+
+  <header>
+    <h1>PyCharm Native Environment and Blender Stubs Plan</h1>
+    <p class="muted">Implementation plan for the Blender new-project wizard on PyCharm 2026.1+</p>
+    <p>Scope: reuse PyCharm environment creation and SDK assignment, retain ownership of Blender-specific project generation, and install version-matched <code>fake-bpy-module</code> linting stubs. Unrelated run/debug and existing-project workflows are out of scope.</p>
+  </header>
+
+  <nav aria-label="Table of contents">
+    <strong>Contents</strong>
+    <ul>
+      <li><a href="#facts">1. Source-grounded facts</a></li>
+      <li><a href="#decisions">2. Architecture decisions</a></li>
+      <li><a href="#design">3. Target design</a></li>
+      <li><a href="#implementation">4. Implementation plan</a></li>
+      <li><a href="#validation">5. Validation and acceptance</a></li>
+      <li><a href="#risks">6. Risks and mitigations</a></li>
+      <li><a href="#references">7. Source references</a></li>
+    </ul>
+  </nav>
+
+  <section id="facts">
+    <h2>1) Source-Grounded Facts</h2>
+    <ul>
+      <li><code>PyV3ProjectBaseGenerator</code> is a <code>DirectoryProjectGenerator</code> intended to connect Python project-specific settings and UI to PyCharm's new-project workflow.</li>
+      <li>Its base generation flow creates or selects a Python SDK, assigns it to the supplied module, and then calls <code>PyV3ProjectTypeSpecificSettings.generateProject(module, baseDir, sdk)</code>.</li>
+      <li><code>PyV3ProjectTypeSpecificUI</code> provides an upper settings area and an Advanced Settings area around PyCharm's environment controls.</li>
+      <li><code>PythonPackageManager.forSdk(project, sdk)</code> selects a package-manager implementation for the configured SDK. The API is experimental and parts of package installation are internal.</li>
+      <li>The upstream <code>fake-bpy-module</code> documentation defines version-specific packages named <code>fake-bpy-module-&lt;Blender major.minor&gt;</code> and lists packages for Blender 4.2, 4.5, and 5.1.</li>
+      <li>Standalone PyCharm testing confirms that IntelliSense resolves the stubs when the package is installed into the selected SDK's site-packages. For unpacked or pre-generated modules outside the SDK, the directory containing the top-level stub modules must instead be attached to the project as a Sources Root.</li>
+      <li>The current <code>BlenderVersions</code> table contains Blender 4.2, 4.5, and 5.2. The supplied upstream documentation does not yet confirm a <code>fake-bpy-module-5.2</code> package.</li>
+      <li><code>PluginConfig.bpyApiInstallPath</code> already provides an application-level directory for storing fake-bpy code-completion files.</li>
+      <li>The current plugin wraps a generic <code>GeneratorNewProjectWizard</code> in a legacy directory-generator adapter and asks users to configure an interpreter and install <code>fake-bpy-module</code> manually.</li>
+    </ul>
+  </section>
+
+  <section id="decisions">
+    <h2>2) Architecture Decisions</h2>
+    <table>
+      <thead><tr><th>Decision</th><th>Rationale</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Extend <code>PyV3ProjectBaseGenerator</code></td>
+          <td>Reuse PyCharm's supported environment UI, SDK creation, module assignment, progress, and error lifecycle.</td>
+        </tr>
+        <tr>
+          <td>Do not copy PyCharm environment sources</td>
+          <td>A source copy would depend on numerous internal UI, interpreter, Eel, conda, uv, and navigation types that may change between IDE builds.</td>
+        </tr>
+        <tr>
+          <td>Set <code>supportsNotEmptyModuleStructure</code> to <code>false</code></td>
+          <td>The Blender generator remains the only owner of <code>src</code>, templates, and <code>pyproject.toml</code>.</td>
+        </tr>
+        <tr>
+          <td>Own Blender settings and UI</td>
+          <td>Blender metadata, manifest validation, permissions, templates, and project defaults remain independent of PyCharm implementation details.</td>
+        </tr>
+        <tr>
+          <td>Hide packaging APIs behind a small interface</td>
+          <td>Experimental and internal PyCharm package APIs are isolated to one replaceable implementation and can be faked in tests.</td>
+        </tr>
+        <tr>
+          <td>Treat stub installation as nonfatal</td>
+          <td>A network or repository failure must not discard an otherwise valid generated project.</td>
+        </tr>
+        <tr>
+          <td>Prefer SDK installation over Sources Root attachment</td>
+          <td>Site-packages is the normal interpreter-aware indexing path. A Sources Root is reserved for validated unpacked stubs when package installation is unavailable.</td>
+        </tr>
+        <tr>
+          <td>Reuse <code>bpyApiInstallPath</code> for fallback stubs</td>
+          <td>The existing application setting provides one managed cache location; version-specific subdirectories prevent Blender API versions from colliding.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="design">
+    <h2>3) Target Design</h2>
+    <h3>Generator and settings boundary</h3>
+    <pre><code class="language-kotlin">class BlenderProjectDirectoryGenerator :
+  PyV3ProjectBaseGenerator&lt;BlenderProjectSettings&gt;(
+    typeSpecificSettings = BlenderProjectSettings(),
+    typeSpecificUI = BlenderProjectUI,
+    _newProjectName = "BlenderExtension",
+    supportsNotEmptyModuleStructure = false,
+  )
+
+class BlenderProjectSettings : PyV3ProjectTypeSpecificSettings {
+  override suspend fun generateProject(
+    module: Module,
+    baseDir: VirtualFile,
+    sdk: Sdk,
+  ): PyResult&lt;Unit&gt; {
+    // Generate Blender files, then configure linting stubs in this SDK.
+  }
+}</code></pre>
+
+    <h3>Package installer boundary</h3>
+    <pre><code class="language-kotlin">interface BlenderPythonPackageInstaller {
+  suspend fun installDevelopmentPackage(
+    project: Project,
+    module: Module,
+    sdk: Sdk,
+    requirement: String,
+  ): PyResult&lt;Unit&gt;
+}</code></pre>
+
+    <h3>Generation sequence</h3>
+    <ol>
+      <li>PyCharm validates the environment form.</li>
+      <li>PyCharm creates or selects the SDK and assigns it to the existing Python module.</li>
+      <li>The Blender settings object generates project directories, templates, source roots, and <code>ProjectConfig</code> defaults.</li>
+      <li>The selected Blender major/minor resolves to a version-specific stub package.</li>
+      <li>The package installer installs the stub into the assigned SDK's site-packages and records it as a development-only dependency where the package manager supports dependency groups.</li>
+      <li>PyCharm refreshes package and SDK paths so <code>import bpy</code> becomes available to analysis without marking site-packages as a Sources Root.</li>
+      <li>If package installation is unavailable and validated unpacked stubs exist under <code>bpyApiInstallPath/&lt;major.minor&gt;</code>, attach that version directory to the module as a Sources Root and refresh project roots.</li>
+    </ol>
+
+    <table>
+      <thead><tr><th>Selected Blender</th><th>Stub requirement</th></tr></thead>
+      <tbody>
+        <tr><td>4.2.x</td><td><code>fake-bpy-module-4.2</code></td></tr>
+        <tr><td>4.5.x</td><td><code>fake-bpy-module-4.5</code></td></tr>
+        <tr><td>5.1.x</td><td><code>fake-bpy-module-5.1</code> (upstream-confirmed, but not currently selected by <code>BlenderVersions</code>)</td></tr>
+        <tr><td>5.2.x</td><td>No confirmed package; require a verified future mapping or validated unpacked stubs</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <strong>Constraint:</strong> Do not fall back to the rolling <code>fake-bpy-module</code> package for an unknown Blender release. Use only an explicitly verified version-specific package or a validated unpacked stub directory for the same Blender major/minor.
+    </div>
+  </section>
+
+  <section id="implementation">
+    <h2>4) Implementation Plan</h2>
+    <p>Tasks are ordered by dependency. Each checkbox has a testable completion condition.</p>
+
+    <h3>Foundation</h3>
+    <ul>
+      <li><input type="checkbox" /> Replace the adapter inheritance in <code>BlenderProjectDirectoryGenerator</code> with <code>PyV3ProjectBaseGenerator&lt;BlenderProjectSettings&gt;</code> while retaining the <code>directoryProjectGenerator</code> registration.</li>
+      <li><input type="checkbox" /> Add a settings model implementing <code>PyV3ProjectTypeSpecificSettings</code> and move all Blender form state into it.</li>
+      <li><input type="checkbox" /> Add a UI implementation using <code>PyV3ProjectTypeSpecificUI</code>; keep common fields above the environment picker and detailed manifest and permission fields under Advanced Settings.</li>
+      <li><input type="checkbox" /> Preserve existing validation messages and move any remaining user-visible literals into <code>MessageBundle.properties</code>.</li>
+    </ul>
+
+    <h3>Scaffolding integration</h3>
+    <ul>
+      <li><input type="checkbox" /> Refactor <code>BlenderProjectGenerator</code> to accept the supplied <code>Module</code>, <code>VirtualFile</code>, and <code>Sdk</code> rather than discovering the first module.</li>
+      <li><input type="checkbox" /> Perform VFS, template, and source-root mutations through the required EDT/write actions and return <code>PyResult</code> failures instead of swallowing exceptions.</li>
+      <li><input type="checkbox" /> Keep the plugin responsible for <code>src</code>, Blender manifest, Python package metadata, examples, license, README, Git ignore rules, and <code>ProjectConfig</code> defaults.</li>
+      <li><input type="checkbox" /> Generate <code>pyproject.toml</code> before invoking package installation.</li>
+    </ul>
+
+    <h3>Linting stub installation</h3>
+    <ul>
+      <li><input type="checkbox" /> Add an “Install Blender API linting stubs” setting that defaults to enabled.</li>
+      <li><input type="checkbox" /> Add a pure resolver that maps a selected Blender version to <code>fake-bpy-module-&lt;major.minor&gt;</code> only when the version is supported.</li>
+      <li><input type="checkbox" /> Add <code>BlenderPythonPackageInstaller</code> and a production implementation backed by <code>PythonPackageManager.forSdk(project, sdk)</code>.</li>
+      <li><input type="checkbox" /> Record the stub as a development-only dependency and install it into the SDK selected by PyCharm, verifying that it becomes visible through the SDK's site-packages roots.</li>
+      <li><input type="checkbox" /> Make repeated installation safe when the required package is already installed.</li>
+      <li><input type="checkbox" /> Add a fallback stub-root provider that resolves version-specific unpacked modules beneath <code>PluginConfig.getCodeCompletionPath()</code>, validates their expected top-level module layout, and attaches only the matching directory to the generated module as a Sources Root.</li>
+      <li><input type="checkbox" /> Ensure root attachment is idempotent, is performed through the module root model on the correct write thread, and never marks the SDK's own site-packages directory as a project Sources Root.</li>
+      <li><input type="checkbox" /> On installation failure with no valid fallback root, keep project generation successful, write diagnostic details through <code>PluginLogger</code>, and show a localized <code>NotificationModal</code> message containing the exact package requirement and Sources Root recovery instructions.</li>
+    </ul>
+
+    <h3>Legacy removal and documentation</h3>
+    <ul>
+      <li><input type="checkbox" /> Remove the generic wizard, wizard-data interface, directory-generator adapter, and custom legacy settings step after the PyV3 flow is verified.</li>
+      <li><input type="checkbox" /> Update project documentation and the generated README to replace manual interpreter and stub instructions with the automatic workflow and recovery steps.</li>
+    </ul>
+  </section>
+
+  <section id="validation">
+    <h2>5) Validation and Acceptance</h2>
+    <ul>
+      <li><input type="checkbox" /> Unit-test package resolution for Blender 4.2 and 4.5, the upstream-confirmed 5.1 package, current unsupported Blender 5.2, full patch versions, and an unknown release.</li>
+      <li><input type="checkbox" /> Test enabled, disabled, successful, already-installed, failed, and cancelled stub installation through a fake installer.</li>
+      <li><input type="checkbox" /> Test valid, missing, malformed, mismatched-version, already-attached, and external fallback Sources Root handling.</li>
+      <li><input type="checkbox" /> Test that package failure does not prevent Blender files or project configuration from being generated.</li>
+      <li><input type="checkbox" /> Test settings-to-manifest conversion and generation against the module supplied by PyCharm.</li>
+      <li><input type="checkbox" /> Run <code>./gradlew test --no-daemon</code>.</li>
+      <li><input type="checkbox" /> Run <code>./gradlew compileKotlin --no-daemon</code>.</li>
+      <li><input type="checkbox" /> Run plugin verification against PyCharm 2026.1.</li>
+      <li><input type="checkbox" /> Manually create projects with Project venv, Project uv, and an existing interpreter; confirm exactly one module, the selected SDK, generated Blender files, installation under the selected environment's site-packages, and code completion for <code>import bpy</code>.</li>
+      <li><input type="checkbox" /> Manually remove or disable the package, attach validated unpacked stubs through the fallback, and confirm <code>import bpy</code> completion from the Sources Root.</li>
+      <li><input type="checkbox" /> Commit Changes with <code>[Feature -&gt; wizard] Add native Python environments and Blender API stubs</code>.</li>
+    </ul>
+  </section>
+
+  <section id="risks">
+    <h2>6) Risks and Mitigations</h2>
+    <table>
+      <thead><tr><th>Risk</th><th>Mitigation</th></tr></thead>
+      <tbody>
+        <tr><td>PyCharm packaging API changes</td><td>Keep all experimental/internal calls in one installer implementation and cover its contract with fakes.</td></tr>
+        <tr><td>Network or repository unavailable</td><td>Complete project creation and provide a retryable manual requirement.</td></tr>
+        <tr><td>Environment manager edits project structure</td><td>Disable <code>supportsNotEmptyModuleStructure</code> and generate all Blender files in the type-specific phase.</td></tr>
+        <tr><td>Unsupported future Blender version</td><td>Require an explicit package mapping before enabling automatic installation.</td></tr>
+        <tr><td>Linting stub leaks into runtime dependencies</td><td>Store it as a development-only dependency and keep it out of Blender packaging.</td></tr>
+        <tr><td>Stale or wrong fallback stubs are indexed</td><td>Use version-specific subdirectories, validate the expected module layout, and attach only the directory matching the selected Blender major/minor.</td></tr>
+        <tr><td>Duplicate or overly broad project roots</td><td>Check existing module roots before attachment and never mark the code-completion cache parent or SDK site-packages as a Sources Root.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="references">
+    <h2>7) Source References</h2>
+    <ul class="refs">
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/wizard/legacy/BlenderProjectDirectoryGenerator.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/wizard/legacy/NewProjectWizardDirectoryGeneratorAdapter.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/wizard/BlenderNewProjectWizardStep.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/wizard/BlenderNewProjectGenerator.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/lib/BlenderVersions.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/state/PluginConfig.kt</code></li>
+      <li><code>/blender_pycharm/src/main/resources/fileTemplates/internal/README.ft</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/newProjectWizard/PyV3ProjectBaseGenerator.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/newProjectWizard/PyV3ProjectTypeSpecificSettings.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/newProjectWizard/PyV3ProjectTypeSpecificUI.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/newProjectWizard/PyV3BaseProjectSettings.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/packaging/management/PythonPackageManager.kt</code></li>
+      <li><a href="https://github.com/nutti/fake-bpy-module/blob/main/README.md">fake-bpy-module README</a></li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>
