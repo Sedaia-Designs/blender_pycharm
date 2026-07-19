@@ -17,7 +17,6 @@
 
 package com.sakurasedaia.blenderdevelopment.wizard
 
-import com.intellij.ide.fileTemplates.FileTemplateManager
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
@@ -29,8 +28,8 @@ import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
 import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
 import com.sakurasedaia.blenderdevelopment.lib.ProjectConfig
+import com.sakurasedaia.blenderdevelopment.util.PluginResources
 import org.jetbrains.jps.model.java.JavaSourceRootType
-import java.util.Properties
 
 /** Immutable configuration payload consumed by [BlenderProjectGenerator]. */
 data class BlenderExtensionManifest (
@@ -121,6 +120,9 @@ class BlenderProjectGenerator(val data: BlenderExtensionManifest) {
                 }
                 generateLicense(project, baseDir)
                 
+                // Generate PyProject.Toml for UV
+                generatePyproject(project, baseDir)
+                
             } catch (e: Exception) {
                 logger.warn("Project generation failed for ${data.name} at ${baseDir.path}", e)
                 notifications.sendError(MessageBundle.message("notification.project.generation.failed"), throwable = e)
@@ -138,63 +140,18 @@ class BlenderProjectGenerator(val data: BlenderExtensionManifest) {
         logger.log("Project generation complete")
     }
     
-    
-    /**
-     * Renders a file template and writes it to the target directory.
-     *
-     * @param project active project context.
-     * @param targetName output file name.
-     * @param templateName optional template name override.
-     * @param parentDir parent directory for generated output.
-     * @param internal whether the template comes from internal templates.
-     * @param args key/value template variables.
-     * @return rendered template content.
-     */
-    private fun createFromTemplate(
-        project: Project,
-        targetName: String,
-        templateName: String? = null,
-        parentDir: VirtualFile,
-        internal: Boolean = false,
-        vararg args: Pair<String, String?>
-    ): String {
-        val templateManager = FileTemplateManager.getInstance(project)
-        val templateFileName = templateName ?: targetName
-        
-        val template = when (internal) {
-            true -> templateManager.getInternalTemplate(templateFileName)
-            else -> templateManager.getTemplate(templateFileName)
-        } ?: throw IllegalStateException(MessageBundle.message("ui.project.wizard.error.project.template.file.missing", templateFileName))
-        if (template.text.isEmpty()) throw IllegalStateException(MessageBundle.message("ui.project.wizard.error.project.template.template.missing", templateFileName))
-        
-        val templateProps = Properties(templateManager.defaultProperties)
-        
-        args.forEach { (name, value) ->
-            if (value != null) {
-                templateProps.setProperty(name, value)
-            }
-        }
-        
-        val result = template.getText(templateProps)
-        
-        val file = parentDir.findChild(targetName) ?: parentDir.createChildData(this, targetName)
-        file.setBinaryContent(result.toByteArray())
-        return result
-    }
-    
     /**
      * Creates `pyproject.toml` from the internal file template.
      *
      * @param project active project context.
      * @param baseDir project root directory.
-     * @return `Unit`.
      */
     fun generatePyproject(project: Project, baseDir: VirtualFile) {
-        createFromTemplate(
+        PluginResources.createFromTemplate(
             project,
-            targetName="pyproject.toml",
-            templateName = "Pyproject",
-            parentDir=baseDir,
+            name="pyproject.toml",
+            template = "Pyproject",
+            destination=baseDir,
             internal=true,
             Pair("name", data.name),
             Pair("version", data.extensionVersion),
@@ -207,7 +164,6 @@ class BlenderProjectGenerator(val data: BlenderExtensionManifest) {
      *
      * @param project active project context.
      * @param baseDir output directory for the manifest file.
-     * @return `Unit`.
      */
     fun generateManifest(project: Project, baseDir: VirtualFile) {
         // Helper to ensure empty strings are passed instead of nulls for Velocity logic.
@@ -223,11 +179,11 @@ class BlenderProjectGenerator(val data: BlenderExtensionManifest) {
             else -> ""
         }
         
-        createFromTemplate(
+        PluginResources.createFromTemplate(
             project = project,
-            targetName = "blender_manifest.toml",
-            templateName = "BlenderManifest",
-            parentDir = baseDir,
+            name = "blender_manifest.toml",
+            template = "BlenderManifest",
+            destination = baseDir,
             internal = true,
             
             // Base Info
@@ -258,17 +214,16 @@ class BlenderProjectGenerator(val data: BlenderExtensionManifest) {
      *
      * @param project active project context.
      * @param baseDir output directory for the script.
-     * @return `Unit`.
      */
     fun generateMainScript(project: Project, baseDir: VirtualFile) {
         // Helper for normalizing nullable strings.
         fun String?.valOrEmpty(): String = if (this.isNullOrBlank()) "" else this
         
-        createFromTemplate(
+        PluginResources.createFromTemplate(
             project = project,
-            targetName = "__init__.py",
-            templateName = "NewProjectMainScript", // Ensure this matches your plugin.xml registration
-            parentDir = baseDir,
+            name = "__init__.py",
+            template = "NewProjectMainScript", // Ensure this matches your plugin.xml registration
+            destination = baseDir,
             internal = true,
             
             // Flags for the #if blocks
@@ -288,14 +243,13 @@ class BlenderProjectGenerator(val data: BlenderExtensionManifest) {
      *
      * @param project active project context.
      * @param baseDir project root directory.
-     * @return `Unit`.
      */
     fun generateGitIgnore(project: Project, baseDir: VirtualFile) {
-        createFromTemplate(
+        PluginResources.createFromTemplate(
             project,
-            targetName=".gitignore",
-            templateName = "GitIgnore",
-            parentDir = baseDir,
+            name=".gitignore",
+            template = "GitIgnore",
+            destination = baseDir,
             internal = true,
         )
     }
@@ -304,14 +258,13 @@ class BlenderProjectGenerator(val data: BlenderExtensionManifest) {
      *
      * @param project active project context.
      * @param baseDir project root directory.
-     * @return `Unit`.
      */
     fun generateLicense(project: Project, baseDir: VirtualFile) {
-        createFromTemplate(
+        PluginResources.createFromTemplate(
             project,
-            targetName="LICENSE",
-            templateName = "GplLicenseV3",
-            parentDir = baseDir,
+            name="LICENSE",
+            template = "GplLicenseV3",
+            destination = baseDir,
             internal = true
         )
     }
@@ -320,16 +273,15 @@ class BlenderProjectGenerator(val data: BlenderExtensionManifest) {
      *
      * @param project active project context.
      * @param baseDir project root directory.
-     * @return `Unit`.
      */
     fun generateReadme(project: Project, baseDir: VirtualFile) {
         // Helper for normalizing nullable strings.
         fun String?.valOrEmpty(): String = if (this.isNullOrBlank()) "" else this
-        createFromTemplate(
+        PluginResources.createFromTemplate(
             project,
-            targetName="README.md",
-            templateName = "README",
-            parentDir = baseDir,
+            name="README.md",
+            template = "README",
+            destination = baseDir,
             internal = true,
             
             // Metadata
