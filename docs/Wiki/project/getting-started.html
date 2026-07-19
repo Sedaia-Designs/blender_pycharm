@@ -87,6 +87,7 @@
     <pre><code class="language-kotlin">val packageBlenderRuntime by registering(Zip::class) {
   archiveFileName.set("blender-runtime.zip")
   from(layout.projectDirectory.dir("src/main/blender-runtime"))
+  exclude("**/__pycache__/**", "**/*.pyc", "**/*.pyo")
 }
 
 processResources {

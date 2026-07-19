@@ -49,6 +49,7 @@ tasks {
         archiveFileName.set("blender-runtime.zip")
         destinationDirectory.set(layout.buildDirectory.dir("generated/blender-runtime"))
         from(layout.projectDirectory.dir("src/main/blender-runtime"))
+        exclude("**/__pycache__/**", "**/*.pyc", "**/*.pyo")
     }
 
     processResources {

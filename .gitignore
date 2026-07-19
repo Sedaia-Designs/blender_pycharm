@@ -23,3 +23,19 @@ out/
 .hidden/
 .output.txt
 .reference
+
+### Python ###
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.tox/
+.nox/
+.eggs/
+*.egg-info/
+dist/
+wheels/
+pip-wheel-metadata/
