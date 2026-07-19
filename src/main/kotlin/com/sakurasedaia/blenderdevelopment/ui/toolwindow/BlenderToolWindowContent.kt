@@ -105,7 +105,7 @@ class BlenderToolWindowContent(private val project: Project,
                 }
                 return false
             }
-
+            
             config.setBlenderPath(blenderPathField.text.trim())
             config.setAddonSymlinkName(addonSymlinkField.text.trim())
             config.setSourceFolder(sourceFolder)
@@ -158,7 +158,7 @@ class BlenderToolWindowContent(private val project: Project,
         fun installDisplayValues(installs: List<PluginConfig.BlendInstallInfo>): Array<String> {
             return installs.map { install ->
                 val label = install.name.trim()
-                if (label.isNotBlank()) label else install.path
+                label.ifBlank { install.path }
             }.toTypedArray()
         }
 

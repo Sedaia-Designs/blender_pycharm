@@ -152,7 +152,7 @@ object BlenderVersions {
      * @param version raw version string.
      * @return normalized major/minor version.
      */
-    private fun normalizeVersion(version: String): String {
+    fun normalizeVersion(version: String): String {
         val parts = version.split('.')
         return if (parts.size >= 2) "${parts[0]}.${parts[1]}" else version
     }
