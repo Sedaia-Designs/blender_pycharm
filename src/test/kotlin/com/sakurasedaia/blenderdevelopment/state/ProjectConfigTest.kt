@@ -55,7 +55,7 @@ class ProjectConfigTest : BasePlatformTestCase() {
     config.setBlenderLogLevel(BlenderLogLevel.TRACE)
     config.setReloadOnSave(false)
     config.setJustMyCode(false)
-    config.setExtensionsRepository("https://extensions.example.com")
+    config.setExtensionsRepository("extensions_example")
     config.setEnvironmentVariables(envVars)
     config.setScriptDirectories(scriptDirectories)
 
@@ -67,7 +67,7 @@ class ProjectConfigTest : BasePlatformTestCase() {
     assertEquals(BlenderLogLevel.TRACE, config.getBlenderLogLevel())
     assertFalse(config.getReloadOnSave())
     assertFalse(config.getJustMyCode())
-    assertEquals("https://extensions.example.com", config.getExtensionsRepository())
+    assertEquals("extensions_example", config.getExtensionsRepository())
     assertEquals(envVars, config.getEnvironmentVariables())
     assertEquals(scriptDirectories, config.getScriptDirectories())
   }
@@ -84,5 +84,21 @@ class ProjectConfigTest : BasePlatformTestCase() {
     assertThrows(IndexOutOfBoundsException::class.java) {
       config.setBlenderVersion("5")
     }
+  }
+
+  fun testAddonSymlinkNameNormalizesSpacesAndHyphensToUnderscoresOnSave() {
+    config.setAddonSymlinkName("  Sakura-Rig Interfaces-Dev  ")
+    assertEquals("Sakura_Rig_Interfaces_Dev", config.getAddonSymlinkName())
+  }
+
+  fun testAddonSymlinkAndExtensionsRepositoryRejectInvalidModuleNames() {
+    val initialSymlink = config.getAddonSymlinkName()
+    val initialRepository = config.getExtensionsRepository()
+
+    config.setAddonSymlinkName("invalid.module")
+    config.setExtensionsRepository("invalid-repository!")
+
+    assertEquals(initialSymlink, config.getAddonSymlinkName())
+    assertEquals(initialRepository, config.getExtensionsRepository())
   }
 }

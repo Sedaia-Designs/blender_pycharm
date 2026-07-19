@@ -20,6 +20,7 @@ package com.sakurasedaia.blenderdevelopment.ui.toolwindow
 import com.intellij.openapi.observable.properties.GraphProperty
 import com.intellij.openapi.observable.properties.PropertyGraph
 import com.intellij.openapi.observable.util.equalsTo
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
@@ -29,7 +30,6 @@ import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
 import com.sakurasedaia.blenderdevelopment.core.BlenderRuntimeCommandService
-import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.ui.components.EnvironmentVariablesTable
@@ -37,15 +37,18 @@ import com.sakurasedaia.blenderdevelopment.ui.components.ScriptDirectoriesTable
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig.BlenderLogLevel
+import com.sakurasedaia.blenderdevelopment.util.PythonModuleNameValidator
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JCheckBox
 import javax.swing.JComboBox
 import javax.swing.JComponent
 import javax.swing.JScrollPane
 import javax.swing.JTextField
-import javax.swing.Timer
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
+import javax.swing.text.AbstractDocument
+import javax.swing.text.AttributeSet
+import javax.swing.text.DocumentFilter
 import javax.swing.text.JTextComponent
 
 /** Builds the Blender tool window UI for editing workspace configuration values. */
@@ -53,10 +56,6 @@ class BlenderToolWindowContent(
   private val project: Project,
   private val onScanInstallations: (onCompleted: () -> Unit) -> Unit,
 ) {
-  private companion object {
-    const val AUTOSAVE_DEBOUNCE_MS = 500
-  }
-
   private data class UiState(
     var detectedBlenderInstalls: List<PluginConfig.BlendInstallInfo> = emptyList(),
   )
@@ -69,7 +68,6 @@ class BlenderToolWindowContent(
   fun getContent(): JComponent {
     val config = ProjectConfig.getInstance(project)
     val pluginConfig = PluginConfig.getInstance()
-    val notifications = NotificationModal.getInstance(project)
     val logger = PluginLogger.getInstance(project)
     val runtimeCommandService = BlenderRuntimeCommandService.getInstance(project)
 
@@ -88,6 +86,7 @@ class BlenderToolWindowContent(
     val blenderLogLevels = BlenderLogLevel.entries
     val uiState = UiState()
     var isLoadingFromConfig = false
+    lateinit var loadFromConfig: () -> Unit
 
     fun logLevelLabel(level: BlenderLogLevel): String {
       return when (level) {
@@ -110,52 +109,102 @@ class BlenderToolWindowContent(
       blenderLogLevelCombo.selectedIndex = selectedIndex
     }
 
-    fun saveToConfig(showValidationNotification: Boolean): Boolean {
-      val sourceFolder = sourceFolderField.text.trim()
-      if (sourceFolder.isEmpty()) {
-        if (showValidationNotification) {
-          logger.warn("Workspace save blocked: source folder is empty")
-          notifications.sendWarning(MessageBundle.message("ui.toolwindow.utility.save.validation.source.empty"))
-        }
-        return false
-      }
-
-      config.setBlenderPath(blenderPathField.text.trim())
-      config.setAddonSymlinkName(addonSymlinkField.text.trim())
-      config.setSourceFolder(sourceFolder)
-      config.setRunArguments(runArgumentsField.text.trim())
-      config.setBlenderLogLevel(getSelectedBlenderLogLevel())
-      config.setReloadOnSave(reloadOnSaveCheckBox.isSelected)
-      config.setJustMyCode(justMyCodeCheckBox.isSelected)
-      config.setExtensionsRepository(extensionsRepositoryField.text.trim())
-      config.setEnvironmentVariables(environmentVariablesTable.getVariables())
-      config.setScriptDirectories(scriptDirectoriesTable.getDirectories().ifEmpty { null })
-      // TODO: Add a hook to update the project based on if the setBlenderPath is different than when saved last
-      return true
-    }
-
-    val autosaveTimer = Timer(AUTOSAVE_DEBOUNCE_MS) {
-      if (isLoadingFromConfig) return@Timer
-      if (saveToConfig(showValidationNotification = false)) {
-        logger.debug("Autosaved workspace settings from Blender tool window.")
-      }
-    }.apply {
-      isRepeats = false
-    }
-
-    fun scheduleAutosave() {
+    fun autosaveField(fieldName: String, write: () -> Unit) {
       if (isLoadingFromConfig) return
-      autosaveTimer.restart()
+      write()
+      logger.debug("Autosaved `$fieldName` from Blender tool window.")
     }
-    environmentVariablesTable.setOnChangeListener(::scheduleAutosave)
-    scriptDirectoriesTable.setOnChangeListener(::scheduleAutosave)
 
-    fun addAutosaveListener(textComponent: JTextComponent) {
+    fun autosaveBlenderPath() = autosaveField("blenderPath") {
+      config.setBlenderPath(blenderPathField.text.trim())
+    }
+
+    fun autosaveAddonSymlinkName() {
+      val candidate = addonSymlinkField.text.trim()
+      if (!PythonModuleNameValidator.isValid(candidate)) {
+        logger.debug("Skipped autosave for `addonSymlinkName`: value is not a valid Python module name.")
+        return
+      }
+      autosaveField("addonSymlinkName") {
+        config.setAddonSymlinkName(candidate)
+      }
+    }
+
+    fun autosaveSourceFolder() = autosaveField("sourceFolder") {
+      config.setSourceFolder(sourceFolderField.text.trim())
+    }
+
+    fun autosaveRunArguments() = autosaveField("runArguments") {
+      config.setRunArguments(runArgumentsField.text.trim())
+    }
+
+    fun autosaveBlenderLogLevel() = autosaveField("blenderLogLevel") {
+      config.setBlenderLogLevel(getSelectedBlenderLogLevel())
+    }
+
+    fun autosaveReloadOnSave() = autosaveField("reloadOnSave") {
+      config.setReloadOnSave(reloadOnSaveCheckBox.isSelected)
+    }
+
+    fun autosaveJustMyCode() = autosaveField("justMyCode") {
+      config.setJustMyCode(justMyCodeCheckBox.isSelected)
+    }
+
+    fun autosaveExtensionsRepository() = autosaveField("extensionsRepository") {
+      val candidate = extensionsRepositoryField.text.trim()
+      if (!PythonModuleNameValidator.isValid(candidate)) {
+        logger.debug("Skipped autosave for `extensionsRepository`: value is not a valid Python module name.")
+        return@autosaveField
+      }
+      config.setExtensionsRepository(candidate)
+    }
+
+    fun autosaveEnvironmentVariables() = autosaveField("environmentVariables") {
+      config.setEnvironmentVariables(environmentVariablesTable.getVariables())
+    }
+
+    fun autosaveScriptDirectories() = autosaveField("scriptDirectories") {
+      config.setScriptDirectories(scriptDirectoriesTable.getDirectories().ifEmpty { null })
+    }
+
+    environmentVariablesTable.setOnChangeListener(::autosaveEnvironmentVariables)
+    scriptDirectoriesTable.setOnChangeListener(::autosaveScriptDirectories)
+
+    fun addAutosaveListener(textComponent: JTextComponent, onChange: () -> Unit) {
       textComponent.document.addDocumentListener(object : DocumentListener {
-        override fun insertUpdate(e: DocumentEvent?) = scheduleAutosave()
-        override fun removeUpdate(e: DocumentEvent?) = scheduleAutosave()
-        override fun changedUpdate(e: DocumentEvent?) = scheduleAutosave()
+        override fun insertUpdate(e: DocumentEvent?) = onChange()
+        override fun removeUpdate(e: DocumentEvent?) = onChange()
+        override fun changedUpdate(e: DocumentEvent?) = onChange()
       })
+    }
+
+    fun installRealtimeSymlinkNormalization(field: JTextField) {
+      val document = field.document as? AbstractDocument ?: return
+      document.documentFilter = object : DocumentFilter() {
+        fun normalized(value: String?): String? {
+          if (value == null) return null
+          return value.replace(' ', '_').replace('-', '_')
+        }
+
+        override fun insertString(
+          fb: FilterBypass,
+          offset: Int,
+          string: String?,
+          attr: AttributeSet?,
+        ) {
+          super.insertString(fb, offset, normalized(string), attr)
+        }
+
+        override fun replace(
+          fb: FilterBypass,
+          offset: Int,
+          length: Int,
+          text: String?,
+          attrs: AttributeSet?,
+        ) {
+          super.replace(fb, offset, length, normalized(text), attrs)
+        }
+      }
     }
 
     fun updateInstallControlState() {
@@ -236,7 +285,7 @@ class BlenderToolWindowContent(
      *
      * @return `Unit`.
      */
-    fun loadFromConfig() {
+    loadFromConfig = {
       isLoadingFromConfig = true
       addonSymlinkField.text = config.getAddonSymlinkName()
       sourceFolderField.text = config.getSourceFolder()
@@ -271,7 +320,7 @@ class BlenderToolWindowContent(
               availableBlenderInstalls = this
               addActionListener {
                 syncBlenderPathFromInstallSelection()
-                scheduleAutosave()
+                autosaveBlenderPath()
               }
             }
         }.visibleIf(useCustomBlenderInstallProperty.equalsTo(false))
@@ -280,7 +329,7 @@ class BlenderToolWindowContent(
             .align(AlignX.FILL)
             .applyToComponent {
               blenderPathField = this
-              addAutosaveListener(textField)
+              addAutosaveListener(textField, ::autosaveBlenderPath)
             }
         }.visibleIf(useCustomBlenderInstallProperty.equalsTo(true))
         row {
@@ -290,11 +339,14 @@ class BlenderToolWindowContent(
               useCustomBlenderInstall = this
               addActionListener {
                 updateInstallControlState()
-                scheduleAutosave()
+                autosaveBlenderPath()
               }
-            }
+          }
           button(MessageBundle.message("ui.toolwindow.group.executable.scan-for-install")) {
-            onScanInstallations { refreshInstallWidgetsFromPluginState() }
+            onScanInstallations {
+              refreshInstallWidgetsFromPluginState()
+              autosaveBlenderPath()
+            }
           }
         }
       }
@@ -304,12 +356,12 @@ class BlenderToolWindowContent(
           checkBox(MessageBundle.message("ui.toolwindow.group.debugger.reload-on-save"))
             .applyToComponent {
               reloadOnSaveCheckBox = this
-              addActionListener { scheduleAutosave() }
+              addActionListener { autosaveReloadOnSave() }
             }
           checkBox(MessageBundle.message("ui.toolwindow.group.debugger.just-my-code"))
             .applyToComponent {
               justMyCodeCheckBox = this
-              addActionListener { scheduleAutosave() }
+              addActionListener { autosaveJustMyCode() }
             }
         }
         row {
@@ -322,9 +374,17 @@ class BlenderToolWindowContent(
         row(MessageBundle.message("ui.toolwindow.group.environment.addon-symlink-name")) {
           textField()
             .align(AlignX.FILL)
+            .validationOnInput {
+              if (!PythonModuleNameValidator.isValid(it.text.trim())) {
+                error(MessageBundle.message("ui.common.python.module.name.validation"))
+              } else {
+                null
+              }
+            }
             .applyToComponent {
               addonSymlinkField = this
-              addAutosaveListener(this)
+              installRealtimeSymlinkNormalization(this)
+              addAutosaveListener(this, ::autosaveAddonSymlinkName)
             }
         }
         row(MessageBundle.message("ui.toolwindow.group.environment.source-folder")) {
@@ -332,7 +392,7 @@ class BlenderToolWindowContent(
             .align(AlignX.FILL)
             .applyToComponent {
               sourceFolderField = this
-              addAutosaveListener(this)
+              addAutosaveListener(this, ::autosaveSourceFolder)
             }
         }
         row(MessageBundle.message("ui.toolwindow.group.environment.log-level")) {
@@ -340,15 +400,22 @@ class BlenderToolWindowContent(
             .align(AlignX.FILL)
             .applyToComponent {
               blenderLogLevelCombo = this
-              addActionListener { scheduleAutosave() }
+              addActionListener { autosaveBlenderLogLevel() }
             }
         }
         row(MessageBundle.message("ui.toolwindow.group.environment.extensions-repository")) {
           textField()
             .align(AlignX.FILL)
+            .validationOnInput {
+              if (!PythonModuleNameValidator.isValid(it.text.trim())) {
+                error(MessageBundle.message("ui.common.python.module.name.validation"))
+              } else {
+                null
+              }
+            }
             .applyToComponent {
               extensionsRepositoryField = this
-              addAutosaveListener(this)
+              addAutosaveListener(this, ::autosaveExtensionsRepository)
             }
         }
         row(MessageBundle.message("ui.toolwindow.group.environment.run-arguments")) {
@@ -356,7 +423,7 @@ class BlenderToolWindowContent(
             .align(AlignX.FILL)
             .applyToComponent {
               runArgumentsField = this
-              addAutosaveListener(this)
+              addAutosaveListener(this, ::autosaveRunArguments)
             }
         }
         row {
@@ -375,25 +442,6 @@ class BlenderToolWindowContent(
           cell(environmentVariablesTable.component())
             .align(AlignX.FILL)
             .resizableColumn()
-        }
-      }
-      row {
-        button(MessageBundle.message("ui.toolwindow.utility.save")) {
-          logger.log("Saving workspace settings from Blender tool window")
-          if (!saveToConfig(showValidationNotification = true)) return@button
-          logger.debug(
-            "Workspace settings saved (blenderPath='${config.getBlenderPath()}', " +
-              "addonSymlink='${config.getAddonSymlinkName()}', sourceFolder='${config.getSourceFolder()}', " +
-              "runArguments='${config.getRunArguments()}', blenderLogLevel='${config.getBlenderLogLevel()}')",
-          )
-          notifications.sendInfo(MessageBundle.message("ui.toolwindow.utility.save.confirmation"))
-        }
-
-        button(MessageBundle.message("ui.toolwindow.utility.reload")) {
-          loadFromConfig()
-          autosaveTimer.stop()
-          logger.log("Reloaded workspace settings in Blender tool window")
-          notifications.sendInfo(MessageBundle.message("ui.toolwindow.group.debugger.reload.confirmation"))
         }
       }
     }.apply {

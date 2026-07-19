@@ -34,6 +34,7 @@ import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.bindText
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
+import com.sakurasedaia.blenderdevelopment.util.PythonModuleNameValidator
 import com.intellij.util.text.VersionComparatorUtil
 import java.nio.file.Path
 
@@ -207,8 +208,8 @@ class BlenderNewProjectWizardStep(parent: NewProjectWizardStep) :
                             isEnabled = true
                         }
                     }.validationOnInput { sb ->
-                        if (! sb.text.matches(Regex("^[a-zA-Z0-9_]*$"))) {
-                            error(MessageBundle.message("ui.project.wizard.ui.group.manifest.addon_id.error"))
+                        if (!PythonModuleNameValidator.isValid(sb.text.trim())) {
+                            error(MessageBundle.message("ui.common.python.module.name.validation"))
                         } else {
                             null
                         }

@@ -19,6 +19,7 @@ package com.sakurasedaia.blenderdevelopment.state
 
 import com.intellij.openapi.components.*
 import com.intellij.openapi.project.Project
+import com.sakurasedaia.blenderdevelopment.util.PythonModuleNameValidator
 
 /** Project-level persisted configuration for Blender project settings. */
 @Service(Service.Level.PROJECT)
@@ -30,7 +31,6 @@ import com.intellij.openapi.project.Project
   ]
 )
 class ProjectConfig(private val project: Project): PersistentStateComponent<ProjectConfig.ProjectState> {
-  
   /** Available log levels according to Blender Documentation */
   enum class BlenderLogLevel {
     FATAL,
@@ -98,10 +98,18 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
    * @param name add-on symlink name.
    */
   fun setAddonSymlinkName(name: String) {
-    state.addonSymlinkName = name
+    val normalized = normalizeAddonSymlinkName(name)
+    if (!PythonModuleNameValidator.isValid(normalized)) {
+      return
+    }
+    state.addonSymlinkName = normalized
   }
   /** Returns the configured add-on symlink name. */
   fun getAddonSymlinkName(): String = state.addonSymlinkName
+
+  private fun normalizeAddonSymlinkName(name: String): String {
+    return name.trim().replace(SYMLINK_NAME_SEPARATOR_REGEX, "_")
+  }
   
   /**
    * Stores the source folder path.
@@ -166,7 +174,11 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
    * @param repository extensions repository path or URL.
    */
   fun setExtensionsRepository(repository: String) {
-    state.extensionsRepository = repository
+    val normalizedRepository = repository.trim()
+    if (!PythonModuleNameValidator.isValid(normalizedRepository)) {
+      return
+    }
+    state.extensionsRepository = normalizedRepository
   }
   /** Returns the configured Blender extensions repository path or URL. */
   fun getExtensionsRepository(): String = state.extensionsRepository
@@ -217,6 +229,8 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
   
   
   companion object {
+    private val SYMLINK_NAME_SEPARATOR_REGEX = Regex("[\\s-]+")
+
     /**
      * Returns this configuration service for the given project.
      *
