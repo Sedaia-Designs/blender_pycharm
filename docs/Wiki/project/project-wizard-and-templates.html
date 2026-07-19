@@ -12,33 +12,49 @@
   <header>
     <h1>Project Wizard and Templates</h1>
     <p class="muted">How new Blender projects are created</p>
-    <p>Scope: wizard step inputs, validations, manifest payload generation, and file template rendering.</p>
+    <p>Scope: native Python environment selection, Blender settings, validations, manifest payload generation, and file template rendering.</p>
   </header>
 
   <nav aria-label="Table of contents">
     <strong>Contents</strong>
     <ul>
       <li><a href="#wizard-flow">1. Wizard flow</a></li>
-      <li><a href="#manifest-data">2. Manifest payload model</a></li>
-      <li><a href="#file-generation">3. File generation pipeline</a></li>
-      <li><a href="#validations">4. Key validations</a></li>
-      <li><a href="#snippets">5. Complex API snippets</a></li>
-      <li><a href="#references">6. Source references</a></li>
+      <li><a href="#settings-layout">2. Settings layout</a></li>
+      <li><a href="#manifest-data">3. Manifest payload model</a></li>
+      <li><a href="#file-generation">4. File generation pipeline</a></li>
+      <li><a href="#validations">5. Key validations</a></li>
+      <li><a href="#snippets">6. Complex API snippets</a></li>
+      <li><a href="#references">7. Source references</a></li>
     </ul>
   </nav>
 
   <section id="wizard-flow">
     <h2>1) Wizard Flow</h2>
     <ol>
-      <li><code>BlenderNewProjectWizardStep</code> binds form controls to graph properties.</li>
-      <li>Step converts form state into immutable <code>BlenderExtensionManifest</code>.</li>
+      <li><code>BlenderProjectDirectoryGenerator</code> delegates environment creation and interpreter selection to PyCharm's <code>PyV3ProjectBaseGenerator</code>.</li>
+      <li>PyCharm creates or selects the Python SDK and assigns it to the generated module.</li>
+      <li><code>BlenderProjectSettings</code> converts the Blender form state into an immutable <code>BlenderExtensionManifest</code>.</li>
       <li><code>BlenderProjectGenerator.generateNewProject()</code> writes files and source roots.</li>
       <li>Project defaults are persisted into <code>ProjectConfig</code>.</li>
     </ol>
+    <p>The former generic New Project Wizard bridge and legacy directory-generator adapter have been removed.</p>
+  </section>
+
+  <section id="settings-layout">
+    <h2>2) Settings Layout</h2>
+    <table>
+      <thead><tr><th>Area</th><th>Contents</th></tr></thead>
+      <tbody>
+        <tr><td>Upper panel</td><td>Project type, author, extension version, target Blender version, license, description, documentation URL, and example-code option.</td></tr>
+        <tr><td>Python environment</td><td>PyCharm's native environment controls, including project virtual environments, uv environments, and existing interpreters.</td></tr>
+        <tr><td>Advanced Settings</td><td>Add-on ID, Blender compatibility range, tags, website, and extension permission reasons.</td></tr>
+      </tbody>
+    </table>
+    <p>The selected SDK is available to Blender-specific generation. Automatic Blender API stub installation is planned but is not part of the current foundation; generated projects still document version-matched manual installation.</p>
   </section>
 
   <section id="manifest-data">
-    <h2>2) Manifest Payload Model</h2>
+    <h2>3) Manifest Payload Model</h2>
     <p><code>BlenderExtensionManifest</code> carries all generator inputs including:</p>
     <ul>
       <li>base metadata: name, path, description, version, author</li>
@@ -50,7 +66,7 @@
   </section>
 
   <section id="file-generation">
-    <h2>3) File Generation Pipeline</h2>
+    <h2>4) File Generation Pipeline</h2>
     <table>
       <thead><tr><th>Generator method</th><th>Output</th></tr></thead>
       <tbody>
@@ -65,9 +81,9 @@
   </section>
 
   <section id="validations">
-    <h2>4) Key Validations</h2>
+    <h2>5) Key Validations</h2>
     <ul>
-      <li>Addon ID restricted to <code>[a-zA-Z0-9_]*</code>.</li>
+      <li>Add-on ID must be a valid Python module name.</li>
       <li>Website fields require <code>https://</code> prefix.</li>
       <li>Minimum and maximum Blender versions are cross-validated.</li>
       <li>Version mapping is resolved through <code>BlenderVersions</code> compatibility table.</li>
@@ -75,17 +91,26 @@
   </section>
 
   <section id="snippets">
-    <h2>5) Complex API Snippets</h2>
-    <h3>UI DSL property binding in wizard</h3>
+    <h2>6) Complex API Snippets</h2>
+    <h3>Native generator boundary</h3>
+    <pre><code class="language-kotlin">class BlenderProjectDirectoryGenerator : PyV3ProjectBaseGenerator&lt;BlenderProjectSettings&gt;(
+  typeSpecificSettings = BlenderProjectSettings(),
+  typeSpecificUI = BlenderProjectUI,
+  supportsNotEmptyModuleStructure = false,
+)</code></pre>
+
+    <h3>UI DSL property binding</h3>
     <pre><code class="language-kotlin">row(MessageBundle.message("ui.project.wizard.ui.group.project.blender.version")) {
   comboBox(BlenderVersions.LIST.map { it.blMajorMinor })
-    .bindItem(blenderVersionProperty)
+    .bindItem(settings.blenderVersionProperty)
 }
 
 row(MessageBundle.message("ui.project.wizard.ui.group.manifest.addon_id")) {
-  textField().bindText(manifestIDProperty)
+  textField().bindText(settings.manifestIdProperty)
     .validationOnInput { sb ->
-      if (!sb.text.matches(Regex("^[a-zA-Z0-9_]*$"))) error("Invalid addon id") else null
+      if (!PythonModuleNameValidator.isValid(sb.text.trim())) {
+        error(MessageBundle.message("ui.common.python.module.name.validation"))
+      } else null
     }
 }</code></pre>
 
@@ -102,9 +127,11 @@ row(MessageBundle.message("ui.project.wizard.ui.group.manifest.addon_id")) {
   </section>
 
   <section id="references">
-    <h2>6) Source References</h2>
+    <h2>7) Source References</h2>
     <ul class="refs">
-      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/wizard/BlenderNewProjectWizardStep.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/wizard/BlenderProjectDirectoryGenerator.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/wizard/BlenderProjectSettings.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/wizard/BlenderProjectUI.kt</code></li>
       <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/wizard/BlenderNewProjectGenerator.kt</code></li>
       <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/lib/BlenderVersions.kt</code></li>
       <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/util/PluginResources.kt</code></li>
@@ -112,6 +139,9 @@ row(MessageBundle.message("ui.project.wizard.ui.group.manifest.addon_id")) {
       <li><code>/blender_pycharm/src/main/resources/fileTemplates/internal/NewProjectMainScript.ft</code></li>
       <li><code>/blender_pycharm/src/main/resources/fileTemplates/internal/Pyproject.ft</code></li>
       <li><code>/blender_pycharm/src/main/resources/messages/MessageBundle.properties</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/newProjectWizard/PyV3ProjectBaseGenerator.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/newProjectWizard/PyV3ProjectTypeSpecificSettings.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/newProjectWizard/PyV3ProjectTypeSpecificUI.kt</code></li>
     </ul>
   </section>
 </main>

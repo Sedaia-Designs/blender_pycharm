@@ -66,7 +66,7 @@
 
         <postStartupActivity implementation="com.sakurasedaia.blenderdevelopment.lib.services.ProjectConfigStartupLoader"/>
 
-        <directoryProjectGenerator implementation="com.sakurasedaia.blenderdevelopment.wizard.legacy.BlenderProjectDirectoryGenerator" />
+        <directoryProjectGenerator implementation="com.sakurasedaia.blenderdevelopment.wizard.BlenderProjectDirectoryGenerator" />
 
         <configurationType implementation="com.sakurasedaia.blenderdevelopment.run.BlenderConfigurationType"/>
         <programRunner implementation="com.sakurasedaia.blenderdevelopment.run.BlenderDebugProgramRunner"/>

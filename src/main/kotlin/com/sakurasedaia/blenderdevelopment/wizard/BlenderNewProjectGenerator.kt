@@ -287,6 +287,7 @@ class BlenderProjectGenerator(val data: BlenderExtensionManifest) {
             // Metadata
             "name" to data.name.valOrEmpty(),
             "description" to data.description.valOrEmpty(),
+            "blenderVersion" to data.blenderVersion.valOrEmpty(),
         )
     }
 

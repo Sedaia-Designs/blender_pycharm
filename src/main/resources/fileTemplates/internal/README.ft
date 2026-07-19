@@ -4,19 +4,16 @@ ${description}
 
 ## Setup Instructions
 
-To get the best development experience, follow these steps to configure your Python environment using PyCharm's built-in tools:
+The project uses the Python environment selected during creation in PyCharm's New Project wizard.
 
-1.  **Configure Python Interpreter**:
-    - Go to **File > Settings > Project** (or **PyCharm > Settings** on macOS) and select **Python Interpreter**.
-    - Click **Add Interpreter** and select **Add Local Interpreter...**.
-    - Choose **Virtualenv Environment**.
-    - Ensure **New environment** is selected. The **Location** should default to a .venv folder in your project root.
-    - Select a **Base interpreter** (Python 3.11 is recommended for Blender 4.2+ and 5.0).
-    - Click **OK**. PyCharm will create the virtual environment and configure it for your project.
+1.  **Verify the Python Interpreter**:
+    - Open **File > Settings > Project > Python Interpreter** (or **PyCharm > Settings** on macOS).
+    - Confirm that the environment selected in the project wizard is assigned to this project.
 
-2.  **Install Linting Stubs**:
-    - In the same **Python Interpreter** settings page, click the **+** icon (Install) to open the Available Packages dialog.
-    - Search for `fake-bpy-module` and click **Install Package**.
+2.  **Install Version-Matched Linting Stubs**:
+    - In the **Python Interpreter** settings page, click the **+** icon to open the Available Packages dialog.
+    - Install `fake-bpy-module-${blenderVersion}` when that package exists for your Blender major/minor version.
+    - Do not use the rolling `fake-bpy-module` package for an unsupported Blender release.
     - Once installed, you will have full code completion and type hinting for the `bpy` module.
 
 ## Development

@@ -40,7 +40,7 @@
       <li>Standalone PyCharm testing confirms that IntelliSense resolves the stubs when the package is installed into the selected SDK's site-packages. For unpacked or pre-generated modules outside the SDK, the directory containing the top-level stub modules must instead be attached to the project as a Sources Root.</li>
       <li>The current <code>BlenderVersions</code> table contains Blender 4.2, 4.5, and 5.2. The supplied upstream documentation does not yet confirm a <code>fake-bpy-module-5.2</code> package.</li>
       <li><code>PluginConfig.bpyApiInstallPath</code> already provides an application-level directory for storing fake-bpy code-completion files.</li>
-      <li>The current plugin wraps a generic <code>GeneratorNewProjectWizard</code> in a legacy directory-generator adapter and asks users to configure an interpreter and install <code>fake-bpy-module</code> manually.</li>
+      <li>Before the foundation phase, the plugin wrapped a generic <code>GeneratorNewProjectWizard</code> in a legacy directory-generator adapter and asked users to configure an interpreter and install <code>fake-bpy-module</code> manually.</li>
     </ul>
   </section>
 
@@ -148,10 +148,10 @@ class BlenderProjectSettings : PyV3ProjectTypeSpecificSettings {
 
     <h3>Foundation</h3>
     <ul>
-      <li><input type="checkbox" /> Replace the adapter inheritance in <code>BlenderProjectDirectoryGenerator</code> with <code>PyV3ProjectBaseGenerator&lt;BlenderProjectSettings&gt;</code> while retaining the <code>directoryProjectGenerator</code> registration.</li>
-      <li><input type="checkbox" /> Add a settings model implementing <code>PyV3ProjectTypeSpecificSettings</code> and move all Blender form state into it.</li>
-      <li><input type="checkbox" /> Add a UI implementation using <code>PyV3ProjectTypeSpecificUI</code>; keep common fields above the environment picker and detailed manifest and permission fields under Advanced Settings.</li>
-      <li><input type="checkbox" /> Preserve existing validation messages and move any remaining user-visible literals into <code>MessageBundle.properties</code>.</li>
+      <li><input type="checkbox" checked /> Replace the adapter inheritance in <code>BlenderProjectDirectoryGenerator</code> with <code>PyV3ProjectBaseGenerator&lt;BlenderProjectSettings&gt;</code> while retaining the <code>directoryProjectGenerator</code> registration.</li>
+      <li><input type="checkbox" checked /> Add a settings model implementing <code>PyV3ProjectTypeSpecificSettings</code> and move all Blender form state into it.</li>
+      <li><input type="checkbox" checked /> Add a UI implementation using <code>PyV3ProjectTypeSpecificUI</code>; keep common fields above the environment picker and detailed manifest and permission fields under Advanced Settings.</li>
+      <li><input type="checkbox" checked /> Preserve existing validation messages and move any remaining user-visible literals into <code>MessageBundle.properties</code>.</li>
     </ul>
 
     <h3>Scaffolding integration</h3>
@@ -176,7 +176,7 @@ class BlenderProjectSettings : PyV3ProjectTypeSpecificSettings {
 
     <h3>Legacy removal and documentation</h3>
     <ul>
-      <li><input type="checkbox" /> Remove the generic wizard, wizard-data interface, directory-generator adapter, and custom legacy settings step after the PyV3 flow is verified.</li>
+      <li><input type="checkbox" checked /> Remove the generic wizard, wizard-data interface, directory-generator adapter, and custom legacy settings step after the PyV3 flow is verified.</li>
       <li><input type="checkbox" /> Update project documentation and the generated README to replace manual interpreter and stub instructions with the automatic workflow and recovery steps.</li>
     </ul>
   </section>
@@ -189,8 +189,8 @@ class BlenderProjectSettings : PyV3ProjectTypeSpecificSettings {
       <li><input type="checkbox" /> Test valid, missing, malformed, mismatched-version, already-attached, and external fallback Sources Root handling.</li>
       <li><input type="checkbox" /> Test that package failure does not prevent Blender files or project configuration from being generated.</li>
       <li><input type="checkbox" /> Test settings-to-manifest conversion and generation against the module supplied by PyCharm.</li>
-      <li><input type="checkbox" /> Run <code>./gradlew test --no-daemon</code>.</li>
-      <li><input type="checkbox" /> Run <code>./gradlew compileKotlin --no-daemon</code>.</li>
+      <li><input type="checkbox" checked /> Run <code>./gradlew test --no-daemon</code>.</li>
+      <li><input type="checkbox" checked /> Run <code>./gradlew compileKotlin --no-daemon</code>.</li>
       <li><input type="checkbox" /> Run plugin verification against PyCharm 2026.1.</li>
       <li><input type="checkbox" /> Manually create projects with Project venv, Project uv, and an existing interpreter; confirm exactly one module, the selected SDK, generated Blender files, installation under the selected environment's site-packages, and code completion for <code>import bpy</code>.</li>
       <li><input type="checkbox" /> Manually remove or disable the package, attach validated unpacked stubs through the fallback, and confirm <code>import bpy</code> completion from the Sources Root.</li>
@@ -217,9 +217,9 @@ class BlenderProjectSettings : PyV3ProjectTypeSpecificSettings {
   <section id="references">
     <h2>7) Source References</h2>
     <ul class="refs">
-      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/wizard/legacy/BlenderProjectDirectoryGenerator.kt</code></li>
-      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/wizard/legacy/NewProjectWizardDirectoryGeneratorAdapter.kt</code></li>
-      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/wizard/BlenderNewProjectWizardStep.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/wizard/BlenderProjectDirectoryGenerator.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/wizard/BlenderProjectSettings.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/wizard/BlenderProjectUI.kt</code></li>
       <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/wizard/BlenderNewProjectGenerator.kt</code></li>
       <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/lib/BlenderVersions.kt</code></li>
       <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/state/PluginConfig.kt</code></li>
