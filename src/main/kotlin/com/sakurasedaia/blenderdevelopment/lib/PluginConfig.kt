@@ -26,7 +26,7 @@ import com.intellij.openapi.application.PathManager
 @State(name = "PluginConfig", storages = [Storage("blender_pycharm.config.xml")])
 class PluginConfig : PersistentStateComponent<PluginConfig.PluginState> {
 	/** Descriptor for an installed Blender instance discovered on disk. */
-	data class BlendInstallInfo(val name: String = "", val version: String, val path: String)
+	data class BlendInstallInfo(val name: String = "", val version: String = "", val path: String = "")
 	
 	/** Persisted application-scoped settings for the plugin. */
 	data class PluginState(
