@@ -5,8 +5,8 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.sakurasedaia.blenderdevelopment.core.BlenderInstallationScanner
-import com.sakurasedaia.blenderdevelopment.lib.PluginConfig
-import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
+import com.sakurasedaia.blenderdevelopment.state.PluginConfig
+import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 

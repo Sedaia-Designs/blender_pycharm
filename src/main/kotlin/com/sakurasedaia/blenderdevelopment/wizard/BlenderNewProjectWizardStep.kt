@@ -32,7 +32,7 @@ import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.bindText
-import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
+import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
 import com.intellij.util.text.VersionComparatorUtil
 import java.nio.file.Path

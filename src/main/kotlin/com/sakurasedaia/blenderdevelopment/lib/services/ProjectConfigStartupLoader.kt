@@ -19,8 +19,8 @@ package com.sakurasedaia.blenderdevelopment.lib.services
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
-import com.sakurasedaia.blenderdevelopment.lib.PluginConfig
-import com.sakurasedaia.blenderdevelopment.lib.ProjectConfig
+import com.sakurasedaia.blenderdevelopment.state.PluginConfig
+import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 
 /** Eagerly loads project workspace configuration when the IDE opens a project. */

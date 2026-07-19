@@ -20,6 +20,7 @@ package com.sakurasedaia.blenderdevelopment.lib
 import com.intellij.ide.fileTemplates.FileTemplateDescriptor
 import com.intellij.ide.fileTemplates.FileTemplateGroupDescriptor
 import com.intellij.ide.fileTemplates.FileTemplateGroupDescriptorFactory
+import com.sakurasedaia.blenderdevelopment.ui.IconBundle
 
 /**
  * Contributes Blender Python templates to IntelliJ's "New File" template groups.

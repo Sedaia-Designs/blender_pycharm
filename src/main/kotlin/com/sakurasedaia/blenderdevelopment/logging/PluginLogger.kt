@@ -25,7 +25,7 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.util.io.createDirectories
 import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
-import com.sakurasedaia.blenderdevelopment.lib.PluginConfig
+import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.InvalidPathException

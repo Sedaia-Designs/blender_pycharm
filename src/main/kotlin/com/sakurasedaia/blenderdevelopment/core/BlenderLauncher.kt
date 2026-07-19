@@ -24,13 +24,13 @@ import com.intellij.openapi.application.PathManager
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.process.ProcessTerminatedListener
 import com.intellij.util.execution.ParametersListUtil
-import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
+import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
-import com.sakurasedaia.blenderdevelopment.lib.PluginConfig
-import com.sakurasedaia.blenderdevelopment.lib.ProjectConfig
-import com.sakurasedaia.blenderdevelopment.lib.ProjectConfig.BlenderLogLevel
+import com.sakurasedaia.blenderdevelopment.state.PluginConfig
+import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
+import com.sakurasedaia.blenderdevelopment.state.ProjectConfig.BlenderLogLevel
 import com.sakurasedaia.blenderdevelopment.process.ExternalProcessBuilder
 
 import java.nio.file.Path
@@ -117,7 +117,7 @@ internal class Launcher(private val project: Project) {
     return if (blenderPath.removeSuffix("/").endsWith(".app", ignoreCase = true)) "Blender" else null
   }
 
-  private fun buildDebugArguments(logLevel: ProjectConfig.BlenderLogLevel): List<String> {
+  private fun buildDebugArguments(logLevel: BlenderLogLevel): List<String> {
     return when (logLevel) {
       BlenderLogLevel.FATAL -> listOf("--log-level", "fatal")
       BlenderLogLevel.ERROR -> listOf("--log-level", "error")

@@ -5,7 +5,7 @@ import com.intellij.notification.NotificationType
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
+import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 
 /** Project service wrapper around IntelliJ notifications for plugin UI feedback. */
 @Service(Service.Level.PROJECT)

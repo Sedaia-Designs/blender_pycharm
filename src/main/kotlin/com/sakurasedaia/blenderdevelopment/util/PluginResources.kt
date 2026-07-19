@@ -4,7 +4,7 @@ import com.intellij.ide.fileTemplates.FileTemplateManager
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
-import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
+import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path

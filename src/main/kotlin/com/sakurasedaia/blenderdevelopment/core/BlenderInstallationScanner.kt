@@ -17,15 +17,15 @@
 
 package com.sakurasedaia.blenderdevelopment.core
 
-import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
+import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.util.SysInfo
 import com.sakurasedaia.blenderdevelopment.util.SystemHelper
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
-import com.sakurasedaia.blenderdevelopment.lib.PluginConfig
-import com.sakurasedaia.blenderdevelopment.lib.PluginConfig.BlendInstallInfo
+import com.sakurasedaia.blenderdevelopment.state.PluginConfig
+import com.sakurasedaia.blenderdevelopment.state.PluginConfig.BlendInstallInfo
 import com.sakurasedaia.blenderdevelopment.process.ExternalProcessBuilder
 import java.io.File
 import java.io.IOException

@@ -29,8 +29,8 @@ import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
 import com.sakurasedaia.blenderdevelopment.core.BlenderArguments
 import com.sakurasedaia.blenderdevelopment.core.Launcher
-import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
-import com.sakurasedaia.blenderdevelopment.lib.ProjectConfig
+import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
+import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
 import javax.swing.JComponent
 import javax.swing.JPanel
 

@@ -27,8 +27,8 @@ import com.intellij.ide.wizard.GitNewProjectWizardStep
 import com.intellij.ide.wizard.newProjectWizardBaseStepWithoutGap
 import com.intellij.ide.wizard.NewProjectWizardChainStep.Companion.nextStep
 import com.intellij.ide.wizard.RootNewProjectWizardStep
-import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
-import com.sakurasedaia.blenderdevelopment.lib.IconBundle
+import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
+import com.sakurasedaia.blenderdevelopment.ui.IconBundle
 import javax.swing.Icon
 
 /** Registers the Blender project template entry in the IntelliJ New Project wizard. */

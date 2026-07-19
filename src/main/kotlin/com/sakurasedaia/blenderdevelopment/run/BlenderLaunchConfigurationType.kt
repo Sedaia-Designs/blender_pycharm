@@ -21,8 +21,8 @@ import com.intellij.execution.configurations.ConfigurationFactory
 import com.intellij.execution.configurations.ConfigurationTypeBase
 import com.intellij.execution.configurations.RunConfiguration
 import com.intellij.openapi.project.Project
-import com.sakurasedaia.blenderdevelopment.lib.IconBundle
-import com.sakurasedaia.blenderdevelopment.lib.MessageBundle
+import com.sakurasedaia.blenderdevelopment.ui.IconBundle
+import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 
 /** Registers the Blender launch run configuration type. */
 internal class BlenderLaunchConfigurationType : ConfigurationTypeBase(
