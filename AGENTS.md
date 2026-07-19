@@ -22,6 +22,7 @@ This document defines practical coding guidance for AI/code agents working in th
 - Prefer IntelliJ Platform APIs and existing project services/patterns over custom infrastructure.
 - Keep changes scoped to the requested behavior; avoid unrelated refactors.
 - Put user-visible text in `messages/MessageBundle.properties` (localizable strings), not inline literals.
+- For internal-use documentation, prefer HTML documents over Markdown.
 
 ## Kotlin Style
 
