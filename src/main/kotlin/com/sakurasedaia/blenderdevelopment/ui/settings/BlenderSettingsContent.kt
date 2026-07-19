@@ -24,6 +24,7 @@ import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
+import com.sakurasedaia.blenderdevelopment.ui.components.EnvironmentVariablesTable
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import javax.swing.JComponent
 
@@ -43,6 +44,7 @@ internal class BlenderSettingsContent(
     private lateinit var customLogPath: TextFieldWithBrowseButton
     private lateinit var downloadPath: TextFieldWithBrowseButton
     private lateinit var clearDownloadAfterInstall: JBCheckBox
+    private val globalEnvironmentVariablesTable = EnvironmentVariablesTable()
     
     
     private val root = panel {
@@ -93,6 +95,14 @@ internal class BlenderSettingsContent(
                 }
             }.comment(MessageBundle.message("ui.settings.group.discovery.scan.comment"))
         }
+        group(MessageBundle.message("ui.settings.group.environment.variables.title")) {
+            row {
+                cell(globalEnvironmentVariablesTable.component())
+                    .align(AlignX.FILL)
+                    .resizableColumn()
+                contextHelp(MessageBundle.message("ui.settings.group.environment.variables.comment"))
+            }.resizableRow()
+        }
     }
 
     private val settingsBindings: List<SettingBinding>
@@ -123,16 +133,25 @@ internal class BlenderSettingsContent(
         settingsBindings.forEach { binding ->
             binding.setToField(binding.getFromConfig(config))
         }
+        downloadPath.text = config.getDownloadPath()
+        clearDownloadAfterInstall.isSelected = config.getClearDownloadsAfterInstall()
+        globalEnvironmentVariablesTable.setVariables(config.getGlobalEnvironmentVariables())
     }
 
     internal fun isModified(config: PluginConfig): Boolean =
         settingsBindings.any { binding ->
             binding.getFromConfig(config) != binding.getFromField()
-        }
+        } ||
+            config.getDownloadPath() != downloadPath.text ||
+            config.getClearDownloadsAfterInstall() != clearDownloadAfterInstall.isSelected ||
+            config.getGlobalEnvironmentVariables() != globalEnvironmentVariablesTable.getVariables()
 
     internal fun apply(config: PluginConfig) {
         settingsBindings.forEach { binding ->
             binding.setToConfig(config, binding.getFromField())
         }
+        config.setDownloadPath(downloadPath.text)
+        config.setClearDownloadsAfterInstall(clearDownloadAfterInstall.isSelected)
+        config.setGlobalEnvironmentVariables(globalEnvironmentVariablesTable.getVariables())
     }
 }

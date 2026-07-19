@@ -44,11 +44,26 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
 	/** Persisted project-scoped settings stored in project-level configuration. */
 	data class ProjectState(
 		var blenderPath: String = "",
+		
 		var blenderVersion: List<Int> = listOf(5, 1),
+		
 		var addonSymlinkName: String = "",
+		
 		var sourceFolder: String = "src/",
+		
 		var runArguments: String = "",
+		
 		var blenderLogLevel: String = BlenderLogLevel.DEBUG.name,
+		
+		var reloadOnSave: Boolean = true,
+		
+		var justMyCode: Boolean = true,
+		
+		var extensionsRepository: String = "",
+		
+		var environmentVariables: Map<String, String> = emptyMap(),
+		
+		var scriptDirectories: List<String>? = null
 	)
 	
 	private var state: ProjectState = ProjectState()
@@ -122,6 +137,61 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
 	fun getBlenderLogLevel(): BlenderLogLevel {
 		return BlenderLogLevel.entries.firstOrNull { it.name == state.blenderLogLevel } ?: BlenderLogLevel.INFO
 	}
+
+	/**
+	 * Stores whether add-ons should reload automatically on save.
+	 *
+	 * @param reload true to reload on save, false otherwise.
+	 */
+	fun setReloadOnSave(reload: Boolean) {
+		state.reloadOnSave = reload
+	}
+	/** Returns whether add-ons should reload automatically on save. */
+	fun getReloadOnSave(): Boolean = state.reloadOnSave
+
+	/**
+	 * Stores whether debugger behavior should prioritize project code only.
+	 *
+	 * @param justMyCode true to focus on project code, false otherwise.
+	 */
+	fun setJustMyCode(justMyCode: Boolean) {
+		state.justMyCode = justMyCode
+	}
+	/** Returns whether debugger behavior is configured as just-my-code. */
+	fun getJustMyCode(): Boolean = state.justMyCode
+
+	/**
+	 * Stores the configured Blender extensions repository path or URL.
+	 *
+	 * @param repository extensions repository path or URL.
+	 */
+	fun setExtensionsRepository(repository: String) {
+		state.extensionsRepository = repository
+	}
+	/** Returns the configured Blender extensions repository path or URL. */
+	fun getExtensionsRepository(): String = state.extensionsRepository
+
+	/**
+	 * Stores project-scoped environment variables for Blender runtime workflows.
+	 *
+	 * @param variables environment variables map.
+	 */
+	fun setEnvironmentVariables(variables: Map<String, String>) {
+		state.environmentVariables = variables
+	}
+	/** Returns project-scoped environment variables for Blender runtime workflows. */
+	fun getEnvironmentVariables(): Map<String, String> = state.environmentVariables
+
+	/**
+	 * Stores optional script directories used by runtime workflows.
+	 *
+	 * @param directories optional list of script directory paths.
+	 */
+	fun setScriptDirectories(directories: List<String>?) {
+		state.scriptDirectories = directories
+	}
+	/** Returns optional script directories used by runtime workflows. */
+	fun getScriptDirectories(): List<String>? = state.scriptDirectories
 
 	/**
 	 * Forces initialization of persisted workspace settings for this project.

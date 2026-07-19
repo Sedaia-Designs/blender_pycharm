@@ -42,8 +42,11 @@ class PluginConfig : PersistentStateComponent<PluginConfig.PluginState> {
 		
 		var logPath: String = "${PathManager.getLogPath()}/BlenderExtensions/", // TODO: Change the default to the same path as the Intellij `idea.log` file, but save alongside in a `blender-development.log` file.
 		
-		var detectedBlender: List<BlendInstallInfo> = mutableListOf()
-		)
+		var detectedBlender: List<BlendInstallInfo> = mutableListOf(),
+
+		var globalEnvironmentVariables: Map<String, String> = emptyMap()
+		
+	)
 	
 	
 	private var state: PluginState = PluginState()
@@ -125,6 +128,23 @@ class PluginConfig : PersistentStateComponent<PluginConfig.PluginState> {
 	/** Returns the cached list of discovered Blender installations. */
 	fun getDetectedBlenderInstalls(): List<BlendInstallInfo> = state.detectedBlender
 
+	
+	/**
+	 * Sets the Global Environment Variables
+	 *
+	 * @param
+	 * */
+	fun setGlobalEnvironmentVariables(variables: Map<String, String>) {
+		state.globalEnvironmentVariables = variables
+	}
+	/** Returns the list of Environment Variables */
+	fun getGlobalEnvironmentVariables(): Map<String, String> = state.globalEnvironmentVariables
+	
+	
+	
+	
+	
+	
 	/**
 	 * Forces initialization of persisted plugin settings.
 	 *

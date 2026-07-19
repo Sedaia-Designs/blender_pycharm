@@ -30,6 +30,8 @@ import com.intellij.util.ui.JBUI
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
+import com.sakurasedaia.blenderdevelopment.ui.components.EnvironmentVariablesTable
+import com.sakurasedaia.blenderdevelopment.ui.components.ScriptDirectoriesTable
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig.BlenderLogLevel
@@ -41,6 +43,7 @@ import javax.swing.JTextField
 import javax.swing.Timer
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
+import javax.swing.text.JTextComponent
 
 /** Builds the Blender tool window UI for editing workspace configuration values. */
 class BlenderToolWindowContent(private val project: Project,
@@ -69,8 +72,13 @@ class BlenderToolWindowContent(private val project: Project,
         lateinit var sourceFolderField: JTextField
         lateinit var runArgumentsField: JTextField
         lateinit var blenderLogLevelCombo: JComboBox<String>
+        lateinit var reloadOnSaveCheckBox: JCheckBox
+        lateinit var justMyCodeCheckBox: JCheckBox
+        lateinit var extensionsRepositoryField: JTextField
         lateinit var useCustomBlenderInstall: JCheckBox
         lateinit var availableBlenderInstalls: JComboBox<String>
+        val environmentVariablesTable = EnvironmentVariablesTable()
+        val scriptDirectoriesTable = ScriptDirectoriesTable(project)
         val blenderLogLevels = BlenderLogLevel.entries
         val uiState = UiState()
         var isLoadingFromConfig = false
@@ -111,6 +119,14 @@ class BlenderToolWindowContent(private val project: Project,
             config.setSourceFolder(sourceFolder)
             config.setRunArguments(runArgumentsField.text.trim())
             config.setBlenderLogLevel(getSelectedBlenderLogLevel())
+            config.setReloadOnSave(reloadOnSaveCheckBox.isSelected)
+            config.setJustMyCode(justMyCodeCheckBox.isSelected)
+            config.setExtensionsRepository(extensionsRepositoryField.text.trim())
+            config.setEnvironmentVariables(environmentVariablesTable.getVariables())
+            config.setScriptDirectories(
+                scriptDirectoriesTable.getDirectories().ifEmpty { null }
+            )
+            // TODO: Add a hook to update the project based on if the setBlenderPath is different than when saved last
             return true
         }
 
@@ -127,9 +143,11 @@ class BlenderToolWindowContent(private val project: Project,
             if (isLoadingFromConfig) return
             autosaveTimer.restart()
         }
+        environmentVariablesTable.setOnChangeListener(::scheduleAutosave)
+        scriptDirectoriesTable.setOnChangeListener(::scheduleAutosave)
 
-        fun addAutosaveListener(textField: JTextField) {
-            textField.document.addDocumentListener(object : DocumentListener {
+        fun addAutosaveListener(textComponent: JTextComponent) {
+            textComponent.document.addDocumentListener(object : DocumentListener {
                 override fun insertUpdate(e: DocumentEvent?) = scheduleAutosave()
                 override fun removeUpdate(e: DocumentEvent?) = scheduleAutosave()
                 override fun changedUpdate(e: DocumentEvent?) = scheduleAutosave()
@@ -221,6 +239,11 @@ class BlenderToolWindowContent(private val project: Project,
             sourceFolderField.text = config.getSourceFolder()
             runArgumentsField.text = config.getRunArguments()
             selectBlenderLogLevel(config.getBlenderLogLevel())
+            reloadOnSaveCheckBox.isSelected = config.getReloadOnSave()
+            justMyCodeCheckBox.isSelected = config.getJustMyCode()
+            extensionsRepositoryField.text = config.getExtensionsRepository()
+            environmentVariablesTable.setVariables(config.getEnvironmentVariables())
+            scriptDirectoriesTable.setDirectories(config.getScriptDirectories().orEmpty())
 
             refreshInstallWidgetsFromPluginState()
             applyBlenderInstallSelectionFromProjectConfig()
@@ -298,6 +321,37 @@ class BlenderToolWindowContent(private val project: Project,
                             blenderLogLevelCombo = this
                             addActionListener { scheduleAutosave() }
                         }
+                }
+                row {
+                    checkBox(MessageBundle.message("ui.toolwindow.group.workspace.reload.on.save"))
+                        .applyToComponent {
+                            reloadOnSaveCheckBox = this
+                            addActionListener { scheduleAutosave() }
+                        }
+                    checkBox(MessageBundle.message("ui.toolwindow.group.workspace.just.my.code"))
+                        .applyToComponent {
+                            justMyCodeCheckBox = this
+                            addActionListener { scheduleAutosave() }
+                        }
+                }
+                row(MessageBundle.message("ui.toolwindow.group.workspace.extensions.repository")) {
+                    textField()
+                        .align(AlignX.FILL)
+                        .applyToComponent {
+                            extensionsRepositoryField = this
+                            addAutosaveListener(this)
+                        }
+                }
+                row(MessageBundle.message("ui.toolwindow.group.workspace.script.directories")) {
+                    cell(scriptDirectoriesTable.component())
+                        .align(AlignX.FILL)
+                        .resizableColumn()
+                }.comment(MessageBundle.message("ui.toolwindow.group.workspace.script.directories.comment"))
+                row(MessageBundle.message("ui.toolwindow.group.workspace.environment.variables")) {
+                    cell(environmentVariablesTable.component())
+                        .align(AlignX.FILL)
+                        .resizableColumn()
+                    contextHelp(MessageBundle.message("ui.toolwindow.group.workspace.environment.variables.comment"))
                 }
                 row {
                     button(MessageBundle.message("ui.toolwindow.group.workspace.save")) {
