@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Operations and Troubleshooting - Blender Development for PyCharm</title>
+  <link rel="stylesheet" href="./wiki.css" />
+</head>
+<body>
+<main>
+  <a class="wiki-home" href="./index.html">Project Wiki</a>
+  <header>
+    <h1>Operations and Troubleshooting</h1>
+    <p class="muted">Operational behavior, diagnostics, and failure handling</p>
+    <p>Scope: install discovery, notifications/logging, common launch failures, and targeted fixes.</p>
+  </header>
+
+  <nav aria-label="Table of contents">
+    <strong>Contents</strong>
+    <ul>
+      <li><a href="#install-scan">1. Installation scan behavior</a></li>
+      <li><a href="#notifications">2. Notifications and logs</a></li>
+      <li><a href="#failures">3. Common failures</a></li>
+      <li><a href="#triage">4. Triage checklist</a></li>
+      <li><a href="#snippets">5. Complex API snippets</a></li>
+      <li><a href="#references">6. Source references</a></li>
+    </ul>
+  </nav>
+
+  <section id="install-scan">
+    <h2>1) Installation Scan Behavior</h2>
+    <p><code>BlenderInstallationScanner</code> probes OS-specific locations and caches results in <code>PluginConfig.detectedBlender</code>.</p>
+    <ul>
+      <li>Windows: common Program Files roots for Blender Foundation install pattern</li>
+      <li>macOS: <code>/Applications</code> and <code>~/Applications</code> bundle scan</li>
+      <li>Linux: <code>which blender-runtime</code>, common binary paths, Linux Homebrew roots</li>
+    </ul>
+  </section>
+
+  <section id="notifications">
+    <h2>2) Notifications and Logs</h2>
+    <p>Feedback path:</p>
+    <ol>
+      <li><code>PluginLogger</code> writes structured log details.</li>
+      <li><code>NotificationModal</code> sends info/warn/error user notifications.</li>
+      <li><code>MessageBundle.properties</code> centralizes message text and formatting keys.</li>
+    </ol>
+  </section>
+
+  <section id="failures">
+    <h2>3) Common Failures</h2>
+    <table>
+      <thead><tr><th>Symptom</th><th>Likely cause</th><th>Fix path</th></tr></thead>
+      <tbody>
+        <tr><td>Run configuration error: Blender path empty</td><td><code>ProjectConfig.blenderPath</code> not set</td><td>Set path in Project Blender Manager; save workspace config</td></tr>
+        <tr><td>Runtime archive missing</td><td>Packaged <code>blender-runtime.zip</code> missing in plugin resources</td><td>Rebuild via Gradle to regenerate and include archive</td></tr>
+        <tr><td>Runtime Python changes not reflected in Blender sandbox</td><td>Previously extracted DebugRunner runtime is still considered current</td><td>Runtime validity now uses plugin version + runtime archive hash; relaunch to trigger re-extract. If needed, remove <code>.intellijPlatform/sandbox/.../BlenderDevelopment/DebugRunner/runtime</code> manually once.</td></tr>
+        <tr><td>No installs found after scan</td><td>No detected binaries or inaccessible scan roots</td><td>Review warnings and use custom path toggle</td></tr>
+        <tr><td>Generated script not cleaned</td><td>Unexpected process termination path</td><td>Rely on startup stale cleanup or run cleanup manually via IDE restart</td></tr>
+        <tr><td><code>PyDebuggerException: Bad frame: Content-Length...</code></td><td>IDE baseline does not support this plugin's debugpy attach workflow</td><td>Use PyCharm <code>2026.1+</code>. This plugin targets Python DAP/debugpy attach on that baseline.</td></tr>
+        <tr><td><code>Add-on not loaded ... module loaded with no associated file</code></td><td>Reload attempted legacy add-on module name for an extension-like directory (namespace package/no valid <code>__init__.py</code>)</td><td>Runtime refreshes addon/extension indices before enable, then resolves extension fallback from <code>blender_manifest.toml:id</code> and discovered Blender extension modules (instead of only folder-name guessing).</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="triage">
+    <h2>4) Triage Checklist</h2>
+    <ol>
+      <li>Check <code>ProjectConfig</code> for Blender path and source folder values.</li>
+      <li>Check plugin log output path configured in <code>PluginConfig</code>.</li>
+      <li>Validate runtime extraction directory has current version marker.</li>
+      <li>Re-run install scan and inspect scan warnings (probe failures vs inaccessible roots).</li>
+      <li>Re-run with minimal run arguments to isolate CLI issues.</li>
+    </ol>
+  </section>
+
+  <section id="snippets">
+    <h2>5) Complex API Snippets</h2>
+    <h3>Async install scan orchestration</h3>
+    <pre><code class="language-kotlin">ApplicationManager.getApplication().executeOnPooledThread {
+  project.getService(BlenderInstallationScanner::class.java).refreshInstalledVersionsCache()
+  val installs = PluginConfig.getInstance().getDetectedBlenderInstalls()
+  notifications.sendInfo(MessageBundle.message("notification.settings.scan.completed.found", installs.size.toString()))
+}</code></pre>
+
+    <h3>External process capture result handling</h3>
+    <pre><code class="language-kotlin">val result = ExternalProcessBuilder(project).launchAndCaptureOutput("which", "blender-runtime")
+if (result.cancelled || result.failure != null || result.exitCode != 0) return null
+val locatedPath = result.firstLine.trim()</code></pre>
+  </section>
+
+  <section id="references">
+    <h2>6) Source References</h2>
+    <ul class="refs">
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderInstallationScanner.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/lib/services/SettingsInstallationScanService.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/logging/PluginLogger.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/logging/NotificationModal.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderDebugAttachService.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderEditorServerService.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/process/ExternalProcessBuilder.kt</code></li>
+      <li><code>/blender_pycharm/src/main/resources/messages/MessageBundle.properties</code></li>
+      <li><code>/blender_pycharm/src/main/blender-runtime/include/blender_pycharm/communication.py</code></li>
+      <li><code>/blender_pycharm/src/main/blender-runtime/include/blender_pycharm/operators/addon_update.py</code></li>
+      <li><code>/blender_pycharm/src/main/blender-runtime/include/blender_pycharm/utils.py</code></li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>

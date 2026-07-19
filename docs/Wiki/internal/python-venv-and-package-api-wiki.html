@@ -4,97 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Python Venv and Package APIs (PyCharm / IntelliJ Platform)</title>
-  <style>
-    :root {
-      color-scheme: light dark;
-      --bg: #ffffff;
-      --fg: #1f2328;
-      --muted: #59636e;
-      --line: #d0d7de;
-      --code-bg: #f6f8fa;
-      --accent: #0969da;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #0d1117;
-        --fg: #e6edf3;
-        --muted: #8b949e;
-        --line: #30363d;
-        --code-bg: #161b22;
-        --accent: #58a6ff;
-      }
-    }
-    body {
-      margin: 0;
-      font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      color: var(--fg);
-      background: var(--bg);
-    }
-    main {
-      max-width: 980px;
-      margin: 0 auto;
-      padding: 32px 20px 64px;
-    }
-    h1, h2, h3 { line-height: 1.25; margin: 1.2em 0 0.5em; }
-    h1 { margin-top: 0; font-size: 2rem; }
-    h2 { padding-top: 12px; border-top: 1px solid var(--line); font-size: 1.4rem; }
-    h3 { font-size: 1.1rem; }
-    p, li { color: var(--fg); }
-    .muted { color: var(--muted); }
-    nav {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 14px 16px;
-      margin: 20px 0 24px;
-    }
-    nav ul { margin: 8px 0 0; padding-left: 20px; }
-    a { color: var(--accent); text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-      font-size: 0.92em;
-      background: var(--code-bg);
-      padding: 0.1em 0.32em;
-      border-radius: 4px;
-    }
-    pre {
-      margin: 10px 0 16px;
-      padding: 12px 14px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      overflow-x: auto;
-      background: var(--code-bg);
-    }
-    pre code {
-      background: transparent;
-      padding: 0;
-      border-radius: 0;
-      font-size: 0.9em;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 12px 0 18px;
-    }
-    th, td {
-      border: 1px solid var(--line);
-      padding: 8px 10px;
-      text-align: left;
-      vertical-align: top;
-    }
-    th { background: var(--code-bg); }
-    .ref-list li { margin-bottom: 4px; }
-    .callout {
-      border-left: 4px solid var(--accent);
-      background: color-mix(in srgb, var(--code-bg) 78%, var(--bg));
-      padding: 10px 12px;
-      border-radius: 6px;
-      margin: 12px 0;
-    }
-  </style>
+  <link rel="stylesheet" href="./wiki.css" />
 </head>
 <body>
 <main>
+  <a class="wiki-home" href="./index.html">Internal Wiki</a>
   <header>
     <h1>Python Venv and Package APIs</h1>
     <p class="muted">PyCharm / IntelliJ Platform internal integration reference</p>
@@ -145,9 +59,9 @@ legacy.refreshAndGetPackages(...)</code></pre>
 
     <h3>References</h3>
     <ul class="ref-list">
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/src/com/jetbrains/python/packaging/management/PythonPackageManager.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/src/com/jetbrains/python/packaging/management/ui/PythonPackageManagerUI.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/openapi/src/com/jetbrains/python/packaging/PyPackageManager.java</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/packaging/management/PythonPackageManager.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/packaging/management/ui/PythonPackageManagerUI.kt</code></li>
+      <li><code>/intellij-community/python/openapi/src/com/jetbrains/python/packaging/PyPackageManager.java</code></li>
     </ul>
   </section>
 
@@ -183,11 +97,11 @@ PySdkUtil.activateVirtualEnv(sdk)</code></pre>
 
     <h3>References</h3>
     <ul class="ref-list">
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/src/com/jetbrains/python/sdk/add/v2/venv/EnvironmentCreatorVenv.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/src/com/jetbrains/python/sdk/add/v2/venv/helper.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/python-venv/src/com/intellij/python/venv/venv.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/services/system-python/src/com/intellij/python/community/services/systemPython/api.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/src/com/jetbrains/python/sdk/PythonSdkType.java</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/sdk/add/v2/venv/EnvironmentCreatorVenv.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/sdk/add/v2/venv/helper.kt</code></li>
+      <li><code>/intellij-community/python/python-venv/src/com/intellij/python/venv/venv.kt</code></li>
+      <li><code>/intellij-community/python/services/system-python/src/com/intellij/python/community/services/systemPython/api.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/sdk/PythonSdkType.java</code></li>
     </ul>
   </section>
 
@@ -218,8 +132,8 @@ syncRequirementsTxt(file)</code></pre>
       </tbody>
     </table>
     <ul class="ref-list">
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/src/com/jetbrains/python/packaging/pip/PipPythonPackageManager.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/src/com/jetbrains/python/packaging/pip/PipPackageManagerEngine.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/packaging/pip/PipPythonPackageManager.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/packaging/pip/PipPackageManagerEngine.kt</code></li>
     </ul>
 
     <h3><code>uv</code></h3>
@@ -250,10 +164,10 @@ uv sync --check --all-packages [--inexact]
 uv sync --all-packages
 uv lock</code></pre>
     <ul class="ref-list">
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/src/com/jetbrains/python/sdk/uv/UvPackageManager.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/src/com/jetbrains/python/sdk/uv/Uv.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/src/com/jetbrains/python/sdk/uv/impl/UvLowLevel.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/src/com/jetbrains/python/sdk/add/v2/uv/EnvironmentCreatorUv.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/sdk/uv/UvPackageManager.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/sdk/uv/Uv.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/sdk/uv/impl/UvLowLevel.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/sdk/add/v2/uv/EnvironmentCreatorUv.kt</code></li>
     </ul>
 
     <h3><code>poetry</code></h3>
@@ -286,10 +200,10 @@ poetry check --lock
 poetry lock --check
 poetry lock --no-update</code></pre>
     <ul class="ref-list">
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/src/com/jetbrains/python/sdk/poetry/PoetryCommandExecutor.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/src/com/jetbrains/python/sdk/poetry/PoetryPackageManager.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/src/com/jetbrains/python/sdk/add/v2/poetry/EnvironmentCreatorPoetry.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/src/com/jetbrains/python/sdk/poetry/poetry.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/sdk/poetry/PoetryCommandExecutor.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/sdk/poetry/PoetryPackageManager.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/sdk/add/v2/poetry/EnvironmentCreatorPoetry.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/sdk/poetry/poetry.kt</code></li>
     </ul>
 
     <h3><code>pipenv</code></h3>
@@ -315,10 +229,10 @@ pipenv uninstall &lt;pkg...&gt;
 pipenv lock
 pipenv graph --json</code></pre>
     <ul class="ref-list">
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/src/com/jetbrains/python/packaging/pipenv/PipEnvPackageManager.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/src/com/jetbrains/python/sdk/pipenv/PipenvCommandExecutor.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/src/com/jetbrains/python/sdk/add/v2/pipenv/EnvironmentCreatorPip.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/src/com/jetbrains/python/sdk/pipenv/pipenv.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/packaging/pipenv/PipEnvPackageManager.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/sdk/pipenv/PipenvCommandExecutor.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/sdk/add/v2/pipenv/EnvironmentCreatorPip.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/sdk/pipenv/pipenv.kt</code></li>
     </ul>
 
     <h3><code>conda</code></h3>
@@ -350,10 +264,10 @@ conda uninstall &lt;packages...&gt; -y
 conda update --dry-run --all --json
 conda run (--no-capture-output) (-n/-p ...) python ...</code></pre>
     <ul class="ref-list">
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/src/com/jetbrains/python/sdk/conda/execution/CondaExecutor.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/src/com/jetbrains/python/sdk/flavors/conda/NewCondaEnvRequest.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/src/com/jetbrains/python/sdk/flavors/conda/PyCondaEnv.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/src/com/jetbrains/python/sdk/add/v2/conda/CondaNewEnvironmentCreator.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/sdk/conda/execution/CondaExecutor.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/sdk/flavors/conda/NewCondaEnvRequest.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/sdk/flavors/conda/PyCondaEnv.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/sdk/add/v2/conda/CondaNewEnvironmentCreator.kt</code></li>
     </ul>
   </section>
 
@@ -363,7 +277,7 @@ conda run (--no-capture-output) (-n/-p ...) python ...</code></pre>
     <pre><code class="language-kotlin">HatchNewEnvironmentCreator.setupEnvSdk(...)
 hatchService.createVirtualEnvironment(...)</code></pre>
     <ul class="ref-list">
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/src/com/jetbrains/python/sdk/add/v2/hatch/HatchNewEnvironmentCreator.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/sdk/add/v2/hatch/HatchNewEnvironmentCreator.kt</code></li>
     </ul>
   </section>
 </main>

@@ -4,89 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>PyCharm/IntelliJ Python Package Management APIs</title>
-  <style>
-    :root {
-      color-scheme: light dark;
-      --bg: #ffffff;
-      --fg: #1f2328;
-      --muted: #59636e;
-      --line: #d0d7de;
-      --code-bg: #f6f8fa;
-      --accent: #0969da;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #0d1117;
-        --fg: #e6edf3;
-        --muted: #8b949e;
-        --line: #30363d;
-        --code-bg: #161b22;
-        --accent: #58a6ff;
-      }
-    }
-    body {
-      margin: 0;
-      font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      color: var(--fg);
-      background: var(--bg);
-    }
-    main {
-      max-width: 940px;
-      margin: 0 auto;
-      padding: 32px 20px 64px;
-    }
-    h1, h2, h3 { line-height: 1.25; margin: 1.2em 0 0.5em; }
-    h1 { margin-top: 0; font-size: 1.95rem; }
-    h2 { padding-top: 10px; border-top: 1px solid var(--line); font-size: 1.35rem; }
-    p, li { color: var(--fg); }
-    .muted { color: var(--muted); }
-    nav {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 12px 14px;
-      margin: 20px 0 24px;
-    }
-    nav ul { margin: 8px 0 0; padding-left: 20px; }
-    a { color: var(--accent); text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-      font-size: 0.92em;
-      background: var(--code-bg);
-      padding: 0.1em 0.32em;
-      border-radius: 4px;
-    }
-    pre {
-      margin: 10px 0 16px;
-      padding: 12px 14px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      overflow-x: auto;
-      background: var(--code-bg);
-    }
-    pre code {
-      background: transparent;
-      padding: 0;
-      border-radius: 0;
-      font-size: 0.9em;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 12px 0 18px;
-    }
-    th, td {
-      border: 1px solid var(--line);
-      padding: 8px 10px;
-      text-align: left;
-      vertical-align: top;
-    }
-    th { background: var(--code-bg); }
-    .refs li { margin-bottom: 6px; }
-  </style>
+  <link rel="stylesheet" href="./wiki.css" />
 </head>
 <body>
 <main>
+  <a class="wiki-home" href="./index.html">Internal Wiki</a>
   <header>
     <h1>PyCharm/IntelliJ Python Package Management APIs</h1>
     <p class="muted">Primary IntelliJ Platform APIs for Python package operations in plugins.</p>
@@ -161,15 +83,15 @@ legacy.refreshAndGetPackages(alwaysRefresh)</code></pre>
     <ul class="refs">
       <li>
         <strong><code>PythonPackageManager.kt</code> (new API)</strong><br />
-        <a href="https://raw.githubusercontent.com/JetBrains/intellij-community/master/python/src/com/jetbrains/python/packaging/management/PythonPackageManager.kt">raw.githubusercontent.com/.../PythonPackageManager.kt</a>
+        <code>/intellij-community/python/src/com/jetbrains/python/packaging/management/PythonPackageManager.kt</code>
       </li>
       <li>
         <strong><code>PythonPackageManagerUI.kt</code> (UI wrapper)</strong><br />
-        <a href="https://raw.githubusercontent.com/JetBrains/intellij-community/master/python/src/com/jetbrains/python/packaging/management/ui/PythonPackageManagerUI.kt">raw.githubusercontent.com/.../PythonPackageManagerUI.kt</a>
+        <code>/intellij-community/python/src/com/jetbrains/python/packaging/management/ui/PythonPackageManagerUI.kt</code>
       </li>
       <li>
         <strong><code>PyPackageManager.java</code> (deprecated API)</strong><br />
-        <a href="https://raw.githubusercontent.com/JetBrains/intellij-community/master/python/openapi/src/com/jetbrains/python/packaging/PyPackageManager.java">raw.githubusercontent.com/.../PyPackageManager.java</a>
+        <code>/intellij-community/python/openapi/src/com/jetbrains/python/packaging/PyPackageManager.java</code>
       </li>
     </ul>
   </section>

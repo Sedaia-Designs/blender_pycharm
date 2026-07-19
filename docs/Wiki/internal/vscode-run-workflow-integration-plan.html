@@ -4,104 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Blender VS Code Run Workflow Integration Plan (PyCharm Plugin)</title>
-  <style>
-    :root {
-      color-scheme: light dark;
-      --bg: #ffffff;
-      --fg: #1f2328;
-      --muted: #59636e;
-      --line: #d0d7de;
-      --code-bg: #f6f8fa;
-      --accent: #0969da;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #0d1117;
-        --fg: #e6edf3;
-        --muted: #8b949e;
-        --line: #30363d;
-        --code-bg: #161b22;
-        --accent: #58a6ff;
-      }
-    }
-    body {
-      margin: 0;
-      font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      color: var(--fg);
-      background: var(--bg);
-    }
-    main {
-      max-width: 980px;
-      margin: 0 auto;
-      padding: 32px 20px 64px;
-    }
-    h1, h2, h3 { line-height: 1.25; margin: 1.2em 0 0.5em; }
-    h1 { margin-top: 0; font-size: 2rem; }
-    h2 { padding-top: 10px; border-top: 1px solid var(--line); font-size: 1.35rem; }
-    h3 { font-size: 1.08rem; }
-    .muted { color: var(--muted); }
-    nav {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 12px 14px;
-      margin: 20px 0 24px;
-    }
-    nav ul { margin: 8px 0 0; padding-left: 20px; }
-    a { color: var(--accent); text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-      font-size: 0.92em;
-      background: var(--code-bg);
-      padding: 0.1em 0.32em;
-      border-radius: 4px;
-    }
-    pre {
-      margin: 10px 0 16px;
-      padding: 12px 14px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      overflow-x: auto;
-      background: var(--code-bg);
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 12px 0 18px;
-    }
-    th, td {
-      border: 1px solid var(--line);
-      padding: 8px 10px;
-      text-align: left;
-      vertical-align: top;
-    }
-    th { background: var(--code-bg); }
-    .callout {
-      border-left: 4px solid var(--accent);
-      background: color-mix(in srgb, var(--code-bg) 78%, var(--bg));
-      padding: 10px 12px;
-      border-radius: 6px;
-      margin: 12px 0;
-    }
-    .refs li { margin-bottom: 5px; }
-    .checklist {
-      list-style: none;
-      padding-left: 0;
-      margin: 10px 0 16px;
-    }
-    .checklist li {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      margin: 7px 0;
-    }
-    .checklist input[type="checkbox"] {
-      margin-top: 2px;
-    }
-  </style>
+  <link rel="stylesheet" href="./wiki.css" />
 </head>
 <body>
 <main>
+  <a class="wiki-home" href="./index.html">Internal Wiki</a>
   <header>
     <h1>VS Code Run Workflow Integration Plan</h1>
     <p class="muted">Target: port the core run/debug workflow from <code>/Users/Sakura/Documents/WebstormProjects/blender_vscode</code> into this PyCharm plugin.</p>
@@ -133,7 +40,7 @@
       <li>Attach IDE debugger with path mappings.</li>
     </ul>
     <div class="callout">
-      Your current debug launch script template is a placeholder panel script. It is useful for proving launch-mode switching, but not for workflow parity.
+      Runtime bootstrap is now the default launch path. There is no separate base launch mode.
     </div>
   </section>
 
@@ -166,9 +73,9 @@
     <table>
       <thead><tr><th>Capability</th><th>VS Code Extension</th><th>Current PyCharm Plugin</th><th>Gap</th></tr></thead>
       <tbody>
-      <tr><td>Bootstrap entrypoint</td><td><code>pythonFiles/launch.py</code> full runtime setup</td><td>Template scripts only (<code>BlenderBaseLaunchScript.py.ft</code>, <code>BlenderDebugLaunchScript.py.ft</code>)</td><td>High</td></tr>
+      <tr><td>Bootstrap entrypoint</td><td><code>pythonFiles/launch.py</code> full runtime setup</td><td><code>BlenderRuntimeLaunch.py.ft</code> bootstrap + packaged runtime</td><td>Medium</td></tr>
       <tr><td>IDE↔Blender HTTP channel</td><td>Bidirectional command channel</td><td>None</td><td>High</td></tr>
-      <tr><td>Debugpy lifecycle</td><td>Start, wait, attach from editor</td><td>Run-config debug mode only injects script</td><td>High</td></tr>
+      <tr><td>Debugpy lifecycle</td><td>Start, wait, attach from editor</td><td>Bootstrap runs by default; auto-attach flow still pending</td><td>High</td></tr>
       <tr><td>Addon linking/reload</td><td>Legacy + 4.2 extension repo support</td><td>No equivalent runtime sync flow</td><td>High</td></tr>
       <tr><td>Script execution in running instance</td><td><code>script</code> message + operator</td><td>None</td><td>Medium</td></tr>
       <tr><td>Stop/reload commands</td><td><code>stop</code>, <code>reload</code> handlers</td><td>None</td><td>Medium</td></tr>
@@ -200,39 +107,39 @@
 
   <section id="phased-plan">
     <h2>5) Phased Implementation Plan</h2>
-    <h3>Phase 0: Stabilize current debug launch mode</h3>
+    <h3>Phase 0: Make runtime bootstrap the default mode</h3>
     <ul class="checklist">
       <li><input type="checkbox" /> <span>Keep single run configuration type/factory.</span></li>
-      <li><input type="checkbox" /> <span>Debug icon path uses debug mode and scratch bootstrap script creation via <code>createFromTemplate</code>.</span></li>
-      <li><input type="checkbox" /> <span>Ensure internal template registration matches actual template names. (Current repo has <code>BlenderBaseLaunchScript.py.ft</code> and <code>BlenderDebugLaunchScript.py.ft</code>, not <code>BlenderLaunchScript.py.ft</code>.)</span></li>
+      <li><input type="checkbox" checked /> <span>Run and Debug both use scratch bootstrap script creation via <code>createFromTemplate</code>.</span></li>
+      <li><input type="checkbox" checked /> <span>Remove base launch template/config path and keep runtime bootstrap templates only.</span></li>
     </ul>
 
     <h3>Phase 1: Introduce real bootstrap entrypoint</h3>
     <ul class="checklist">
       <li><input type="checkbox" checked /> <span>Add resource tree under plugin resources, equivalent to VS Code <code>pythonFiles/include/blender_vscode/*</code>.</span></li>
       <li><input type="checkbox" checked /> <span>Add one bootstrap script (e.g. <code>BlenderRuntimeLaunch.py.ft</code>) that imports package and calls startup.</span></li>
-      <li><input type="checkbox" checked /> <span>In <code>Launcher</code>, generate/copy bootstrap to scratch and pass <code>--python</code> in debug mode.</span></li>
+      <li><input type="checkbox" checked /> <span>In <code>Launcher</code>, generate/copy bootstrap to scratch and pass <code>--python</code> for all launches.</span></li>
     </ul>
 
     <h3>Phase 2: Add IDE local server + handshake contract</h3>
     <ul class="checklist">
-      <li><input type="checkbox" /> <span>Create <code>BlenderEditorServerService</code> that binds localhost random port.</span></li>
-      <li><input type="checkbox" /> <span>Pass <code>EDITOR_PORT</code> and unique session identifier in env.</span></li>
-      <li><input type="checkbox" /> <span>Handle setup payload from Blender: blenderPort, debugpyPort, path mappings, identifier.</span></li>
+      <li><input type="checkbox" checked /> <span>Create <code>BlenderEditorServerService</code> that binds localhost random port.</span></li>
+      <li><input type="checkbox" checked /> <span>Pass <code>EDITOR_PORT</code> and unique session identifier in env.</span></li>
+      <li><input type="checkbox" checked /> <span>Handle setup payload from Blender: blenderPort, debugpyPort, path mappings, identifier.</span></li>
     </ul>
 
     <h3>Phase 3: Debugger attach integration</h3>
     <ul class="checklist">
-      <li><input type="checkbox" /> <span>Create debug attach profile from setup payload and attach automatically.</span></li>
-      <li><input type="checkbox" /> <span>Build path mappings from project source folder + addon symlink settings + scripts dir.</span></li>
-      <li><input type="checkbox" /> <span>Add “just my code” equivalent setting and map it to debugger attach options.</span></li>
+      <li><input type="checkbox" checked /> <span>Create debug attach profile from setup payload and attach automatically.</span></li>
+      <li><input type="checkbox" checked /> <span>Build path mappings from project source folder + addon symlink settings + scripts dir.</span></li>
+      <li><input type="checkbox" checked /> <span>Add “just my code” equivalent setting and map it to debugger attach options.</span></li>
     </ul>
 
     <h3>Phase 4: Runtime commands (script/reload/stop)</h3>
     <ul class="checklist">
-      <li><input type="checkbox" /> <span>IDE action endpoints to send JSON commands to active Blender instance(s).</span></li>
-      <li><input type="checkbox" /> <span>Blender operators/actions for reload, run script with context, stop.</span></li>
-      <li><input type="checkbox" /> <span>Expose actions in tool window and optionally editor gutter/context commands.</span></li>
+      <li><input type="checkbox" checked /> <span>IDE action endpoints to send JSON commands to active Blender instance(s).</span></li>
+      <li><input type="checkbox" checked /> <span>Blender operators/actions for reload, run script with context, stop.</span></li>
+      <li><input type="checkbox" checked /> <span>Expose actions in tool window and optionally editor gutter/context commands.</span></li>
     </ul>
 
     <h3>Phase 5: Compatibility hardening</h3>
@@ -240,6 +147,7 @@
       <li><input type="checkbox" /> <span>Keep Blender &lt;4.2 legacy addon path behavior and 4.2+ extension repo behavior.</span></li>
       <li><input type="checkbox" /> <span>Handle missing pip/deps with clear notifications.</span></li>
       <li><input type="checkbox" /> <span>Add cancellation/timeouts and stale session cleanup.</span></li>
+      <li><input type="checkbox" /> <span>Rename runtime/editor contract fields and environment variables from VS Code terminology (<code>VSCODE_*</code>, <code>vscodeIdentifier</code>) to PyCharm-native names, with a bounded compatibility layer during migration.</span></li>
     </ul>
   </section>
 
@@ -273,8 +181,8 @@
   <section id="acceptance">
     <h2>8) Acceptance Checklist</h2>
     <ul class="checklist">
-      <li><input type="checkbox" /> <span>Run icon starts Blender with project args and no debugger attach.</span></li>
-      <li><input type="checkbox" /> <span>Debug icon starts Blender, bootstrap initializes, and debugger auto-attaches.</span></li>
+      <li><input type="checkbox" checked /> <span>Run and Debug both start Blender through runtime bootstrap.</span></li>
+      <li><input type="checkbox" /> <span>Debugger auto-attach is handled by the handshake flow when Phase 3 lands.</span></li>
       <li><input type="checkbox" /> <span>Addon source changes can be reloaded from IDE command without restarting Blender.</span></li>
       <li><input type="checkbox" /> <span>Script execution command works against already-running Blender session.</span></li>
       <li><input type="checkbox" /> <span>Stop command shuts down specific session and cleans local state.</span></li>
@@ -299,15 +207,18 @@
       <li><code>/Users/Sakura/Documents/WebstormProjects/blender_vscode/pythonFiles/include/blender_vscode/operators/script_runner.py</code></li>
       <li><code>/Users/Sakura/Documents/WebstormProjects/blender_vscode/pythonFiles/include/blender_vscode/operators/addon_update.py</code></li>
       <li><code>/Users/Sakura/Documents/WebstormProjects/blender_vscode/pythonFiles/include/blender_vscode/operators/stop_blender.py</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderLauncher.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/run/BlenderLaunchRunConfiguration.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/run/BlenderConfigurationType.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/state/ProjectConfig.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/ui/toolwindow/BlenderToolWindowContent.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/util/PluginResources.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/blender_pycharm/src/main/resources/META-INF/plugin.xml</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/blender_pycharm/src/main/resources/fileTemplates/internal/BlenderBaseLaunchScript.py.ft</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/blender_pycharm/src/main/resources/fileTemplates/internal/BlenderDebugLaunchScript.py.ft</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderLauncher.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderEditorServerService.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderDebugAttachService.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderRuntimeCommandService.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/run/BlenderLaunchRunConfiguration.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/run/BlenderConfigurationType.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/state/ProjectConfig.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/ui/toolwindow/BlenderToolWindowContent.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/util/PluginResources.kt</code></li>
+      <li><code>/blender_pycharm/src/main/resources/META-INF/plugin.xml</code></li>
+      <li><code>/blender_pycharm/src/main/resources/fileTemplates/internal/BlenderDebugLaunchScript.py.ft</code></li>
+      <li><code>/blender_pycharm/src/main/resources/fileTemplates/internal/BlenderRuntimeLaunch.py.ft</code></li>
     </ul>
   </section>
 </main>

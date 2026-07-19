@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Project Wizard and Templates - Blender Development for PyCharm</title>
+  <link rel="stylesheet" href="./wiki.css" />
+</head>
+<body>
+<main>
+  <a class="wiki-home" href="./index.html">Project Wiki</a>
+  <header>
+    <h1>Project Wizard and Templates</h1>
+    <p class="muted">How new Blender projects are created</p>
+    <p>Scope: wizard step inputs, validations, manifest payload generation, and file template rendering.</p>
+  </header>
+
+  <nav aria-label="Table of contents">
+    <strong>Contents</strong>
+    <ul>
+      <li><a href="#wizard-flow">1. Wizard flow</a></li>
+      <li><a href="#manifest-data">2. Manifest payload model</a></li>
+      <li><a href="#file-generation">3. File generation pipeline</a></li>
+      <li><a href="#validations">4. Key validations</a></li>
+      <li><a href="#snippets">5. Complex API snippets</a></li>
+      <li><a href="#references">6. Source references</a></li>
+    </ul>
+  </nav>
+
+  <section id="wizard-flow">
+    <h2>1) Wizard Flow</h2>
+    <ol>
+      <li><code>BlenderNewProjectWizardStep</code> binds form controls to graph properties.</li>
+      <li>Step converts form state into immutable <code>BlenderExtensionManifest</code>.</li>
+      <li><code>BlenderProjectGenerator.generateNewProject()</code> writes files and source roots.</li>
+      <li>Project defaults are persisted into <code>ProjectConfig</code>.</li>
+    </ol>
+  </section>
+
+  <section id="manifest-data">
+    <h2>2) Manifest Payload Model</h2>
+    <p><code>BlenderExtensionManifest</code> carries all generator inputs including:</p>
+    <ul>
+      <li>base metadata: name, path, description, version, author</li>
+      <li>project type: extension/add-on</li>
+      <li>Blender compatibility: min/max version</li>
+      <li>optional metadata: website, tags</li>
+      <li>permission reasons: files/network/clipboard/camera/microphone</li>
+    </ul>
+  </section>
+
+  <section id="file-generation">
+    <h2>3) File Generation Pipeline</h2>
+    <table>
+      <thead><tr><th>Generator method</th><th>Output</th></tr></thead>
+      <tbody>
+        <tr><td><code>generateManifest</code></td><td><code>blender_manifest.toml</code> for extension projects</td></tr>
+        <tr><td><code>generateMainScript</code></td><td><code>src/__init__.py</code> from internal template</td></tr>
+        <tr><td><code>generatePyproject</code></td><td><code>pyproject.toml</code> with Blender/Python compatibility</td></tr>
+        <tr><td><code>generateGitIgnore</code></td><td><code>.gitignore</code> (when Git initialized)</td></tr>
+        <tr><td><code>generateLicense</code></td><td><code>LICENSE</code> (GPL template)</td></tr>
+        <tr><td><code>generateReadme</code></td><td><code>README.md</code> (when Git initialized)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="validations">
+    <h2>4) Key Validations</h2>
+    <ul>
+      <li>Addon ID restricted to <code>[a-zA-Z0-9_]*</code>.</li>
+      <li>Website fields require <code>https://</code> prefix.</li>
+      <li>Minimum and maximum Blender versions are cross-validated.</li>
+      <li>Version mapping is resolved through <code>BlenderVersions</code> compatibility table.</li>
+    </ul>
+  </section>
+
+  <section id="snippets">
+    <h2>5) Complex API Snippets</h2>
+    <h3>UI DSL property binding in wizard</h3>
+    <pre><code class="language-kotlin">row(MessageBundle.message("ui.project.wizard.ui.group.project.blender.version")) {
+  comboBox(BlenderVersions.LIST.map { it.blMajorMinor })
+    .bindItem(blenderVersionProperty)
+}
+
+row(MessageBundle.message("ui.project.wizard.ui.group.manifest.addon_id")) {
+  textField().bindText(manifestIDProperty)
+    .validationOnInput { sb ->
+      if (!sb.text.matches(Regex("^[a-zA-Z0-9_]*$"))) error("Invalid addon id") else null
+    }
+}</code></pre>
+
+    <h3>Template rendering API</h3>
+    <pre><code class="language-kotlin">PluginResources.createFromTemplate(
+  project = project,
+  name = "blender_manifest.toml",
+  template = "BlenderManifest",
+  destination = baseDir,
+  internal = true,
+  "extensionId" to data.extensionId,
+  "minBlenderVersion" to data.minBlenderVersion,
+)</code></pre>
+  </section>
+
+  <section id="references">
+    <h2>6) Source References</h2>
+    <ul class="refs">
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/wizard/BlenderNewProjectWizardStep.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/wizard/BlenderNewProjectGenerator.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/lib/BlenderVersions.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/util/PluginResources.kt</code></li>
+      <li><code>/blender_pycharm/src/main/resources/fileTemplates/internal/BlenderManifest.ft</code></li>
+      <li><code>/blender_pycharm/src/main/resources/fileTemplates/internal/NewProjectMainScript.ft</code></li>
+      <li><code>/blender_pycharm/src/main/resources/fileTemplates/internal/Pyproject.ft</code></li>
+      <li><code>/blender_pycharm/src/main/resources/messages/MessageBundle.properties</code></li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>

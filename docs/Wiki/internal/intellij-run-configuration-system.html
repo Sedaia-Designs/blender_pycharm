@@ -4,96 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>IntelliJ Run Configuration System (Source-Level Reference)</title>
-  <style>
-    :root {
-      color-scheme: light dark;
-      --bg: #ffffff;
-      --fg: #1f2328;
-      --muted: #59636e;
-      --line: #d0d7de;
-      --code-bg: #f6f8fa;
-      --accent: #0969da;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #0d1117;
-        --fg: #e6edf3;
-        --muted: #8b949e;
-        --line: #30363d;
-        --code-bg: #161b22;
-        --accent: #58a6ff;
-      }
-    }
-    body {
-      margin: 0;
-      font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      color: var(--fg);
-      background: var(--bg);
-    }
-    main {
-      max-width: 980px;
-      margin: 0 auto;
-      padding: 32px 20px 64px;
-    }
-    h1, h2, h3 { line-height: 1.25; margin: 1.2em 0 0.5em; }
-    h1 { margin-top: 0; font-size: 2rem; }
-    h2 { padding-top: 12px; border-top: 1px solid var(--line); font-size: 1.4rem; }
-    h3 { font-size: 1.08rem; }
-    .muted { color: var(--muted); }
-    nav {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 14px 16px;
-      margin: 20px 0 24px;
-    }
-    nav ul { margin: 8px 0 0; padding-left: 20px; }
-    a { color: var(--accent); text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-      font-size: 0.92em;
-      background: var(--code-bg);
-      padding: 0.1em 0.32em;
-      border-radius: 4px;
-    }
-    pre {
-      margin: 10px 0 16px;
-      padding: 12px 14px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      overflow-x: auto;
-      background: var(--code-bg);
-    }
-    pre code {
-      background: transparent;
-      padding: 0;
-      border-radius: 0;
-      font-size: 0.9em;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 12px 0 18px;
-    }
-    th, td {
-      border: 1px solid var(--line);
-      padding: 8px 10px;
-      text-align: left;
-      vertical-align: top;
-    }
-    th { background: var(--code-bg); }
-    .refs li { margin-bottom: 5px; }
-    .callout {
-      border-left: 4px solid var(--accent);
-      background: color-mix(in srgb, var(--code-bg) 78%, var(--bg));
-      padding: 10px 12px;
-      border-radius: 6px;
-      margin: 12px 0;
-    }
-  </style>
+  <link rel="stylesheet" href="./wiki.css" />
 </head>
 <body>
 <main>
+  <a class="wiki-home" href="./index.html">Internal Wiki</a>
   <header>
     <h1>IntelliJ Run Configuration System</h1>
     <p class="muted">Source-level architecture reference using local <code>intellij-community</code> checkout</p>
@@ -243,46 +158,46 @@
     <p>Python registers <code>PythonConfigurationType</code>, <code>PythonRunner</code> (Run executor), <code>PythonDebugProgramRunner</code> (Debug executor), producers, and Python run line marker contributors.</p>
 
     <h3>This repository plugin</h3>
-    <p><code>com.sakurasedaia.blenderdevelopment.run.BlenderLaunchConfigurationType</code> registers a single factory and template config. <code>BlenderLaunchRunConfiguration</code> validates project config and returns a <code>CommandLineState</code> that starts Blender via plugin launcher service.</p>
+    <p><code>com.sakurasedaia.blenderdevelopment.run.BlenderConfigurationType</code> registers a single factory and template config. <code>BlenderLaunchRunConfiguration</code> validates project config and returns a <code>CommandLineState</code> that starts Blender via plugin launcher service, with runtime bootstrap enabled by default for Run and Debug.</p>
   </section>
 
   <section id="references">
     <h2>10) Source References</h2>
     <ul class="refs">
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/platform/execution/src/com/intellij/execution/RunManager.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/platform/execution-impl/src/com/intellij/execution/impl/RunManagerImpl.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/platform/execution/src/com/intellij/execution/RunnerAndConfigurationSettings.java</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/platform/execution/src/com/intellij/execution/configurations/ConfigurationType.java</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/platform/execution/src/com/intellij/execution/configurations/runConfigurationType.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/platform/execution/src/com/intellij/execution/configurations/ConfigurationFactory.java</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/platform/execution/src/com/intellij/execution/configurations/RunConfigurationBase.java</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/platform/execution/src/com/intellij/execution/configurations/LocatableConfigurationBase.java</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/platform/execution/src/com/intellij/execution/Executor.java</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/platform/execution/src/com/intellij/execution/runners/ProgramRunner.java</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/platform/execution/src/com/intellij/execution/runners/ExecutionEnvironment.java</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/platform/execution/src/com/intellij/execution/runners/ExecutionEnvironmentBuilder.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/platform/execution/src/com/intellij/execution/configurations/RunProfile.java</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/platform/execution/src/com/intellij/execution/configurations/RunProfileState.java</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/platform/execution/src/com/intellij/execution/configurations/CommandLineState.java</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/platform/execution/src/com/intellij/execution/ExecutionManager.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/platform/execution-impl/src/com/intellij/execution/impl/ExecutionManagerImpl.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/platform/execution/src/com/intellij/execution/BeforeRunTaskProvider.java</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/platform/execution/src/com/intellij/execution/ExecutionTargetManager.java</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/platform/lang-api/src/com/intellij/execution/actions/RunConfigurationProducer.java</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/platform/execution-impl/src/com/intellij/execution/lineMarker/RunLineMarkerContributor.java</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/platform/execution-impl/src/com/intellij/execution/ProgramRunnerUtil.java</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/platform/platform-resources/src/META-INF/PlatformExecutionExtensions.xml</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/platform/platform-resources/src/META-INF/PlatformLangPlugin.xml</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/java/execution/impl/resources/intellij.java.execution.impl.xml</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/java/execution/impl/src/com/intellij/execution/RunConfigurationExtension.java</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/pluginResources/intellij.python.community.impl.xml</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/src/com/jetbrains/python/run/PythonConfigurationType.java</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/src/com/jetbrains/python/run/PythonRunConfigurationProducer.java</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/src/com/jetbrains/python/run/PythonRunner.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/intellij-community/python/src/com/jetbrains/python/debugger/PythonDebugProgramRunner.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/run/BlenderLaunchConfigurationType.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/run/BlenderLaunchRunConfiguration.kt</code></li>
-      <li><code>/Users/Sakura/Documents/IdeaProjects/blender_pycharm/src/main/resources/META-INF/plugin.xml</code></li>
+      <li><code>/intellij-community/platform/execution/src/com/intellij/execution/RunManager.kt</code></li>
+      <li><code>/intellij-community/platform/execution-impl/src/com/intellij/execution/impl/RunManagerImpl.kt</code></li>
+      <li><code>/intellij-community/platform/execution/src/com/intellij/execution/RunnerAndConfigurationSettings.java</code></li>
+      <li><code>/intellij-community/platform/execution/src/com/intellij/execution/configurations/ConfigurationType.java</code></li>
+      <li><code>/intellij-community/platform/execution/src/com/intellij/execution/configurations/runConfigurationType.kt</code></li>
+      <li><code>/intellij-community/platform/execution/src/com/intellij/execution/configurations/ConfigurationFactory.java</code></li>
+      <li><code>/intellij-community/platform/execution/src/com/intellij/execution/configurations/RunConfigurationBase.java</code></li>
+      <li><code>/intellij-community/platform/execution/src/com/intellij/execution/configurations/LocatableConfigurationBase.java</code></li>
+      <li><code>/intellij-community/platform/execution/src/com/intellij/execution/Executor.java</code></li>
+      <li><code>/intellij-community/platform/execution/src/com/intellij/execution/runners/ProgramRunner.java</code></li>
+      <li><code>/intellij-community/platform/execution/src/com/intellij/execution/runners/ExecutionEnvironment.java</code></li>
+      <li><code>/intellij-community/platform/execution/src/com/intellij/execution/runners/ExecutionEnvironmentBuilder.kt</code></li>
+      <li><code>/intellij-community/platform/execution/src/com/intellij/execution/configurations/RunProfile.java</code></li>
+      <li><code>/intellij-community/platform/execution/src/com/intellij/execution/configurations/RunProfileState.java</code></li>
+      <li><code>/intellij-community/platform/execution/src/com/intellij/execution/configurations/CommandLineState.java</code></li>
+      <li><code>/intellij-community/platform/execution/src/com/intellij/execution/ExecutionManager.kt</code></li>
+      <li><code>/intellij-community/platform/execution-impl/src/com/intellij/execution/impl/ExecutionManagerImpl.kt</code></li>
+      <li><code>/intellij-community/platform/execution/src/com/intellij/execution/BeforeRunTaskProvider.java</code></li>
+      <li><code>/intellij-community/platform/execution/src/com/intellij/execution/ExecutionTargetManager.java</code></li>
+      <li><code>/intellij-community/platform/lang-api/src/com/intellij/execution/actions/RunConfigurationProducer.java</code></li>
+      <li><code>/intellij-community/platform/execution-impl/src/com/intellij/execution/lineMarker/RunLineMarkerContributor.java</code></li>
+      <li><code>/intellij-community/platform/execution-impl/src/com/intellij/execution/ProgramRunnerUtil.java</code></li>
+      <li><code>/intellij-community/platform/platform-resources/src/META-INF/PlatformExecutionExtensions.xml</code></li>
+      <li><code>/intellij-community/platform/platform-resources/src/META-INF/PlatformLangPlugin.xml</code></li>
+      <li><code>/intellij-community/java/execution/impl/resources/intellij.java.execution.impl.xml</code></li>
+      <li><code>/intellij-community/java/execution/impl/src/com/intellij/execution/RunConfigurationExtension.java</code></li>
+      <li><code>/intellij-community/python/pluginResources/intellij.python.community.impl.xml</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/run/PythonConfigurationType.java</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/run/PythonRunConfigurationProducer.java</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/run/PythonRunner.kt</code></li>
+      <li><code>/intellij-community/python/src/com/jetbrains/python/debugger/PythonDebugProgramRunner.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/run/BlenderConfigurationType.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/run/BlenderLaunchRunConfiguration.kt</code></li>
+      <li><code>/blender_pycharm/src/main/resources/META-INF/plugin.xml</code></li>
     </ul>
   </section>
 </main>

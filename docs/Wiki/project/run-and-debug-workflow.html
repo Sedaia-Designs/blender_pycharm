@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Run and Debug Workflow - Blender Development for PyCharm</title>
+  <link rel="stylesheet" href="./wiki.css" />
+</head>
+<body>
+<main>
+  <a class="wiki-home" href="./index.html">Project Wiki</a>
+  <header>
+    <h1>Run and Debug Workflow</h1>
+    <p class="muted">Execution pipeline from run configuration to external Blender process</p>
+    <p>Scope: validation, command construction, runtime script generation, editor handshake, debugger attach, and process lifecycle handling.</p>
+  </header>
+
+  <nav aria-label="Table of contents">
+    <strong>Contents</strong>
+    <ul>
+      <li><a href="#compatibility">1. Debugger compatibility</a></li>
+      <li><a href="#pipeline">2. End-to-end pipeline</a></li>
+      <li><a href="#launch-args">3. Launch argument assembly</a></li>
+      <li><a href="#bootstrap">4. Generated bootstrap script</a></li>
+      <li><a href="#process">5. Process handling and cleanup</a></li>
+      <li><a href="#runtime-commands">6. Runtime commands from IDE</a></li>
+      <li><a href="#snippets">7. Complex API snippets</a></li>
+      <li><a href="#references">8. Source references</a></li>
+    </ul>
+  </nav>
+
+  <section id="compatibility">
+    <h2>1) Debugger Compatibility</h2>
+    <p>Python debug attach in this plugin targets <code>debugpy</code> over DAP and requires PyCharm <code>2026.1+</code>.</p>
+    <p>Older IDE baselines do not provide the required attach behavior for this workflow.</p>
+  </section>
+
+  <section id="pipeline">
+    <h2>2) End-To-End Pipeline</h2>
+    <ol>
+      <li><code>BlenderLaunchRunConfiguration.checkConfiguration()</code> validates Blender path.</li>
+      <li><code>getState()</code> builds <code>CommandLineState</code>.</li>
+      <li><code>Launcher.startBlender()</code> resolves path and builds launch command.</li>
+      <li>For debug/runtime mode, launcher renders <code>BlenderRuntimeLaunch.py.ft</code> into scratch.</li>
+      <li><code>BlenderEditorServerService</code> opens a random localhost editor port and creates a unique launch identifier.</li>
+      <li><code>ExternalProcessBuilder.startProcessHandler()</code> creates an <code>OSProcessHandler</code> with launch environment variables.</li>
+      <li><code>BlenderDebugAttachService</code> waits for runtime setup payload and auto-attaches the Python debugger in Debug runs.</li>
+      <li><code>BlenderDebugProgramRunner</code> subscribes to file-save events during Debug run lifetime and triggers runtime reload when <code>ProjectConfig.reloadOnSave</code> is enabled.</li>
+      <li>On process termination, generated bootstrap script is deleted and session tracking is released.</li>
+    </ol>
+  </section>
+
+  <section id="launch-args">
+    <h2>3) Launch Argument Assembly</h2>
+    <p>Arguments are assembled from three sources:</p>
+    <table>
+      <thead><tr><th>Source</th><th>Details</th></tr></thead>
+      <tbody>
+        <tr><td>Log level</td><td>Mapped from <code>ProjectConfig.BlenderLogLevel</code> into <code>--log-level &lt;value&gt;</code>.</td></tr>
+        <tr><td>Workspace run args</td><td>Parsed from <code>ProjectConfig.getRunArguments()</code> via <code>ParametersListUtil.parse</code>.</td></tr>
+        <tr><td>Script injection</td><td>Always injects <code>--python &lt;scratch script&gt;</code>: Debug uses runtime bootstrap; normal Run uses a lightweight repo/add-on refresh script.</td></tr>
+        <tr><td>Environment merge</td><td>Merges <code>PluginConfig.globalEnvironmentVariables</code> first, then project <code>environmentVariables</code> (project overrides duplicate keys).</td></tr>
+        <tr><td>Runtime directory env</td><td>Publishes project <code>scriptDirectories</code> as <code>BLENDER_PYCHARM_SCRIPT_DIRECTORIES</code> for runtime addon loading/reload.</td></tr>
+        <tr><td>Handshake env</td><td>Sets <code>EDITOR_PORT</code> and <code>VSCODE_IDENTIFIER</code>; also forwards runtime env settings such as <code>VSCODE_LOG_LEVEL</code>.</td></tr>
+        <tr><td>Debug attach options</td><td>Uses handshake <code>debugpyPort</code> and path mappings and attaches via Python DAP (<code>debugpy</code>).</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="bootstrap">
+    <h2>4) Generated Bootstrap Script</h2>
+    <p>The runtime script inserts extracted runtime <code>include</code> into <code>sys.path</code>, builds the editor callback URL from <code>EDITOR_PORT</code>, and calls
+      <code>blender_pycharm.startup(...)</code>. It inspects the imported startup signature and only passes supported keyword arguments for compatibility with older runtime copies.</p>
+    <pre><code class="language-python">include_dir = Path('${includeDirLiteral}')
+if include_dir.exists():
+    sys.path.insert(0, str(include_dir))
+
+import blender_pycharm
+import inspect
+editor_port = os.environ.get("EDITOR_PORT", "").strip()
+editor_address = f"http://127.0.0.1:{editor_port}/" if editor_port else None
+addons_to_load = []  # sourceFolder addon root + scriptDirectories addon roots or discovered child add-ons
+startup_kwargs = {
+    "editor_address": editor_address,
+    "addons_to_load": addons_to_load,
+    "wait_for_debugger": False,
+    "project_root": '${projectPathLiteral}',
+    "source_folder": '${sourceFolderLiteral}',
+    "addon_symlink_name": '${addonSymlinkNameLiteral}',
+}
+signature = inspect.signature(blender_pycharm.startup)
+filtered_kwargs = {
+    key: value
+    for key, value in startup_kwargs.items()
+    if key in signature.parameters
+}
+blender_pycharm.startup(**filtered_kwargs)</code></pre>
+  </section>
+
+  <section id="process">
+    <h2>5) Process Handling and Cleanup</h2>
+    <ul>
+      <li><code>ProcessTerminatedListener.attach(processHandler)</code> integrates with IDE run UI.</li>
+      <li>Custom listener removes generated bootstrap scripts when process exits.</li>
+      <li><code>ExternalProcessBuilder</code> handles macOS bundle binary resolution and command adaptation.</li>
+      <li><code>BlenderEditorServerService</code> accepts setup payloads from Blender and tracks them by session identifier.</li>
+      <li><code>BlenderDebugAttachService</code> starts a Python DAP attach configuration to <code>127.0.0.1:&lt;debugpyPort&gt;</code>.</li>
+      <li>Debug runner save-listener subscription is disconnected when the process terminates.</li>
+      <li>On startup, stale scripts are cleaned from scratch directory.</li>
+      <li>Normal Run mode executes a small bootstrap that refreshes add-on/extension repos and reloads the configured add-on candidate before interactive use.</li>
+    </ul>
+  </section>
+
+  <section id="runtime-commands">
+    <h2>6) Runtime Commands From IDE</h2>
+    <p>The plugin exposes runtime command actions through the tool window, Tools menu, and Python editor context menu.</p>
+    <table>
+      <thead><tr><th>Command</th><th>IDE behavior</th><th>Runtime handler</th></tr></thead>
+      <tbody>
+        <tr><td>Run Script</td><td>Sends selected Python file path to active Blender session.</td><td><code>operators/script_runner.py</code> (<code>type="script"</code>)</td></tr>
+        <tr><td>Reload Add-on</td><td>Sends configured add-on module names and directories.</td><td><code>operators/addon_update.py</code> (<code>type="reload"</code>)</td></tr>
+        <tr><td>Stop Blender</td><td>Sends stop command to the active session.</td><td><code>operators/stop_blender.py</code> (<code>type="stop"</code>)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="snippets">
+    <h2>7) Complex API Snippets</h2>
+    <h3>Run profile state implementation</h3>
+    <pre><code class="language-kotlin">override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState {
+  val shouldAttachDebugger = executor.id == DefaultDebugExecutor.EXECUTOR_ID
+  return object : CommandLineState(environment) {
+    override fun startProcess(): OSProcessHandler {
+      return Launcher.getInstance(project).startBlender(
+        BlenderArguments(
+          blenderPath = ProjectConfig.getInstance(project).getBlenderPath().trim(),
+          debugger = shouldAttachDebugger,
+        )
+      )
+    }
+  }
+}</code></pre>
+
+    <h3>Scratch script generation</h3>
+    <pre><code class="language-kotlin">PluginResources.createFromTemplate(
+  project = project,
+  name = scriptFileName,
+  template = "BlenderRuntimeLaunch",
+  destination = scratchVfsDirectory,
+  internal = true,
+  "includeDirLiteral" to toPythonStringLiteral(includeDirectoryPath.toString()),
+  "projectPathLiteral" to toPythonStringLiteral(projectBasePath),
+  "sourceFolderLiteral" to toPythonStringLiteral(sourceFolder),
+  "addonSymlinkNameLiteral" to toPythonStringLiteral(addonSymlinkName),
+)</code></pre>
+  </section>
+
+  <section id="references">
+    <h2>8) Source References</h2>
+    <ul class="refs">
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/run/BlenderLaunchRunConfiguration.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderLauncher.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderEditorServerService.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderDebugAttachService.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderRuntimeCommandService.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/run/BlenderDebugProgramRunner.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/ui/actions/BlenderRuntimeActions.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/ui/actions/BlenderRuntimeCommandGroup.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/process/ExternalProcessBuilder.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/lib/services/ProjectConfigStartupLoader.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/util/BlenderRuntimeResources.kt</code></li>
+      <li><code>/blender_pycharm/src/main/resources/fileTemplates/internal/BlenderRuntimeLaunch.py.ft</code> (filters to add-on roots and expands container directories)</li>
+      <li><code>/blender_pycharm/src/main/resources/fileTemplates/internal/BlenderRuntimeRepoSyncLaunch.py.ft</code></li>
+      <li><code>/blender_pycharm/src/main/blender-runtime/include/blender_pycharm/operators/script_runner.py</code></li>
+      <li><code>/blender_pycharm/src/main/blender-runtime/include/blender_pycharm/operators/addon_update.py</code></li>
+      <li><code>/blender_pycharm/src/main/blender-runtime/include/blender_pycharm/operators/stop_blender.py</code></li>
+      <li><code>/blender_pycharm/src/main/resources/messages/MessageBundle.properties</code></li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>

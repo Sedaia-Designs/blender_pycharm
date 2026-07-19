@@ -56,6 +56,7 @@ This document defines practical coding guidance for AI/code agents working in th
 - After code changes, run targeted validation at minimum:
   - `./gradlew compileKotlin --no-daemon`
 - Run/add tests proportional to risk and changed behavior.
+- When writing new features, add in test cases to check for edge case behaviors and ensure core functionality
 - If tests are skipped, call that out in the final report.
 
 ## Dependency / Build Metadata
@@ -63,3 +64,45 @@ This document defines practical coding guidance for AI/code agents working in th
 - Do not edit generated artifacts unnecessarily.
 - Keep Gradle and plugin metadata changes minimal and intentional.
 - If module/build metadata is changed, verify the project still compiles cleanly.
+
+## Git Commit Guidelines
+
+- Avoid overly verbose commit messages.
+- Commit subject lines must be 150 characters maximum.
+- If a subclass is referenced (for example `PluginConfig.BlendInstallInfo`), include the parent class name when referring to that subclass.
+- All commits must use standardized prefixing: `[Type -> module] Description`.
+- Omit `-> module` when 3 or more modules are touched, using `[Type] Description` instead.
+
+## Documentation
+
+- Use `docs/Wiki/internal/index.html` as the launch page for internal documentation.
+- Keep internal wiki styling centralized in `docs/Wiki/internal/wiki.css`; do not duplicate page-level style blocks unless there is a page-specific exception.
+- Use `docs/Wiki/internal/wiki-page-template.html` as the baseline when creating new wiki pages.
+- Every new internal wiki page should:
+  - include `<link rel="stylesheet" href="./wiki.css" />` in `<head>`
+  - include a top navigation link back to `index.html`
+  - include a table of contents with anchored sections
+  - include a “Source References” section with concrete file paths and/or upstream references
+- Prefer concise, source-grounded technical documentation. Clearly separate facts, inferences, and implementation plans.
+  - When referencing source files from any project, always use repo-relative source pathing (E.g. /Users/Sakura/Documents/IdeaProjects/intellij-community/platform/platform-impl/src/com/intellij/ui/dsl/builder/textFieldWithBrowseButton.kt -> /intellij-community/platform/platform-impl/src/com/intellij/ui/dsl/builder/textFieldWithBrowseButton.kt)
+- Keep filenames kebab-case and descriptive (for example `intellij-run-configuration-system.html`).
+- When a page is added or renamed in `docs/Wiki/internal`, update `docs/Wiki/internal/index.html` so the wiki remains navigable.
+- Provide code snippets for examples on complex API's
+
+## Project Documentation (External / Non-Internal)
+
+- After code changes, update or add the associated documentation
+- Project-facing documentation should live under `docs/Wiki/project`.
+- Use `docs/Wiki/project/index.html` as the launch page for project documentation.
+- Keep project wiki styling centralized in `docs/Wiki/project/wiki.css`; avoid per-page duplicated style blocks unless there is a true page-specific need.
+- Use `docs/Wiki/project/wiki-page-template.html` as the baseline for new project documentation pages.
+- Every new project documentation page should:
+  - include `<link rel="stylesheet" href="./wiki.css" />` in `<head>`
+  - include a top navigation link back to `index.html`
+  - include a table of contents with anchored sections
+  - include a “Source References” section
+- Prefer concise, source-grounded technical writing and clearly separate facts, inferences, and plans.
+- Use repo-relative source pathing for references (same rule as internal docs).
+- Keep filenames kebab-case and descriptive.
+- When a page is added or renamed in `docs/Wiki/project`, update `docs/Wiki/project/index.html` so navigation remains complete.
+- Include code snippets for complex APIs, workflows, or integration points.
