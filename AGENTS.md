@@ -30,7 +30,7 @@ This document defines practical coding guidance for AI/code agents working in th
 - Keep functions focused and small; extract helpers for repeated logic.
 - Favor explicit naming over comments; add comments only for non-obvious behavior.
 - Follow existing file/style conventions in this repository.
-- ALWAYS make a new kdoc stub with each new class and function
+- ALWAYS make a new kdoc stub with each new public facing and externally accessible class and function
 
 ## IntelliJ Platform SDK Guidance
 
