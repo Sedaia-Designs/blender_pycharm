@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Codebase Audit — July 2026</title>
+  <link rel="stylesheet" href="./wiki.css" />
+</head>
+<body>
+<main>
+  <a class="wiki-home" href="./index.html">Internal Wiki</a>
+
+  <header>
+    <h1>Codebase Audit — July 2026</h1>
+    <p class="muted">Static audit of the IntelliJ plugin, Blender-side Python runtime, templates, resources, and tests.</p>
+    <p><strong>Scope:</strong> hand-written files under <code>src/main</code> and <code>src/test</code>, Gradle/plugin metadata, and <code>MessageBundle.properties</code>. Generated build output and the embedded 33,324-line <code>get-pip.py</code> payload were excluded from line-by-line review.</p>
+  </header>
+
+  <nav aria-label="Table of contents">
+    <strong>Contents</strong>
+    <ul>
+      <li><a href="#summary">1. Executive summary</a></li>
+      <li><a href="#priority">2. Recommended remediation order</a></li>
+      <li><a href="#security">3. Security and trust-boundary findings</a></li>
+      <li><a href="#bugs">4. Potential bugs and correctness findings</a></li>
+      <li><a href="#maintenance">5. Unused code and unnecessary abstraction</a></li>
+      <li><a href="#messages">6. Message bundle and localization audit</a></li>
+      <li><a href="#testing">7. Validation and test gaps</a></li>
+      <li><a href="#references">8. Source References</a></li>
+    </ul>
+  </nav>
+
+  <section id="summary">
+    <h2>1) Executive Summary</h2>
+    <table>
+      <thead>
+      <tr><th>Severity</th><th>Count</th><th>Primary themes</th></tr>
+      </thead>
+      <tbody>
+      <tr><td>High</td><td>4</td><td>Unauthenticated local command execution, unusable discovered paths, invalid generated Python, runtime dependency integrity/reliability.</td></tr>
+      <tr><td>Medium</td><td>11</td><td>Session spoofing, template escaping, platform discovery, run/debug lifecycle, global-state races, excess reloads.</td></tr>
+      <tr><td>Low</td><td>4</td><td>Dead APIs/state, redundant abstractions, localization drift, stale test expectation.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <strong>Most urgent:</strong> authenticate the Blender HTTP command channel, correct scanner output paths, and fix the two Python templates before shipping. The default project wizard currently creates a syntactically invalid <code>src/__init__.py</code>.
+    </div>
+
+    <p><strong>Confidence convention:</strong> “Confirmed” means the behavior follows directly from source or a validation result. “Inferred” means the source strongly suggests the failure but the audit did not execute Blender or attach a live debugger.</p>
+  </section>
+
+  <section id="priority">
+    <h2>2) Recommended Remediation Order</h2>
+    <ol>
+      <li>Introduce a per-launch secret on both local HTTP servers; reject unknown sessions and unauthenticated commands.</li>
+      <li>Fix and syntax-test generated Python templates; serialize manifest/Python values with format-aware escaping and correct tuple types.</li>
+      <li>Make every detected installation store the actual launch target: executable on Windows/Linux and app bundle on macOS.</li>
+      <li>Replace runtime-time package installation with a version-verified, timeout-bounded strategy; at minimum enforce installed versions.</li>
+      <li>Add scanner, HTTP protocol, template-content, and run/debug lifecycle tests before addressing the maintenance findings.</li>
+    </ol>
+  </section>
+
+  <section id="security">
+    <h2>3) Security and Trust-Boundary Findings</h2>
+
+    <h3>AUD-001 — Blender command server permits unauthenticated local code execution</h3>
+    <p><strong>Severity:</strong> High · <strong>Confidence:</strong> Confirmed · <strong>Category:</strong> Vulnerability</p>
+    <p>The Blender runtime binds a Flask server to loopback, accepts any JSON POST, and dispatches solely on the caller-provided <code>type</code>. The <code>script</code> command accepts an arbitrary filesystem path and executes it with <code>runpy.run_path</code>. The random high port is not authentication; another local process can scan the range or observe process state.</p>
+    <p><strong>Impact:</strong> any process running as the same user can execute Python in Blender, reload add-ons, or terminate Blender while a session is active.</p>
+    <p><strong>Recommendation:</strong> generate a cryptographically random launch secret, transmit it through the child environment, require it in a header on every request, compare it in constant time, validate payload schemas, and consider a Unix-domain socket where supported.</p>
+    <p><strong>Evidence:</strong> <code>/blender_pycharm/src/main/blender-runtime/include/blender_pycharm/communication.py:45</code>, <code>:115</code>; <code>/blender_pycharm/src/main/blender-runtime/include/blender_pycharm/operators/script_runner.py:23</code>, <code>:28</code>.</p>
+
+    <h3>AUD-002 — Editor callback server accepts fabricated sessions</h3>
+    <p><strong>Severity:</strong> Medium · <strong>Confidence:</strong> Confirmed · <strong>Category:</strong> Vulnerability</p>
+    <p>The IDE server also binds to loopback without authentication. An unknown identifier only produces a warning; the payload is still inserted into both setup and active-session maps. A local process can therefore register an attacker-selected command port as the latest Blender session. The request body is also read without a size limit.</p>
+    <p><strong>Impact:</strong> session spoofing, command redirection to a local listener, log/heap pressure from oversized bodies, and confusing debugger attachment behavior.</p>
+    <p><strong>Recommendation:</strong> reject identifiers not present in <code>pendingSessionIdentifiers</code>, require the per-launch secret, cap body size before parsing, accept only the expected path/content type, and return an error for unknown payload types.</p>
+    <p><strong>Evidence:</strong> <code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderEditorServerService.kt:160</code>, <code>:171</code>, <code>:178</code>, <code>:200</code>, <code>:207</code>.</p>
+
+    <h3>AUD-003 — Runtime dependencies are installed without integrity or installed-version enforcement</h3>
+    <p><strong>Severity:</strong> High · <strong>Confidence:</strong> Confirmed · <strong>Category:</strong> Vulnerability / Reliability</p>
+    <p>Every debug bootstrap asks for <code>debugpy</code>, <code>requests&lt;=2.29.0</code>, <code>werkzeug&lt;=3.0.3</code>, and <code>flask&lt;=3.0.3</code>. Availability is checked only by importing the package name; an already-installed version outside the requested range is accepted. Missing packages are downloaded from the configured/default package index without hashes and installed into persistent Blender user modules.</p>
+    <p><strong>Impact:</strong> the compatibility caps do not work after the first install or external upgrades, and bootstrap expands the supply-chain attack surface of launching Blender.</p>
+    <p><strong>Recommendation:</strong> inspect distribution metadata with <code>importlib.metadata</code> and <code>packaging.specifiers</code>, pin tested versions, prefer a plugin-managed isolated directory, and use a lockfile/wheel hashes if automatic installation remains.</p>
+    <p><strong>Evidence:</strong> <code>/blender_pycharm/src/main/blender-runtime/include/blender_pycharm/__init__.py:49</code>; <code>/blender_pycharm/src/main/blender-runtime/include/blender_pycharm/installation.py:19</code>, <code>:40</code>, <code>:45</code>, <code>:108</code>.</p>
+
+    <h3>AUD-004 — Template values are inserted without format-aware escaping</h3>
+    <p><strong>Severity:</strong> Medium · <strong>Confidence:</strong> Confirmed · <strong>Category:</strong> Data integrity</p>
+    <p>Wizard values such as name, description, author, website, tags, permission reasons, and license are interpolated directly into TOML and Python string literals. Quotes, backslashes, or newlines can create invalid output or inject additional generated statements/keys. This is primarily a project-integrity issue because the user supplies the values, but generated files should still preserve input safely.</p>
+    <p><strong>Recommendation:</strong> centralize TOML string/array serialization and Python literal serialization, then test quotes, backslashes, newlines, Unicode, and Velocity metacharacters.</p>
+    <p><strong>Evidence:</strong> <code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/wizard/BlenderNewProjectGenerator.kt:202</code>, <code>:221</code>, <code>:263</code>; <code>/blender_pycharm/src/main/resources/fileTemplates/internal/BlenderManifest.ft:4</code>; <code>/blender_pycharm/src/main/resources/fileTemplates/internal/NewProjectMainScript.ft:19</code>.</p>
+  </section>
+
+  <section id="bugs">
+    <h2>4) Potential Bugs and Correctness Findings</h2>
+
+    <h3>AUD-005 — Default generated add-on script has invalid indentation</h3>
+    <p><strong>Severity:</strong> High · <strong>Confidence:</strong> Confirmed · <strong>Category:</strong> Bug</p>
+    <p>The default wizard enables example code, but the template emits the bodies of <code>register</code>, <code>unregister</code>, and the <code>if __name__</code> block at column zero. The public “Main Script” file template has the same <code>if</code>-body defect.</p>
+    <pre><code class="language-python">def register():
+for cls in classes:
+        bpy.utils.register_class(cls)
+
+if __name__ == "__main__":
+register()</code></pre>
+    <p><strong>Recommendation:</strong> repair indentation and add a generator test that parses the rendered file with a Python parser rather than checking only that the file exists.</p>
+    <p><strong>Evidence:</strong> <code>/blender_pycharm/src/main/resources/fileTemplates/internal/NewProjectMainScript.ft:46</code>, <code>:64</code>; <code>/blender_pycharm/src/main/resources/fileTemplates/Main Script.py.ft:10</code>; <code>/blender_pycharm/src/test/kotlin/com/sakurasedaia/blenderdevelopment/wizard/BlenderProjectGeneratorTest.kt:35</code>.</p>
+
+    <h3>AUD-006 — Generated <code>bl_info</code> versions use the wrong Python types</h3>
+    <p><strong>Severity:</strong> Medium · <strong>Confidence:</strong> Confirmed · <strong>Category:</strong> Bug</p>
+    <p>The template writes extension and Blender versions as strings. Blender add-on metadata expects integer tuples such as <code>(1, 0, 0)</code> and <code>(4, 2, 0)</code>. Correcting indentation alone will still leave malformed metadata.</p>
+    <p><strong>Recommendation:</strong> validate semantic versions in the wizard and render tuple literals explicitly.</p>
+    <p><strong>Evidence:</strong> <code>/blender_pycharm/src/main/resources/fileTemplates/internal/NewProjectMainScript.ft:21</code>; <code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/wizard/BlenderNewProjectGenerator.kt:265</code>.</p>
+
+    <h3>AUD-007 — Detected Windows and custom installations store non-launchable directories</h3>
+    <p><strong>Severity:</strong> High · <strong>Confidence:</strong> Confirmed · <strong>Category:</strong> Bug</p>
+    <p>The Windows scanner probes <code>blender.exe</code> but stores its parent version directory. Custom non-macOS candidates similarly store the candidate directory after finding a binary inside it. The tool window copies that value into <code>ProjectConfig.blenderPath</code>, and the launcher passes it directly as the command.</p>
+    <p><strong>Impact:</strong> selecting a successfully detected Windows/custom installation can fail at launch with a directory-as-executable error.</p>
+    <p><strong>Recommendation:</strong> define the persisted field as a launch target and store <code>blender.exe</code>/<code>blender</code> on Windows/Linux; retain the <code>.app</code> bundle only for the macOS path handled by <code>ExternalProcessBuilder</code>.</p>
+    <p><strong>Evidence:</strong> <code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderInstallationScanner.kt:148</code>, <code>:325</code>; <code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/ui/toolwindow/BlenderToolWindowContent.kt:284</code>; <code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderLauncher.kt:69</code>.</p>
+
+    <h3>AUD-008 — Linux discovery searches for <code>blender-runtime</code> instead of Blender</h3>
+    <p><strong>Severity:</strong> Medium · <strong>Confidence:</strong> Confirmed · <strong>Category:</strong> Bug</p>
+    <p>The Linux fast path runs <code>which blender-runtime</code>, and the Homebrew paths use <code>blender-runtime</code> throughout, while the normal Blender executable is <code>blender</code>. Explicit <code>/usr</code> fallbacks partly mask this, but PATH-only and Homebrew installs can be missed.</p>
+    <p><strong>Recommendation:</strong> use <code>blender</code> consistently and test PATH, package-manager, Homebrew, and custom-root layouts.</p>
+    <p><strong>Evidence:</strong> <code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderInstallationScanner.kt:233</code>, <code>:240</code>, <code>:341</code>.</p>
+
+    <h3>AUD-009 — OS compatibility lookup uses incompatible key vocabularies</h3>
+    <p><strong>Severity:</strong> Medium · <strong>Confidence:</strong> Confirmed · <strong>Category:</strong> Latent bug</p>
+    <p>The version table is keyed by <code>win</code>, <code>mac</code>, and <code>linux</code>; <code>SystemHelper</code> looks up <code>windows</code>, <code>macos</code>, and <code>linux</code>. All Windows and macOS compatibility checks therefore return false. The current test derives its expectation with the same mismatched key, so it passes by accepting that no compatible version exists.</p>
+    <p><strong>Recommendation:</strong> introduce a single OS enum/key mapping and use explicit Windows/macOS assertions in tests.</p>
+    <p><strong>Evidence:</strong> <code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/lib/BlenderVersions.kt:63</code>, <code>:71</code>; <code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/util/SystemHelper.kt:72</code>; <code>/blender_pycharm/src/test/kotlin/com/sakurasedaia/blenderdevelopment/util/SystemHelperTest.kt:39</code>.</p>
+
+    <h3>AUD-010 — Normal Run does not establish or link the development runtime</h3>
+    <p><strong>Severity:</strong> Medium · <strong>Confidence:</strong> Inferred · <strong>Category:</strong> Bug</p>
+    <p>Debug mode extracts the runtime, creates links, loads the add-on, and establishes the HTTP session. Normal Run instead renders <code>BlenderRuntimeRepoSyncLaunch</code>, which only refreshes and attempts to enable already discoverable module names. It neither creates a link nor starts the command server. A newly generated project that has never been linked by Debug is therefore unlikely to load on its first Run.</p>
+    <p><strong>Recommendation:</strong> share one bootstrap path for Run and Debug, with debugger startup as an option, and cover first-run behavior in a Blender integration test.</p>
+    <p><strong>Evidence:</strong> <code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderLauncher.kt:128</code>, <code>:145</code>, <code>:197</code>, <code>:233</code>; <code>/blender_pycharm/src/main/resources/fileTemplates/internal/BlenderRuntimeRepoSyncLaunch.py.ft:1</code>.</p>
+
+    <h3>AUD-011 — “Just my code” mutates application-wide debugger settings per session</h3>
+    <p><strong>Severity:</strong> Medium · <strong>Confidence:</strong> Confirmed · <strong>Category:</strong> Concurrency bug</p>
+    <p>A project-scoped attach service changes global <code>PyDebuggerSettings</code> and restores captured values when its process terminates. Overlapping debug sessions can capture and restore each other’s temporary state, leaving global settings incorrect for unrelated projects.</p>
+    <p><strong>Recommendation:</strong> configure filters on the debug process/session when the API permits. If global mutation is unavoidable, serialize ownership and restore only when the final owner releases it.</p>
+    <p><strong>Evidence:</strong> <code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderDebugAttachService.kt:221</code>.</p>
+
+    <h3>AUD-012 — Reload-on-save reacts to every saved IDE document</h3>
+    <p><strong>Severity:</strong> Medium · <strong>Confidence:</strong> Confirmed · <strong>Category:</strong> Bug / Performance</p>
+    <p>The global file-document listener does not resolve the document’s file, check project ownership, restrict Python/add-on files, or debounce saves. Saving unrelated files—or Save All—can send repeated full reload commands.</p>
+    <p><strong>Recommendation:</strong> resolve with <code>FileDocumentManager.getFile</code>, require a file under configured source/script roots, and coalesce rapid saves.</p>
+    <p><strong>Evidence:</strong> <code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/run/BlenderDebugProgramRunner.kt:52</code>, <code>:59</code>.</p>
+
+    <h3>AUD-013 — Editor context action can execute a different file than the one clicked</h3>
+    <p><strong>Severity:</strong> Medium · <strong>Confidence:</strong> Confirmed · <strong>Category:</strong> Bug</p>
+    <p>Action enablement uses <code>CommonDataKeys.VIRTUAL_FILE</code> from the invocation context, but execution discards that event file and queries <code>FileEditorManager.selectedFiles.firstOrNull()</code>. Context-menu use can therefore execute the active editor file rather than the clicked file.</p>
+    <p><strong>Recommendation:</strong> pass the action event’s file into the command service and validate it at the boundary.</p>
+    <p><strong>Evidence:</strong> <code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/ui/actions/BlenderRuntimeActions.kt:57</code>, <code>:62</code>; <code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderRuntimeCommandService.kt:71</code>, <code>:162</code>.</p>
+
+    <h3>AUD-014 — Process and HTTP payload capture is unbounded</h3>
+    <p><strong>Severity:</strong> Medium · <strong>Confidence:</strong> Confirmed · <strong>Category:</strong> Resource exhaustion</p>
+    <p><code>ExternalProcessBuilder</code> reads the entire combined process output into one string. Version probes normally produce little output, but the public helper has no bound. The IDE callback server similarly reads the complete request body before parsing.</p>
+    <p><strong>Recommendation:</strong> cap captured bytes, retain a diagnostic tail, abort oversized HTTP requests with 413, and document truncation.</p>
+    <p><strong>Evidence:</strong> <code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/process/ExternalProcessBuilder.kt:64</code>; <code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderEditorServerService.kt:178</code>.</p>
+
+    <h3>AUD-015 — Runtime package installation can block bootstrap indefinitely</h3>
+    <p><strong>Severity:</strong> Medium · <strong>Confidence:</strong> Confirmed · <strong>Category:</strong> Reliability</p>
+    <p>All <code>pip</code>/<code>ensurepip</code> subprocess calls omit a timeout. DNS, proxy, index, or child-process hangs can prevent Blender startup from completing with no recovery path.</p>
+    <p><strong>Recommendation:</strong> set a bounded timeout, terminate the child process on expiry, and report a recoverable dependency failure.</p>
+    <p><strong>Evidence:</strong> <code>/blender_pycharm/src/main/blender-runtime/include/blender_pycharm/installation.py:49</code>, <code>:70</code>, <code>:85</code>.</p>
+  </section>
+
+  <section id="maintenance">
+    <h2>5) Unused Code and Unnecessary Abstraction</h2>
+
+    <h3>AUD-016 — Multiple production APIs have no production callers</h3>
+    <p><strong>Severity:</strong> Low · <strong>Confidence:</strong> Confirmed · <strong>Category:</strong> Unused code</p>
+    <table>
+      <thead><tr><th>Unused surface</th><th>Observation</th></tr></thead>
+      <tbody>
+      <tr><td><code>ExternalProcessBuilder.launchAndCaptureOutputAsync</code> (two overloads)</td><td>No callers in main or test code.</td></tr>
+      <tr><td><code>Launcher.startProcess</code></td><td>No callers; run configurations use <code>startBlender</code>.</td></tr>
+      <tr><td><code>findSetupPayload</code>, <code>findActiveSessionPayload</code>, <code>getActiveSessionPayloads</code></td><td>No callers; only remove/latest/activity paths are used.</td></tr>
+      <tr><td><code>PluginResources.importResource</code></td><td>No callers; its append behavior is untested.</td></tr>
+      <tr><td><code>ErrorTypes.UNSUPPORTED_OS</code>, <code>IconBundle.Blender</code></td><td>No references outside their declarations.</td></tr>
+      <tr><td><code>BlenderExtensionManifest.path</code></td><td>Populated by settings but never read by the generator.</td></tr>
+      <tr><td><code>BlenderVersion</code> fallback/list accessors and <code>SystemHelper.isOSCompatible</code></td><td>Several accessors and the compatibility feature are unused by production flows.</td></tr>
+      <tr><td><code>BlenderDebugLaunchScript.py.ft</code></td><td>Registered as an internal template but no code renders it.</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Recommendation:</strong> remove these surfaces or attach them to a documented near-term feature. Retaining speculative APIs increases review and compatibility cost.</p>
+
+    <h3>AUD-017 — Persisted settings advertise behavior that does not exist</h3>
+    <p><strong>Severity:</strong> Low · <strong>Confidence:</strong> Confirmed · <strong>Category:</strong> Unused state</p>
+    <p>Code-completion path, download path, cleanup-after-install, and download-cache size are persisted. Some appear in Settings, but no production workflow consumes them; cache size is not even exposed by the UI. These controls imply capabilities the plugin does not implement.</p>
+    <p><strong>Recommendation:</strong> hide/remove dormant controls and preserve migration compatibility only if the feature is scheduled, or implement the owning download/stub workflow.</p>
+    <p><strong>Evidence:</strong> <code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/state/PluginConfig.kt:36</code>, <code>:38</code>, <code>:41</code>; <code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/ui/settings/BlenderSettingsContent.kt:69</code>.</p>
+
+    <h3>AUD-018 — Version registry and startup loading contain redundant layers</h3>
+    <p><strong>Severity:</strong> Low · <strong>Confidence:</strong> Confirmed · <strong>Category:</strong> Unnecessary abstraction</p>
+    <p>An immutable in-memory list is wrapped by a volatile lazy cache, a private “safe” getter, a public getter, and a <code>LIST</code> alias. Separately, <code>loadPluginState</code> and <code>loadWorkspaceState</code> simply return fields and are invoked as if they force persistence loading. These layers obscure ownership without adding behavior.</p>
+    <p><strong>Recommendation:</strong> expose one immutable registry property and remove the no-op loading methods after verifying service initialization behavior against the targeted IntelliJ build.</p>
+    <p><strong>Evidence:</strong> <code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/lib/BlenderVersions.kt:87</code>; <code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/state/PluginConfig.kt:156</code>; <code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/state/ProjectConfig.kt:230</code>.</p>
+  </section>
+
+  <section id="messages">
+    <h2>6) Message Bundle and Localization Audit</h2>
+    <p>The referenced <code>MessageBundle.properties</code> is structurally healthy: every key has a value, compilation found no missing <code>@PropertyKey</code> references, and plugin.xml bundle lookups resolve. Two cleanup items remain:</p>
+
+    <h3>AUD-019 — One visible title bypasses the bundle and tests have drifted from localized text</h3>
+    <p><strong>Severity:</strong> Low · <strong>Confidence:</strong> Confirmed · <strong>Category:</strong> Localization / Test drift</p>
+    <ul>
+      <li><code>group("Environment Settings")</code> is user-visible but hard-coded in Kotlin.</li>
+      <li>The compatibility-test failure is caused by the updated text of <code>ui.project.wizard.ui.group.project.python.version.recommendation</code> not being reflected in test expectations.</li>
+    </ul>
+    <p><strong>Recommendation:</strong> add a bundle key for the environment group and make message tests compare the bundle-derived complete string or update expectations intentionally.</p>
+    <p><strong>Evidence:</strong> <code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/ui/toolwindow/BlenderToolWindowContent.kt:454</code>; <code>/blender_pycharm/src/main/resources/messages/MessageBundle.properties:43</code>; <code>/blender_pycharm/src/test/kotlin/com/sakurasedaia/blenderdevelopment/wizard/BlenderProjectSettingsTest.kt:55</code>.</p>
+  </section>
+
+  <section id="testing">
+    <h2>7) Validation and Test Gaps</h2>
+    <table>
+      <thead><tr><th>Check</th><th>Result</th></tr></thead>
+      <tbody>
+      <tr><td><code>./gradlew compileKotlin --no-daemon</code></td><td>Passed; task was up-to-date.</td></tr>
+      <tr><td><code>./gradlew test --no-daemon</code></td><td>38 tests executed; 37 passed, 1 failed. Failure: recommendation text expected “Recommended Python version…” but the bundle now prefixes “Active Blender LTS and Latest branches only;”.</td></tr>
+      <tr><td>Python AST parse</td><td>All 12 hand-written runtime <code>.py</code> modules parsed successfully. The vendored <code>get-pip.py</code> payload and Velocity templates were excluded from this parse.</td></tr>
+      <tr><td>Static reference scan</td><td>Used to identify caller-free APIs, dormant state, template registrations, and message-key usage.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Highest-value missing tests</h3>
+    <ul>
+      <li>Render every file-template branch and parse the resulting Python/TOML.</li>
+      <li>Exercise editor and Blender HTTP servers with missing/invalid secrets, unknown sessions, malformed JSON, and oversized payloads.</li>
+      <li>Test scanner result paths on Windows, macOS, Linux, PATH-only, Homebrew, and custom-root layouts.</li>
+      <li>Verify first Run and first Debug both link/load a newly generated add-on and propagate termination.</li>
+      <li>Test overlapping debug sessions and reload-on-save filtering/debouncing.</li>
+      <li>Test installed runtime package versions, timeouts, partial imports, and offline recovery.</li>
+    </ul>
+
+    <div class="callout">
+      <strong>Audit limitation:</strong> Blender was not launched and no live debugger attach was performed. No online CVE database or dependency-index query was used, so this report identifies architectural dependency risks rather than claiming specific third-party CVEs.
+    </div>
+  </section>
+
+  <section id="references">
+    <h2>8) Source References</h2>
+    <ul class="refs">
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderEditorServerService.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderInstallationScanner.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderLauncher.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderRuntimeCommandService.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderDebugAttachService.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/process/ExternalProcessBuilder.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/wizard/BlenderNewProjectGenerator.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/lib/BlenderVersions.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/util/SystemHelper.kt</code></li>
+      <li><code>/blender_pycharm/src/main/blender-runtime/include/blender_pycharm/communication.py</code></li>
+      <li><code>/blender_pycharm/src/main/blender-runtime/include/blender_pycharm/installation.py</code></li>
+      <li><code>/blender_pycharm/src/main/blender-runtime/include/blender_pycharm/operators/script_runner.py</code></li>
+      <li><code>/blender_pycharm/src/main/resources/fileTemplates/internal/NewProjectMainScript.ft</code></li>
+      <li><code>/blender_pycharm/src/main/resources/fileTemplates/internal/BlenderManifest.ft</code></li>
+      <li><code>/blender_pycharm/src/main/resources/messages/MessageBundle.properties</code></li>
+      <li><code>/blender_pycharm/src/main/resources/META-INF/plugin.xml</code></li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>
