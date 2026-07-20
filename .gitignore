@@ -23,6 +23,7 @@ out/
 .hidden/
 .output.txt
 .reference
+docs/Wiki/internal/
 
 ### Python ###
 __pycache__/

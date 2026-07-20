@@ -74,6 +74,7 @@ This document defines practical coding guidance for AI/code agents working in th
 - If a subclass is referenced (for example `PluginConfig.BlendInstallInfo`), include the parent class name when referring to that subclass.
 - All commits must use standardized prefixing: `[Type -> module] Description`.
 - Omit `-> module` when 3 or more modules are touched, using `[Type] Description` instead.
+- **NEVER commit files under `docs/Wiki/internal`.** Internal wiki changes must remain uncommitted, including updates to its `index.html`.
 - **NEVER** perform `git push` or anything that affects the remote unless I explicitly give permission.
 - If a module is deleted with a new module created in a new location, example below, treat it as a file move instead of a deletion and recreation
 ```diff
