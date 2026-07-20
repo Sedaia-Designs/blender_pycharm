@@ -151,13 +151,12 @@ class BlenderProjectSettings(
      * @param module module supplied by PyCharm's project generator.
      * @param baseDir generated project root.
      * @param sdk Python SDK selected or created by PyCharm.
-     * @return successful generation result; detailed failure propagation is added in the scaffolding phase.
+     * @return successful generation result, or the scaffolding failure reported by PyCharm.
      */
     override suspend fun generateProject(module: Module, baseDir: VirtualFile, sdk: Sdk): PyResult<Unit> {
         updateProjectName(baseDir.name)
         val isGitInitialized = baseDir.findChild(".git")?.isDirectory == true
-        BlenderProjectGenerator(toManifest(baseDir.path, isGitInitialized)).generateNewProject(module.project, baseDir)
-        return PyResult.success(Unit)
+        return BlenderProjectGenerator(toManifest(baseDir.path, isGitInitialized)).generateNewProject(module, baseDir, sdk)
     }
 
     private companion object {

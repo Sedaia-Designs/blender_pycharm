@@ -17,18 +17,21 @@
 
 package com.sakurasedaia.blenderdevelopment.wizard
 
-import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.openapi.module.ModuleManager
+import com.intellij.openapi.application.edtWriteAction
+import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
-import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
+import com.jetbrains.python.errorProcessing.MessageError
+import com.jetbrains.python.errorProcessing.PyResult
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
-import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
+import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.util.PluginResources
+import kotlinx.coroutines.CancellationException
 import org.jetbrains.jps.model.java.JavaSourceRootType
 
 /** Immutable configuration payload consumed by [BlenderProjectGenerator]. */
@@ -72,46 +75,32 @@ data class BlenderExtensionManifest (
  * the NewProjectWizard. On top of handling the project creation, the generator functions
  * below the main `generate` function can be called after project creation
  */
-class BlenderProjectGenerator(val data: BlenderExtensionManifest) {
+class BlenderProjectGenerator(private val data: BlenderExtensionManifest) {
     /**
-     * Must only be called by the NewProjectWizard, as it generates the new Project itself.
+     * Generates Blender scaffolding in the module and directory selected by PyCharm.
      *
-     * @param project project being initialized.
+     * @param module module being initialized.
      * @param baseDir project root directory.
-     * @return `Unit`.
+     * @param sdk Python SDK assigned to the module by PyCharm.
+     * @return successful generation result, or a localized failure PyCharm can report.
      */
-    fun generateNewProject(project: Project, baseDir: VirtualFile) {
+    suspend fun generateNewProject(module: Module, baseDir: VirtualFile, sdk: Sdk): PyResult<Unit> {
+        val project = module.project
         val logger = PluginLogger.getInstance(project)
-        val notifications = NotificationModal.getInstance(project)
-        logger.log("Creating new project for ${data.name} at ${baseDir.path}")
-        WriteCommandAction.runWriteCommandAction(project) {
-            try {
+        logger.log("Creating new project for ${data.name} at ${baseDir.path} with SDK ${sdk.name}")
+
+        return try {
+            edtWriteAction {
                 val sourceDir = baseDir.findChild("src") ?: baseDir.createChildDirectory(this, "src")
-                
-                // Mark the SRC Directory as the source root
-                // 1. Get the module
-                val module = ModuleManager.getInstance(project).modules.firstOrNull()
-                
-                if (module != null) {
-                    // 2. Get the Modifiable Model
-                    val model = ModuleRootManager.getInstance(module).modifiableModel
-                    
-                    // 3. Find the content entry for our project path
-                    val contentEntry = model.contentEntries.find {
-                        it.file == baseDir || (it.file != null && VfsUtil.isAncestor(it.file!!, baseDir, false))
-                    }
-                    
-                    // 4. Mark as source root
-                    contentEntry?.addSourceFolder(sourceDir, JavaSourceRootType.SOURCE)
-                    
-                    // 5. Commit the model (This saves the change)
-                    model.commit()
-                }
-                
+                addSourceRoot(module, baseDir, sourceDir)
+
                 // Necessary Components for a Blender Project
                 if (data.projectType != PROJECT_TYPE_ADD_ON) generateManifest(project, sourceDir)
                 generateMainScript(project, sourceDir)
-                
+
+                // Package metadata must exist before later phases install development dependencies.
+                generatePyproject(project, baseDir)
+
                 // Repository Extras
                 if (data.isGitInitialized) {
                     logger.log("Initializing Git instance")
@@ -119,25 +108,55 @@ class BlenderProjectGenerator(val data: BlenderExtensionManifest) {
                     generateReadme(project, baseDir)
                 }
                 generateLicense(project, baseDir)
-                
-                // Generate PyProject.Toml for UV
-                generatePyproject(project, baseDir)
-                
-            } catch (e: Exception) {
-                logger.warn("Project generation failed for ${data.name} at ${baseDir.path}", e)
-                notifications.sendError(MessageBundle.message("notification.project.generation.failed"), throwable = e)
+
+                VfsUtil.markDirtyAndRefresh(false, true, true, baseDir)
+            }
+
+            ProjectConfig.getInstance(project).apply {
+                setAddonSymlinkName(data.extensionId)
+                setSourceFolder("src/")
+            }
+
+            logger.log("Project generation complete")
+            PyResult.success(Unit)
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            logger.warn("Project generation failed for ${data.name} at ${baseDir.path}", exception)
+            PyResult.failure(
+                MessageError(
+                    MessageBundle.message(
+                        "ui.project.wizard.error.project.generation.failed",
+                        exception.message ?: exception.javaClass.simpleName,
+                    ),
+                ),
+            )
+        }
+    }
+
+    /**
+     * Marks the generated source directory on the module supplied by PyCharm.
+     *
+     * @param module generated Python module.
+     * @param baseDir project root used to locate the matching content entry.
+     * @param sourceDir generated source directory.
+     */
+    private fun addSourceRoot(module: Module, baseDir: VirtualFile, sourceDir: VirtualFile) {
+        val model = ModuleRootManager.getInstance(module).modifiableModel
+        try {
+            val contentEntry = model.contentEntries.find { entry ->
+                entry.file == baseDir || entry.file?.let { VfsUtil.isAncestor(it, baseDir, false) } == true
+            } ?: throw IllegalStateException(
+                MessageBundle.message("ui.project.wizard.error.project.module.content.root.missing", baseDir.path),
+            )
+
+            contentEntry.addSourceFolder(sourceDir, JavaSourceRootType.SOURCE)
+            model.commit()
+        } finally {
+            if (!model.isDisposed) {
+                model.dispose()
             }
         }
-        
-        VfsUtil.markDirtyAndRefresh(false, true, true, baseDir)
-         
-        @Suppress("UNUSED_VARIABLE", "unused")
-        val projectConfig = ProjectConfig.getInstance(project).apply {
-            setAddonSymlinkName(data.extensionId)
-            setSourceFolder("src/")
-        }
-
-        logger.log("Project generation complete")
     }
     
     /**
@@ -146,7 +165,7 @@ class BlenderProjectGenerator(val data: BlenderExtensionManifest) {
      * @param project active project context.
      * @param baseDir project root directory.
      */
-    fun generatePyproject(project: Project, baseDir: VirtualFile) {
+    private fun generatePyproject(project: Project, baseDir: VirtualFile) {
         PluginResources.createFromTemplate(
             project,
             name="pyproject.toml",
@@ -165,7 +184,7 @@ class BlenderProjectGenerator(val data: BlenderExtensionManifest) {
      * @param project active project context.
      * @param baseDir output directory for the manifest file.
      */
-    fun generateManifest(project: Project, baseDir: VirtualFile) {
+    private fun generateManifest(project: Project, baseDir: VirtualFile) {
         // Helper to ensure empty strings are passed instead of nulls for Velocity logic.
         fun String?.valOrEmpty(): String = if (this.isNullOrBlank()) "" else this
         
@@ -215,7 +234,7 @@ class BlenderProjectGenerator(val data: BlenderExtensionManifest) {
      * @param project active project context.
      * @param baseDir output directory for the script.
      */
-    fun generateMainScript(project: Project, baseDir: VirtualFile) {
+    private fun generateMainScript(project: Project, baseDir: VirtualFile) {
         // Helper for normalizing nullable strings.
         fun String?.valOrEmpty(): String = if (this.isNullOrBlank()) "" else this
         
@@ -244,7 +263,7 @@ class BlenderProjectGenerator(val data: BlenderExtensionManifest) {
      * @param project active project context.
      * @param baseDir project root directory.
      */
-    fun generateGitIgnore(project: Project, baseDir: VirtualFile) {
+    private fun generateGitIgnore(project: Project, baseDir: VirtualFile) {
         PluginResources.createFromTemplate(
             project,
             name=".gitignore",
@@ -259,7 +278,7 @@ class BlenderProjectGenerator(val data: BlenderExtensionManifest) {
      * @param project active project context.
      * @param baseDir project root directory.
      */
-    fun generateLicense(project: Project, baseDir: VirtualFile) {
+    private fun generateLicense(project: Project, baseDir: VirtualFile) {
         PluginResources.createFromTemplate(
             project,
             name="LICENSE",
@@ -274,7 +293,7 @@ class BlenderProjectGenerator(val data: BlenderExtensionManifest) {
      * @param project active project context.
      * @param baseDir project root directory.
      */
-    fun generateReadme(project: Project, baseDir: VirtualFile) {
+    private fun generateReadme(project: Project, baseDir: VirtualFile) {
         // Helper for normalizing nullable strings.
         fun String?.valOrEmpty(): String = if (this.isNullOrBlank()) "" else this
         PluginResources.createFromTemplate(

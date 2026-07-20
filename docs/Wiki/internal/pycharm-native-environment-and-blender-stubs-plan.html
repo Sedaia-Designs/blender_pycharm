@@ -156,10 +156,10 @@ class BlenderProjectSettings : PyV3ProjectTypeSpecificSettings {
 
     <h3>Scaffolding integration</h3>
     <ul>
-      <li><input type="checkbox" /> Refactor <code>BlenderProjectGenerator</code> to accept the supplied <code>Module</code>, <code>VirtualFile</code>, and <code>Sdk</code> rather than discovering the first module.</li>
-      <li><input type="checkbox" /> Perform VFS, template, and source-root mutations through the required EDT/write actions and return <code>PyResult</code> failures instead of swallowing exceptions.</li>
-      <li><input type="checkbox" /> Keep the plugin responsible for <code>src</code>, Blender manifest, Python package metadata, examples, license, README, Git ignore rules, and <code>ProjectConfig</code> defaults.</li>
-      <li><input type="checkbox" /> Generate <code>pyproject.toml</code> before invoking package installation.</li>
+      <li><input type="checkbox" checked /> Refactor <code>BlenderProjectGenerator</code> to accept the supplied <code>Module</code>, <code>VirtualFile</code>, and <code>Sdk</code> rather than discovering the first module.</li>
+      <li><input type="checkbox" checked /> Perform VFS, template, and source-root mutations through the required EDT/write actions and return <code>PyResult</code> failures instead of swallowing exceptions.</li>
+      <li><input type="checkbox" checked /> Keep the plugin responsible for <code>src</code>, Blender manifest, Python package metadata, examples, license, README, Git ignore rules, and <code>ProjectConfig</code> defaults.</li>
+      <li><input type="checkbox" checked /> Generate <code>pyproject.toml</code> before invoking package installation.</li>
     </ul>
 
     <h3>Linting stub installation</h3>
@@ -188,7 +188,7 @@ class BlenderProjectSettings : PyV3ProjectTypeSpecificSettings {
       <li><input type="checkbox" /> Test enabled, disabled, successful, already-installed, failed, and cancelled stub installation through a fake installer.</li>
       <li><input type="checkbox" /> Test valid, missing, malformed, mismatched-version, already-attached, and external fallback Sources Root handling.</li>
       <li><input type="checkbox" /> Test that package failure does not prevent Blender files or project configuration from being generated.</li>
-      <li><input type="checkbox" /> Test settings-to-manifest conversion and generation against the module supplied by PyCharm.</li>
+      <li><input type="checkbox" checked /> Test settings-to-manifest conversion and generation against the module supplied by PyCharm.</li>
       <li><input type="checkbox" checked /> Run <code>./gradlew test --no-daemon</code>.</li>
       <li><input type="checkbox" checked /> Run <code>./gradlew compileKotlin --no-daemon</code>.</li>
       <li><input type="checkbox" /> Run plugin verification against PyCharm 2026.1.</li>

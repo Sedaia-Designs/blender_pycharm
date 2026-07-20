@@ -75,6 +75,7 @@
         <internalFileTemplate name="BlenderManifest"/>
         <internalFileTemplate name="GitIgnore"/>
         <internalFileTemplate name="GplLicenseV3"/>
+        <internalFileTemplate name="NewProjectMainScript"/>
         <internalFileTemplate name="README"/>
         <internalFileTemplate name="BlenderDebugLaunchScript"/>
         <internalFileTemplate name="BlenderRuntimeLaunch"/>
