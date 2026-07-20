@@ -1,5 +1,5 @@
 Blender Development Plugin for PyCharm
-Copyright (C) 2026 [Your Name or Organization]
+Copyright (C) 2026 Sakura Sedaia
 
 This project is licensed under the GNU General Public License v3.0 (GPLv3).
 
@@ -7,17 +7,34 @@ This project is licensed under the GNU General Public License v3.0 (GPLv3).
 THIRD-PARTY ATTRIBUTIONS
 -------------------------------------------------------------------------------
 
-This project incorporates code derived from the xmake-idea project
-(https://github.com/xmake-io/xmake-idea), which is licensed under the
-Apache License, Version 2.0.
+The Blender runtime under src/main/blender-runtime is substantially derived
+from the Blender Development extension for Visual Studio Code:
+https://github.com/JacquesLucke/blender_vscode
 
-Files derived from xmake-idea:
-- BlenderProjectDirectoryGenerator.kt
-- NewProjectWizardDirectoryGeneratorAdapter.kt
+The derived runtime has been modified to integrate with this plugin's PyCharm
+run/debug lifecycle, debugger attachment, runtime command handling, project
+configuration, and add-on/extension workflows.
 
-Copyright Holders for derived portions:
-- Copyright 2022 xmake-io
-- Copyright 2000-2022 JetBrains s.r.o. and contributors
+Blender Development for Visual Studio Code is licensed under the MIT License:
 
-The original Apache 2.0 license for these portions can be found at:
-http://www.apache.org/licenses/LICENSE-2.0
+MIT License
+
+Copyright (c) 2018 Jacques Lucke
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
