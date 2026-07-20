@@ -15,7 +15,7 @@ class NotificationModal(private val project: Project) {
     companion object {
         private const val GROUP_ID = "Blender Development Notifications"
         private val DEFAULT_TITLE: String
-            get() = MessageBundle.message("ui.notification.default.title")
+            get() = MessageBundle.message("notification.default.title")
 
         
         /**
