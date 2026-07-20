@@ -11,20 +11,22 @@ package com.sakurasedaia.blenderdevelopment.stubs
 
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
 
-/** Resolves explicitly supported Blender releases to their version-matched linting package. */
+/** Resolves Blender releases to the linting package declared by the version registry. */
 object BlenderStubRequirementResolver {
-  private val requirementsByVersion = mapOf(
-    "4.2" to "fake-bpy-module-4.2",
-    "4.5" to "fake-bpy-module-4.5",
+  private val additionalRequirementsByVersion = mapOf(
     "5.1" to "fake-bpy-module-5.1",
   )
 
   /**
-   * Resolves a Blender major/minor or full version to a verified package requirement.
+   * Resolves a Blender major/minor or full version to its configured package requirement.
+   * Registry entries take precedence so their `fakeBpy` override is honored.
    *
    * @param blenderVersion selected Blender version.
-   * @return exact package requirement, or `null` when the release is not verified.
+   * @return exact package requirement, or `null` when the release has no configured mapping.
    */
-  fun resolve(blenderVersion: String): String? =
-    requirementsByVersion[BlenderVersions.normalizeVersion(blenderVersion)]
+  fun resolve(blenderVersion: String): String? {
+    val normalizedVersion = BlenderVersions.normalizeVersion(blenderVersion)
+    return BlenderVersions.getFakeBpyPackageName(normalizedVersion)
+      ?: additionalRequirementsByVersion[normalizedVersion]
+  }
 }

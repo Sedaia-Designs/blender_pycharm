@@ -38,7 +38,7 @@
       <li><code>PythonPackageManager.forSdk(project, sdk)</code> selects a package-manager implementation for the configured SDK. The API is experimental and parts of package installation are internal.</li>
       <li>The upstream <code>fake-bpy-module</code> documentation defines version-specific packages named <code>fake-bpy-module-&lt;Blender major.minor&gt;</code> and lists packages for Blender 4.2, 4.5, and 5.1.</li>
       <li>Standalone PyCharm testing confirms that IntelliSense resolves the stubs when the package is installed into the selected SDK's site-packages. For unpacked or pre-generated modules outside the SDK, the directory containing the top-level stub modules must instead be attached to the project as a Sources Root.</li>
-      <li>The current <code>BlenderVersions</code> table contains Blender 4.2, 4.5, and 5.2. The supplied upstream documentation does not yet confirm a <code>fake-bpy-module-5.2</code> package.</li>
+      <li>The current <code>BlenderVersions</code> table contains Blender 4.2, 4.5, and 5.2. Its 5.2 row explicitly overrides the Fake-BPY package suffix with <code>latest</code>, resolving to <code>fake-bpy-module-latest</code>.</li>
       <li><code>PluginConfig.bpyApiInstallPath</code> already provides an application-level directory for storing fake-bpy code-completion files.</li>
       <li>Before the foundation phase, the plugin wrapped a generic <code>GeneratorNewProjectWizard</code> in a legacy directory-generator adapter and asked users to configure an interpreter and install <code>fake-bpy-module</code> manually.</li>
     </ul>
@@ -133,12 +133,12 @@ class BlenderProjectSettings : PyV3ProjectTypeSpecificSettings {
         <tr><td>4.2.x</td><td><code>fake-bpy-module-4.2</code></td></tr>
         <tr><td>4.5.x</td><td><code>fake-bpy-module-4.5</code></td></tr>
         <tr><td>5.1.x</td><td><code>fake-bpy-module-5.1</code> (upstream-confirmed, but not currently selected by <code>BlenderVersions</code>)</td></tr>
-        <tr><td>5.2.x</td><td>No confirmed package; require a verified future mapping or validated unpacked stubs</td></tr>
+        <tr><td>5.2.x</td><td><code>fake-bpy-module-latest</code> through the explicit <code>BlenderVersion.fakeBpy</code> override</td></tr>
       </tbody>
     </table>
 
     <div class="callout">
-      <strong>Constraint:</strong> Do not fall back to the rolling <code>fake-bpy-module</code> package for an unknown Blender release. Use only an explicitly verified version-specific package or a validated unpacked stub directory for the same Blender major/minor.
+      <strong>Constraint:</strong> Do not infer the rolling <code>fake-bpy-module</code> package for an unknown Blender release. A registry row may explicitly opt into a package suffix override such as <code>latest</code>; otherwise use a configured version-specific package or a validated unpacked stub directory.
     </div>
   </section>
 
@@ -165,7 +165,7 @@ class BlenderProjectSettings : PyV3ProjectTypeSpecificSettings {
     <h3>Linting stub installation</h3>
     <ul>
       <li><input type="checkbox" checked /> Add an “Install Blender API linting stubs” setting that defaults to enabled.</li>
-      <li><input type="checkbox" checked /> Add a pure resolver that maps a selected Blender version to <code>fake-bpy-module-&lt;major.minor&gt;</code> only when the version is supported.</li>
+      <li><input type="checkbox" checked /> Add a pure resolver that uses the selected <code>BlenderVersion</code> package mapping, including any <code>fakeBpy</code> suffix override, and falls back only to explicitly supported additional versions.</li>
       <li><input type="checkbox" checked /> Add <code>BlenderPythonPackageInstaller</code> and a production implementation backed by <code>PythonPackageManager.forSdk(project, sdk)</code>.</li>
       <li><input type="checkbox" /> Record the stub as a development-only dependency and install it into the SDK selected by PyCharm, verifying that it becomes visible through the SDK's site-packages roots.</li>
       <li><input type="checkbox" checked /> Make repeated installation safe when the required package is already installed.</li>
@@ -185,7 +185,7 @@ class BlenderProjectSettings : PyV3ProjectTypeSpecificSettings {
   <section id="validation">
     <h2>5) Validation and Acceptance</h2>
     <ul>
-      <li><input type="checkbox" checked /> Unit-test package resolution for Blender 4.2 and 4.5, the upstream-confirmed 5.1 package, current unsupported Blender 5.2, full patch versions, and an unknown release.</li>
+      <li><input type="checkbox" checked /> Unit-test package resolution for Blender 4.2 and 4.5, the additional 5.1 package, Blender 5.2's <code>latest</code> override, full patch versions, and an unknown release.</li>
       <li><input type="checkbox" /> Test enabled, disabled, successful, already-installed, failed, and cancelled stub installation through a fake installer.</li>
       <li><input type="checkbox" /> Test valid, missing, malformed, mismatched-version, already-attached, and external fallback Sources Root handling.</li>
       <li><input type="checkbox" /> Test that package failure does not prevent Blender files or project configuration from being generated.</li>

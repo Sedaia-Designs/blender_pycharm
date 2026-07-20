@@ -50,11 +50,25 @@ class BlenderStubInstallationServiceTest : BasePlatformTestCase() {
     assertEquals("fake-bpy-module-4.5", config.getInstalledStubRequirement())
   }
 
-  /** Verifies that an unsupported target leaves the previous working package untouched. */
-  fun testUnsupportedTargetDoesNotUninstallPreviousRequirement() = runBlocking {
+  /** Verifies that a registry override replaces the previous version-specific package. */
+  fun testRegistryOverrideReplacesPreviousRequirement() = runBlocking {
     config.setInstalledStubRequirement("fake-bpy-module-4.5")
 
     val status = service.replaceForChangedVersion(module, testSdk(), "5.2")
+
+    assertEquals(BlenderStubOperationStatus.UPDATED, status)
+    assertEquals(
+      listOf("uninstall:fake-bpy-module-4.5", "install:fake-bpy-module-latest"),
+      installer.operations,
+    )
+    assertEquals("fake-bpy-module-latest", config.getInstalledStubRequirement())
+  }
+
+  /** Verifies that a target absent from the registry leaves the previous package untouched. */
+  fun testUnknownTargetDoesNotUninstallPreviousRequirement() = runBlocking {
+    config.setInstalledStubRequirement("fake-bpy-module-4.5")
+
+    val status = service.replaceForChangedVersion(module, testSdk(), "9.9")
 
     assertEquals(BlenderStubOperationStatus.UNSUPPORTED, status)
     assertTrue(installer.operations.isEmpty())

@@ -44,6 +44,8 @@ class BlenderVersionsTest {
     assertEquals("4.5.8", BlenderVersions.getBlenderVersion("4.5.12"))
     assertEquals("3.11.9", BlenderVersions.getPythonVersion("4.5"))
     assertEquals("3.11.9", BlenderVersions.getPythonVersion("4.5.1"))
+    assertEquals("fake-bpy-module-4.5", BlenderVersions.getFakeBpyPackageName("4.5.1"))
+    assertEquals("fake-bpy-module-latest", BlenderVersions.getFakeBpyPackageName("5.2.0"))
     assertNotNull(BlenderVersions.getCompatibleArch("4.5"))
     assertNotNull(BlenderVersions.getCompatibleArch("4.5.3"))
   }
@@ -52,6 +54,7 @@ class BlenderVersionsTest {
   fun lookupsReturnNullForUnknownVersions() {
     assertNull(BlenderVersions.getBlenderVersion("9.9"))
     assertNull(BlenderVersions.getPythonVersion("9.9"))
+    assertNull(BlenderVersions.getFakeBpyPackageName("9.9"))
     assertNull(BlenderVersions.getCompatibleArch("9.9"))
   }
 

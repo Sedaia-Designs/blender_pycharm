@@ -49,6 +49,7 @@ data class BlenderVersion(
     /** Python version components as `[major, minor, patch]`. */
     val pyVersionList: List<Int> get() = python
     
+    /** Fake-BPY package name, including any release-specific package suffix override. */
     val fakeBpyPackage = "fake-bpy-module-${fakeBpy ?: blMajorMinor}"
 }
 
@@ -136,7 +137,13 @@ object BlenderVersions {
         return getVersionTable().find { it.blMajorMinor == normalized }?.pyVersion
     }
     
-    fun getFakeBpyPackageName(blMajorMinor: String) : String? {
+    /**
+     * Returns the configured Fake-BPY package name for a Blender version.
+     *
+     * @param blMajorMinor Blender version selector in `major.minor` form (also accepts full versions).
+     * @return package name using the version row's override when present, or `null` when not found.
+     */
+    fun getFakeBpyPackageName(blMajorMinor: String): String? {
         val normalized = normalizeVersion(blMajorMinor)
         return getVersionTable().find { it.blMajorMinor == normalized }?.fakeBpyPackage
     }
