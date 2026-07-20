@@ -3,3 +3,8 @@ name = "$name"
 version = "$version"
 requires-python = ">=$python"
 license = "$license"
+
+#if($stubRequirement && $stubRequirement != "")
+[dependency-groups]
+dev = ["$stubRequirement"]
+#end

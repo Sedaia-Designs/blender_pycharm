@@ -45,7 +45,9 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
   data class ProjectState(
     var blenderPath: String = "",
     
-    var blenderVersion: List<Int> = listOf(5, 1),
+    var blenderVersion: List<Int> = listOf(4, 2),
+
+    var installedStubRequirement: String = "",
     
     var addonSymlinkName: String = "",
     
@@ -92,6 +94,18 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
   }
   
   fun getBlenderVersion(): List<Int> = state.blenderVersion
+
+  /**
+   * Stores the exact linting-stub requirement installed for this project.
+   *
+   * @param requirement installed version-specific package requirement, or an empty value.
+   */
+  fun setInstalledStubRequirement(requirement: String) {
+    state.installedStubRequirement = requirement
+  }
+
+  /** Returns the exact linting-stub requirement last installed by the plugin. */
+  fun getInstalledStubRequirement(): String = state.installedStubRequirement
   /**
    * Stores the add-on symlink name.
    *

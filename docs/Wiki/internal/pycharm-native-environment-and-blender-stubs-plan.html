@@ -164,11 +164,12 @@ class BlenderProjectSettings : PyV3ProjectTypeSpecificSettings {
 
     <h3>Linting stub installation</h3>
     <ul>
-      <li><input type="checkbox" /> Add an “Install Blender API linting stubs” setting that defaults to enabled.</li>
-      <li><input type="checkbox" /> Add a pure resolver that maps a selected Blender version to <code>fake-bpy-module-&lt;major.minor&gt;</code> only when the version is supported.</li>
-      <li><input type="checkbox" /> Add <code>BlenderPythonPackageInstaller</code> and a production implementation backed by <code>PythonPackageManager.forSdk(project, sdk)</code>.</li>
+      <li><input type="checkbox" checked /> Add an “Install Blender API linting stubs” setting that defaults to enabled.</li>
+      <li><input type="checkbox" checked /> Add a pure resolver that maps a selected Blender version to <code>fake-bpy-module-&lt;major.minor&gt;</code> only when the version is supported.</li>
+      <li><input type="checkbox" checked /> Add <code>BlenderPythonPackageInstaller</code> and a production implementation backed by <code>PythonPackageManager.forSdk(project, sdk)</code>.</li>
       <li><input type="checkbox" /> Record the stub as a development-only dependency and install it into the SDK selected by PyCharm, verifying that it becomes visible through the SDK's site-packages roots.</li>
-      <li><input type="checkbox" /> Make repeated installation safe when the required package is already installed.</li>
+      <li><input type="checkbox" checked /> Make repeated installation safe when the required package is already installed.</li>
+      <li><input type="checkbox" checked /> Add a Toolwindow action that appears when the target Blender version and recorded stub requirement differ; resolve the target first, then uninstall the previous package and install the replacement without blocking the EDT.</li>
       <li><input type="checkbox" /> Add a fallback stub-root provider that resolves version-specific unpacked modules beneath <code>PluginConfig.getCodeCompletionPath()</code>, validates their expected top-level module layout, and attaches only the matching directory to the generated module as a Sources Root.</li>
       <li><input type="checkbox" /> Ensure root attachment is idempotent, is performed through the module root model on the correct write thread, and never marks the SDK's own site-packages directory as a project Sources Root.</li>
       <li><input type="checkbox" /> On installation failure with no valid fallback root, keep project generation successful, write diagnostic details through <code>PluginLogger</code>, and show a localized <code>NotificationModal</code> message containing the exact package requirement and Sources Root recovery instructions.</li>
@@ -177,14 +178,14 @@ class BlenderProjectSettings : PyV3ProjectTypeSpecificSettings {
     <h3>Legacy removal and documentation</h3>
     <ul>
       <li><input type="checkbox" checked /> Remove the generic wizard, wizard-data interface, directory-generator adapter, and custom legacy settings step after the PyV3 flow is verified.</li>
-      <li><input type="checkbox" /> Update project documentation and the generated README to replace manual interpreter and stub instructions with the automatic workflow and recovery steps.</li>
+      <li><input type="checkbox" checked /> Update project documentation and the generated README to replace manual interpreter and stub instructions with the automatic workflow and recovery steps.</li>
     </ul>
   </section>
 
   <section id="validation">
     <h2>5) Validation and Acceptance</h2>
     <ul>
-      <li><input type="checkbox" /> Unit-test package resolution for Blender 4.2 and 4.5, the upstream-confirmed 5.1 package, current unsupported Blender 5.2, full patch versions, and an unknown release.</li>
+      <li><input type="checkbox" checked /> Unit-test package resolution for Blender 4.2 and 4.5, the upstream-confirmed 5.1 package, current unsupported Blender 5.2, full patch versions, and an unknown release.</li>
       <li><input type="checkbox" /> Test enabled, disabled, successful, already-installed, failed, and cancelled stub installation through a fake installer.</li>
       <li><input type="checkbox" /> Test valid, missing, malformed, mismatched-version, already-attached, and external fallback Sources Root handling.</li>
       <li><input type="checkbox" /> Test that package failure does not prevent Blender files or project configuration from being generated.</li>
@@ -223,6 +224,8 @@ class BlenderProjectSettings : PyV3ProjectTypeSpecificSettings {
       <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/wizard/BlenderNewProjectGenerator.kt</code></li>
       <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/lib/BlenderVersions.kt</code></li>
       <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/state/PluginConfig.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/stubs/BlenderStubInstallationService.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/stubs/BlenderPythonPackageInstaller.kt</code></li>
       <li><code>/blender_pycharm/src/main/resources/fileTemplates/internal/README.ft</code></li>
       <li><code>/intellij-community/python/src/com/jetbrains/python/newProjectWizard/PyV3ProjectBaseGenerator.kt</code></li>
       <li><code>/intellij-community/python/src/com/jetbrains/python/newProjectWizard/PyV3ProjectTypeSpecificSettings.kt</code></li>

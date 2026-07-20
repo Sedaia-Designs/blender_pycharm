@@ -23,6 +23,7 @@ import com.intellij.openapi.projectRoots.ProjectJdkTable
 import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.jetbrains.python.Result
 import com.jetbrains.python.sdk.PythonSdkType
@@ -47,6 +48,10 @@ class BlenderProjectGeneratorTest : BasePlatformTestCase() {
         assertNotNull(baseDir.findFileByRelativePath("src/__init__.py"))
         assertNotNull(baseDir.findFileByRelativePath("src/blender_manifest.toml"))
         assertNotNull(baseDir.findChild("pyproject.toml"))
+        assertTrue(
+            VfsUtil.loadText(baseDir.findChild("pyproject.toml")!!)
+                .contains("dev = [\"fake-bpy-module-4.5\"]"),
+        )
         assertNotNull(baseDir.findChild("LICENSE"))
         assertEquals(
             listOf(baseDir.findChild("src")),

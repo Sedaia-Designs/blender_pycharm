@@ -35,6 +35,7 @@
       <tbody>
         <tr><td><code>blenderPath</code></td><td>String</td><td>Selected Blender executable or app bundle path.</td></tr>
         <tr><td><code>blenderVersion</code></td><td>List&lt;Int&gt;</td><td>Target Blender version selection.</td></tr>
+        <tr><td><code>installedStubRequirement</code></td><td>String</td><td>Exact version-specific Blender API linting package last installed by the plugin. Used to decide when the Toolwindow replacement action is shown.</td></tr>
         <tr><td><code>addonSymlinkName</code></td><td>String</td><td>Add-on symlink/runtime identity for generated scripts. Save flow normalizes spaces and hyphens to underscores.</td></tr>
         <tr><td><code>sourceFolder</code></td><td>String</td><td>Project source root used by runtime and generator defaults.</td></tr>
         <tr><td><code>runArguments</code></td><td>String</td><td>User-provided additional Blender CLI arguments.</td></tr>
@@ -84,7 +85,7 @@
   <section id="ui-ownership">
     <h2>4) UI Ownership</h2>
     <ul>
-      <li><strong>Tool window</strong> reads/writes <code>ProjectConfig</code>.</li>
+      <li><strong>Tool window</strong> reads/writes <code>ProjectConfig</code>, including the target Blender version, and offers stub replacement when the installed requirement no longer matches.</li>
       <li><strong>Settings configurable</strong> reads/writes <code>PluginConfig</code>.</li>
       <li><strong>Startup loader</strong> forces eager load for both states.</li>
     </ul>
@@ -119,6 +120,7 @@ class PluginConfig : PersistentStateComponent&lt;PluginConfig.PluginState&gt;</c
       <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderRuntimeCommandService.kt</code></li>
       <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/run/BlenderDebugProgramRunner.kt</code></li>
       <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/ui/toolwindow/BlenderToolWindowContent.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/stubs/BlenderStubInstallationService.kt</code></li>
       <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/ui/settings/BlenderSettingsContent.kt</code></li>
       <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/lib/services/ProjectConfigStartupLoader.kt</code></li>
     </ul>

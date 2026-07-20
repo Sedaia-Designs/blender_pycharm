@@ -33,7 +33,8 @@ class ProjectConfigTest : BasePlatformTestCase() {
 
   fun testDefaultStateValuesAreLoaded() {
     assertEquals("", config.getBlenderPath())
-    assertEquals(listOf(5, 1), config.getBlenderVersion())
+    assertEquals(listOf(4, 2), config.getBlenderVersion())
+    assertEquals("", config.getInstalledStubRequirement())
     assertEquals("src/", config.getSourceFolder())
     assertEquals("", config.getRunArguments())
     assertEquals(BlenderLogLevel.DEBUG, config.getBlenderLogLevel())
@@ -49,6 +50,7 @@ class ProjectConfigTest : BasePlatformTestCase() {
 
     config.setBlenderPath("/Applications/Blender.app")
     config.setBlenderVersion("4.5")
+    config.setInstalledStubRequirement("fake-bpy-module-4.5")
     config.setAddonSymlinkName("dev_addon")
     config.setSourceFolder("addon/")
     config.setRunArguments("--factory-startup --python-exit-code 1")
@@ -61,6 +63,7 @@ class ProjectConfigTest : BasePlatformTestCase() {
 
     assertEquals("/Applications/Blender.app", config.getBlenderPath())
     assertEquals(listOf(4, 5), config.getBlenderVersion())
+    assertEquals("fake-bpy-module-4.5", config.getInstalledStubRequirement())
     assertEquals("dev_addon", config.getAddonSymlinkName())
     assertEquals("addon/", config.getSourceFolder())
     assertEquals("--factory-startup --python-exit-code 1", config.getRunArguments())

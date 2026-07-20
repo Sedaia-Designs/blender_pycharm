@@ -25,6 +25,8 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.jetbrains.python.errorProcessing.PyResult
 import com.jetbrains.python.newProjectWizard.PyV3ProjectTypeSpecificSettings
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
+import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
+import com.sakurasedaia.blenderdevelopment.stubs.BlenderStubInstallationService
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 
 /** Blender-specific state used by PyCharm's native Python project generator. */
@@ -60,6 +62,9 @@ class BlenderProjectSettings(
 
     val addExampleCodeProperty: GraphProperty<Boolean> = propertyGraph.property(true)
     var addExampleCode: Boolean by addExampleCodeProperty
+
+    val installBlenderApiStubsProperty: GraphProperty<Boolean> = propertyGraph.property(true)
+    var installBlenderApiStubs: Boolean by installBlenderApiStubsProperty
 
     val manifestIdProperty: GraphProperty<String> = propertyGraph.property(normalizeModuleName(initialProjectName))
     var manifestId: String by manifestIdProperty
@@ -152,6 +157,7 @@ class BlenderProjectSettings(
             clipboardPermission = manifestClipboardPermission,
             cameraPermission = manifestCameraPermission,
             microphonePermission = manifestMicrophonePermission,
+            installBlenderApiStubs = installBlenderApiStubs,
         )
 
     /**
@@ -165,7 +171,16 @@ class BlenderProjectSettings(
     override suspend fun generateProject(module: Module, baseDir: VirtualFile, sdk: Sdk): PyResult<Unit> {
         updateProjectName(baseDir.name)
         val isGitInitialized = baseDir.findChild(".git")?.isDirectory == true
-        return BlenderProjectGenerator(toManifest(baseDir.path, isGitInitialized)).generateNewProject(module, baseDir, sdk)
+        val generationResult =
+            BlenderProjectGenerator(toManifest(baseDir.path, isGitInitialized)).generateNewProject(module, baseDir, sdk)
+        if (generationResult is com.jetbrains.python.Result.Failure) return generationResult
+
+        ProjectConfig.getInstance(module.project).setBlenderVersion(blenderVersion)
+        if (installBlenderApiStubs) {
+            BlenderStubInstallationService.getInstance(module.project)
+                .installForGeneratedProject(module, sdk, blenderVersion)
+        }
+        return generationResult
     }
 
     private companion object {

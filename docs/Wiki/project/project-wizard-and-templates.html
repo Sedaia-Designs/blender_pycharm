@@ -46,13 +46,14 @@
     <table>
       <thead><tr><th>Area</th><th>Contents</th></tr></thead>
       <tbody>
-        <tr><td>Upper panel</td><td>Project type, author, extension version, target Blender version with its recommended Python version, license, description, documentation URL, and example-code option.</td></tr>
+        <tr><td>Upper panel</td><td>Project type, author, extension version, target Blender version with its recommended Python version, automatic linting-stub installation, license, description, documentation URL, and example-code option.</td></tr>
         <tr><td>Python environment</td><td>PyCharm's native environment controls, including project virtual environments, uv environments, and existing interpreters.</td></tr>
         <tr><td>Advanced Settings</td><td>Add-on ID, Blender compatibility range, tags, website, and extension permission reasons rendered directly in the section; permissions retain their own nested group.</td></tr>
       </tbody>
     </table>
-    <p><code>pyproject.toml</code> is generated with the core scaffold before any later dependency-installation phase. The package installer can therefore record development dependencies without taking ownership of project structure.</p>
-    <p>The selected SDK is available to Blender-specific generation. Automatic Blender API stub installation is planned but is not part of the current foundation; generated projects still document version-matched manual installation.</p>
+    <p><code>pyproject.toml</code> is generated with the core scaffold before package installation. Supported Blender targets record their exact <code>fake-bpy-module-&lt;major.minor&gt;</code> requirement in the PEP 735 <code>dev</code> dependency group.</p>
+    <p>Automatic installation defaults to enabled and installs into the SDK selected by PyCharm. Verified mappings currently cover Blender 4.2, 4.5, and 5.1. Blender 5.2 and unknown releases are rejected instead of using the rolling package.</p>
+    <p>After the Toolwindow target version changes, <strong>Update Blender API Stubs</strong> appears. It resolves the new requirement before removing the recorded previous package, installs the replacement off the EDT, and updates the <code>dev</code> dependency entry. An unsupported target leaves the working package unchanged.</p>
   </section>
 
   <section id="manifest-data">
@@ -74,7 +75,7 @@
       <tbody>
         <tr><td><code>generateManifest</code></td><td><code>blender_manifest.toml</code> for extension projects</td></tr>
         <tr><td><code>generateMainScript</code></td><td><code>src/__init__.py</code> from internal template</td></tr>
-        <tr><td><code>generatePyproject</code></td><td><code>pyproject.toml</code> with Blender/Python compatibility</td></tr>
+        <tr><td><code>generatePyproject</code></td><td><code>pyproject.toml</code> with Blender/Python compatibility and the supported linting stub in the <code>dev</code> group</td></tr>
         <tr><td><code>generateGitIgnore</code></td><td><code>.gitignore</code> (when Git initialized)</td></tr>
         <tr><td><code>generateLicense</code></td><td><code>LICENSE</code> (GPL template)</td></tr>
         <tr><td><code>generateReadme</code></td><td><code>README.md</code> (when Git initialized)</td></tr>
@@ -146,6 +147,8 @@ row(MessageBundle.message("ui.project.wizard.ui.group.manifest.addon_id")) {
     <ul class="refs">
       <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/wizard/BlenderProjectDirectoryGenerator.kt</code></li>
       <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/wizard/BlenderProjectSettings.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/stubs/BlenderStubInstallationService.kt</code></li>
+      <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/stubs/BlenderPythonPackageInstaller.kt</code></li>
       <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/wizard/BlenderProjectUI.kt</code></li>
       <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/wizard/BlenderNewProjectGenerator.kt</code></li>
       <li><code>/blender_pycharm/src/main/kotlin/com/sakurasedaia/blenderdevelopment/lib/BlenderVersions.kt</code></li>

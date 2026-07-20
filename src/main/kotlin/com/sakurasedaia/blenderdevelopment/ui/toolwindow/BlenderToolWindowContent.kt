@@ -21,6 +21,7 @@ import com.intellij.openapi.observable.properties.GraphProperty
 import com.intellij.openapi.observable.properties.PropertyGraph
 import com.intellij.openapi.observable.util.equalsTo
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
@@ -30,6 +31,8 @@ import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
 import com.sakurasedaia.blenderdevelopment.core.BlenderRuntimeCommandService
+import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
+import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.ui.components.EnvironmentVariablesTable
@@ -37,9 +40,14 @@ import com.sakurasedaia.blenderdevelopment.ui.components.ScriptDirectoriesTable
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig.BlenderLogLevel
+import com.sakurasedaia.blenderdevelopment.stubs.BlenderStubInstallationService
+import com.sakurasedaia.blenderdevelopment.stubs.BlenderStubRequirementResolver
 import com.sakurasedaia.blenderdevelopment.util.PythonModuleNameValidator
+import com.jetbrains.python.sdk.PythonSdkUtil
+import kotlinx.coroutines.runBlocking
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JCheckBox
+import javax.swing.JButton
 import javax.swing.JComboBox
 import javax.swing.JComponent
 import javax.swing.JScrollPane
@@ -81,10 +89,14 @@ class BlenderToolWindowContent(
     lateinit var extensionsRepositoryField: JTextField
     lateinit var useCustomBlenderInstall: JCheckBox
     lateinit var availableBlenderInstalls: JComboBox<String>
+    lateinit var blenderVersionCombo: JComboBox<String>
+    lateinit var updateStubsButton: JButton
     val environmentVariablesTable = EnvironmentVariablesTable()
     val scriptDirectoriesTable = ScriptDirectoriesTable(project)
     val blenderLogLevels = BlenderLogLevel.entries
     val uiState = UiState()
+    val uiStateGraph = PropertyGraph()
+    val showStubUpdateProperty: GraphProperty<Boolean> = uiStateGraph.property(false)
     var isLoadingFromConfig = false
     lateinit var loadFromConfig: () -> Unit
 
@@ -213,6 +225,57 @@ class BlenderToolWindowContent(
       availableBlenderInstalls.isEnabled = !useCustomPath && uiState.detectedBlenderInstalls.isNotEmpty()
     }
 
+    /** Updates whether the version-specific stub replacement action should be offered. */
+    fun updateStubControlState() {
+      val selectedVersion = blenderVersionCombo.selectedItem as? String ?: return
+      val targetRequirement = BlenderStubRequirementResolver.resolve(selectedVersion)
+      val installedRequirement = config.getInstalledStubRequirement().takeIf(String::isNotBlank)
+      showStubUpdateProperty.set(targetRequirement == null || targetRequirement != installedRequirement)
+    }
+
+    /** Saves the target Blender version and refreshes the conditional update action. */
+    fun autosaveBlenderVersion() = autosaveField("blenderVersion") {
+      val selectedVersion = blenderVersionCombo.selectedItem as? String ?: return@autosaveField
+      config.setBlenderVersion(selectedVersion)
+      updateStubControlState()
+    }
+
+    /** Replaces the previous linting package on a pooled thread and refreshes the action state. */
+    fun replaceBlenderStubs() {
+      val notifications = NotificationModal.getInstance(project)
+      val module = ModuleManager.getInstance(project).modules.firstOrNull()
+      val sdk = module?.let(PythonSdkUtil::findPythonSdk)
+      if (module == null || sdk == null) {
+        notifications.sendError(MessageBundle.message("notification.blender.stubs.sdk.missing"))
+        return
+      }
+      val selectedVersion = blenderVersionCombo.selectedItem as? String ?: return
+      updateStubsButton.isEnabled = false
+      ApplicationManager.getApplication().executeOnPooledThread {
+        try {
+          runBlocking {
+            BlenderStubInstallationService.getInstance(project)
+              .replaceForChangedVersion(module, sdk, selectedVersion)
+          }
+        } catch (exception: Exception) {
+          logger.warn("Blender API stub replacement failed unexpectedly.", exception)
+          notifications.sendError(
+            MessageBundle.message(
+              "notification.blender.stubs.update.failed",
+              exception.message ?: exception.javaClass.simpleName,
+            ),
+          )
+        } finally {
+          ApplicationManager.getApplication().invokeLater {
+            if (!project.isDisposed) {
+              updateStubsButton.isEnabled = true
+              updateStubControlState()
+            }
+          }
+        }
+      }
+    }
+
     fun selectedInstallPath(): String? {
       val selectedIndex = availableBlenderInstalls.selectedIndex
       return uiState.detectedBlenderInstalls.getOrNull(selectedIndex)?.path
@@ -297,8 +360,12 @@ class BlenderToolWindowContent(
       environmentVariablesTable.setVariables(config.getEnvironmentVariables())
       scriptDirectoriesTable.setDirectories(config.getScriptDirectories().orEmpty())
 
+      val configuredBlenderVersion = BlenderVersions.normalizeVersionFromList(config.getBlenderVersion())
+      blenderVersionCombo.selectedItem = configuredBlenderVersion
+
       refreshInstallWidgetsFromPluginState()
       applyBlenderInstallSelectionFromProjectConfig()
+      updateStubControlState()
       isLoadingFromConfig = false
     }
 
@@ -311,8 +378,15 @@ class BlenderToolWindowContent(
       }
       */
       group(MessageBundle.message("ui.toolwindow.group.executable.title")) {
-        val uiStateGraph = PropertyGraph()
         val useCustomBlenderInstallProperty: GraphProperty<Boolean> = uiStateGraph.property(false)
+        row(MessageBundle.message("ui.toolwindow.group.executable.target-version")) {
+          comboBox(BlenderVersions.LIST.map { it.blMajorMinor })
+            .align(AlignX.FILL)
+            .applyToComponent {
+              blenderVersionCombo = this
+              addActionListener { autosaveBlenderVersion() }
+            }
+        }
         row {
           comboBox(emptyList<String>())
             .align(AlignX.FILL)
@@ -349,6 +423,13 @@ class BlenderToolWindowContent(
             }
           }
         }
+        row {
+          button(MessageBundle.message("ui.toolwindow.group.executable.update-stubs")) {
+            replaceBlenderStubs()
+          }.applyToComponent {
+            updateStubsButton = this
+          }
+        }.visibleIf(showStubUpdateProperty)
       }
 
       group(MessageBundle.message("ui.toolwindow.group.debugger.title")) {

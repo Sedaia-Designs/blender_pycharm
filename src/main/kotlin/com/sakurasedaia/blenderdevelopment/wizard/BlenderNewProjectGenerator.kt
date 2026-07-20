@@ -29,6 +29,7 @@ import com.jetbrains.python.errorProcessing.PyResult
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
+import com.sakurasedaia.blenderdevelopment.stubs.BlenderStubRequirementResolver
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.util.PluginResources
 import kotlinx.coroutines.CancellationException
@@ -65,6 +66,7 @@ data class BlenderExtensionManifest (
     val clipboardPermission: String,
     val cameraPermission: String,
     val microphonePermission: String,
+    val installBlenderApiStubs: Boolean = true,
 )
 
 
@@ -176,6 +178,14 @@ class BlenderProjectGenerator(private val data: BlenderExtensionManifest) {
             Pair("version", data.extensionVersion),
             Pair("python", BlenderVersions.getPythonVersion(data.blenderVersion)),
             Pair("license", data.projectLicense),
+            Pair(
+                "stubRequirement",
+                if (data.installBlenderApiStubs) {
+                    BlenderStubRequirementResolver.resolve(data.blenderVersion).orEmpty()
+                } else {
+                    ""
+                },
+            ),
         )
     }
     /**

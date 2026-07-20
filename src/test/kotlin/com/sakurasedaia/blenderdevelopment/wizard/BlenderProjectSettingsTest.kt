@@ -25,6 +25,12 @@ import org.junit.Test
 
 /** Tests Blender form state and its immutable generation payload. */
 class BlenderProjectSettingsTest {
+    /** Verifies that automatic stub installation is enabled for new projects. */
+    @Test
+    fun `stub installation defaults to enabled`() {
+        assertTrue(BlenderProjectSettings("Sample").installBlenderApiStubs)
+    }
+
     /** Verifies that project-name changes derive an add-on ID until the user customizes it. */
     @Test
     fun `project name synchronizes default manifest id until customized`() {
@@ -64,6 +70,7 @@ class BlenderProjectSettingsTest {
             extensionVersion = "1.2.3"
             blenderVersion = "4.5"
             addExampleCode = false
+            installBlenderApiStubs = false
             manifestId = "sample_project"
             manifestExtensionType = BlenderProjectGenerator.PROJECT_TYPE_EXTENSION
             manifestLicense = "SPDX:GPL-3.0-or-later"
@@ -86,6 +93,7 @@ class BlenderProjectSettingsTest {
         assertEquals("1.2.3", manifest.extensionVersion)
         assertEquals("4.5", manifest.blenderVersion)
         assertFalse(manifest.addExampleCode)
+        assertFalse(manifest.installBlenderApiStubs)
         assertTrue(manifest.isGitInitialized)
         assertEquals("Sakura", manifest.author)
         assertEquals("sample_project", manifest.extensionId)

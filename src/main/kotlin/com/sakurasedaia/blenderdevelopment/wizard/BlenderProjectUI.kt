@@ -81,6 +81,10 @@ object BlenderProjectUI : PyV3ProjectTypeSpecificUI<BlenderProjectSettings> {
         comboBox(BlenderVersions.LIST.map { it.blMajorMinor })
           .bindItem(settings.blenderVersionProperty)
       }
+      row {
+        checkBox(MessageBundle.message("ui.project.wizard.ui.group.project.install.stubs"))
+          .bindSelected(settings.installBlenderApiStubsProperty)
+      }
       row("") {
         comment("").bindText(settings.recommendedPythonVersionCommentProperty)
       }

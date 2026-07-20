@@ -1,0 +1,187 @@
+/*
+ * Copyright (C) 2026 Sakura Sedaia
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ */
+
+package com.sakurasedaia.blenderdevelopment.stubs
+
+import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.service
+import com.intellij.openapi.application.edtWriteAction
+import com.intellij.openapi.module.Module
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.projectRoots.Sdk
+import com.jetbrains.python.Result
+import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
+import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
+import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
+import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
+import kotlinx.coroutines.CancellationException
+
+/** Summarizes the outcome of a Blender linting-stub installation request. */
+enum class BlenderStubOperationStatus {
+  INSTALLED,
+  UPDATED,
+  UNSUPPORTED,
+  FAILED,
+}
+
+/** Coordinates safe version-specific stub installation for a project Python SDK. */
+@Service(Service.Level.PROJECT)
+class BlenderStubInstallationService(private val project: Project) {
+  private var packageInstaller: BlenderPythonPackageInstaller = PyCharmBlenderPythonPackageInstaller()
+
+  /**
+   * Installs stubs for a generated project without making scaffolding depend on network success.
+   *
+   * @param module generated Python module.
+   * @param sdk Python SDK assigned by PyCharm.
+   * @param blenderVersion selected Blender version.
+   * @return operation status for diagnostics and tests.
+   */
+  suspend fun installForGeneratedProject(
+    module: Module,
+    sdk: Sdk,
+    blenderVersion: String,
+  ): BlenderStubOperationStatus = try {
+    installOrReplace(module, sdk, blenderVersion, replaceExisting = false)
+  } catch (exception: CancellationException) {
+    throw exception
+  } catch (exception: Exception) {
+    val message = MessageBundle.message(
+      "notification.blender.stubs.unexpected.failure",
+      exception.message ?: exception.javaClass.simpleName,
+    )
+    PluginLogger.getInstance(project).warn(message, exception)
+    NotificationModal.getInstance(project).sendError(message)
+    BlenderStubOperationStatus.FAILED
+  }
+
+  /**
+   * Replaces the recorded stub package after the target Blender version changes.
+   *
+   * The target requirement is resolved before removal so unsupported versions cannot remove
+   * a working package.
+   *
+   * @param module project Python module.
+   * @param sdk Python SDK assigned to the module.
+   * @param blenderVersion newly selected Blender version.
+   * @return operation status for UI refresh.
+   */
+  suspend fun replaceForChangedVersion(
+    module: Module,
+    sdk: Sdk,
+    blenderVersion: String,
+  ): BlenderStubOperationStatus = installOrReplace(module, sdk, blenderVersion, replaceExisting = true)
+
+  /**
+   * Replaces the package installer for a test and returns this service for fluent setup.
+   *
+   * @param installer deterministic installer fake.
+   * @return this service.
+   */
+  internal fun withPackageInstaller(installer: BlenderPythonPackageInstaller): BlenderStubInstallationService {
+    packageInstaller = installer
+    return this
+  }
+
+  /**
+   * Performs installation or ordered uninstall/install replacement.
+   *
+   * @param module project Python module.
+   * @param sdk target Python SDK.
+   * @param blenderVersion requested Blender version.
+   * @param replaceExisting whether the recorded previous package should be removed first.
+   * @return final operation status.
+   */
+  private suspend fun installOrReplace(
+    module: Module,
+    sdk: Sdk,
+    blenderVersion: String,
+    replaceExisting: Boolean,
+  ): BlenderStubOperationStatus {
+    val config = ProjectConfig.getInstance(project)
+    val logger = PluginLogger.getInstance(project)
+    val notifications = NotificationModal.getInstance(project)
+    val requirement = BlenderStubRequirementResolver.resolve(blenderVersion)
+    if (requirement == null) {
+      val message = MessageBundle.message("notification.blender.stubs.unsupported", blenderVersion)
+      logger.warn(message)
+      notifications.sendWarning(message)
+      return BlenderStubOperationStatus.UNSUPPORTED
+    }
+
+    val previousRequirement = config.getInstalledStubRequirement().takeIf(String::isNotBlank)
+    val shouldRemovePrevious = replaceExisting && previousRequirement != null && previousRequirement != requirement
+    if (shouldRemovePrevious) {
+      when (val uninstallResult = packageInstaller.uninstallDevelopmentPackage(
+        project,
+        module,
+        sdk,
+        previousRequirement,
+      )) {
+        is Result.Success -> config.setInstalledStubRequirement("")
+        is Result.Failure -> {
+          val message = MessageBundle.message(
+            "notification.blender.stubs.uninstall.failed",
+            previousRequirement,
+            uninstallResult.error.toString(),
+          )
+          logger.warn(message)
+          notifications.sendError(message)
+          return BlenderStubOperationStatus.FAILED
+        }
+      }
+    }
+
+    return when (val installResult = packageInstaller.installDevelopmentPackage(project, module, sdk, requirement)) {
+      is Result.Success -> {
+        config.setInstalledStubRequirement(requirement)
+        try {
+          edtWriteAction {
+            BlenderStubDependencyFileUpdater.update(project, requirement)
+          }
+        } catch (exception: CancellationException) {
+          throw exception
+        } catch (exception: Exception) {
+          val message = MessageBundle.message(
+            "notification.blender.stubs.metadata.failed",
+            requirement,
+            exception.message ?: exception.javaClass.simpleName,
+          )
+          logger.warn(message, exception)
+          notifications.sendWarning(message)
+        }
+        val status = if (shouldRemovePrevious) BlenderStubOperationStatus.UPDATED else BlenderStubOperationStatus.INSTALLED
+        if (replaceExisting) {
+          notifications.sendInfo(MessageBundle.message("notification.blender.stubs.install.succeeded", requirement))
+        }
+        status
+      }
+      is Result.Failure -> {
+        val message = MessageBundle.message(
+          "notification.blender.stubs.install.failed",
+          requirement,
+          installResult.error.toString(),
+        )
+        logger.warn(message)
+        notifications.sendError(message)
+        BlenderStubOperationStatus.FAILED
+      }
+    }
+  }
+
+  companion object {
+    /**
+     * Returns the project-scoped installation service.
+     *
+     * @param project target project.
+     * @return installation service.
+     */
+    fun getInstance(project: Project): BlenderStubInstallationService = project.service()
+  }
+}
