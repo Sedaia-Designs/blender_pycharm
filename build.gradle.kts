@@ -36,7 +36,14 @@ intellijPlatform {
         }
         
         changeNotes = """
-            Initial Release
+            <h3>0.7.0-Snapshot</h3>
+            <ul>
+              <li>Introduces the PyCharm-native Blender project wizard and environment workflow.</li>
+              <li>Adds project-scoped Blender configuration, discovery, Run/Debug integration, and runtime commands.</li>
+              <li>Adds version-matched Blender API stub installation for supported Blender targets.</li>
+              <li>Reworks runtime packaging, process lifecycle handling, documentation, and tests.</li>
+            </ul>
+            <p>This is a pre-release snapshot and is not production-hardened.</p>
         """.trimIndent()
     }
     autoReload = true

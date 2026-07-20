@@ -52,13 +52,22 @@ class BlenderProjectSettingsTest {
     fun `recommended Python version follows target Blender selection`() {
         val settings = BlenderProjectSettings("Sample")
 
-        assertEquals("Recommended Python version: 3.11.7", settings.recommendedPythonVersionCommentProperty.get())
+        assertEquals(
+            "Active Blender LTS and Latest branches only; Recommended Python version: 3.11.7",
+            settings.recommendedPythonVersionCommentProperty.get(),
+        )
 
         settings.blenderVersion = "4.5"
-        assertEquals("Recommended Python version: 3.11.9", settings.recommendedPythonVersionCommentProperty.get())
+        assertEquals(
+            "Active Blender LTS and Latest branches only; Recommended Python version: 3.11.9",
+            settings.recommendedPythonVersionCommentProperty.get(),
+        )
 
         settings.blenderVersion = "5.2"
-        assertEquals("Recommended Python version: 3.13.13", settings.recommendedPythonVersionCommentProperty.get())
+        assertEquals(
+            "Active Blender LTS and Latest branches only; Recommended Python version: 3.13.13",
+            settings.recommendedPythonVersionCommentProperty.get(),
+        )
     }
 
     /** Verifies that every editable setting is transferred to the scaffolding manifest. */
