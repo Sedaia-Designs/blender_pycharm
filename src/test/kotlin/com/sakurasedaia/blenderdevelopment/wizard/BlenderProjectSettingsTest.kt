@@ -41,6 +41,20 @@ class BlenderProjectSettingsTest {
         assertEquals("custom_addon", settings.manifestId)
     }
 
+    /** Verifies that the Python recommendation follows the selected target Blender version. */
+    @Test
+    fun `recommended Python version follows target Blender selection`() {
+        val settings = BlenderProjectSettings("Sample")
+
+        assertEquals("Recommended Python version: 3.11.7", settings.recommendedPythonVersionCommentProperty.get())
+
+        settings.blenderVersion = "4.5"
+        assertEquals("Recommended Python version: 3.11.9", settings.recommendedPythonVersionCommentProperty.get())
+
+        settings.blenderVersion = "5.2"
+        assertEquals("Recommended Python version: 3.13.13", settings.recommendedPythonVersionCommentProperty.get())
+    }
+
     /** Verifies that every editable setting is transferred to the scaffolding manifest. */
     @Test
     fun `settings convert to complete manifest payload`() {

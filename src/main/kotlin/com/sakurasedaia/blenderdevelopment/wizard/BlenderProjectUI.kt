@@ -81,6 +81,9 @@ object BlenderProjectUI : PyV3ProjectTypeSpecificUI<BlenderProjectSettings> {
         comboBox(BlenderVersions.LIST.map { it.blMajorMinor })
           .bindItem(settings.blenderVersionProperty)
       }
+      row("") {
+        comment("").bindText(settings.recommendedPythonVersionCommentProperty)
+      }
       row(MessageBundle.message("ui.project.wizard.ui.group.project.license")) {
         textField().bindText(settings.manifestLicenseProperty).enabled(false)
       }

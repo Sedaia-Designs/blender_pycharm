@@ -49,6 +49,15 @@ class BlenderProjectSettings(
     val blenderVersionProperty: GraphProperty<String> = propertyGraph.property(BlenderVersions.LIST.first().blMajorMinor)
     var blenderVersion: String by blenderVersionProperty
 
+    val recommendedPythonVersionCommentProperty: GraphProperty<String> =
+        propertyGraph.property(recommendedPythonVersionComment(blenderVersion))
+
+    init {
+        recommendedPythonVersionCommentProperty.dependsOn(blenderVersionProperty) {
+            recommendedPythonVersionComment(blenderVersion)
+        }
+    }
+
     val addExampleCodeProperty: GraphProperty<Boolean> = propertyGraph.property(true)
     var addExampleCode: Boolean by addExampleCodeProperty
 
@@ -160,6 +169,17 @@ class BlenderProjectSettings(
     }
 
     private companion object {
+        /**
+         * Creates the localized Python recommendation for a Blender version.
+         *
+         * @param blenderVersion selected Blender major/minor version.
+         * @return localized recommendation, or an empty value when no mapping exists.
+         */
+        fun recommendedPythonVersionComment(blenderVersion: String): String =
+            BlenderVersions.getPythonVersion(blenderVersion)?.let { pythonVersion ->
+                MessageBundle.message("ui.project.wizard.ui.group.project.python.version.recommendation", pythonVersion)
+            }.orEmpty()
+
         /**
          * Converts a project name to the Python-module-compatible default used for the add-on ID.
          *
