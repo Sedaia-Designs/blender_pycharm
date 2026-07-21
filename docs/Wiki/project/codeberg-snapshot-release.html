@@ -51,6 +51,8 @@
       <li><code>CHANGELOG.md</code> must contain a section matching the normalized snapshot version.</li>
       <li><code>curl</code>, <code>git</code>, <code>jq</code>, <code>security</code>, and <code>shasum</code> must be available.</li>
       <li>The Codeberg token must have push permission for <code>SakuraSedaia/blender_pycharm</code>.</li>
+      <li>The built plugin must use the IntelliJ Platform Kotlin runtime and must not bundle a
+        <code>kotlin-stdlib</code> jar.</li>
     </ul>
     <p>Store the token in macOS Keychain without placing it in source files or shell history:</p>
     <pre><code class="language-shell">security add-generic-password \

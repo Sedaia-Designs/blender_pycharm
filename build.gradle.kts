@@ -26,8 +26,12 @@ dependencies {
         bundledPlugin("Pythonid")
     }
 
-    implementation("dev.eav.tomlkt:tomlkt:0.6.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.6.3") // Required by tomlkt
+    implementation("dev.eav.tomlkt:tomlkt:0.6.0") {
+        exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
+    }
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.6.3") { // Required by tomlkt
+        exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
+    }
 
 }
 
@@ -42,12 +46,12 @@ intellijPlatform {
         }
         
         changeNotes = """
-            <h3>0.7.0-Snapshot</h3>
+            <h3>0.8.0-Snapshot</h3>
             <ul>
-              <li>Introduces the PyCharm-native Blender project wizard and environment workflow.</li>
-              <li>Adds project-scoped Blender configuration, discovery, Run/Debug integration, and runtime commands.</li>
-              <li>Adds version-matched Blender API stub installation for supported Blender targets.</li>
-              <li>Reworks runtime packaging, process lifecycle handling, documentation, and tests.</li>
+              <li>Adds structured Blender extension manifest parsing and manifest-ID-based reloads.</li>
+              <li>Expands Blender runtime communication and repository-sync diagnostics.</li>
+              <li>Simplifies the bundled runtime source layout and adds Python regression coverage.</li>
+              <li>Adds a validated, idempotent Codeberg snapshot release workflow.</li>
             </ul>
             <p>This is a pre-release snapshot and is not production-hardened.</p>
         """.trimIndent()
