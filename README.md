@@ -114,7 +114,7 @@ Issues and feature requests can be reported in the [Codeberg issue tracker](http
 
 ## Documentation
 
-- [Project documentation](docs/Wiki/project/index.html)
+- [Project documentation](https://docs.sakura-sedaia.com/blender-development/)
 - [Contributor guide](docs/CONTRIBUTING.md)
 - [Internal technical documentation](docs/Wiki/internal/index.html)
 - [Changelog](CHANGELOG.md)
