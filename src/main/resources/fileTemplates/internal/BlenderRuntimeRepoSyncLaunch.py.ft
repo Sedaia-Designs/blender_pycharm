@@ -1,7 +1,7 @@
-import re
 import traceback
 from pathlib import Path
 from typing import List, Optional
+import tomllib
 
 import bpy
 
@@ -20,14 +20,14 @@ def extension_manifest_id(directory: Path) -> str:
     if not manifest_path.is_file():
         return ""
     try:
-        manifest_text = manifest_path.read_text(encoding="utf-8")
-    except Exception:
+        with open(manifest_path, "rb") as manifest_file:
+            manifest_data = tomllib.load(manifest_file)
+    except (OSError, tomllib.TOMLDecodeError):
         return ""
-
-    id_match = re.search(r'(?m)^\\s*id\\s*=\\s*"([^"]+)"', manifest_text)
-    if not id_match:
-        return ""
-    return id_match.group(1).strip()
+    manifest_id = manifest_data.get("id", "")
+    if isinstance(manifest_id, str):
+        return manifest_id.strip()
+    return ""
 
 
 def resolve_source_path() -> Optional[Path]:

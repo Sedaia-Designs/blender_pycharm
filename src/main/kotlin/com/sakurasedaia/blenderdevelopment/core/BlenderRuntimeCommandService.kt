@@ -26,6 +26,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.concurrency.AppExecutorUtil
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
+import com.sakurasedaia.blenderdevelopment.lib.BlenderManifest
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import java.net.URI
@@ -236,13 +237,12 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
     if (!Files.isRegularFile(manifestPath)) {
       return null
     }
-    val manifestContent = runCatching { Files.readString(manifestPath) }.getOrNull() ?: return null
-    val idMatch = MANIFEST_ID_REGEX.find(manifestContent) ?: return null
-    return idMatch.groupValues.getOrNull(1)?.trim()?.ifBlank { null }
+    return runCatching { BlenderManifest(manifestPath.toString()).id.trim() }
+      .getOrNull()
+      ?.ifBlank { null }
   }
 
   companion object {
-    private val MANIFEST_ID_REGEX = Regex("(?m)^\\s*id\\s*=\\s*\"([^\"]+)\"")
     fun getInstance(project: Project): BlenderRuntimeCommandService = project.service()
   }
 }

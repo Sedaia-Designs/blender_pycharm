@@ -5,6 +5,8 @@ plugins {
     id("org.jetbrains.kotlin.jvm")
     id("org.jetbrains.changelog")
     id("org.jetbrains.intellij.platform")
+
+    kotlin("plugin.serialization") version "2.2.20"
 }
 
 group = "com.sakurasedaia"
@@ -13,16 +15,20 @@ version = "0.7.0-SNAPSHOT"
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html
 dependencies {
     testImplementation(libs.junit)
-    
+
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
         pycharm("2026.1")
         testFramework(TestFrameworkType.Platform)
-        
+
         // Add plugin dependencies for compilation here:
         bundledPlugin("PythonCore")
         bundledPlugin("Pythonid")
     }
+
+    implementation("dev.eav.tomlkt:tomlkt:0.6.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.6.3") // Required by tomlkt
+
 }
 
 intellijPlatform {
