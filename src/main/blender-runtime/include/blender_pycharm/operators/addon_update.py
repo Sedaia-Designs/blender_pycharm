@@ -1,5 +1,4 @@
 import sys
-import traceback
 from pathlib import Path
 
 import addon_utils
@@ -11,6 +10,10 @@ from ..utils import addon_has_bl_info, extension_manifest_id
 from ..load_addons import is_in_any_addon_directory
 from ..communication import send_dict_as_json, register_post_action
 from ..utils import is_addon_legacy, redraw_all
+from .. import log
+
+
+LOG = log.getLogger()
 
 
 class UpdateAddonOperator(bpy.types.Operator):
@@ -102,10 +105,11 @@ class UpdateAddonOperator(bpy.types.Operator):
             bpy.ops.preferences.addon_refresh()
 
     def execute(self, context):
+        LOG.info(f"Reloading add-on module: {self.module_name} ({self.module_dir or 'directory not provided'})")
         try:
             bpy.ops.preferences.addon_disable(module=self.module_name)
         except Exception:
-            traceback.print_exc()
+            LOG.exception(f"Failed to disable add-on module before reload: {self.module_name}")
             send_dict_as_json({"type": "disableFailure"})
             return {"CANCELLED"}
 
@@ -118,7 +122,7 @@ class UpdateAddonOperator(bpy.types.Operator):
             bpy.ops.preferences.addon_enable(module=self.module_name)
         except Exception as e:
             if not (self._is_namespace_package_error(e) or self._is_missing_module_error(e)):
-                traceback.print_exc()
+                LOG.exception(f"Failed to enable reloaded add-on module: {self.module_name}")
                 send_dict_as_json({"type": "enableFailure"})
                 return {"CANCELLED"}
 
@@ -135,11 +139,16 @@ class UpdateAddonOperator(bpy.types.Operator):
                     fallback_errors.append(fallback_error)
             else:
                 if fallback_errors:
-                    traceback.print_exception(fallback_errors[-1])
+                    last_error = fallback_errors[-1]
+                    LOG.error(
+                        f"Failed to enable add-on module `{self.module_name}` using all extension candidates.",
+                        exc_info=(type(last_error), last_error, last_error.__traceback__),
+                    )
                 send_dict_as_json({"type": "enableFailure"})
                 return {"CANCELLED"}
 
         send_dict_as_json({"type": "addonUpdated"})
+        LOG.info(f"Reloaded add-on module successfully: {self.module_name}")
 
         redraw_all()
         return {"FINISHED"}
@@ -166,6 +175,7 @@ def reload_addon_action(data):
     for name, dir in zip(data["names"], data["dirs"]):
         requested_dir = Path(dir).resolve()
         if not requested_dir.exists() or not requested_dir.is_dir():
+            LOG.warning(f"Skipping reload target because its directory is unavailable: {name} ({requested_dir})")
             continue
         if is_addon_root(requested_dir):
             append_target(name, requested_dir)
@@ -174,6 +184,7 @@ def reload_addon_action(data):
             if child.is_dir() and is_addon_root(child):
                 append_target(child.name, child.resolve())
 
+    LOG.info(f"Resolved {len(targets)} add-on target(s) for reload.")
     for name, addon_dir in targets:
         bpy.ops.dev.update_addon(module_name=name, module_dir=str(addon_dir))
 

@@ -2,7 +2,6 @@ import logging
 import random
 import threading
 import time
-from functools import partial
 from typing import Callable, Dict
 
 import debugpy
@@ -115,14 +114,14 @@ def start_debug_server():
 @SERVER.route("/", methods=["POST"])
 def handle_post():
     data = flask.request.get_json()
-    LOG.debug(f"Got POST: {data}")
+    command_type = data.get("type") if isinstance(data, dict) else None
+    LOG.info(f"Received runtime command: {command_type or '<missing>'}")
 
-    if data["type"] in POST_HANDLERS:
-        return POST_HANDLERS[data["type"]](data)
-    else:
-        LOG.warning(f"Unhandled POST: {data}")
+    if command_type in POST_HANDLERS:
+        return POST_HANDLERS[command_type](data)
 
-    return "OK"
+    LOG.warning(f"Unhandled runtime command payload: {data}")
+    return "Unhandled runtime command", 400
 
 
 @SERVER.route("/ping", methods=["GET"])
@@ -138,7 +137,17 @@ def register_post_handler(type: str, handler: Callable):
 
 def register_post_action(type: str, handler: Callable):
     def request_handler_wrapper(data):
-        run_in_main_thread(partial(handler, data))
+        def logged_action():
+            LOG.info(f"Executing runtime command: {type}")
+            try:
+                handler(data)
+            except Exception:
+                LOG.exception(f"Runtime command failed: {type}")
+                return
+            LOG.info(f"Runtime command completed: {type}")
+
+        run_in_main_thread(logged_action)
+        LOG.debug(f"Queued runtime command on Blender's main thread: {type}")
         return "OK"
 
     register_post_handler(type, request_handler_wrapper)

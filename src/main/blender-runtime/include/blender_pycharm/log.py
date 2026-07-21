@@ -3,27 +3,20 @@ import logging
 from .environment import LOG_LEVEL
 
 
-class ColoredFormatter(logging.Formatter):
-    white = "\x1b[1;37;20m"
-    grey = "\x1b[1;38;20m"
-    yellow = "\x1b[1;33;20m"
-    red = "\x1b[1;31;20m"
-    bold_red = "\x1b[1;31;1m"
-    reset = "\x1b[1;0m"
-    format = "%(levelname)s: %(message)s (%(filename)s:%(lineno)d)"
+class BlenderFormatter(logging.Formatter):
+    """Format runtime messages like Blender console log entries without terminal control codes."""
 
-    FORMATS = {
-        logging.DEBUG: grey + format + reset,
-        logging.INFO: white + format + reset,
-        logging.WARNING: yellow + format + reset,
-        logging.ERROR: red + format + reset,
-        logging.CRITICAL: bold_red + format + reset,
-    }
+    def __init__(self):
+        super().__init__(
+            "%(blender_time)s  blender.pycharm  | %(levelname)s: %(message)s (%(filename)s:%(lineno)d)"
+        )
 
     def format(self, record):
-        log_fmt = self.FORMATS.get(record.levelno)
-        formatter = logging.Formatter(log_fmt)
-        return formatter.format(record)
+        elapsed_milliseconds = max(0, round(record.relativeCreated))
+        minutes, milliseconds_in_minute = divmod(elapsed_milliseconds, 60_000)
+        seconds, milliseconds = divmod(milliseconds_in_minute, 1_000)
+        record.blender_time = f"{minutes:02d}:{seconds:02d}.{milliseconds:03d}"
+        return super().format(record)
 
 
 def getLogger(name: str = "blender_vs"):
@@ -40,7 +33,7 @@ def getLogger(name: str = "blender_vs"):
     ch = logging.StreamHandler()
     ch.setLevel(logging.DEBUG)
 
-    ch.setFormatter(ColoredFormatter())
+    ch.setFormatter(BlenderFormatter())
 
     log.addHandler(ch)
 

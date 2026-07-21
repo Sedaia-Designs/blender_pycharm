@@ -124,6 +124,7 @@ blender_pycharm.startup(**filtered_kwargs)</code></pre>
         <tr><td>Stop Blender</td><td>Sends stop command to the active session.</td><td><code>operators/stop_blender.py</code> (<code>type="stop"</code>)</td></tr>
       </tbody>
     </table>
+    <p>Blender's Python communication layer logs when each command is received, queued on the main thread, executed, and completed. Handler exceptions are logged with tracebacks; reload logging also records resolved targets, unavailable directories, module disable/enable failures, and successful module reloads. Unknown command types are logged and rejected with HTTP 400.</p>
   </section>
 
   <section id="snippets">
