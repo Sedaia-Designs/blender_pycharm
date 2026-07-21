@@ -6,13 +6,13 @@ import unittest
 from pathlib import Path
 
 
-RUNTIME_INCLUDE = Path(__file__).parents[2] / "main/blender-runtime/include"
+RUNTIME_PACKAGE = Path(__file__).parents[2] / "main/python"
 
 
 class RuntimeLogFormatterTest(unittest.TestCase):
     def setUp(self):
         package = types.ModuleType("blender_pycharm")
-        package.__path__ = [str(RUNTIME_INCLUDE / "blender_pycharm")]
+        package.__path__ = [str(RUNTIME_PACKAGE)]
         environment = types.ModuleType("blender_pycharm.environment")
         environment.LOG_LEVEL = logging.DEBUG
 

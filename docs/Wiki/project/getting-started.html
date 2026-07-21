@@ -81,12 +81,14 @@
 
   <section id="notes">
     <h2>5) Runtime Packaging Notes</h2>
-    <p>The plugin ships Python runtime support by zipping <code>src/main/blender-runtime</code> into
-      <code>blender-runtime.zip</code> during build. This archive is copied into plugin resources and extracted at startup/run time.</p>
+    <p>The plugin ships Python runtime support by packaging <code>src/main/python</code> as
+      <code>include/blender_pycharm</code> in <code>blender-runtime.zip</code> during build. This archive is copied into plugin resources and extracted at startup/run time.</p>
 
     <pre><code class="language-kotlin">val packageBlenderRuntime by registering(Zip::class) {
   archiveFileName.set("blender-runtime.zip")
-  from(layout.projectDirectory.dir("src/main/blender-runtime"))
+  from(layout.projectDirectory.dir("src/main/python")) {
+    into("include/blender_pycharm")
+  }
   exclude("**/__pycache__/**", "**/*.pyc", "**/*.pyo")
 }
 

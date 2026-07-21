@@ -96,7 +96,7 @@ On the first Debug launch, Blender may need network access while the bundled run
 ./gradlew buildPlugin
 ```
 
-The build packages `src/main/blender-runtime` into `blender-runtime.zip` and embeds it in the plugin resources. The runtime is extracted into the IDE settings area and refreshed when the plugin version or archive hash changes.
+The build packages `src/main/python` as the `include/blender_pycharm` package in `blender-runtime.zip` and embeds it in the plugin resources. The runtime is extracted into the IDE settings area and refreshed when the plugin version or archive hash changes.
 
 ## Current status and limitations
 
@@ -135,7 +135,7 @@ Roadmap items are directional and do not represent release commitments.
 
 This project is licensed under the [GNU General Public License v3.0 or later](LICENSE).
 
-The Blender runtime under `src/main/blender-runtime` is substantially derived from Jacques Lucke's [Blender Development extension for Visual Studio Code](https://github.com/JacquesLucke/blender_vscode) and adapted for this plugin's PyCharm run/debug lifecycle, debugger attachment, runtime commands, and project configuration. The upstream runtime is MIT-licensed; see [NOTICE](NOTICE) for the complete attribution and license text.
+The Blender runtime under `src/main/python` is substantially derived from Jacques Lucke's [Blender Development extension for Visual Studio Code](https://github.com/JacquesLucke/blender_vscode) and adapted for this plugin's PyCharm run/debug lifecycle, debugger attachment, runtime commands, and project configuration. The upstream runtime is MIT-licensed; see [NOTICE](NOTICE) for the complete attribution and license text.
 
 The Blender logo and name are trademarks of the Blender Foundation. This project is not affiliated with or endorsed by the Blender Foundation.
 

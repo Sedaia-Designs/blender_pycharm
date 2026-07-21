@@ -61,7 +61,9 @@ tasks {
         description = "Packages Blender runtime API files into an archive for plugin distribution."
         archiveFileName.set("blender-runtime.zip")
         destinationDirectory.set(layout.buildDirectory.dir("generated/blender-runtime"))
-        from(layout.projectDirectory.dir("src/main/blender-runtime"))
+        from(layout.projectDirectory.dir("src/main/python")) {
+            into("include/blender_pycharm")
+        }
         exclude("**/__pycache__/**", "**/*.pyc", "**/*.pyo")
     }
 

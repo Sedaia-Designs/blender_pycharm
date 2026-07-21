@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import Mock, call
 
 
-RUNTIME_INCLUDE = Path(__file__).parents[2] / "main/blender-runtime/include"
+RUNTIME_PACKAGE = Path(__file__).parents[2] / "main/python"
 
 
 class RuntimeCommunicationLoggingTest(unittest.TestCase):
@@ -16,7 +16,7 @@ class RuntimeCommunicationLoggingTest(unittest.TestCase):
         self.logger = Mock()
 
         package = types.ModuleType("blender_pycharm")
-        package.__path__ = [str(RUNTIME_INCLUDE / "blender_pycharm")]
+        package.__path__ = [str(RUNTIME_PACKAGE)]
 
         environment = types.ModuleType("blender_pycharm.environment")
         environment.LOG_FLASK = False

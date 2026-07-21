@@ -7,7 +7,7 @@ This project is licensed under the GNU General Public License v3.0 (GPLv3).
 THIRD-PARTY ATTRIBUTIONS
 -------------------------------------------------------------------------------
 
-The Blender runtime under src/main/blender-runtime is substantially derived
+The Blender runtime under src/main/python is substantially derived
 from the Blender Development extension for Visual Studio Code:
 https://github.com/JacquesLucke/blender_vscode
 
