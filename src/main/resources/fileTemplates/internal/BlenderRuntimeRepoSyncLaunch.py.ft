@@ -1,9 +1,17 @@
 import traceback
+import sys
 from pathlib import Path
 from typing import List, Optional
 import tomllib
 
 import bpy
+
+include_dir = Path('${includeDirLiteral}')
+if include_dir.exists():
+    sys.path.insert(0, str(include_dir))
+
+import blender_pycharm
+from blender_pycharm import load_addons
 
 project_root = Path('${projectPathLiteral}')
 source_folder = '${sourceFolderLiteral}'.strip()
@@ -83,22 +91,32 @@ def build_module_candidates(source_path: Optional[Path]) -> List[str]:
         seen.add(candidate)
         candidates.append(candidate)
 
-    append(addon_symlink_name)
-    if addon_symlink_name and not addon_symlink_name.startswith("bl_ext."):
-        append(f"bl_ext.{extensions_repository}.{addon_symlink_name}")
-
     if source_path:
-        append(source_path.name)
         manifest_id = extension_manifest_id(source_path)
-        append(manifest_id)
         if manifest_id:
             append(f"bl_ext.{extensions_repository}.{manifest_id}")
+            return candidates
+
+    append(addon_symlink_name)
+    if source_path:
+        append(source_path.name)
 
     return candidates
 
 
+def ensure_addon_link(source_path: Optional[Path]):
+    if not source_path:
+        return
+    manifest_id = extension_manifest_id(source_path)
+    module_name = manifest_id or addon_symlink_name or source_path.name
+    load_addons.setup_addon_links([
+        blender_pycharm.AddonInfo(load_dir=source_path, module_name=module_name)
+    ])
+
+
 try:
     source_path = resolve_source_path()
+    ensure_addon_link(source_path)
     refresh_addons_and_extensions()
     for module_name in build_module_candidates(source_path):
         if try_reload_module(module_name):

@@ -244,6 +244,7 @@ internal class Launcher(private val project: Project) {
       )
 
     val scriptFileName = BlenderBootstrapScriptCleanup.newScriptFileName()
+    val includeDirectoryPath = BlenderRuntimeResources.ensureRuntimeExtracted()
     val projectBasePath = project.basePath ?: ""
     val sourceFolder = projectConfig.getSourceFolder()
     val addonSymlinkName = projectConfig.getAddonSymlinkName()
@@ -256,6 +257,7 @@ internal class Launcher(private val project: Project) {
         template = "BlenderRuntimeRepoSyncLaunch",
         destination = scratchVfsDirectory,
         internal = true,
+        "includeDirLiteral" to toPythonStringLiteral(includeDirectoryPath.toString()),
         "projectPathLiteral" to toPythonStringLiteral(projectBasePath),
         "sourceFolderLiteral" to toPythonStringLiteral(sourceFolder),
         "addonSymlinkNameLiteral" to toPythonStringLiteral(addonSymlinkName),
