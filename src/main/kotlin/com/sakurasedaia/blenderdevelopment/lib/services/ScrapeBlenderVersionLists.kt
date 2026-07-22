@@ -3,6 +3,8 @@ package com.sakurasedaia.blenderdevelopment.lib.services
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.util.io.HttpRequests
+import com.sakurasedaia.blenderdevelopment.lib.BlenderVersion
+import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.StringReader
@@ -21,6 +23,10 @@ internal class ScrapeBlenderVersionLists {
       pattern = "^Blender(\\d+(?:\\.\\d+)+(?:[a-z]+)?)/$",
       option = RegexOption.IGNORE_CASE,
     )
+    private val PATCH_VERSION_PATTERN = Regex(
+      pattern = "^blender-(\\d+\\.\\d+\\.\\d+)(?:[.-].*)?$",
+      option = RegexOption.IGNORE_CASE,
+    )
 
     fun getInstance(): ScrapeBlenderVersionLists = service()
   }
@@ -30,6 +36,19 @@ internal class ScrapeBlenderVersionLists {
       parseAvailableVersions(getHTML(url))
     }
 
+  internal suspend fun refreshVersionCache(): List<BlenderVersion> = withContext(Dispatchers.IO) {
+    val availableMinorVersions = parseAvailableVersions(getHTML(BLENDER_VERSION_SITE)).toSet()
+    val discoveredPatchVersions = BlenderVersions.supportedMinorVersions()
+      .filter(availableMinorVersions::contains)
+      .flatMap { minorVersion ->
+        val releaseUrl = "${BLENDER_VERSION_SITE}Blender$minorVersion/"
+        parsePatchVersions(getHTML(releaseUrl), minorVersion)
+      }
+
+    BlenderVersions.cacheDiscoveredVersions(discoveredPatchVersions)
+    BlenderVersions.getVersionTable()
+  }
+
   internal fun getHTML(url: String): String = HttpRequests.request(url)
     .connectTimeout(5_000)
     .readTimeout(10_000)
@@ -37,16 +56,33 @@ internal class ScrapeBlenderVersionLists {
 
   internal fun parseAvailableVersions(html: String): List<String> {
     val versions = linkedSetOf<String>()
+    parseLinks(html) { href ->
+      VERSION_DIRECTORY_PATTERN.matchEntire(href)?.groupValues?.get(1)?.let(versions::add)
+    }
+    return versions.toList()
+  }
+
+  internal fun parsePatchVersions(html: String, minorVersion: String): List<List<Int>> {
+    val versions = linkedSetOf<List<Int>>()
+    parseLinks(html) { href ->
+      val version = PATCH_VERSION_PATTERN.matchEntire(href)?.groupValues?.get(1) ?: return@parseLinks
+      if (version.substringBeforeLast('.') != minorVersion) return@parseLinks
+
+      versions += version.split('.').map(String::toInt)
+    }
+    return versions.toList()
+  }
+
+  private fun parseLinks(html: String, consumeHref: (String) -> Unit) {
     val callback = object : HTMLEditorKit.ParserCallback() {
       override fun handleStartTag(tag: HTML.Tag, attributes: MutableAttributeSet, position: Int) {
         if (tag != HTML.Tag.A) return
 
         val href = attributes.getAttribute(HTML.Attribute.HREF) as? String ?: return
-        VERSION_DIRECTORY_PATTERN.matchEntire(href)?.groupValues?.get(1)?.let(versions::add)
+        consumeHref(href)
       }
     }
 
     ParserDelegator().parse(StringReader(html), callback, true)
-    return versions.toList()
   }
 }

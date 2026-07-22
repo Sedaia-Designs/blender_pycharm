@@ -56,6 +56,7 @@ data class BlenderVersion(
 
 /** In-memory version registry used by wizard defaults and compatibility checks. */
 object BlenderVersions {
+    private val cacheLock = Any()
     private val VERSION_TABLE = listOf(
         BlenderVersion(
             blender = listOf(4, 2, 19),
@@ -86,6 +87,30 @@ object BlenderVersions {
     
     @Volatile
     private var _cachedVersions: List<BlenderVersion>? = null
+
+    internal fun supportedMinorVersions(): List<String> = VERSION_TABLE.map(BlenderVersion::blMajorMinor)
+
+    internal fun cacheDiscoveredVersions(discoveredVersions: List<List<Int>>) {
+        val latestPatchByMinor = discoveredVersions
+            .filter { it.size == 3 }
+            .groupBy { normalizeVersionFromList(it) }
+            .mapValues { (_, versions) -> versions.maxWith(compareBy({ it[0] }, { it[1] }, { it[2] })) }
+
+        val refreshedVersions = VERSION_TABLE.map { configuredVersion ->
+            val discoveredVersion = latestPatchByMinor[configuredVersion.blMajorMinor]
+            if (discoveredVersion == null) configuredVersion else configuredVersion.copy(blender = discoveredVersion)
+        }
+
+        synchronized(cacheLock) {
+            _cachedVersions = refreshedVersions
+        }
+    }
+
+    internal fun resetCache() {
+        synchronized(cacheLock) {
+            _cachedVersions = null
+        }
+    }
     
     
     /**

@@ -46,4 +46,21 @@ class ScrapeBlenderVersionListsTest {
   fun testReturnsEmptyListForHtmlWithoutReleaseLinks() {
     assertTrue(scraper.parseAvailableVersions("<html><body>No releases</body></html>").isEmpty())
   }
+
+  @Test
+  fun testParsesUniquePatchVersionsForRequestedMinorRelease() {
+    val html = """
+      <a href="blender-5.2.0-linux-x64.tar.xz">Linux</a>
+      <a href="blender-5.2.0-macos-arm64.dmg">macOS</a>
+      <a href="blender-5.2.0.sha256">checksum</a>
+      <a href="blender-5.2.1-windows-x64.zip">Windows</a>
+      <a href="blender-5.1.9-windows-x64.zip">different minor</a>
+      <a href="blender-benchmark-5.2.0.zip">benchmark</a>
+    """.trimIndent()
+
+    assertEquals(
+      listOf(listOf(5, 2, 0), listOf(5, 2, 1)),
+      scraper.parsePatchVersions(html, "5.2"),
+    )
+  }
 }
