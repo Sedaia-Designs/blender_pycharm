@@ -90,4 +90,31 @@ class BlenderVersionsTest {
     assertEquals("5.2.0", BlenderVersions.getBlenderVersion("5.2"))
     assertNull(BlenderVersions.getBlenderVersion("9.9"))
   }
+
+  @Test
+  fun downloadUrlsMatchOfficialArtifactNames() {
+    val blender45 = BlenderVersions.LIST.first { it.blMajorMinor == "4.5" }
+
+    assertEquals(
+      "https://download.blender.org/release/Blender4.5/blender-4.5.8-linux-x64.tar.xz",
+      blender45.getDownloadURL("linux", "amd64", "tar.xz"),
+    )
+    assertEquals(
+      "https://download.blender.org/release/Blender4.5/blender-4.5.8-macos-arm64.dmg",
+      blender45.getDownloadURL("mac", "aarch64", "dmg"),
+    )
+    assertEquals(
+      "https://download.blender.org/release/Blender4.5/blender-4.5.8-windows-x64.zip",
+      blender45.getDownloadURL("win", "x86_64", "zip"),
+    )
+  }
+
+  @Test
+  fun downloadUrlRejectsUnsupportedArtifacts() {
+    val blender52 = BlenderVersions.LIST.first { it.blMajorMinor == "5.2" }
+
+    assertEquals("", blender52.getDownloadURL("macos", "x64", "dmg"))
+    assertEquals("", blender52.getDownloadURL("windows", "x64", "exe"))
+    assertEquals("", blender52.getDownloadURL("unknown", "x64", "zip"))
+  }
 }

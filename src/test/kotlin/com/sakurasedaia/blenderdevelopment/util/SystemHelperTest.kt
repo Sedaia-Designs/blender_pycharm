@@ -18,11 +18,21 @@
 package com.sakurasedaia.blenderdevelopment.util
 
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SystemHelperTest {
+  @Test
+  fun normalizesDownloadPlatformValues() {
+    assertEquals("windows", SystemHelper.normalizeOSName("Windows 11"))
+    assertEquals("macos", SystemHelper.normalizeOSName("Mac OS X"))
+    assertEquals("linux", SystemHelper.normalizeOSName("Linux"))
+    assertEquals("arm64", SystemHelper.normalizeOsArch("aarch64"))
+    assertEquals("x64", SystemHelper.normalizeOsArch("amd64"))
+  }
+
   @Test
   fun unknownVersionIsAlwaysIncompatible() {
     assertFalse(SystemHelper.isOSCompatible("9.9"))

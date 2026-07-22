@@ -48,9 +48,6 @@ object SystemHelper {
     private val sysArch = System.getProperty("os.arch").orEmpty().lowercase()
     private val osName = System.getProperty("os.name").orEmpty().lowercase()
     
-    private fun isArch(input: String): Boolean = input in sysArch
-    private fun isOS(input: String): Boolean = input in osName
-    
     /**
      * Checks whether the current host platform is supported for the provided Blender major/minor version.
      *
@@ -72,31 +69,54 @@ object SystemHelper {
         return compatWithOs?.get(systemInfo.osName)?.contains(systemInfo.osArch) ?: false
     }
     
+    /** Normalizes an operating-system name to Blender's download filename convention. */
+    fun normalizeOSName(osName: String): String {
+        val value = osName.lowercase()
+        return when {
+            "windows" in value || value == "win" -> "windows"
+            "macos" in value || "mac os x" in value || "darwin" in value || value == "mac" -> "macos"
+            "linux" in value -> "linux"
+            else -> "unknown"
+        }
+    }
+
+    /** Normalizes a CPU architecture to Blender's download filename convention. */
+    fun normalizeOsArch(arch: String): String {
+        val value = arch.lowercase()
+        return when {
+            "aarch64" in value || "arm64" in value -> "arm64"
+            "x86_64" in value || "amd64" in value || value == "x64" -> "x64"
+            else -> "unknown"
+        }
+    }
+
+    /** Returns the preferred Blender distribution suffix for an operating system. */
+    fun normalizeBundleFileType(osName: String) = when (osName) {
+        "windows" -> "zip"
+        "macos" -> "dmg"
+        "linux" -> "tar.xz"
+        else -> "unknown"
+    }
+
+    /** Returns whether Blender publishes the requested package type for the target operating system. */
+    fun isBundleFileTypeSupported(osName: String, fileExtension: String): Boolean = when (osName) {
+        "windows" -> fileExtension in setOf("zip", "msi", "msix")
+        "macos" -> fileExtension == "dmg"
+        "linux" -> fileExtension == "tar.xz"
+        else -> false
+    }
+
     /**
      * Snapshot of normalized host system information resolved at object initialization time.
      *
      * Values are derived from JVM system properties and environment variables.
      */
     val getSysInfo: SysInfo = SysInfo(
-        osName = when {
-            isOS("windows") -> "windows"
-            isOS("macos") || isOS("mac os x") || isOS("darwin") -> "macos"
-            isOS("linux") -> "linux"
-            else -> "unknown"
-        },
+        osName = normalizeOSName(osName),
         osVersion = System.getProperty("os.version"),
-        osArch = when {
-            isArch("aarch64") || isArch("arm64") -> "arm64"
-            isArch("x86_64") || isArch("amd64") -> "x64"
-            else -> "unknown"
-        },
+        osArch = normalizeOsArch(sysArch),
         isWSL = System.getenv("WSL_DISTRO_NAME") != null,
-        bundleFileType = when (osName) {
-            "windows" -> "exe"
-            "macos" -> "dmg"
-            "linux" -> "tar.xz"
-            else -> "unknown"
-        },
+        bundleFileType = normalizeBundleFileType(normalizeOSName(osName)),
         tempDir = PathManager.getTempDir().resolve("blender-development")
     )
     

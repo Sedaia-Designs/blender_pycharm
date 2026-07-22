@@ -17,10 +17,12 @@
 
 package com.sakurasedaia.blenderdevelopment.lib
 
+import com.sakurasedaia.blenderdevelopment.util.SystemHelper
+
 /**
  * Version mapping row between a Blender release and its bundled Python runtime.
  *
- * @property compatWithOs compatibility matrix keyed by OS alias (`win`, `mac`, `linux`)
+ * @property compatWithOs compatibility matrix keyed by OS name (`windows`, `macos`, `linux`)
  * with supported architecture values (for example, `x64`, `arm64`).
  */
 data class BlenderVersion(
@@ -51,6 +53,32 @@ data class BlenderVersion(
     
     /** Fake-BPY package name, including any release-specific package suffix override. */
     val fakeBpyPackage = "fake-bpy-module-${fakeBpy ?: blMajorMinor}"
+
+    /**
+     * Builds the official Blender download URL for a supported platform artifact.
+     *
+     * @param platform target operating system name or alias.
+     * @param arch target CPU architecture name or alias.
+     * @param fileExtension requested distribution file suffix.
+     * @return artifact URL, or an empty string when the target combination is unsupported.
+     */
+    fun getDownloadURL(
+        platform: String = SystemHelper.getSysInfo.osName,
+        arch: String = SystemHelper.getSysInfo.osArch,
+        fileExtension: String = SystemHelper.getSysInfo.bundleFileType
+    ): String {
+        val normalizedPlatform = SystemHelper.normalizeOSName(platform)
+        val normalizedArch = SystemHelper.normalizeOsArch(arch)
+        if (compatWithOs[normalizedPlatform]?.contains(normalizedArch) != true ||
+            !SystemHelper.isBundleFileTypeSupported(normalizedPlatform, fileExtension)) {
+            return ""
+        }
+        return "${DOWNLOAD_BASE_URL}Blender$blMajorMinor/blender-$blVersion-$normalizedPlatform-$normalizedArch.$fileExtension"
+    }
+
+    companion object {
+        private const val DOWNLOAD_BASE_URL = "https://download.blender.org/release/"
+    }
 }
 
 
@@ -62,16 +90,16 @@ object BlenderVersions {
             blender = listOf(4, 2, 19),
             python = listOf(3,11,7),
             compatWithOs = mapOf(
-                "win" to listOf("x64"),
-                "mac" to listOf("x64", "arm64"),
+                "windows" to listOf("x64"),
+                "macos" to listOf("x64", "arm64"),
                 "linux" to listOf("x64")
             )),
         BlenderVersion(
             blender = listOf(4,5,8),
             python = listOf(3,11,9),
             compatWithOs = mapOf(
-                "win" to listOf("x64", "arm64"),
-                "mac" to listOf("x64", "arm64"),
+                "windows" to listOf("x64", "arm64"),
+                "macos" to listOf("x64", "arm64"),
                 "linux" to listOf("x64")
             )),
         BlenderVersion(
@@ -79,8 +107,8 @@ object BlenderVersions {
             python = listOf(3,13,13),
             fakeBpy = "latest",
             compatWithOs = mapOf(
-                "win" to listOf("x64", "arm64"),
-                "mac" to listOf("arm64"),
+                "windows" to listOf("x64", "arm64"),
+                "macos" to listOf("arm64"),
                 "linux" to listOf("x64")
             ))
     )
