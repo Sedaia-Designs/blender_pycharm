@@ -47,7 +47,10 @@ data class SysInfo(
 object SystemHelper {
     private val sysArch = System.getProperty("os.arch").orEmpty().lowercase()
     private val osName = System.getProperty("os.name").orEmpty().lowercase()
-    
+
+    private fun isArch(input: String): Boolean = input in sysArch
+    private fun isOS(input: String): Boolean = input in osName
+
     /**
      * Checks whether the current host platform is supported for the provided Blender major/minor version.
      *
@@ -59,38 +62,29 @@ object SystemHelper {
      */
     fun isOSCompatible(blMajorMinor: String): Boolean {
         val systemInfo = getSysInfo
-        
+
         if (systemInfo.osName == "unknown") {
             return false
         }
-        
+
         val compatWithOs: Map<String, List<String>>? = BlenderVersions.getCompatibleArch(blMajorMinor)
-        
+
         return compatWithOs?.get(systemInfo.osName)?.contains(systemInfo.osArch) ?: false
     }
-    
-    /** Normalizes an operating-system name to Blender's download filename convention. */
-    fun normalizeOSName(osName: String): String {
-        val value = osName.lowercase()
-        return when {
-            "windows" in value || value == "win" -> "windows"
-            "macos" in value || "mac os x" in value || "darwin" in value || value == "mac" -> "macos"
-            "linux" in value -> "linux"
-            else -> "unknown"
-        }
+
+    val normalizeOSName = when {
+        isOS("windows") -> "windows"
+        isOS("macos") || isOS("mac os x") || isOS("darwin") -> "macos"
+        isOS("linux") -> "linux"
+        else -> "unknown"
     }
 
-    /** Normalizes a CPU architecture to Blender's download filename convention. */
-    fun normalizeOsArch(arch: String): String {
-        val value = arch.lowercase()
-        return when {
-            "aarch64" in value || "arm64" in value -> "arm64"
-            "x86_64" in value || "amd64" in value || value == "x64" -> "x64"
-            else -> "unknown"
-        }
+    val normalizeOsArch = when {
+        isArch("aarch64") || isArch("arm64") -> "arm64"
+        isArch("x86_64") || isArch("amd64") -> "x64"
+        else -> "unknown"
     }
 
-    /** Returns the preferred Blender distribution suffix for an operating system. */
     fun normalizeBundleFileType(osName: String) = when (osName) {
         "windows" -> "zip"
         "macos" -> "dmg"
@@ -112,11 +106,11 @@ object SystemHelper {
      * Values are derived from JVM system properties and environment variables.
      */
     val getSysInfo: SysInfo = SysInfo(
-        osName = normalizeOSName(osName),
+        osName = normalizeOSName,
         osVersion = System.getProperty("os.version"),
-        osArch = normalizeOsArch(sysArch),
+        osArch = normalizeOsArch,
         isWSL = System.getenv("WSL_DISTRO_NAME") != null,
-        bundleFileType = normalizeBundleFileType(normalizeOSName(osName)),
+        bundleFileType = normalizeBundleFileType(normalizeOSName),
         tempDir = PathManager.getTempDir().resolve("blender-development")
     )
     

@@ -17,6 +17,7 @@
 
 package com.sakurasedaia.blenderdevelopment.lib
 
+import com.sakurasedaia.blenderdevelopment.util.SystemHelper
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -92,29 +93,23 @@ class BlenderVersionsTest {
   }
 
   @Test
-  fun downloadUrlsMatchOfficialArtifactNames() {
-    val blender45 = BlenderVersions.LIST.first { it.blMajorMinor == "4.5" }
+  fun downloadUrlMatchesCurrentHostArtifactName() {
+    val systemInfo = SystemHelper.getSysInfo
+    val compatibleVersion = BlenderVersions.LIST.firstOrNull { version ->
+      version.compatWithOs[systemInfo.osName]?.contains(systemInfo.osArch) == true
+    } ?: return
 
     assertEquals(
-      "https://download.blender.org/release/Blender4.5/blender-4.5.8-linux-x64.tar.xz",
-      blender45.getDownloadURL("linux", "amd64", "tar.xz"),
-    )
-    assertEquals(
-      "https://download.blender.org/release/Blender4.5/blender-4.5.8-macos-arm64.dmg",
-      blender45.getDownloadURL("mac", "aarch64", "dmg"),
-    )
-    assertEquals(
-      "https://download.blender.org/release/Blender4.5/blender-4.5.8-windows-x64.zip",
-      blender45.getDownloadURL("win", "x86_64", "zip"),
+      "https://download.blender.org/release/Blender${compatibleVersion.blMajorMinor}/" +
+        "blender-${compatibleVersion.blVersion}-${systemInfo.osName}-${systemInfo.osArch}.${systemInfo.bundleFileType}",
+      compatibleVersion.getDownloadURL(),
     )
   }
 
   @Test
   fun downloadUrlRejectsUnsupportedArtifacts() {
-    val blender52 = BlenderVersions.LIST.first { it.blMajorMinor == "5.2" }
+    val blenderVersion = BlenderVersions.LIST.first()
 
-    assertEquals("", blender52.getDownloadURL("macos", "x64", "dmg"))
-    assertEquals("", blender52.getDownloadURL("windows", "x64", "exe"))
-    assertEquals("", blender52.getDownloadURL("unknown", "x64", "zip"))
+    assertEquals("", blenderVersion.getDownloadURL("exe"))
   }
 }

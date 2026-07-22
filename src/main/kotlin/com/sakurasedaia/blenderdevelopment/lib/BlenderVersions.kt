@@ -63,14 +63,15 @@ data class BlenderVersion(
      * @return artifact URL, or an empty string when the target combination is unsupported.
      */
     fun getDownloadURL(
-        platform: String = SystemHelper.getSysInfo.osName,
-        arch: String = SystemHelper.getSysInfo.osArch,
         fileExtension: String = SystemHelper.getSysInfo.bundleFileType
     ): String {
-        val normalizedPlatform = SystemHelper.normalizeOSName(platform)
-        val normalizedArch = SystemHelper.normalizeOsArch(arch)
-        if (compatWithOs[normalizedPlatform]?.contains(normalizedArch) != true ||
-            !SystemHelper.isBundleFileTypeSupported(normalizedPlatform, fileExtension)) {
+        val normalizedPlatform = SystemHelper.normalizeOSName
+        val normalizedArch = SystemHelper.normalizeOsArch
+        if (
+            compatWithOs[normalizedPlatform]?.contains(normalizedArch) != true
+            ||
+            !SystemHelper.isBundleFileTypeSupported(normalizedPlatform, fileExtension)
+        ) {
             return ""
         }
         return "${DOWNLOAD_BASE_URL}Blender$blMajorMinor/blender-$blVersion-$normalizedPlatform-$normalizedArch.$fileExtension"

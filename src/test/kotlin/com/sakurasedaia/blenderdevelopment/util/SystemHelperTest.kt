@@ -25,12 +25,13 @@ import org.junit.Test
 
 class SystemHelperTest {
   @Test
-  fun normalizesDownloadPlatformValues() {
-    assertEquals("windows", SystemHelper.normalizeOSName("Windows 11"))
-    assertEquals("macos", SystemHelper.normalizeOSName("Mac OS X"))
-    assertEquals("linux", SystemHelper.normalizeOSName("Linux"))
-    assertEquals("arm64", SystemHelper.normalizeOsArch("aarch64"))
-    assertEquals("x64", SystemHelper.normalizeOsArch("amd64"))
+  fun mapsSupportedDownloadBundleTypes() {
+    assertEquals("zip", SystemHelper.normalizeBundleFileType("windows"))
+    assertEquals("dmg", SystemHelper.normalizeBundleFileType("macos"))
+    assertEquals("tar.xz", SystemHelper.normalizeBundleFileType("linux"))
+    assertTrue(SystemHelper.isBundleFileTypeSupported("windows", "msi"))
+    assertTrue(SystemHelper.isBundleFileTypeSupported("windows", "msix"))
+    assertFalse(SystemHelper.isBundleFileTypeSupported("windows", "exe"))
   }
 
   @Test
