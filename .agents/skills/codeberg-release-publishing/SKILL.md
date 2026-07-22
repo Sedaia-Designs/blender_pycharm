@@ -1,6 +1,6 @@
 ---
 name: codeberg-release-publishing
-description: Prepare and publish Blender Python Development snapshot releases to Codeberg. Use when Codex is asked to prepare, build, validate, tag, or publish a plugin release; update CHANGELOG.md from commits since the latest release; produce the Gradle distribution ZIP; or run and verify the repository's Codeberg release automation.
+description: Prepare and publish Blender Python Development snapshot releases to Codeberg and synchronize published releases to the Sakura portfolio data. Use when Codex is asked to prepare, build, validate, tag, or publish a plugin release; update CHANGELOG.md from commits since the latest release; produce the Gradle distribution ZIP; run and verify the repository's Codeberg release automation; or update the portfolio's Blender Development release index.
 ---
 
 # Codeberg release publishing
@@ -60,8 +60,27 @@ Perform this section only when the user explicitly asked to publish and authoriz
 3. If the script reports mismatched existing release metadata or an asset mismatch, stop. Do not delete or replace remote data without explicit approval.
 4. Report the tag, release URL, artifact path, local and verified remote SHA-256, tests/builds run, and any skipped checks.
 
+## Synchronize the portfolio
+
+Perform this section after the Codeberg release and asset are successfully verified.
+
+1. Open `/Users/Sakura/Documents/WebstormProjects/sakura-portfolio`, read its root `AGENTS.md`, and confirm its worktree state before editing.
+2. Manually edit only `src/data/json/projects/addon-index.json`; the SolidStart UI populates itself from this data. Do not manually edit components, routes, styles, or generated site files.
+3. Select the portfolio branch that matches the release channel, normally `dev` for a Snapshot. Copy the verified distribution ZIP without renaming it from the plugin repository's `build/distributions` into `public/lib/plugins/intellij/blend-charm-<branch>/`. Create the branch directory only if the corresponding `BlenderDevelopment.branches.<branch>` entry exists.
+4. Compare the copied file's byte size and SHA-256 with the built and Codeberg-verified artifact. Stop if the destination already exists with different content; never overwrite a mismatched published artifact without explicit approval.
+5. Locate `BlenderDevelopment.branches.<branch>.versions` and insert the new release first without changing older entries. Preserve the surrounding JSON structure and formatting.
+6. Populate the entry from verified release data:
+   - Set `version` and `label` to `X.Y.Z Snapshot`.
+   - Set `fileName` to the published `BlenderPythonDevelopment-X.Y.Z-SNAPSHOT.zip` asset name.
+   - Keep `sourceCode` as an empty string.
+   - Set `changelog` to `BlenderDevelopment-X.Y.Z-SNAPSHOT`.
+   - Add one build with the release date formatted as `MM/DD/YYYY`, artifact byte size divided by 1,000,000 and rounded to two decimal places with the `MB` label, `license` set to `GNU/GPL V3`, a concise summary derived from the release changelog, and `disabled` set to `false`.
+7. Parse the file as JSON and verify the new entry against the published tag, copied asset name, artifact byte size, date, and changelog summary. Never guess release metadata.
+8. Run the portfolio repository's `.githooks/pre-commit` and `pnpm build`. Treat files modified by the pre-commit hook as intentional generated updates that are safe to stage and commit with the release data after reviewing their diffs.
+9. Stage `src/data/json/projects/addon-index.json`, the copied ZIP, and the reviewed pre-commit-generated changes, then commit them together using the portfolio repository's commit convention. Leave unrelated changes unstaged, and do not push the portfolio commit unless the user explicitly requests it.
+
 ## Completion boundary
 
 - A build request ends after changelog reconciliation, validation, artifact creation, and checksum reporting.
 - A preparation request ends after the release commit, annotated tag, and successful local `--check`; leave remote state untouched.
-- A publishing request ends only after the branch and tag are present on Codeberg and the release script verifies the published asset.
+- A publishing request ends only after the branch and tag are present on Codeberg, the release script verifies the published asset, and the matching portfolio release entry and local artifact are validated and committed.
