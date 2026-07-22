@@ -2,9 +2,9 @@
 
 # BlenderPythonDevelopment Changelog
 
-## [0.8.2-Snapshot] - Unreleased
+## [Unreleased] - Unreleased
 
-
+These are changes made to the project prior to the next release.
 
 ### Changed
 
