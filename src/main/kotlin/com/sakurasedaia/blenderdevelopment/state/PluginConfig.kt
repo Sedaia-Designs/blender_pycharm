@@ -20,8 +20,9 @@ package com.sakurasedaia.blenderdevelopment.state
 import com.intellij.openapi.components.*
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.PathManager
-import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.project.ProjectManager
 import com.sakurasedaia.blenderdevelopment.lib.services.ScrapeBlenderVersionLists
+import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
@@ -39,7 +40,7 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
 	data class BlendInstallInfo(val name: String = "", val version: String = "", val path: String = "")
 
 	/** Time units supported by the automatic Blender version refresh interval. */
-	enum class TimeIntervalTypes {
+	enum class TimeUnits {
 		SECOND,
 		MINUTE,
 		HOUR,
@@ -57,7 +58,7 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
 	 */
 	data class UpdateChecked(
 		var interval: Int = 1,
-		var intervalType: TimeIntervalTypes = TimeIntervalTypes.WEEK,
+		var intervalType: TimeUnits = TimeUnits.WEEK,
 		var lastCheckedEpochMillis: Long = 0,
 	)
 	
@@ -85,7 +86,6 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
 
 	)
 
-	private val logger = Logger.getInstance(PluginConfig::class.java)
 	private var blenderUpdateCheckJob: Job? = null
 	private var state: PluginState = PluginState()
 	
@@ -218,6 +218,13 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
 		return (updateCheck.intervalMillis() - elapsed).coerceAtLeast(0)
 	}
 
+	internal fun millisUntilNextBlenderVersionRefresh(nowEpochMillis: Long = System.currentTimeMillis()): Long =
+		if (BlenderVersionCache.getInstance().hasCachedVersions()) {
+			millisUntilNextBlenderUpdateCheck(nowEpochMillis)
+		} else {
+			0L
+		}
+
 	internal fun markBlenderUpdateChecked(nowEpochMillis: Long = System.currentTimeMillis()) {
 		state.blenderUpdateCheck.lastCheckedEpochMillis = nowEpochMillis
 	}
@@ -228,10 +235,13 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
 
 		blenderUpdateCheckJob = coroutineScope.launch(CoroutineName("Blender version update checker")) {
 			while (isActive) {
-				delay(millisUntilNextBlenderUpdateCheck())
+				delay(millisUntilNextBlenderVersionRefresh())
+				val logger = pluginLogger()
 				try {
+					logger.log("Starting scheduled Blender version cache refresh.")
 					ScrapeBlenderVersionLists.getInstance().refreshVersionCache()
 					markBlenderUpdateChecked()
+					logger.log("Scheduled Blender version cache refresh completed.")
 				} catch (error: CancellationException) {
 					throw error
 				} catch (error: Exception) {
@@ -240,6 +250,13 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
 				}
 			}
 		}
+	}
+
+	private fun pluginLogger(): PluginLogger {
+		val projectManager = ProjectManager.getInstance()
+		val project = projectManager.openProjects.firstOrNull { it.isOpen && !it.isDisposed }
+			?: projectManager.defaultProject
+		return PluginLogger.getInstance(project)
 	}
 
 	@Synchronized
@@ -252,12 +269,12 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
 
 	private fun UpdateChecked.intervalMillis(): Long {
 		val unit = when (intervalType) {
-			TimeIntervalTypes.SECOND -> Duration.ofSeconds(1)
-			TimeIntervalTypes.MINUTE -> Duration.ofMinutes(1)
-			TimeIntervalTypes.HOUR -> Duration.ofHours(1)
-			TimeIntervalTypes.DAY -> Duration.ofDays(1)
-			TimeIntervalTypes.WEEK -> Duration.ofDays(7)
-			TimeIntervalTypes.MONTH -> Duration.ofDays(30)
+			TimeUnits.SECOND -> Duration.ofSeconds(1)
+			TimeUnits.MINUTE -> Duration.ofMinutes(1)
+			TimeUnits.HOUR -> Duration.ofHours(1)
+			TimeUnits.DAY -> Duration.ofDays(1)
+			TimeUnits.WEEK -> Duration.ofDays(7)
+			TimeUnits.MONTH -> Duration.ofDays(30)
 		}
 		return unit.toMillis() * interval.coerceAtLeast(1)
 	}

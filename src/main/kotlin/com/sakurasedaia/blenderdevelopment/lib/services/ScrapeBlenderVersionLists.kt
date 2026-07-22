@@ -47,8 +47,7 @@ internal class ScrapeBlenderVersionLists {
       PluginConfig.getInstance().getMinimumBlenderVersion(),
     )
       .toSet()
-    val discoveredPatchVersions = BlenderVersions.supportedMinorVersions()
-      .filter(availableMinorVersions::contains)
+    val discoveredPatchVersions = availableMinorVersions
       .mapNotNull { minorVersion ->
         val releaseUrl = "${BLENDER_VERSION_SITE}Blender$minorVersion/"
         parsePatchVersions(getHTML(releaseUrl), minorVersion)

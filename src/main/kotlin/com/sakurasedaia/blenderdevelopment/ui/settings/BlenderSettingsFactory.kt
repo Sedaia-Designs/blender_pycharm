@@ -18,12 +18,17 @@
 package com.sakurasedaia.blenderdevelopment.ui.settings
 
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.options.SearchableConfigurable
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.ProjectManager
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersion
 import com.sakurasedaia.blenderdevelopment.lib.services.ScrapeBlenderVersionLists
 import com.sakurasedaia.blenderdevelopment.lib.services.SettingsInstallationScanService
+import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
+import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
+import com.sakurasedaia.blenderdevelopment.state.BlenderVersionCache
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import kotlinx.coroutines.runBlocking
@@ -31,7 +36,6 @@ import javax.swing.JComponent
 
 /** Global plugin settings configurable for Blender plugin state. */
 class BlenderSettingsFactory : SearchableConfigurable, Configurable.NoScroll {
-    private val logger = Logger.getInstance(BlenderSettingsFactory::class.java)
     private var content: BlenderSettingsContent? = null
 
     override fun getId(): String = "com.sakurasedaia.blenderdevelopment.settings.plugin"
@@ -44,6 +48,7 @@ class BlenderSettingsFactory : SearchableConfigurable, Configurable.NoScroll {
                 SettingsInstallationScanService.getInstance().scanInstallations(onComplete = onComplete)
             },
             onRefreshVersions = ::refreshVersions,
+            onClearVersionCache = ::clearVersionCache,
         ).also { content = it }
         ui.reset(PluginConfig.getInstance())
         return ui.component()
@@ -69,13 +74,43 @@ class BlenderSettingsFactory : SearchableConfigurable, Configurable.NoScroll {
     }
 
     private fun refreshVersions(onComplete: (Result<List<BlenderVersion>>) -> Unit) {
+        val modalityState = ModalityState.current()
+        val project = notificationProject()
+        val logger = PluginLogger.getInstance(project)
+        val notifications = NotificationModal.getInstance(project)
         ApplicationManager.getApplication().executeOnPooledThread {
+            logger.log("Starting user-initiated Blender version refresh from settings.")
             val result = runCatching {
                 runBlocking { ScrapeBlenderVersionLists.getInstance().refreshVersionCache() }
             }
-            result.onSuccess { PluginConfig.getInstance().markBlenderUpdateChecked() }
-                .onFailure { logger.warn("Failed to refresh Blender versions from settings.", it) }
-            ApplicationManager.getApplication().invokeLater { onComplete(result) }
+            result.onSuccess { versions ->
+                PluginConfig.getInstance().markBlenderUpdateChecked()
+                logger.log("Blender version refresh completed with ${versions.size} release(s).")
+                notifications.sendInfo(
+                    MessageBundle.message("notification.settings.versions.refresh.succeeded", versions.size.toString()),
+                )
+            }.onFailure { error ->
+                notifications.sendError(
+                    MessageBundle.message("notification.settings.versions.refresh.failed"),
+                    throwable = error,
+                )
+            }
+            ApplicationManager.getApplication().invokeLater({ onComplete(result) }, modalityState)
         }
+    }
+
+    private fun clearVersionCache() {
+        val project = notificationProject()
+        BlenderVersionCache.getInstance().clear()
+        PluginLogger.getInstance(project).log("Cleared the online Blender version cache from settings.")
+        NotificationModal.getInstance(project).sendInfo(
+            MessageBundle.message("notification.settings.versions.cache.cleared"),
+        )
+    }
+
+    private fun notificationProject(): Project {
+        val projectManager = ProjectManager.getInstance()
+        return projectManager.openProjects.firstOrNull { it.isOpen && !it.isDisposed }
+            ?: projectManager.defaultProject
     }
 }

@@ -6,9 +6,17 @@
 
 These are changes made to the project prior to the next release.
 
+### Added
+
+- Added online Blender release discovery with a persistent application-level cache and configurable minimum release.
+- Added scheduled background refreshes, including an immediate refresh when no valid cache exists at startup.
+- Added Settings controls to refresh and clear the version cache, with notification feedback and plugin logging.
+- Added compatibility-table rows for every discovered minor release while preserving declared Python metadata for built-in rows.
+
 ### Changed
 
 - Updated the project's `plugin.xml` to better reflect the current project state.
+- Updated Blender version management to fall back to the built-in compatibility table while offline and retain the newest discovered patch per minor release.
 
 ## [0.8.1-Snapshot] - 2026-07-22
 

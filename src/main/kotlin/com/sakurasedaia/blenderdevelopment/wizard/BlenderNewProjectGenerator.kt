@@ -176,7 +176,7 @@ class BlenderProjectGenerator(private val data: BlenderExtensionManifest) {
             internal=true,
             Pair("name", data.name),
             Pair("version", data.extensionVersion),
-            Pair("python", BlenderVersions.getPythonVersion(data.blenderVersion)),
+            Pair("python", BlenderVersions.getPythonVersion(data.blenderVersion).orEmpty()),
             Pair("license", data.projectLicense),
             Pair(
                 "stubRequirement",

@@ -29,7 +29,7 @@ import com.sakurasedaia.blenderdevelopment.util.SystemHelper
  */
 data class BlenderVersion(
     private val blender: List<Int>,
-    private val python: List<Int>,
+    private val python: List<Int> = emptyList(),
     private val fakeBpy: String? = null,
     val compatWithOs: Map<String, List<String>>
 ) {
@@ -41,12 +41,12 @@ data class BlenderVersion(
     /** Blender version selector in `major.minor` format. */
     val blMajorMinor: String get() = "${blender[0]}.${blender[1]}"
     /** Python version selector in `major.minor` format. */
-    val pyMajorMinor: String get() = "${python[0]}.${python[1]}"
+    val pyMajorMinor: String get() = python.take(2).joinToString(separator = ".")
     
     /** Blender patch component as a string. */
     val blFallback: String get() = blender[2].toString()
     /** Python patch component as a string. */
-    val pyFallback: String get() = python[2].toString()
+    val pyFallback: String get() = python.getOrNull(2)?.toString().orEmpty()
     
     /** Blender version components as `[major, minor, patch]`. */
     val blVersionList: List<Int> get() = blender
@@ -115,18 +115,28 @@ object BlenderVersions {
             ))
     )
     
-    internal fun supportedMinorVersions(): List<String> = FALLBACK_VERSION_TABLE.map(BlenderVersion::blMajorMinor)
-
     internal fun mergeDiscoveredVersions(discoveredVersions: List<List<Int>>): List<BlenderVersion> {
         val latestPatchByMinor = discoveredVersions
             .filter { it.size == 3 }
             .groupBy { normalizeVersionFromList(it) }
             .mapValues { (_, versions) -> versions.maxWith(compareBy({ it[0] }, { it[1] }, { it[2] })) }
 
-        return FALLBACK_VERSION_TABLE.map { configuredVersion ->
-            val discoveredVersion = latestPatchByMinor[configuredVersion.blMajorMinor]
-            if (discoveredVersion == null) configuredVersion else configuredVersion.copy(blender = discoveredVersion)
+        val configuredByMinor = FALLBACK_VERSION_TABLE.associateBy(BlenderVersion::blMajorMinor)
+        val mergedVersions = (configuredByMinor.keys + latestPatchByMinor.keys).map { minorVersion ->
+            val configuredVersion = configuredByMinor[minorVersion]
+            val discoveredVersion = latestPatchByMinor[minorVersion]
+            when {
+                configuredVersion == null -> BlenderVersion(
+                    blender = checkNotNull(discoveredVersion),
+                    compatWithOs = emptyMap(),
+                )
+                discoveredVersion == null -> configuredVersion
+                else -> configuredVersion.copy(blender = discoveredVersion)
+            }
         }
+        return mergedVersions.sortedWith(
+            compareBy({ it.blVersionList[0] }, { it.blVersionList[1] }, { it.blVersionList[2] }),
+        )
     }
     
     
@@ -164,7 +174,7 @@ object BlenderVersions {
      */
     fun getPythonVersion(blMajorMinor: String): String? {
         val normalized = normalizeVersion(blMajorMinor)
-        return getVersionTable().find { it.blMajorMinor == normalized }?.pyVersion
+        return getVersionTable().find { it.blMajorMinor == normalized }?.pyVersion?.takeIf(String::isNotBlank)
     }
     
     /**
@@ -175,7 +185,9 @@ object BlenderVersions {
      */
     fun getFakeBpyPackageName(blMajorMinor: String): String? {
         val normalized = normalizeVersion(blMajorMinor)
-        return getVersionTable().find { it.blMajorMinor == normalized }?.fakeBpyPackage
+        return getVersionTable()
+            .find { it.blMajorMinor == normalized && it.pyVersion.isNotBlank() }
+            ?.fakeBpyPackage
     }
     
     /**
@@ -186,7 +198,10 @@ object BlenderVersions {
      */
     fun getCompatibleArch(blMajorMinor: String): Map<String, List<String>>? {
         val normalized = normalizeVersion(blMajorMinor)
-        return getVersionTable().find { it.blMajorMinor == normalized }?.compatWithOs
+        return getVersionTable()
+            .find { it.blMajorMinor == normalized }
+            ?.compatWithOs
+            ?.takeIf(Map<String, List<String>>::isNotEmpty)
     }
     
     

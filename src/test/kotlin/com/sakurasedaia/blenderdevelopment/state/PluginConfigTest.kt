@@ -41,7 +41,7 @@ class PluginConfigTest : BasePlatformTestCase() {
     assertEquals("4.2", config.getMinimumBlenderVersion())
     assertTrue(config.getGlobalEnvironmentVariables().isEmpty())
     assertEquals(1, config.getBlenderUpdateCheck().interval)
-    assertEquals(PluginConfig.TimeIntervalTypes.WEEK, config.getBlenderUpdateCheck().intervalType)
+    assertEquals(PluginConfig.TimeUnits.WEEK, config.getBlenderUpdateCheck().intervalType)
     assertEquals(0L, config.getBlenderUpdateCheck().lastCheckedEpochMillis)
   }
 
@@ -82,7 +82,7 @@ class PluginConfigTest : BasePlatformTestCase() {
     config.setBlenderUpdateCheck(
       PluginConfig.UpdateChecked(
         interval = 2,
-        intervalType = PluginConfig.TimeIntervalTypes.HOUR,
+        intervalType = PluginConfig.TimeUnits.HOUR,
         lastCheckedEpochMillis = 1_000L,
       ),
     )
@@ -97,6 +97,24 @@ class PluginConfigTest : BasePlatformTestCase() {
 
     assertTrue(config.isBlenderUpdateCheckDue())
     assertEquals(0L, config.millisUntilNextBlenderUpdateCheck())
+  }
+
+  fun testMissingVersionCacheForcesImmediateRefresh() {
+    val cache = BlenderVersionCache.getInstance()
+    cache.clear()
+    config.setBlenderUpdateCheck(
+      PluginConfig.UpdateChecked(
+        interval = 1,
+        intervalType = PluginConfig.TimeUnits.WEEK,
+        lastCheckedEpochMillis = 1_000L,
+      ),
+    )
+
+    assertEquals(0L, config.millisUntilNextBlenderVersionRefresh(2_000L))
+
+    cache.cacheDiscoveredVersions(listOf(listOf(4, 2, 21)))
+    assertEquals(604_799_000L, config.millisUntilNextBlenderVersionRefresh(2_000L))
+    cache.clear()
   }
 
   fun testMarkBlenderUpdateCheckedPersistsTimestamp() {

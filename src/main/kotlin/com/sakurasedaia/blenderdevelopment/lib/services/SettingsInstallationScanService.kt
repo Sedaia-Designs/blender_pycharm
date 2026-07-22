@@ -1,6 +1,7 @@
 package com.sakurasedaia.blenderdevelopment.lib.services
 
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
@@ -28,6 +29,7 @@ class SettingsInstallationScanService {
             ?: projectManager.defaultProject
         val logger = PluginLogger.Companion.getInstance(project)
         val notifications = NotificationModal.Companion.getInstance(project)
+        val completionModalityState = ModalityState.defaultModalityState()
 
         ApplicationManager.getApplication().executeOnPooledThread {
             if (project.isDisposed) return@executeOnPooledThread
@@ -45,11 +47,11 @@ class SettingsInstallationScanService {
                 }
                 notifications.sendInfo(MessageBundle.message(messageKey, installs.size.toString()))
                 if (onComplete != null) {
-                    ApplicationManager.getApplication().invokeLater {
+                    ApplicationManager.getApplication().invokeLater({
                         if (!project.isDisposed) {
                             onComplete(installs)
                         }
-                    }
+                    }, completionModalityState)
                 }
             } catch (e: Exception) {
                 logger.warn("User-initiated Blender installation scan failed.", e)

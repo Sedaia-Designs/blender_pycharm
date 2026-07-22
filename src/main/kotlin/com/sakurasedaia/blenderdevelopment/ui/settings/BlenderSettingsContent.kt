@@ -55,6 +55,7 @@ internal data class BlenderVersionSettingsRow(
 internal class BlenderSettingsContent(
     private val onScanInstallations: ((List<PluginConfig.BlendInstallInfo>) -> Unit) -> Unit,
     private val onRefreshVersions: ((Result<List<BlenderVersion>>) -> Unit) -> Unit,
+    private val onClearVersionCache: () -> Unit,
 ) {
     private data class SettingBinding(
       val getFromConfig: (PluginConfig) -> String,
@@ -188,6 +189,9 @@ internal class BlenderSettingsContent(
                 button(MessageBundle.message("ui.settings.group.versions.scan.button")) {
                     onScanInstallations(::refreshVersionRows)
                 }
+                button(MessageBundle.message("ui.settings.group.versions.clear-cache.button")) {
+                    clearVersionCache()
+                }
                 cell(downloadVersionButton)
             }
         }
@@ -257,12 +261,18 @@ internal class BlenderSettingsContent(
         config.setGlobalEnvironmentVariables(globalEnvironmentVariablesTable.getVariables())
     }
 
+    internal fun clearVersionCache() {
+        onClearVersionCache()
+        refreshVersionRows(PluginConfig.getInstance().getDetectedBlenderInstalls())
+        updateLastRefreshed(0L)
+    }
+
     private fun onVersionsRefreshed(result: Result<List<BlenderVersion>>) {
         result.onSuccess { versions ->
             refreshVersionRows(PluginConfig.getInstance().getDetectedBlenderInstalls(), versions)
             updateLastRefreshed(PluginConfig.getInstance().getBlenderUpdateCheck().lastCheckedEpochMillis)
         }.onFailure {
-            lastRefreshedLabel.text = MessageBundle.message("ui.settings.group.versions.refresh.failed")
+            updateLastRefreshed(PluginConfig.getInstance().getBlenderUpdateCheck().lastCheckedEpochMillis)
         }
     }
 
@@ -305,7 +315,7 @@ internal class BlenderSettingsContent(
                 val installed = installsByMinor[version.blMajorMinor]
                 BlenderVersionSettingsRow(
                     version = version,
-                    pythonVersion = installed?.let { version.pyVersion } ?: "—",
+                    pythonVersion = installed?.let { version.pyVersion.takeIf(String::isNotBlank) } ?: "—",
                     installStatus = installed?.let {
                         MessageBundle.message("ui.settings.group.versions.status.installed", it.version)
                     } ?: MessageBundle.message("ui.settings.group.versions.status.not-detected"),

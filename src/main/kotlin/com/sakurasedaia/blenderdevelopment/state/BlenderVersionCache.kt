@@ -35,6 +35,8 @@ internal class BlenderVersionCache :
   internal fun getVersionTable(): List<BlenderVersion> =
     BlenderVersions.mergeDiscoveredVersions(state.versions.mapNotNull(::parseVersion))
 
+  internal fun hasCachedVersions(): Boolean = state.versions.any { parseVersion(it) != null }
+
   internal fun cacheDiscoveredVersions(discoveredVersions: List<List<Int>>) {
     val versions = discoveredVersions
       .filter { it.size == 3 }

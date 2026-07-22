@@ -33,7 +33,9 @@ class BlenderVersionCacheTest : BasePlatformTestCase() {
     assertEquals("4.2.21", versions.first { it.blMajorMinor == "4.2" }.blVersion)
     assertEquals("4.5.9", versions.first { it.blMajorMinor == "4.5" }.blVersion)
     assertEquals("5.2.0", versions.first { it.blMajorMinor == "5.2" }.blVersion)
-    assertFalse(versions.any { it.blMajorMinor == "9.9" })
+    val discovered = versions.first { it.blMajorMinor == "9.9" }
+    assertEquals("9.9.9", discovered.blVersion)
+    assertEquals("", discovered.pyVersion)
   }
 
   fun testMalformedPersistedVersionsFallBackToConfiguredTable() {
@@ -47,5 +49,15 @@ class BlenderVersionCacheTest : BasePlatformTestCase() {
     assertEquals("4.2.19", versions.first { it.blMajorMinor == "4.2" }.blVersion)
     assertEquals("4.5.8", versions.first { it.blMajorMinor == "4.5" }.blVersion)
     assertEquals("5.2.0", versions.first { it.blMajorMinor == "5.2" }.blVersion)
+  }
+
+  fun testClearRemovesCachedVersionState() {
+    cache.cacheDiscoveredVersions(listOf(listOf(4, 3, 9)))
+    assertTrue(cache.hasCachedVersions())
+
+    cache.clear()
+
+    assertFalse(cache.hasCachedVersions())
+    assertEquals(listOf("4.2", "4.5", "5.2"), cache.getVersionTable().map { it.blMajorMinor })
   }
 }

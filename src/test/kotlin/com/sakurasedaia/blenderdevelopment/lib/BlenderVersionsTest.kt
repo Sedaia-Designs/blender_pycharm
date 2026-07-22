@@ -69,6 +69,26 @@ class BlenderVersionsTest {
   }
 
   @Test
+  fun discoveredMinorVersionsAreAddedWithoutPythonCompatibilityMetadata() {
+    val table = BlenderVersions.mergeDiscoveredVersions(
+      listOf(
+        listOf(4, 3, 2),
+        listOf(4, 3, 9),
+        listOf(4, 5, 12),
+      ),
+    )
+
+    val discovered = table.first { it.blMajorMinor == "4.3" }
+    assertEquals("4.3.9", discovered.blVersion)
+    assertEquals("", discovered.pyVersion)
+    assertTrue(discovered.compatWithOs.isEmpty())
+
+    val configured = table.first { it.blMajorMinor == "4.5" }
+    assertEquals("4.5.12", configured.blVersion)
+    assertEquals("3.11.9", configured.pyVersion)
+  }
+
+  @Test
   fun downloadUrlMatchesCurrentHostArtifactName() {
     val systemInfo = SystemHelper.getSysInfo
     val compatibleVersion = BlenderVersions.LIST.firstOrNull { version ->
