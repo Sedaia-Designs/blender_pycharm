@@ -21,7 +21,9 @@ import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.ui.TextBrowseFolderListener
 import com.intellij.ui.components.JBCheckBox
+import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
+import com.intellij.ui.dsl.builder.columns
 import com.intellij.ui.dsl.builder.panel
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.ui.components.EnvironmentVariablesTable
@@ -44,6 +46,7 @@ internal class BlenderSettingsContent(
     private lateinit var customLogPath: TextFieldWithBrowseButton
     private lateinit var downloadPath: TextFieldWithBrowseButton
     private lateinit var clearDownloadAfterInstall: JBCheckBox
+    private lateinit var minimumBlenderVersion: JBTextField
     private val globalEnvironmentVariablesTable = EnvironmentVariablesTable()
     
     
@@ -89,6 +92,20 @@ internal class BlenderSettingsContent(
             }
         }
         group(MessageBundle.message("ui.settings.group.discovery.title")) {
+            row(MessageBundle.message("ui.settings.group.discovery.minimum-version.label")) {
+                textField()
+                    .columns(8)
+                    .validationOnInput {
+                        if (PluginConfig.isValidMinorVersion(it.text)) null
+                        else error(MessageBundle.message("ui.settings.group.discovery.minimum-version.validation"))
+                    }
+                    .validationOnApply {
+                        if (PluginConfig.isValidMinorVersion(it.text)) null
+                        else error(MessageBundle.message("ui.settings.group.discovery.minimum-version.validation"))
+                    }
+                    .applyToComponent { minimumBlenderVersion = this }
+                    .comment(MessageBundle.message("ui.settings.group.discovery.minimum-version.comment"))
+            }
             row {
                 button(MessageBundle.message("ui.settings.group.discovery.scan.button")) {
                     onScanInstallations()
@@ -135,6 +152,7 @@ internal class BlenderSettingsContent(
         }
         downloadPath.text = config.getDownloadPath()
         clearDownloadAfterInstall.isSelected = config.getClearDownloadsAfterInstall()
+        minimumBlenderVersion.text = config.getMinimumBlenderVersion()
         globalEnvironmentVariablesTable.setVariables(config.getGlobalEnvironmentVariables())
     }
 
@@ -144,6 +162,7 @@ internal class BlenderSettingsContent(
         } ||
             config.getDownloadPath() != downloadPath.text ||
             config.getClearDownloadsAfterInstall() != clearDownloadAfterInstall.isSelected ||
+            config.getMinimumBlenderVersion() != minimumBlenderVersion.text ||
             config.getGlobalEnvironmentVariables() != globalEnvironmentVariablesTable.getVariables()
 
     internal fun apply(config: PluginConfig) {
@@ -152,6 +171,7 @@ internal class BlenderSettingsContent(
         }
         config.setDownloadPath(downloadPath.text)
         config.setClearDownloadsAfterInstall(clearDownloadAfterInstall.isSelected)
+        config.setMinimumBlenderVersion(minimumBlenderVersion.text)
         config.setGlobalEnvironmentVariables(globalEnvironmentVariablesTable.getVariables())
     }
 }

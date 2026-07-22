@@ -5,6 +5,7 @@ import com.intellij.openapi.components.service
 import com.intellij.util.io.HttpRequests
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersion
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
+import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.StringReader
@@ -33,14 +34,21 @@ internal class ScrapeBlenderVersionLists {
 
   suspend fun getAvailableVersions(url: String = BLENDER_VERSION_SITE): List<String> =
     withContext(Dispatchers.IO) {
-      parseAvailableVersions(getHTML(url))
+      filterMinorVersions(
+        parseAvailableVersions(getHTML(url)),
+        PluginConfig.getInstance().getMinimumBlenderVersion(),
+      )
     }
 
   internal suspend fun refreshVersionCache(): List<BlenderVersion> = withContext(Dispatchers.IO) {
-    val availableMinorVersions = parseAvailableVersions(getHTML(BLENDER_VERSION_SITE)).toSet()
+    val availableMinorVersions = filterMinorVersions(
+      parseAvailableVersions(getHTML(BLENDER_VERSION_SITE)),
+      PluginConfig.getInstance().getMinimumBlenderVersion(),
+    )
+      .toSet()
     val discoveredPatchVersions = BlenderVersions.supportedMinorVersions()
       .filter(availableMinorVersions::contains)
-      .flatMap { minorVersion ->
+      .mapNotNull { minorVersion ->
         val releaseUrl = "${BLENDER_VERSION_SITE}Blender$minorVersion/"
         parsePatchVersions(getHTML(releaseUrl), minorVersion)
       }
@@ -62,7 +70,7 @@ internal class ScrapeBlenderVersionLists {
     return versions.toList()
   }
 
-  internal fun parsePatchVersions(html: String, minorVersion: String): List<List<Int>> {
+  internal fun parsePatchVersions(html: String, minorVersion: String): List<Int>? {
     val versions = linkedSetOf<List<Int>>()
     parseLinks(html) { href ->
       val version = PATCH_VERSION_PATTERN.matchEntire(href)?.groupValues?.get(1) ?: return@parseLinks
@@ -70,7 +78,18 @@ internal class ScrapeBlenderVersionLists {
 
       versions += version.split('.').map(String::toInt)
     }
-    return versions.toList()
+    return versions.maxWithOrNull(compareBy({ it[0] }, { it[1] }, { it[2] }))
+  }
+
+  internal fun filterMinorVersions(versions: List<String>, minimumVersion: String): List<String> {
+    val minimum = parseMinorVersion(minimumVersion) ?: return emptyList()
+    return versions.filter { version -> parseMinorVersion(version)?.let { it >= minimum } == true }
+  }
+
+  private fun parseMinorVersion(version: String): MinorVersion? {
+    val parts = version.split('.')
+    if (parts.size != 2) return null
+    return MinorVersion(parts[0].toIntOrNull() ?: return null, parts[1].toIntOrNull() ?: return null)
   }
 
   private fun parseLinks(html: String, consumeHref: (String) -> Unit) {
@@ -84,5 +103,10 @@ internal class ScrapeBlenderVersionLists {
     }
 
     ParserDelegator().parse(StringReader(html), callback, true)
+  }
+
+  private data class MinorVersion(val major: Int, val minor: Int) : Comparable<MinorVersion> {
+    override fun compareTo(other: MinorVersion): Int =
+      compareValuesBy(this, other, MinorVersion::major, MinorVersion::minor)
   }
 }

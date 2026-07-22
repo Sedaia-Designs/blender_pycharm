@@ -48,7 +48,7 @@ class ScrapeBlenderVersionListsTest {
   }
 
   @Test
-  fun testParsesUniquePatchVersionsForRequestedMinorRelease() {
+  fun testParsesLatestPatchVersionForRequestedMinorRelease() {
     val html = """
       <a href="blender-5.2.0-linux-x64.tar.xz">Linux</a>
       <a href="blender-5.2.0-macos-arm64.dmg">macOS</a>
@@ -59,8 +59,20 @@ class ScrapeBlenderVersionListsTest {
     """.trimIndent()
 
     assertEquals(
-      listOf(listOf(5, 2, 0), listOf(5, 2, 1)),
+      listOf(5, 2, 1),
       scraper.parsePatchVersions(html, "5.2"),
+    )
+  }
+
+  @Test
+  fun testFiltersMinorVersionsAtConfiguredMinimum() {
+    assertEquals(
+      listOf("4.2", "4.5", "5.0"),
+      scraper.filterMinorVersions(listOf("3.6", "4.1", "4.2", "4.5", "5.0", "2.50alpha"), "4.2"),
+    )
+    assertEquals(
+      listOf("4.10", "5.0"),
+      scraper.filterMinorVersions(listOf("4.9", "4.10", "5.0"), "4.10"),
     )
   }
 }

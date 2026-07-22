@@ -38,6 +38,7 @@ class PluginConfigTest : BasePlatformTestCase() {
     assertTrue(config.getClearDownloadsAfterInstall())
     assertEquals(2, config.getDownloadCacheSize())
     assertTrue(config.getDetectedBlenderInstalls().isEmpty())
+    assertEquals("4.2", config.getMinimumBlenderVersion())
     assertTrue(config.getGlobalEnvironmentVariables().isEmpty())
   }
 
@@ -54,6 +55,7 @@ class PluginConfigTest : BasePlatformTestCase() {
     config.setClearDownloadsAfterInstall(false)
     config.setDownloadCacheSize(8)
     config.setDetectedBlenderInstalls(installs)
+    config.setMinimumBlenderVersion("4.5")
     config.setGlobalEnvironmentVariables(env)
 
     assertEquals("/tmp/blender", config.getBlenderInstallPath())
@@ -63,6 +65,13 @@ class PluginConfigTest : BasePlatformTestCase() {
     assertFalse(config.getClearDownloadsAfterInstall())
     assertEquals(8, config.getDownloadCacheSize())
     assertEquals(installs, config.getDetectedBlenderInstalls())
+    assertEquals("4.5", config.getMinimumBlenderVersion())
     assertEquals(env, config.getGlobalEnvironmentVariables())
+  }
+
+  fun testInvalidPersistedMinimumVersionFallsBackToDefault() {
+    config.loadState(PluginConfig.PluginState(minimumBlenderVersion = "invalid"))
+
+    assertEquals("4.2", config.getMinimumBlenderVersion())
   }
 }

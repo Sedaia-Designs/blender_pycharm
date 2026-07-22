@@ -44,6 +44,8 @@ class PluginConfig : PersistentStateComponent<PluginConfig.PluginState> {
 		
 		var detectedBlender: List<BlendInstallInfo> = mutableListOf(),
 
+		var minimumBlenderVersion: String = DEFAULT_MINIMUM_BLENDER_VERSION,
+
 		var globalEnvironmentVariables: Map<String, String> = emptyMap()
 		
 	)
@@ -128,6 +130,21 @@ class PluginConfig : PersistentStateComponent<PluginConfig.PluginState> {
 	/** Returns the cached list of discovered Blender installations. */
 	fun getDetectedBlenderInstalls(): List<BlendInstallInfo> = state.detectedBlender
 
+	/**
+	 * Sets the oldest Blender minor release included in online version discovery.
+	 *
+	 * @param version Blender version in `major.minor` format.
+	 */
+	fun setMinimumBlenderVersion(version: String) {
+		require(isValidMinorVersion(version)) { "Minimum Blender version must use major.minor format" }
+		state.minimumBlenderVersion = version
+	}
+
+	/** Returns the oldest Blender minor release included in online version discovery. */
+	fun getMinimumBlenderVersion(): String = state.minimumBlenderVersion
+		.takeIf(::isValidMinorVersion)
+		?: DEFAULT_MINIMUM_BLENDER_VERSION
+
 	
 	/**
 	 * Sets the Global Environment Variables
@@ -168,6 +185,11 @@ class PluginConfig : PersistentStateComponent<PluginConfig.PluginState> {
 	}
 
 	companion object {
+		private const val DEFAULT_MINIMUM_BLENDER_VERSION = "4.2"
+		private val MINOR_VERSION_PATTERN = Regex("^\\d+\\.\\d+$")
+
+		internal fun isValidMinorVersion(version: String): Boolean = MINOR_VERSION_PATTERN.matches(version)
+
 		/**
 		 * Returns the global plugin configuration service.
 		 *
