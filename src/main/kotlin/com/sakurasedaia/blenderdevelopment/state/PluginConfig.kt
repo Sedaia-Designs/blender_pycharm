@@ -20,13 +20,46 @@ package com.sakurasedaia.blenderdevelopment.state
 import com.intellij.openapi.components.*
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.PathManager
+import com.intellij.openapi.diagnostic.Logger
+import com.sakurasedaia.blenderdevelopment.lib.services.ScrapeBlenderVersionLists
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import java.time.Duration
 
 /** Application-level persisted configuration for global Blender plugin settings. */
 @Service(Service.Level.APP)
 @State(name = "PluginConfig", storages = [Storage("blender_pycharm.config.xml")])
-class PluginConfig : PersistentStateComponent<PluginConfig.PluginState> {
+class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentStateComponent<PluginConfig.PluginState> {
 	/** Descriptor for an installed Blender instance discovered on disk. */
 	data class BlendInstallInfo(val name: String = "", val version: String = "", val path: String = "")
+
+	/** Time units supported by the automatic Blender version refresh interval. */
+	enum class TimeIntervalTypes {
+		SECOND,
+		MINUTE,
+		HOUR,
+		DAY,
+		WEEK,
+		MONTH
+	}
+
+	/**
+	 * Persisted schedule for checking Blender's release index.
+	 *
+	 * @property interval positive quantity of [intervalType] between checks.
+	 * @property intervalType unit used by [interval].
+	 * @property lastCheckedEpochMillis time of the last successful check, or zero when never checked.
+	 */
+	data class UpdateChecked(
+		var interval: Int = 1,
+		var intervalType: TimeIntervalTypes = TimeIntervalTypes.WEEK,
+		var lastCheckedEpochMillis: Long = 0,
+	)
 	
 	/** Persisted application-scoped settings for the plugin. */
 	data class PluginState(
@@ -46,11 +79,14 @@ class PluginConfig : PersistentStateComponent<PluginConfig.PluginState> {
 
 		var minimumBlenderVersion: String = DEFAULT_MINIMUM_BLENDER_VERSION,
 
-		var globalEnvironmentVariables: Map<String, String> = emptyMap()
-		
+		var globalEnvironmentVariables: Map<String, String> = emptyMap(),
+
+		var blenderUpdateCheck: UpdateChecked = UpdateChecked(),
+
 	)
-	
-	
+
+	private val logger = Logger.getInstance(PluginConfig::class.java)
+	private var blenderUpdateCheckJob: Job? = null
 	private var state: PluginState = PluginState()
 	
 	/**
@@ -156,11 +192,75 @@ class PluginConfig : PersistentStateComponent<PluginConfig.PluginState> {
 	}
 	/** Returns the list of Environment Variables */
 	fun getGlobalEnvironmentVariables(): Map<String, String> = state.globalEnvironmentVariables
-	
-	
-	
-	
-	
+
+	/** Returns the persisted Blender release refresh schedule. */
+	fun getBlenderUpdateCheck(): UpdateChecked = state.blenderUpdateCheck
+
+	/**
+	 * Replaces the Blender release refresh schedule.
+	 *
+	 * @param updateCheck schedule containing a positive interval.
+	 */
+	fun setBlenderUpdateCheck(updateCheck: UpdateChecked) {
+		require(updateCheck.interval > 0) { "Blender update check interval must be positive" }
+		state.blenderUpdateCheck = updateCheck
+		restartBlenderUpdateTimerIfRunning()
+	}
+
+	internal fun isBlenderUpdateCheckDue(nowEpochMillis: Long = System.currentTimeMillis()): Boolean =
+		millisUntilNextBlenderUpdateCheck(nowEpochMillis) == 0L
+
+	internal fun millisUntilNextBlenderUpdateCheck(nowEpochMillis: Long = System.currentTimeMillis()): Long {
+		val updateCheck = state.blenderUpdateCheck
+		if (updateCheck.lastCheckedEpochMillis <= 0) return 0
+
+		val elapsed = (nowEpochMillis - updateCheck.lastCheckedEpochMillis).coerceAtLeast(0)
+		return (updateCheck.intervalMillis() - elapsed).coerceAtLeast(0)
+	}
+
+	internal fun markBlenderUpdateChecked(nowEpochMillis: Long = System.currentTimeMillis()) {
+		state.blenderUpdateCheck.lastCheckedEpochMillis = nowEpochMillis
+	}
+
+	@Synchronized
+	internal fun startBlenderUpdateTimer() {
+		if (blenderUpdateCheckJob?.isActive == true) return
+
+		blenderUpdateCheckJob = coroutineScope.launch(CoroutineName("Blender version update checker")) {
+			while (isActive) {
+				delay(millisUntilNextBlenderUpdateCheck())
+				try {
+					ScrapeBlenderVersionLists.getInstance().refreshVersionCache()
+					markBlenderUpdateChecked()
+				} catch (error: CancellationException) {
+					throw error
+				} catch (error: Exception) {
+					logger.warn("Failed to refresh the Blender version cache.", error)
+					delay(UPDATE_CHECK_RETRY_DELAY_MILLIS)
+				}
+			}
+		}
+	}
+
+	@Synchronized
+	private fun restartBlenderUpdateTimerIfRunning() {
+		if (blenderUpdateCheckJob == null) return
+		blenderUpdateCheckJob?.cancel()
+		blenderUpdateCheckJob = null
+		startBlenderUpdateTimer()
+	}
+
+	private fun UpdateChecked.intervalMillis(): Long {
+		val unit = when (intervalType) {
+			TimeIntervalTypes.SECOND -> Duration.ofSeconds(1)
+			TimeIntervalTypes.MINUTE -> Duration.ofMinutes(1)
+			TimeIntervalTypes.HOUR -> Duration.ofHours(1)
+			TimeIntervalTypes.DAY -> Duration.ofDays(1)
+			TimeIntervalTypes.WEEK -> Duration.ofDays(7)
+			TimeIntervalTypes.MONTH -> Duration.ofDays(30)
+		}
+		return unit.toMillis() * interval.coerceAtLeast(1)
+	}
 	
 	/**
 	 * Forces initialization of persisted plugin settings.
@@ -186,6 +286,7 @@ class PluginConfig : PersistentStateComponent<PluginConfig.PluginState> {
 
 	companion object {
 		private const val DEFAULT_MINIMUM_BLENDER_VERSION = "4.2"
+		private val UPDATE_CHECK_RETRY_DELAY_MILLIS = Duration.ofHours(1).toMillis()
 		private val MINOR_VERSION_PATTERN = Regex("^\\d+\\.\\d+$")
 
 		internal fun isValidMinorVersion(version: String): Boolean = MINOR_VERSION_PATTERN.matches(version)

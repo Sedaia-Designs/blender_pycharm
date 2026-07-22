@@ -40,6 +40,9 @@ class PluginConfigTest : BasePlatformTestCase() {
     assertTrue(config.getDetectedBlenderInstalls().isEmpty())
     assertEquals("4.2", config.getMinimumBlenderVersion())
     assertTrue(config.getGlobalEnvironmentVariables().isEmpty())
+    assertEquals(1, config.getBlenderUpdateCheck().interval)
+    assertEquals(PluginConfig.TimeIntervalTypes.WEEK, config.getBlenderUpdateCheck().intervalType)
+    assertEquals(0L, config.getBlenderUpdateCheck().lastCheckedEpochMillis)
   }
 
   fun testMutableFieldsRoundTrip() {
@@ -73,5 +76,38 @@ class PluginConfigTest : BasePlatformTestCase() {
     config.loadState(PluginConfig.PluginState(minimumBlenderVersion = "invalid"))
 
     assertEquals("4.2", config.getMinimumBlenderVersion())
+  }
+
+  fun testBlenderUpdateCheckTiming() {
+    config.setBlenderUpdateCheck(
+      PluginConfig.UpdateChecked(
+        interval = 2,
+        intervalType = PluginConfig.TimeIntervalTypes.HOUR,
+        lastCheckedEpochMillis = 1_000L,
+      ),
+    )
+
+    assertFalse(config.isBlenderUpdateCheckDue(1_000L + 7_199_999L))
+    assertEquals(1L, config.millisUntilNextBlenderUpdateCheck(1_000L + 7_199_999L))
+    assertTrue(config.isBlenderUpdateCheckDue(1_000L + 7_200_000L))
+  }
+
+  fun testNeverCheckedScheduleIsImmediatelyDue() {
+    config.setBlenderUpdateCheck(PluginConfig.UpdateChecked())
+
+    assertTrue(config.isBlenderUpdateCheckDue())
+    assertEquals(0L, config.millisUntilNextBlenderUpdateCheck())
+  }
+
+  fun testMarkBlenderUpdateCheckedPersistsTimestamp() {
+    config.markBlenderUpdateChecked(123_456L)
+
+    assertEquals(123_456L, config.getBlenderUpdateCheck().lastCheckedEpochMillis)
+  }
+
+  fun testRejectsNonPositiveUpdateInterval() {
+    assertThrows(IllegalArgumentException::class.java) {
+      config.setBlenderUpdateCheck(PluginConfig.UpdateChecked(interval = 0))
+    }
   }
 }

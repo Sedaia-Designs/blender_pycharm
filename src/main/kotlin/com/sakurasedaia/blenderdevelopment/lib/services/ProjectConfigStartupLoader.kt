@@ -30,7 +30,9 @@ import com.sakurasedaia.blenderdevelopment.util.BlenderRuntimeResources
 /** Eagerly loads project workspace configuration when the IDE opens a project. */
 internal class ProjectConfigStartupLoader : ProjectActivity {
     override suspend fun execute(project: Project) {
-        PluginConfig.getInstance().loadPluginState()
+        val pluginConfig = PluginConfig.getInstance()
+        pluginConfig.loadPluginState()
+        pluginConfig.startBlenderUpdateTimer()
         val config = ProjectConfig.getInstance(project)
         config.loadWorkspaceState()
         val logger = PluginLogger.getInstance(project)
