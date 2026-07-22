@@ -24,6 +24,7 @@ import com.intellij.openapi.ui.TextBrowseFolderListener
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
+import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.columns
@@ -42,6 +43,7 @@ import java.time.format.DateTimeFormatter
 import javax.swing.JComponent
 import javax.swing.JButton
 import javax.swing.ListSelectionModel
+import javax.swing.ScrollPaneConstants
 
 internal data class BlenderVersionSettingsRow(
     val version: BlenderVersion,
@@ -191,6 +193,15 @@ internal class BlenderSettingsContent(
         }
     }
 
+    private val scrollPane = JBScrollPane(
+        root,
+        ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+        ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER,
+    ).apply {
+        border = null
+        verticalScrollBar.unitIncrement = 16
+    }
+
     private val settingsBindings: List<SettingBinding>
         get() = listOf(
             SettingBinding(
@@ -213,7 +224,7 @@ internal class BlenderSettingsContent(
             ),
         )
 
-    internal fun component(): JComponent = root
+    internal fun component(): JComponent = scrollPane
 
     internal fun reset(config: PluginConfig) {
         settingsBindings.forEach { binding ->
