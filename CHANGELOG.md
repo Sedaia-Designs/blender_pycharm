@@ -2,7 +2,32 @@
 
 # BlenderPythonDevelopment Changelog
 
-## [Unreleased]
+## [0.8.1-Snapshot] - 2026-07-22
+
+This patch release makes repository-synced Blender extension launches reliably switch from stale source or symlink module
+names to the extension ID declared in `blender_manifest.toml`.
+
+### Added
+
+- Added regression coverage for persisted extension module names during repository-sync launches.
+
+### Changed
+
+- None.
+
+### Fixed
+
+- Fixed Run and Debug repository-sync launches by disabling stale extension module names before enabling the manifest ID.
+
+### Removed
+
+- None.
+
+### Known Issues
+
+- This remains a pre-release and is not production-hardened.
+- Live Blender integration is not covered by the automated JVM and Python test suites.
+
 
 ## [0.8.0-Snapshot] - 2026-07-20
 

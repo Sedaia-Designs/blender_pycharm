@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "com.sakurasedaia"
-version = "0.8.0-SNAPSHOT"
+version = "0.8.1-SNAPSHOT"
 
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html
 dependencies {
@@ -46,12 +46,10 @@ intellijPlatform {
         }
         
         changeNotes = """
-            <h3>0.8.0-Snapshot</h3>
+            <h3>0.8.1-Snapshot</h3>
             <ul>
-              <li>Adds structured Blender extension manifest parsing and manifest-ID-based reloads.</li>
-              <li>Expands Blender runtime communication and repository-sync diagnostics.</li>
-              <li>Simplifies the bundled runtime source layout and adds Python regression coverage.</li>
-              <li>Adds a validated, idempotent Codeberg snapshot release workflow.</li>
+              <li>Fixes repository-sync launches by disabling stale extension module names before enabling the manifest ID.</li>
+              <li>Adds regression coverage for persisted extension module names.</li>
             </ul>
             <p>This is a pre-release snapshot and is not production-hardened.</p>
         """.trimIndent()
