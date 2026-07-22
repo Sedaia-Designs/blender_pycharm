@@ -9,9 +9,16 @@ TEMPLATE_PATH = Path(__file__).parents[2] / "main/resources/fileTemplates/intern
 
 
 class RuntimeRepoSyncLaunchTest(unittest.TestCase):
-    def execute_template(self, project_dir: Path, source_folder: str, symlink_name: str):
+    def execute_template(
+        self,
+        project_dir: Path,
+        source_folder: str,
+        symlink_name: str,
+        initially_enabled=(),
+    ):
         linked_addons = []
         enabled_modules = []
+        disabled_modules = []
 
         class AddonInfo:
             def __init__(self, load_dir, module_name):
@@ -24,14 +31,23 @@ class RuntimeRepoSyncLaunchTest(unittest.TestCase):
         blender_pycharm.AddonInfo = AddonInfo
         blender_pycharm.load_addons = load_addons
 
+        enabled_addons = [types.SimpleNamespace(module=name) for name in initially_enabled]
+
+        def disable_addon(module):
+            disabled_modules.append(module)
+            enabled_addons[:] = [addon for addon in enabled_addons if addon.module != module]
+
         preferences = types.SimpleNamespace(
-            addon_disable=lambda **kwargs: None,
+            addon_disable=disable_addon,
             addon_refresh=lambda: None,
             addon_enable=lambda module: enabled_modules.append(module),
         )
         extensions = types.SimpleNamespace(repo_refresh_all=lambda: None)
         bpy = types.ModuleType("bpy")
         bpy.ops = types.SimpleNamespace(preferences=preferences, extensions=extensions)
+        bpy.context = types.SimpleNamespace(
+            preferences=types.SimpleNamespace(addons=enabled_addons),
+        )
 
         original_modules = {
             name: sys.modules.get(name)
@@ -61,7 +77,7 @@ class RuntimeRepoSyncLaunchTest(unittest.TestCase):
                 else:
                     sys.modules[name] = module
 
-        return linked_addons, enabled_modules
+        return linked_addons, enabled_modules, disabled_modules
 
     def test_extension_uses_only_manifest_module_id(self):
         with tempfile.TemporaryDirectory() as project_directory:
@@ -73,7 +89,7 @@ class RuntimeRepoSyncLaunchTest(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            linked_addons, enabled_modules = self.execute_template(
+            linked_addons, enabled_modules, disabled_modules = self.execute_template(
                 project_path,
                 "extension",
                 "configured_symlink_name",
@@ -81,6 +97,43 @@ class RuntimeRepoSyncLaunchTest(unittest.TestCase):
 
             self.assertEqual("manifest_module_id", linked_addons[0].module_name)
             self.assertEqual(["bl_ext.pycharm_blender.manifest_module_id"], enabled_modules)
+            self.assertEqual(["bl_ext.pycharm_blender.manifest_module_id"], disabled_modules)
+
+    def test_extension_disables_persisted_symlink_modules_before_manifest_module(self):
+        with tempfile.TemporaryDirectory() as project_directory:
+            project_path = Path(project_directory)
+            extension_path = project_path / "extension"
+            extension_path.mkdir()
+            (extension_path / "blender_manifest.toml").write_text(
+                'id = "manifest_module_id"\n',
+                encoding="utf-8",
+            )
+
+            linked_addons, enabled_modules, disabled_modules = self.execute_template(
+                project_path,
+                "extension",
+                "configured_symlink_name",
+                initially_enabled=(
+                    "configured_symlink_name",
+                    "bl_ext.pycharm_blender.configured_symlink_name",
+                    "extension",
+                    "bl_ext.pycharm_blender.extension",
+                    "unrelated_addon",
+                ),
+            )
+
+            self.assertEqual("manifest_module_id", linked_addons[0].module_name)
+            self.assertEqual(["bl_ext.pycharm_blender.manifest_module_id"], enabled_modules)
+            self.assertCountEqual(
+                [
+                    "configured_symlink_name",
+                    "bl_ext.pycharm_blender.configured_symlink_name",
+                    "extension",
+                    "bl_ext.pycharm_blender.extension",
+                    "bl_ext.pycharm_blender.manifest_module_id",
+                ],
+                disabled_modules,
+            )
 
     def test_legacy_addon_keeps_configured_symlink_name(self):
         with tempfile.TemporaryDirectory() as project_directory:
@@ -89,7 +142,7 @@ class RuntimeRepoSyncLaunchTest(unittest.TestCase):
             addon_path.mkdir()
             (addon_path / "__init__.py").touch()
 
-            linked_addons, enabled_modules = self.execute_template(
+            linked_addons, enabled_modules, disabled_modules = self.execute_template(
                 project_path,
                 "addon_source",
                 "configured_symlink_name",
@@ -97,6 +150,7 @@ class RuntimeRepoSyncLaunchTest(unittest.TestCase):
 
             self.assertEqual("configured_symlink_name", linked_addons[0].module_name)
             self.assertEqual(["configured_symlink_name"], enabled_modules)
+            self.assertEqual(["configured_symlink_name"], disabled_modules)
 
 
 if __name__ == "__main__":

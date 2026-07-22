@@ -80,6 +80,34 @@ def try_reload_module(module_name: str) -> bool:
         return False
 
 
+def enabled_addon_modules() -> set[str]:
+    preferences = getattr(getattr(bpy, "context", None), "preferences", None)
+    addons = getattr(preferences, "addons", ())
+    return {
+        module
+        for addon in addons
+        if (module := getattr(addon, "module", "").strip())
+    }
+
+
+def disable_stale_extension_modules(source_path: Optional[Path]):
+    if not source_path or not extension_manifest_id(source_path):
+        return
+
+    stale_names = {
+        addon_symlink_name,
+        source_path.name,
+        f"bl_ext.{extensions_repository}.{addon_symlink_name}" if addon_symlink_name else "",
+        f"bl_ext.{extensions_repository}.{source_path.name}",
+    }
+    enabled_modules = enabled_addon_modules()
+    for module_name in stale_names & enabled_modules:
+        try:
+            bpy.ops.preferences.addon_disable(module=module_name)
+        except Exception:
+            pass
+
+
 def build_module_candidates(source_path: Optional[Path]) -> List[str]:
     candidates: List[str] = []
     seen = set()
@@ -116,6 +144,7 @@ def ensure_addon_link(source_path: Optional[Path]):
 
 try:
     source_path = resolve_source_path()
+    disable_stale_extension_modules(source_path)
     ensure_addon_link(source_path)
     refresh_addons_and_extensions()
     for module_name in build_module_candidates(source_path):
