@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codeberg Release Publishing"
+  short_description: "Prepare and publish verified Codeberg releases"
+  default_prompt: "Use $codeberg-release-publishing to prepare and publish the next Codeberg plugin release."
