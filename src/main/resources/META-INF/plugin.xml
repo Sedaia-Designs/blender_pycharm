@@ -14,20 +14,27 @@
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-description -->
     <description><![CDATA[
-        <h1>Blender Development for PyCharm</h1>
-        <p><b>Blender Development</b> seamlessly integrates professional Blender extension development into the PyCharm IDE. This project is licensed under the <b>GNU GPL v3</b>.</p>
-        <p>This plugin provides a powerful suite of tools designed to streamline the entire lifecycle of creating, testing, and deploying Blender extensions (v4.2+) using modern development practices.</p>
-        <p><i><b>Note:</b> This plugin requires <a href="https://github.com/astral-sh/uv">uv</a> for Python virtual environment management and package integration. The plugin can automatically install <b>uv</b> if it is not found on your system using UV's official installer.</i></p>
+        <h1>Blender Python Development for PyCharm</h1>
+        <p>Create, configure, run, and debug Blender 4.2+ add-ons and extensions from PyCharm.</p>
 
-        <p><i><b>Note:</b> This plugin is currently in active development. Please report bugs or feature requests at the <a href="https://codeberg.org/SakuraSedaia/blender_pycharm/issues">Codeberg Repository</a>.</i></p>
-
-        <h3>Key Capabilities:</h3>
+        <h3>Key capabilities</h3>
         <ul>
+            <li>Create add-on and extension projects with a source root, project metadata, Blender manifest, and optional example code.</li>
+            <li>Use PyCharm's native Python environment workflow with virtual environments, optional uv environments, or existing interpreters.</li>
+            <li>Install version-matched Blender API stubs into the project interpreter.</li>
+            <li>Discover existing Blender installations on Windows, macOS, and Linux.</li>
+            <li>Configure the Blender executable, target version, source folder, module name, launch arguments, environment variables, and reload preferences per project.</li>
+            <li>Launch Blender with a dedicated run configuration and refresh the configured add-on or extension.</li>
+            <li>Debug inside Blender through PyCharm with debugger attachment, reload-on-save, script execution, add-on reload, and stop commands.</li>
         </ul>
 
-        <p>Inspired by the <a href="https://github.com/JacquesLucke/blender_vscode">Blender Development extension</a> for VS Code by <b>Jacques Lucke</b> and optimized for the PyCharm ecosystem.</p>
+        <p><b>Compatibility:</b> PyCharm 2026.1 or newer and Blender 4.2 or newer.</p>
 
-        <p><small><i>Licensed under GPL-3.0. This project is not affiliated with or endorsed by the Blender Foundation.</i></small></p>
+        <p><i>This plugin is in active pre-release development. See the <a href="https://docs.sakura-sedaia.com/blender-development/">documentation</a> for setup and current limitations, or report issues in the <a href="https://codeberg.org/SakuraSedaia/blender_pycharm/issues">Codeberg issue tracker</a>.</i></p>
+
+        <p>The bundled Blender runtime is derived from Jacques Lucke's <a href="https://github.com/JacquesLucke/blender_vscode">Blender Development extension for Visual Studio Code</a> and adapted for PyCharm.</p>
+
+        <p><small><i>Licensed under GPL-3.0-or-later. This project is not affiliated with or endorsed by the Blender Foundation.</i></small></p>
     ]]></description>
 
     <!-- Product and plugin compatibility requirements.
