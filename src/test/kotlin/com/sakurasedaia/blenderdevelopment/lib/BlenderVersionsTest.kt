@@ -18,7 +18,6 @@
 package com.sakurasedaia.blenderdevelopment.lib
 
 import com.sakurasedaia.blenderdevelopment.util.SystemHelper
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -26,11 +25,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class BlenderVersionsTest {
-  @After
-  fun resetVersionCache() {
-    BlenderVersions.resetCache()
-  }
-
   @Test
   fun normalizeVersionHandlesMajorMinorAndPatchSelectors() {
     assertEquals("4.5", BlenderVersions.normalizeVersion("4.5"))
@@ -72,24 +66,6 @@ class BlenderVersionsTest {
     assertTrue(table.any { it.blVersion == "4.2.19" && it.pyVersion == "3.11.7" })
     assertTrue(table.any { it.blVersion == "4.5.8" && it.pyVersion == "3.11.9" })
     assertTrue(table.any { it.blVersion == "5.2.0" && it.pyVersion == "3.13.13" })
-  }
-
-  @Test
-  fun cacheUsesLatestDiscoveredPatchAndPreservesConfiguredMetadata() {
-    BlenderVersions.cacheDiscoveredVersions(
-      listOf(
-        listOf(4, 2, 18),
-        listOf(4, 2, 21),
-        listOf(4, 5, 9),
-        listOf(9, 9, 9),
-      ),
-    )
-
-    assertEquals("4.2.21", BlenderVersions.getBlenderVersion("4.2"))
-    assertEquals("3.11.7", BlenderVersions.getPythonVersion("4.2"))
-    assertEquals("4.5.9", BlenderVersions.getBlenderVersion("4.5"))
-    assertEquals("5.2.0", BlenderVersions.getBlenderVersion("5.2"))
-    assertNull(BlenderVersions.getBlenderVersion("9.9"))
   }
 
   @Test

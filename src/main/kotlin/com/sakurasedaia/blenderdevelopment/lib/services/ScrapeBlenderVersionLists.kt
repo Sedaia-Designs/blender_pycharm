@@ -5,6 +5,7 @@ import com.intellij.openapi.components.service
 import com.intellij.util.io.HttpRequests
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersion
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
+import com.sakurasedaia.blenderdevelopment.state.BlenderVersionCache
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -53,8 +54,9 @@ internal class ScrapeBlenderVersionLists {
         parsePatchVersions(getHTML(releaseUrl), minorVersion)
       }
 
-    BlenderVersions.cacheDiscoveredVersions(discoveredPatchVersions)
-    BlenderVersions.getVersionTable()
+    val cache = BlenderVersionCache.getInstance()
+    cache.cacheDiscoveredVersions(discoveredPatchVersions)
+    cache.getVersionTable()
   }
 
   internal fun getHTML(url: String): String = HttpRequests.request(url)

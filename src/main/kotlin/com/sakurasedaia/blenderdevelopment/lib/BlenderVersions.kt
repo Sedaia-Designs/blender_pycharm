@@ -17,6 +17,8 @@
 
 package com.sakurasedaia.blenderdevelopment.lib
 
+import com.intellij.openapi.application.ApplicationManager
+import com.sakurasedaia.blenderdevelopment.state.BlenderVersionCache
 import com.sakurasedaia.blenderdevelopment.util.SystemHelper
 
 /**
@@ -85,8 +87,7 @@ data class BlenderVersion(
 
 /** In-memory version registry used by wizard defaults and compatibility checks. */
 object BlenderVersions {
-    private val cacheLock = Any()
-    private val VERSION_TABLE = listOf(
+    private val FALLBACK_VERSION_TABLE = listOf(
         BlenderVersion(
             blender = listOf(4, 2, 19),
             python = listOf(3,11,7),
@@ -114,44 +115,18 @@ object BlenderVersions {
             ))
     )
     
-    @Volatile
-    private var _cachedVersions: List<BlenderVersion>? = null
+    internal fun supportedMinorVersions(): List<String> = FALLBACK_VERSION_TABLE.map(BlenderVersion::blMajorMinor)
 
-    internal fun supportedMinorVersions(): List<String> = VERSION_TABLE.map(BlenderVersion::blMajorMinor)
-
-    internal fun cacheDiscoveredVersions(discoveredVersions: List<List<Int>>) {
+    internal fun mergeDiscoveredVersions(discoveredVersions: List<List<Int>>): List<BlenderVersion> {
         val latestPatchByMinor = discoveredVersions
             .filter { it.size == 3 }
             .groupBy { normalizeVersionFromList(it) }
             .mapValues { (_, versions) -> versions.maxWith(compareBy({ it[0] }, { it[1] }, { it[2] })) }
 
-        val refreshedVersions = VERSION_TABLE.map { configuredVersion ->
+        return FALLBACK_VERSION_TABLE.map { configuredVersion ->
             val discoveredVersion = latestPatchByMinor[configuredVersion.blMajorMinor]
             if (discoveredVersion == null) configuredVersion else configuredVersion.copy(blender = discoveredVersion)
         }
-
-        synchronized(cacheLock) {
-            _cachedVersions = refreshedVersions
-        }
-    }
-
-    internal fun resetCache() {
-        synchronized(cacheLock) {
-            _cachedVersions = null
-        }
-    }
-    
-    
-    /**
-     * Returns the cached version table, initializing cache on first access.
-     *
-     * @return cached list of [BlenderVersion] entries.
-     */
-    private fun getVersionTableSafe(): List<BlenderVersion> {
-        _cachedVersions?.let { return it }
-        val versions = VERSION_TABLE
-        _cachedVersions = versions
-        return versions
     }
     
     
@@ -161,7 +136,8 @@ object BlenderVersions {
      * @return list of known Blender/Python compatibility rows.
      */
     fun getVersionTable(): List<BlenderVersion> {
-        return getVersionTableSafe()
+        val application = ApplicationManager.getApplication() ?: return FALLBACK_VERSION_TABLE
+        return application.getService(BlenderVersionCache::class.java)?.getVersionTable() ?: FALLBACK_VERSION_TABLE
     }
     
     /** Public alias for [getVersionTable]. */
