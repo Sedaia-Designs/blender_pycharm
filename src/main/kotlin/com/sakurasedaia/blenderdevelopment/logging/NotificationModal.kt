@@ -6,6 +6,7 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
+import com.sakurasedaia.blenderdevelopment.util.currentProject
 
 /** Project service wrapper around IntelliJ notifications for plugin UI feedback. */
 @Service(Service.Level.PROJECT)
@@ -24,8 +25,7 @@ class NotificationModal(private val project: Project) {
          * @param project target project.
          * @return project-level [NotificationModal] service.
          */
-        fun getInstance(project: Project): NotificationModal = project.service()
-        
+        fun getInstance(project: Project = currentProject()): NotificationModal = project.service()
     }
 
     
@@ -86,5 +86,4 @@ class NotificationModal(private val project: Project) {
             .createNotification(title, content, type)
             .notify(project)
     }
-    
 }

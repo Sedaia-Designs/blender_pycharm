@@ -20,7 +20,6 @@ package com.sakurasedaia.blenderdevelopment.state
 import com.intellij.openapi.components.*
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.PathManager
-import com.intellij.openapi.project.ProjectManager
 import com.sakurasedaia.blenderdevelopment.lib.services.ScrapeBlenderVersionLists
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import kotlinx.coroutines.CancellationException
@@ -253,10 +252,7 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
 	}
 
 	private fun pluginLogger(): PluginLogger {
-		val projectManager = ProjectManager.getInstance()
-		val project = projectManager.openProjects.firstOrNull { it.isOpen && !it.isDisposed }
-			?: projectManager.defaultProject
-		return PluginLogger.getInstance(project)
+		return PluginLogger.getInstance()
 	}
 
 	@Synchronized

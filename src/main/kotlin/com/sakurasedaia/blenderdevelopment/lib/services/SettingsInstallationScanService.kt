@@ -4,12 +4,12 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.ProjectManager
 import com.sakurasedaia.blenderdevelopment.core.BlenderInstallationScanner
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
+import com.sakurasedaia.blenderdevelopment.util.currentProject
 
 
 /** Handles user-initiated Blender installation scanning from plugin settings. */
@@ -23,10 +23,8 @@ class SettingsInstallationScanService {
         projectOverride: Project? = null,
         onComplete: ((List<PluginConfig.BlendInstallInfo>) -> Unit)? = null,
     ) {
-        val projectManager = ProjectManager.getInstance()
         val project = projectOverride?.takeIf { !it.isDisposed }
-            ?: projectManager.openProjects.firstOrNull { it.isOpen && !it.isDisposed }
-            ?: projectManager.defaultProject
+            ?: currentProject()
         val logger = PluginLogger.Companion.getInstance(project)
         val notifications = NotificationModal.Companion.getInstance(project)
         val completionModalityState = ModalityState.defaultModalityState()

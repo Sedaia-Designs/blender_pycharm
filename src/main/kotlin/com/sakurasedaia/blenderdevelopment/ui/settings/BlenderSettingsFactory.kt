@@ -21,8 +21,6 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.options.SearchableConfigurable
-import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.ProjectManager
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersion
 import com.sakurasedaia.blenderdevelopment.lib.services.ScrapeBlenderVersionLists
 import com.sakurasedaia.blenderdevelopment.lib.services.SettingsInstallationScanService
@@ -75,9 +73,8 @@ class BlenderSettingsFactory : SearchableConfigurable, Configurable.NoScroll {
 
     private fun refreshVersions(onComplete: (Result<List<BlenderVersion>>) -> Unit) {
         val modalityState = ModalityState.current()
-        val project = notificationProject()
-        val logger = PluginLogger.getInstance(project)
-        val notifications = NotificationModal.getInstance(project)
+        val logger = PluginLogger.getInstance()
+        val notifications = NotificationModal.getInstance()
         ApplicationManager.getApplication().executeOnPooledThread {
             logger.log("Starting user-initiated Blender version refresh from settings.")
             val result = runCatching {
@@ -100,17 +97,10 @@ class BlenderSettingsFactory : SearchableConfigurable, Configurable.NoScroll {
     }
 
     private fun clearVersionCache() {
-        val project = notificationProject()
         BlenderVersionCache.getInstance().clear()
-        PluginLogger.getInstance(project).log("Cleared the online Blender version cache from settings.")
-        NotificationModal.getInstance(project).sendInfo(
+        PluginLogger.getInstance().log("Cleared the online Blender version cache from settings.")
+        NotificationModal.getInstance().sendInfo(
             MessageBundle.message("notification.settings.versions.cache.cleared"),
         )
-    }
-
-    private fun notificationProject(): Project {
-        val projectManager = ProjectManager.getInstance()
-        return projectManager.openProjects.firstOrNull { it.isOpen && !it.isDisposed }
-            ?: projectManager.defaultProject
     }
 }
