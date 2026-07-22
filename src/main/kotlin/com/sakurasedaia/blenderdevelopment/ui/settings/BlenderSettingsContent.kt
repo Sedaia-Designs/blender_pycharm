@@ -17,22 +17,42 @@
 
 package com.sakurasedaia.blenderdevelopment.ui.settings
 
+import com.intellij.ide.BrowserUtil
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.ui.TextBrowseFolderListener
+import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.components.JBCheckBox
+import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.columns
 import com.intellij.ui.dsl.builder.panel
+import com.intellij.util.ui.ColumnInfo
+import com.intellij.util.ui.ListTableModel
+import com.intellij.ui.table.JBTable
+import com.sakurasedaia.blenderdevelopment.lib.BlenderVersion
+import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
+import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.ui.components.EnvironmentVariablesTable
-import com.sakurasedaia.blenderdevelopment.state.PluginConfig
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import javax.swing.JComponent
+import javax.swing.JButton
+import javax.swing.ListSelectionModel
+
+internal data class BlenderVersionSettingsRow(
+    val version: BlenderVersion,
+    val pythonVersion: String,
+    val installStatus: String,
+)
 
 /** Settings panel content for global Blender plugin configuration. */
 internal class BlenderSettingsContent(
-    private val onScanInstallations: () -> Unit,
+    private val onScanInstallations: ((List<PluginConfig.BlendInstallInfo>) -> Unit) -> Unit,
+    private val onRefreshVersions: ((Result<List<BlenderVersion>>) -> Unit) -> Unit,
 ) {
     private data class SettingBinding(
       val getFromConfig: (PluginConfig) -> String,
@@ -47,9 +67,38 @@ internal class BlenderSettingsContent(
     private lateinit var downloadPath: TextFieldWithBrowseButton
     private lateinit var clearDownloadAfterInstall: JBCheckBox
     private lateinit var minimumBlenderVersion: JBTextField
+    private val versionTableModel = ListTableModel<BlenderVersionSettingsRow>(
+        object : ColumnInfo<BlenderVersionSettingsRow, String>(MessageBundle.message("ui.settings.group.versions.column.version")) {
+            override fun valueOf(item: BlenderVersionSettingsRow): String = item.version.blVersion
+        },
+        object : ColumnInfo<BlenderVersionSettingsRow, String>(MessageBundle.message("ui.settings.group.versions.column.python")) {
+            override fun valueOf(item: BlenderVersionSettingsRow): String = item.pythonVersion
+        },
+        object : ColumnInfo<BlenderVersionSettingsRow, String>(MessageBundle.message("ui.settings.group.versions.column.status")) {
+            override fun valueOf(item: BlenderVersionSettingsRow): String = item.installStatus
+        },
+    )
+    private val versionTable = JBTable(versionTableModel).apply {
+        setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
+        emptyText.text = MessageBundle.message("ui.settings.group.versions.empty")
+        setShowGrid(false)
+        tableHeader.reorderingAllowed = false
+    }
+    private val lastRefreshedLabel = JBLabel()
+    private val downloadVersionButton = JButton(MessageBundle.message("ui.settings.group.versions.download.button")).apply {
+        isEnabled = false
+        addActionListener {
+            selectedVersion()?.getDownloadURL()?.takeIf(String::isNotBlank)?.let(BrowserUtil::browse)
+        }
+    }
     private val globalEnvironmentVariablesTable = EnvironmentVariablesTable()
-    
-    
+
+    init {
+        versionTable.selectionModel.addListSelectionListener {
+            downloadVersionButton.isEnabled = selectedVersion()?.getDownloadURL()?.isNotBlank() == true
+        }
+    }
+
     private val root = panel {
         group(MessageBundle.message("ui.settings.group.filepaths.title")) {
             row {
@@ -108,7 +157,7 @@ internal class BlenderSettingsContent(
             }
             row {
                 button(MessageBundle.message("ui.settings.group.discovery.scan.button")) {
-                    onScanInstallations()
+                    onScanInstallations(::refreshVersionRows)
                 }
             }.comment(MessageBundle.message("ui.settings.group.discovery.scan.comment"))
         }
@@ -119,6 +168,26 @@ internal class BlenderSettingsContent(
                     .resizableColumn()
                 contextHelp(MessageBundle.message("ui.settings.group.environment.variables.comment"))
             }.resizableRow()
+        }
+        group(MessageBundle.message("ui.settings.group.versions.title")) {
+            row {
+                cell(ScrollPaneFactory.createScrollPane(versionTable, true))
+                    .align(AlignX.FILL)
+                    .resizableColumn()
+            }.resizableRow()
+            row {
+                cell(lastRefreshedLabel)
+            }.comment(MessageBundle.message("ui.settings.group.versions.management.comment"))
+            row {
+                button(MessageBundle.message("ui.settings.group.versions.refresh.button")) {
+                    lastRefreshedLabel.text = MessageBundle.message("ui.settings.group.versions.refreshing")
+                    onRefreshVersions(::onVersionsRefreshed)
+                }
+                button(MessageBundle.message("ui.settings.group.versions.scan.button")) {
+                    onScanInstallations(::refreshVersionRows)
+                }
+                cell(downloadVersionButton)
+            }
         }
     }
 
@@ -154,6 +223,8 @@ internal class BlenderSettingsContent(
         clearDownloadAfterInstall.isSelected = config.getClearDownloadsAfterInstall()
         minimumBlenderVersion.text = config.getMinimumBlenderVersion()
         globalEnvironmentVariablesTable.setVariables(config.getGlobalEnvironmentVariables())
+        refreshVersionRows(config.getDetectedBlenderInstalls())
+        updateLastRefreshed(config.getBlenderUpdateCheck().lastCheckedEpochMillis)
     }
 
     internal fun isModified(config: PluginConfig): Boolean =
@@ -173,5 +244,62 @@ internal class BlenderSettingsContent(
         config.setClearDownloadsAfterInstall(clearDownloadAfterInstall.isSelected)
         config.setMinimumBlenderVersion(minimumBlenderVersion.text)
         config.setGlobalEnvironmentVariables(globalEnvironmentVariablesTable.getVariables())
+    }
+
+    private fun onVersionsRefreshed(result: Result<List<BlenderVersion>>) {
+        result.onSuccess { versions ->
+            refreshVersionRows(PluginConfig.getInstance().getDetectedBlenderInstalls(), versions)
+            updateLastRefreshed(PluginConfig.getInstance().getBlenderUpdateCheck().lastCheckedEpochMillis)
+        }.onFailure {
+            lastRefreshedLabel.text = MessageBundle.message("ui.settings.group.versions.refresh.failed")
+        }
+    }
+
+    private fun refreshVersionRows(
+        installs: List<PluginConfig.BlendInstallInfo>,
+        versions: List<BlenderVersion> = BlenderVersions.LIST,
+    ) {
+        versionTableModel.items = buildVersionSettingsRows(versions, installs)
+        if (versionTableModel.rowCount > 0 && versionTable.selectedRow < 0) {
+            versionTable.setRowSelectionInterval(0, 0)
+        }
+    }
+
+    private fun updateLastRefreshed(epochMillis: Long) {
+        lastRefreshedLabel.text = if (epochMillis <= 0) {
+            MessageBundle.message("ui.settings.group.versions.last-refreshed.never")
+        } else {
+            MessageBundle.message(
+                "ui.settings.group.versions.last-refreshed.value",
+                LAST_REFRESHED_FORMATTER.format(Instant.ofEpochMilli(epochMillis)),
+            )
+        }
+    }
+
+    private fun selectedVersion(): BlenderVersion? {
+        val selectedRow = versionTable.selectedRow
+        return if (selectedRow < 0) null else versionTableModel.getItem(selectedRow).version
+    }
+
+    companion object {
+        private val LAST_REFRESHED_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+            .withZone(ZoneId.systemDefault())
+
+        internal fun buildVersionSettingsRows(
+            versions: List<BlenderVersion>,
+            installs: List<PluginConfig.BlendInstallInfo>,
+        ): List<BlenderVersionSettingsRow> {
+            val installsByMinor = installs.associateBy { BlenderVersions.normalizeVersion(it.version) }
+            return versions.map { version ->
+                val installed = installsByMinor[version.blMajorMinor]
+                BlenderVersionSettingsRow(
+                    version = version,
+                    pythonVersion = installed?.let { version.pyVersion } ?: "—",
+                    installStatus = installed?.let {
+                        MessageBundle.message("ui.settings.group.versions.status.installed", it.version)
+                    } ?: MessageBundle.message("ui.settings.group.versions.status.not-detected"),
+                )
+            }
+        }
     }
 }

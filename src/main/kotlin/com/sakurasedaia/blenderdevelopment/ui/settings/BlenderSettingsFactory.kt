@@ -17,15 +17,21 @@
 
 package com.sakurasedaia.blenderdevelopment.ui.settings
 
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.options.SearchableConfigurable
-import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
-import com.sakurasedaia.blenderdevelopment.state.PluginConfig
+import com.sakurasedaia.blenderdevelopment.lib.BlenderVersion
+import com.sakurasedaia.blenderdevelopment.lib.services.ScrapeBlenderVersionLists
 import com.sakurasedaia.blenderdevelopment.lib.services.SettingsInstallationScanService
+import com.sakurasedaia.blenderdevelopment.state.PluginConfig
+import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
+import kotlinx.coroutines.runBlocking
 import javax.swing.JComponent
 
 /** Global plugin settings configurable for Blender plugin state. */
 class BlenderSettingsFactory : SearchableConfigurable, Configurable.NoScroll {
+    private val logger = Logger.getInstance(BlenderSettingsFactory::class.java)
     private var content: BlenderSettingsContent? = null
 
     override fun getId(): String = "com.sakurasedaia.blenderdevelopment.settings.plugin"
@@ -34,7 +40,10 @@ class BlenderSettingsFactory : SearchableConfigurable, Configurable.NoScroll {
 
     override fun createComponent(): JComponent {
         val ui = content ?: BlenderSettingsContent(
-            onScanInstallations = { SettingsInstallationScanService.getInstance().scanInstallations() },
+            onScanInstallations = { onComplete ->
+                SettingsInstallationScanService.getInstance().scanInstallations(onComplete = onComplete)
+            },
+            onRefreshVersions = ::refreshVersions,
         ).also { content = it }
         ui.reset(PluginConfig.getInstance())
         return ui.component()
@@ -57,5 +66,16 @@ class BlenderSettingsFactory : SearchableConfigurable, Configurable.NoScroll {
 
     override fun disposeUIResources() {
         content = null
+    }
+
+    private fun refreshVersions(onComplete: (Result<List<BlenderVersion>>) -> Unit) {
+        ApplicationManager.getApplication().executeOnPooledThread {
+            val result = runCatching {
+                runBlocking { ScrapeBlenderVersionLists.getInstance().refreshVersionCache() }
+            }
+            result.onSuccess { PluginConfig.getInstance().markBlenderUpdateChecked() }
+                .onFailure { logger.warn("Failed to refresh Blender versions from settings.", it) }
+            ApplicationManager.getApplication().invokeLater { onComplete(result) }
+        }
     }
 }
