@@ -100,21 +100,22 @@ This document defines practical coding guidance for AI/code agents working in th
 
 ## Project Documentation (External / Non-Internal)
 
-- After code changes, update or add the associated documentation
-- Project-facing documentation should live under `docs/Wiki/project`.
-- Use `docs/Wiki/project/index.html` as the launch page for project documentation.
-- Keep project wiki styling centralized in `docs/Wiki/project/wiki.css`; avoid per-page duplicated style blocks unless there is a true page-specific need.
-- Use `docs/Wiki/project/wiki-page-template.html` as the baseline for new project documentation pages.
-- Every new project documentation page should:
-  - include `<link rel="stylesheet" href="./wiki.css" />` in `<head>`
-  - include a top navigation link back to `index.html`
-  - include a table of contents with anchored sections
-  - include a “Source References” section
-- Prefer concise, source-grounded technical writing and clearly separate facts, inferences, and plans.
-- Use repo-relative source pathing for references (same rule as internal docs).
-- Keep filenames kebab-case and descriptive.
-- When a page is added or renamed in `docs/Wiki/project`, update `docs/Wiki/project/index.html` so navigation remains complete.
-- Include code snippets for complex APIs, workflows, or integration points.
+- Public Blender Development documentation lives in the Sedaia Docs repository at
+  `/Users/Sakura/Documents/WebstormProjects/sakura-project-documentation`.
+- The canonical content directory is `src/content/docs/blender-development/` in that repository. Do not recreate
+  `docs/Wiki/project` in this repository.
+- After user-visible code changes, update the associated Sedaia Docs page in the same task when the documentation repository
+  is available and within the user's requested scope.
+- Before editing Sedaia Docs, read its root `AGENTS.md` and use this repository's `sedaia-docs-authoring` skill. Use
+  `sedaia-docs-validation` before handoff.
+- Treat this repository's current code, tests, README, changelog, and release metadata as the authoritative evidence for
+  behavior. Do not publish internal wiki content without explicit approval.
+- Keep public instructions task-focused. Exclude local-machine paths, private assets, credentials, security-sensitive
+  implementation details, and source-reference inventories.
+- Use the canonical public route `https://docs.sakura-sedaia.com/blender-development/` and absolute HTTPS links when crossing
+  between the documentation, portfolio, Codeberg, or GitLab origins.
+- Keep documentation-repository changes and this repository's code changes in separate commits. Do not commit, push, or
+  deploy either repository unless the user explicitly requests it.
 
 ## Planning
 

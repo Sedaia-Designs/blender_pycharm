@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sedaia Docs Authoring"
+  short_description: "Author Blender Development pages in Sedaia Docs"
+  default_prompt: "Use $sedaia-docs-authoring to update the public Blender Development documentation for this change."
