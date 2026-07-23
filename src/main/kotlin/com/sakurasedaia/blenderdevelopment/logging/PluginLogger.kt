@@ -169,7 +169,7 @@ class PluginLogger(private val project: Project) {
          * @param message log message text.
          * @return `Unit`.
          */
-        fun log(project: Project, message: String) = getInstance(project).log(message)
+        fun log(project: Project = currentProject(), message: String) = getInstance(project).log(message)
 
         
         /**
@@ -179,7 +179,7 @@ class PluginLogger(private val project: Project) {
          * @param message debug message text.
          * @return `Unit`.
          */
-        fun debug(project: Project, message: String) = getInstance(project).debug(message)
+        fun debug(project: Project = currentProject(), message: String) = getInstance(project).debug(message)
 
         
         /**
@@ -189,7 +189,7 @@ class PluginLogger(private val project: Project) {
          * @param message warning message text.
          * @return `Unit`.
          */
-        fun warn(project: Project, message: String) = getInstance(project).warn(message)
+        fun warn(project: Project = currentProject(), message: String) = getInstance(project).warn(message)
 
 
         /**
@@ -200,7 +200,7 @@ class PluginLogger(private val project: Project) {
          * @param throwable optional exception details.
          * @return `Unit`.
          */
-        fun error(project: Project, errorType: ErrorTypes, throwable: Throwable? = null) =
+        fun error(project: Project = currentProject(), errorType: ErrorTypes, throwable: Throwable? = null) =
             getInstance(project).error(errorType, throwable)
     }
 }
