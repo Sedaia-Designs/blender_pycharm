@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "com.sakurasedaia"
-version = "0.9.0-SNAPSHOT"
+version = "0.10.0-INDEV"
 
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html
 dependencies {
