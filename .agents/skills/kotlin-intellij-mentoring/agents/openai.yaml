@@ -1,0 +1,4 @@
+interface:
+  display_name: "Kotlin IntelliJ Mentoring"
+  short_description: "Teach Kotlin and IntelliJ SDK through real work"
+  default_prompt: "Use $kotlin-intellij-mentoring to guide me through this Kotlin or IntelliJ SDK task as a learner."
