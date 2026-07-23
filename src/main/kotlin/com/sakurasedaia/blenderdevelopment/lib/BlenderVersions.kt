@@ -20,18 +20,27 @@ package com.sakurasedaia.blenderdevelopment.lib
 import com.intellij.openapi.application.ApplicationManager
 import com.sakurasedaia.blenderdevelopment.state.BlenderVersionCache
 import com.sakurasedaia.blenderdevelopment.util.SystemInfo
+import java.nio.file.Path
+
+enum class InstallType {
+    USER, // Installs on the User's system
+    PYCHARM // Installs used by Pycharm
+}
 
 /**
  * Version mapping row between a Blender release and its bundled Python runtime.
  *
  * @property compatWithOs compatibility matrix keyed by OS name (`windows`, `macos`, `linux`)
  * with supported architecture values (for example, `x64`, `arm64`).
+ * @property installLocation A list of paths where Blender is installed for that specific version.
  */
 data class BlenderVersion(
-    private val blender: List<Int>,
-    private val python: List<Int> = emptyList(),
+    private val installName: String,
+    val blVersionList: List<Int>,
+    val pyVersionList: List<Int> = emptyList(),
     private val fakeBpy: String? = null,
-    val compatWithOs: Map<String, List<String>>
+    val compatWithOs: Map<String, List<String>>,
+    val installLocation: Map<InstallType, Path> = emptyMap()
 ) {
     /** Full Blender version in `major.minor.patch` format. */
     val blVersion: String get() = blender.joinToString(separator = ".")
@@ -48,28 +57,22 @@ data class BlenderVersion(
     /** Python patch component as a string. */
     val pyFallback: String get() = python.getOrNull(2)?.toString().orEmpty()
 
-    /** Blender version components as `[major, minor, patch]`. */
-    val blVersionList: List<Int> get() = blender
-    /** Python version components as `[major, minor, patch]`. */
-    val pyVersionList: List<Int> get() = python
-
     /** Fake-BPY package name, including any release-specific package suffix override. */
     val fakeBpyPackage = "fake-bpy-module-${fakeBpy ?: blMajorMinor}"
-
-    /**
-     * Builds the official Blender download URL for a supported platform artifact.
-     *
-     * @param platform target operating system name or alias.
-     * @param arch target CPU architecture name or alias.
-     * @param fileExtension requested distribution file suffix.
-     * @return artifact URL, or an empty string when the target combination is unsupported.
-     */
-
+    
     private val normalizedPlatform = SystemInfo.normalizeOSName
     private val normalizedArch = SystemInfo.normalizeOsArch
-
+    
+    /**
+     * Generates the name of the Blender Bunder artifact sans File Extension
+     */
     val artifactName: String = "blender-$blVersion-$normalizedPlatform-$normalizedArch"
-
+    
+    /**
+     * Adds the fileExtension to the artifact name, and catches if the code tries to get an incompatible version.
+     *
+     * @param fileExtension The file extension of the desired binary. Defaults to a predefined list.
+     */
     fun getArchiveName(
         fileExtension: String = SystemInfo.getSysInfo.bundleFileType
     ): String {
@@ -83,8 +86,11 @@ data class BlenderVersion(
 
         return "$artifactName.$fileExtension"
     }
-    fun getDownloadURL(
-    ): String {
+    
+    /**
+     * Returns the download URL of the desired Blender Artifact/
+     */
+    fun getDownloadURL(): String {
         return "${DOWNLOAD_BASE_URL}Blender$blMajorMinor/${getArchiveName()}"
     }
 
@@ -124,6 +130,7 @@ object BlenderVersions {
             ))
     )
 
+    @Deprecated("This method is considered deprecated, as a newer UI level function will be provided for the toolwindow, while the Settings pane uses a different method.")
     internal fun mergeDiscoveredVersions(discoveredVersions: List<List<Int>>): List<BlenderVersion> {
         val latestPatchByMinor = discoveredVersions
             .filter { it.size == 3 }

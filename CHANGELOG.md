@@ -8,11 +8,17 @@ These are changes made to the project prior to the next release.
 
 ### Added
 
-- None.
+- New `installLocation` Map parameter to BlenderVersions.kt
+- New `InstallType` data class feeds into the `installLocation` map.
 
 ### Changed
 
-- None.
+- Deprecated the `mergeDiscoveredVersions` function, until the Toolwindow and Settings pane are updated.
+- Renamed the `blender` and `python` parameters in BlenderVersions.kt to `blVersionList` and `pyVersionList`, removed dedicated methods and made parameters public.
+
+### Removed
+
+- Removed the redundant Target Blender Version selector, API stub update action, and persisted target version from Project Blender Manager.
 
 ## [0.9.0-Snapshot] - 2026-07-22
 
@@ -30,7 +36,7 @@ versions to be refreshed, installed, and removed directly from the plugin settin
 ### Changed
 
 - Updated Blender version management to retain the newest discovered patch per minor release, fall back to the built-in
-  compatibility table while offline, and update installation status without reopening Settings.
+  compatibility table while offline, and update the installation status without reopening Settings.
 - Updated the plugin description to reflect the current PyCharm project, run, debug, and Blender integration workflows.
 
 ### Fixed
