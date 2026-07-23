@@ -20,9 +20,11 @@ package com.sakurasedaia.blenderdevelopment.state
 import com.intellij.openapi.components.*
 import com.intellij.openapi.project.Project
 import com.sakurasedaia.blenderdevelopment.util.PythonModuleNameValidator
+import com.sakurasedaia.blenderdevelopment.util.SystemInfo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.nio.file.Path
 
 /** Project-level persisted configuration for Blender project settings. */
 @Service(Service.Level.PROJECT)
@@ -76,6 +78,26 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
   private var state: ProjectState = ProjectState()
   private val mutableStateFlow = MutableStateFlow(state.toSnapshot())
 
+  private fun toAbsoluteProjectPath(value: String): String {
+    val trimmed = value.trim()
+    if (trimmed.isEmpty()) return ""
+    
+    if (trimmed.startsWith("~/") || trimmed == "~") {
+      return SystemInfo()
+        .userHomeDir
+        .resolve(
+          trimmed.removePrefix("~/")
+        ).normalize()
+        .toString()
+    }
+    
+    val path = Path.of(trimmed)
+    if (path.isAbsolute) return path.normalize().toString()
+    
+    val projectPath = project.basePath ?: return path.normalize().toString()
+    return Path.of(projectPath).resolve(path).normalize().toString()
+  }
+  
   /** Read-only stream of current project configuration snapshots. */
   val stateFlow: StateFlow<ProjectSnapshot> = mutableStateFlow.asStateFlow()
   
@@ -219,7 +241,11 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
    * @param directories optional list of script directory paths.
    */
   fun setScriptDirectories(directories: List<String>?) {
-    updateState { scriptDirectories = directories?.toList() }
+    updateState {
+      scriptDirectories = directories
+        ?.map(::toAbsoluteProjectPath)
+        ?.filter(String::isNotBlank)
+    }
   }
   /** Returns optional script directories used by runtime workflows. */
   fun getScriptDirectories(): List<String>? = state.scriptDirectories

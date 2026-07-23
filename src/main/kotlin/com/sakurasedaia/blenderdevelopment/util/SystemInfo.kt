@@ -42,7 +42,8 @@ object SystemInfo {
         val osArch: String,
         val isWSL: Boolean? = null,
         val bundleFileType: String,
-        val tempDir: Path
+        val tempDir: Path,
+        val userHomeDir: Path
     )
 
     /** Returns the cached snapshot of normalized host system information. */
@@ -114,6 +115,7 @@ object SystemInfo {
         osArch = normalizeOsArch,
         isWSL = System.getenv("WSL_DISTRO_NAME") != null,
         bundleFileType = normalizeBundleFileType(normalizeOSName),
-        tempDir = PathManager.getTempDir().resolve("blender-development")
+        tempDir = PathManager.getTempDir().resolve("blender-development"),
+        userHomeDir = Path.of(System.getProperty("user.home"))
     )
 }
