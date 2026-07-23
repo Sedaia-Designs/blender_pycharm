@@ -25,7 +25,6 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.jetbrains.python.errorProcessing.PyResult
 import com.jetbrains.python.newProjectWizard.PyV3ProjectTypeSpecificSettings
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
-import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
 import com.sakurasedaia.blenderdevelopment.stubs.BlenderStubInstallationService
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 
@@ -175,7 +174,6 @@ class BlenderProjectSettings(
             BlenderProjectGenerator(toManifest(baseDir.path, isGitInitialized)).generateNewProject(module, baseDir, sdk)
         if (generationResult is com.jetbrains.python.Result.Failure) return generationResult
 
-        ProjectConfig.getInstance(module.project).setBlenderVersion(blenderVersion)
         if (installBlenderApiStubs) {
             BlenderStubInstallationService.getInstance(module.project)
                 .installForGeneratedProject(module, sdk, blenderVersion)

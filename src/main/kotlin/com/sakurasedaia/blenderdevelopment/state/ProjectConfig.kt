@@ -44,8 +44,6 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
   /** Persisted project-scoped settings stored in project-level configuration. */
   data class ProjectState(
     var blenderPath: String = "",
-    
-    var blenderVersion: List<Int> = listOf(4, 2),
 
     var installedStubRequirement: String = "",
     
@@ -83,18 +81,6 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
   fun getBlenderPath(): String = state.blenderPath
   
   
-  /**
-   * Stores the Blender Version desired
-   *
-   * @param majorMinor Blender Major Minor version desired.
-   */
-  fun setBlenderVersion(majorMinor: String) {
-    val input = majorMinor.split(".")
-    state.blenderVersion = listOf(input[0].toInt(), input[1].toInt())
-  }
-  
-  fun getBlenderVersion(): List<Int> = state.blenderVersion
-
   /**
    * Stores the exact linting-stub requirement installed for this project.
    *

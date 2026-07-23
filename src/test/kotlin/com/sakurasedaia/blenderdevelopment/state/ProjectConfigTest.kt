@@ -33,7 +33,6 @@ class ProjectConfigTest : BasePlatformTestCase() {
 
   fun testDefaultStateValuesAreLoaded() {
     assertEquals("", config.getBlenderPath())
-    assertEquals(listOf(4, 2), config.getBlenderVersion())
     assertEquals("", config.getInstalledStubRequirement())
     assertEquals("src/", config.getSourceFolder())
     assertEquals("", config.getRunArguments())
@@ -49,7 +48,6 @@ class ProjectConfigTest : BasePlatformTestCase() {
     val scriptDirectories = listOf("scripts/core", "scripts/extra")
 
     config.setBlenderPath("/Applications/Blender.app")
-    config.setBlenderVersion("4.5")
     config.setInstalledStubRequirement("fake-bpy-module-4.5")
     config.setAddonSymlinkName("dev_addon")
     config.setSourceFolder("addon/")
@@ -62,7 +60,6 @@ class ProjectConfigTest : BasePlatformTestCase() {
     config.setScriptDirectories(scriptDirectories)
 
     assertEquals("/Applications/Blender.app", config.getBlenderPath())
-    assertEquals(listOf(4, 5), config.getBlenderVersion())
     assertEquals("fake-bpy-module-4.5", config.getInstalledStubRequirement())
     assertEquals("dev_addon", config.getAddonSymlinkName())
     assertEquals("addon/", config.getSourceFolder())
@@ -78,15 +75,6 @@ class ProjectConfigTest : BasePlatformTestCase() {
   fun testLoadStateFallsBackToInfoForUnknownLogLevel() {
     config.loadState(ProjectConfig.ProjectState(blenderLogLevel = "NOT_A_LEVEL"))
     assertEquals(BlenderLogLevel.INFO, config.getBlenderLogLevel())
-  }
-
-  fun testSetBlenderVersionRejectsMalformedInput() {
-    assertThrows(NumberFormatException::class.java) {
-      config.setBlenderVersion("abc.1")
-    }
-    assertThrows(IndexOutOfBoundsException::class.java) {
-      config.setBlenderVersion("5")
-    }
   }
 
   fun testAddonSymlinkNameNormalizesSpacesAndHyphensToUnderscoresOnSave() {

@@ -12,7 +12,6 @@ The project uses the Python environment selected during creation in PyCharm's Ne
 
 2.  **Verify Version-Matched Linting Stubs**:
     - When enabled in the New Project wizard, the plugin installs the verified version-specific `fake-bpy-module` package into the selected interpreter and records it in the `pyproject.toml` `dev` dependency group.
-    - If you change **Target Blender Version** in the Blender tool window, use **Update Blender API Stubs** to remove the previous package and install the matching replacement.
     - A release can explicitly select a package suffix in the plugin's Blender version registry; Blender 5.2 currently selects `fake-bpy-module-latest` this way.
     - Unknown releases do not infer the rolling `fake-bpy-module` package and do not remove working stubs.
     - If installation fails, install the exact package named by the IDE notification in the project interpreter. Validated unpacked stubs can also be attached as a Sources Root.
