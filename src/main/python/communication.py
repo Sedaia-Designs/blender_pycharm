@@ -153,7 +153,7 @@ def register_post_action(type: str, handler: Callable):
     register_post_handler(type, request_handler_wrapper)
 
 
-# Sending Data
+# Sending Format
 ###############################
 
 
