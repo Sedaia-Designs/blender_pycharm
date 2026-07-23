@@ -8,15 +8,45 @@ These are changes made to the project prior to the next release.
 
 ### Added
 
-- Added online Blender release discovery with a persistent application-level cache and configurable minimum release.
-- Added scheduled background refreshes, including an immediate refresh when no valid cache exists at startup.
-- Added Settings controls to refresh and clear the version cache, with notification feedback and plugin logging.
-- Added compatibility-table rows for every discovered minor release while preserving declared Python metadata for built-in rows.
+- None.
 
 ### Changed
 
-- Updated the project's `plugin.xml` to better reflect the current project state.
-- Updated Blender version management to fall back to the built-in compatibility table while offline and retain the newest discovered patch per minor release.
+- None.
+
+## [0.9.0-Snapshot] - 2026-07-22
+
+This pre-release adds online Blender release discovery and managed Blender installations, allowing compatible Blender
+versions to be refreshed, installed, and removed directly from the plugin settings.
+
+### Added
+
+- Added online Blender release discovery with a persistent application-level cache and configurable minimum release.
+- Added scheduled background refreshes, including an immediate refresh when no valid cache exists at startup.
+- Added Settings controls to refresh and clear the version cache, with notification feedback and plugin logging.
+- Added managed download, extraction, installation, and removal for host-compatible Blender distributions.
+- Added compatibility-table rows for discovered minor releases while preserving declared Python metadata for built-in rows.
+
+### Changed
+
+- Updated Blender version management to retain the newest discovered patch per minor release, fall back to the built-in
+  compatibility table while offline, and update installation status without reopening Settings.
+- Updated the plugin description to reflect the current PyCharm project, run, debug, and Blender integration workflows.
+
+### Fixed
+
+- Fixed Blender download URL generation and validation for the current host operating system and architecture.
+- Fixed the plugin settings page so its content scrolls vertically when the available height is limited.
+
+### Removed
+
+- None.
+
+### Known Issues
+
+- This remains a pre-release and is not production-hardened.
+- Managed Blender installations do not yet support in-place version updates.
+- Live Blender integration and platform-specific archive extraction are not covered by the automated JVM and Python test suites.
 
 ## [0.8.1-Snapshot] - 2026-07-22
 

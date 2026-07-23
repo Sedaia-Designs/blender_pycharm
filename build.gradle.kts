@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "com.sakurasedaia"
-version = "0.8.2-UNRELEASED"
+version = "0.9.0-SNAPSHOT"
 
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html
 dependencies {
@@ -46,10 +46,12 @@ intellijPlatform {
         }
         
         changeNotes = """
-            <h3>0.8.1-Snapshot</h3>
+            <h3>0.9.0-Snapshot</h3>
             <ul>
-              <li>Fixes repository-sync launches by disabling stale extension module names before enabling the manifest ID.</li>
-              <li>Adds regression coverage for persisted extension module names.</li>
+              <li>Adds online Blender release discovery with persistent caching and scheduled refreshes.</li>
+              <li>Adds managed Blender installation and removal from the plugin settings.</li>
+              <li>Improves host artifact validation and live Blender version status updates.</li>
+              <li>Fixes vertical scrolling in the plugin settings.</li>
             </ul>
             <p>This is a pre-release snapshot and is not production-hardened.</p>
         """.trimIndent()
