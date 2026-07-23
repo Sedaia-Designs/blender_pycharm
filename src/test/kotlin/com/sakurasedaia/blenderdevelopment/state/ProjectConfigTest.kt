@@ -92,4 +92,29 @@ class ProjectConfigTest : BasePlatformTestCase() {
     assertEquals(initialSymlink, config.getAddonSymlinkName())
     assertEquals(initialRepository, config.getExtensionsRepository())
   }
+
+  fun testStateFlowPublishesIsolatedSnapshotsAfterUpdates() {
+    val initialSnapshot = config.stateFlow.value
+    val variables = mutableMapOf("MODE" to "development")
+
+    config.setBlenderPath("/Applications/Blender.app")
+    config.setEnvironmentVariables(variables)
+    variables["MODE"] = "production"
+
+    assertEquals("", initialSnapshot.blenderPath)
+    assertEquals("/Applications/Blender.app", config.stateFlow.value.blenderPath)
+    assertEquals(mapOf("MODE" to "development"), config.stateFlow.value.environmentVariables)
+  }
+
+  fun testLoadStatePublishesPersistedSnapshot() {
+    config.loadState(
+      ProjectConfig.ProjectState(
+        blenderPath = "/Applications/Blender 4.5.app",
+        addonSymlinkName = "loaded_addon",
+      ),
+    )
+
+    assertEquals("/Applications/Blender 4.5.app", config.stateFlow.value.blenderPath)
+    assertEquals("loaded_addon", config.stateFlow.value.addonSymlinkName)
+  }
 }

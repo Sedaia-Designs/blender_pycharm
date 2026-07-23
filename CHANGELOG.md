@@ -1,6 +1,6 @@
 <!-- Keep a Changelog guide -> https://keepachangelog.com -->
 
-# BlenderPythonDevelopment Changelog
+# Blender Development for PyCharm Changelog
 
 ## [Unreleased] - Unreleased
 
@@ -13,8 +13,16 @@ These are changes made to the project prior to the next release.
 
 ### Changed
 
+- Made project configuration observable through immutable snapshots and reorganized Project Blender Manager around a
+  lifecycle-bound state controller.
 - Deprecated the `mergeDiscoveredVersions` function, until the Toolwindow and Settings pane are updated.
 - Renamed the `blender` and `python` parameters in BlenderVersions.kt to `blVersionList` and `pyVersionList`, removed dedicated methods and made parameters public.
+- Added immutable `ProjectConfig.ProjectSnapshot` values and a read-only `StateFlow` so project configuration changes and
+  persisted-state loading are observable without exposing the mutable persistence object.
+- Reorganized Project Blender Manager into separate View, controller, and immutable UI-state components while preserving
+  autosave, validation, installation scanning, custom executable selection, and runtime reload behavior.
+- Bound Project Blender Manager state collection to the tool-window content lifecycle and rendered observable state on the
+  Swing event dispatch thread.
 
 ### Removed
 

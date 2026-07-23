@@ -25,26 +25,29 @@ import com.sakurasedaia.blenderdevelopment.lib.services.SettingsInstallationScan
 
 /** Registers and populates the Blender tool window content. */
 class BlenderToolWindowFactory : ToolWindowFactory {
-    /**
-     * Creates the tool window tab content for a project.
-     *
-     * @param project current project instance.
-     * @param toolWindow target tool window container.
-     * @return `Unit`.
-     */
-    override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        val content = ContentFactory.getInstance().createContent(
-            BlenderToolWindowContent(
-                project = project,
-                onScanInstallations = { onCompleted ->
-                    SettingsInstallationScanService.getInstance().scanInstallations(projectOverride = project) {
-                        onCompleted()
-                    }
-                },
-            ).getContent(),
-            "",
-            false
-        )
-        toolWindow.contentManager.addContent(content)
+  /**
+   * Creates the tool window tab content for a project.
+   *
+   * @param project current project instance.
+   * @param toolWindow target tool window container.
+   * @return `Unit`.
+   */
+  override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
+    val toolWindowContent = BlenderToolWindowContent(
+      project = project,
+      onScanInstallations = { onCompleted ->
+        SettingsInstallationScanService.getInstance().scanInstallations(projectOverride = project) {
+          onCompleted()
+        }
+      },
+    )
+    val content = ContentFactory.getInstance().createContent(
+      toolWindowContent.getContent(),
+      "",
+      false,
+    ).apply {
+      setDisposer(toolWindowContent)
     }
+    toolWindow.contentManager.addContent(content)
+  }
 }

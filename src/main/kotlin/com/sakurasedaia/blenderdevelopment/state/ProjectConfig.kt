@@ -20,6 +20,9 @@ package com.sakurasedaia.blenderdevelopment.state
 import com.intellij.openapi.components.*
 import com.intellij.openapi.project.Project
 import com.sakurasedaia.blenderdevelopment.util.PythonModuleNameValidator
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /** Project-level persisted configuration for Blender project settings. */
 @Service(Service.Level.PROJECT)
@@ -65,8 +68,27 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
     
     var scriptDirectories: List<String>? = null
   )
+
+  /** Immutable observable snapshot of project-scoped Blender configuration. */
+  data class ProjectSnapshot(
+    val blenderPath: String,
+    val installedStubRequirement: String,
+    val addonSymlinkName: String,
+    val sourceFolder: String,
+    val runArguments: String,
+    val blenderLogLevel: BlenderLogLevel,
+    val reloadOnSave: Boolean,
+    val justMyCode: Boolean,
+    val extensionsRepository: String,
+    val environmentVariables: Map<String, String>,
+    val scriptDirectories: List<String>?,
+  )
   
   private var state: ProjectState = ProjectState()
+  private val mutableStateFlow = MutableStateFlow(state.toSnapshot())
+
+  /** Read-only stream of current project configuration snapshots. */
+  val stateFlow: StateFlow<ProjectSnapshot> = mutableStateFlow.asStateFlow()
   
   /**
    * Stores the Blender executable path.
@@ -75,7 +97,7 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
    * @return `Unit`.
    */
   fun setBlenderPath(path: String) {
-    state.blenderPath = path
+    updateState { blenderPath = path }
   }
   /** Returns the configured Blender executable path for this project. */
   fun getBlenderPath(): String = state.blenderPath
@@ -87,7 +109,7 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
    * @param requirement installed version-specific package requirement, or an empty value.
    */
   fun setInstalledStubRequirement(requirement: String) {
-    state.installedStubRequirement = requirement
+    updateState { installedStubRequirement = requirement }
   }
 
   /** Returns the exact linting-stub requirement last installed by the plugin. */
@@ -102,7 +124,7 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
     if (!PythonModuleNameValidator.isValid(normalized)) {
       return
     }
-    state.addonSymlinkName = normalized
+    updateState { addonSymlinkName = normalized }
   }
   /** Returns the configured add-on symlink name. */
   fun getAddonSymlinkName(): String = state.addonSymlinkName
@@ -117,7 +139,7 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
    * @param path source folder path.
    */
   fun setSourceFolder(path: String) {
-    state.sourceFolder = path
+    updateState { sourceFolder = path }
   }
   /** Returns the configured source folder path used by project workflows. */
   fun getSourceFolder(): String = state.sourceFolder
@@ -128,7 +150,7 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
    * @param arguments run arguments string.
    */
   fun setRunArguments(arguments: String) {
-    state.runArguments = arguments
+    updateState { runArguments = arguments }
   }
   /** Returns the stored Blender run arguments string. */
   fun getRunArguments(): String = state.runArguments
@@ -139,7 +161,7 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
    * @param logLevel selected log level.
    */
   fun setBlenderLogLevel(logLevel: BlenderLogLevel) {
-    state.blenderLogLevel = logLevel.name
+    updateState { blenderLogLevel = logLevel.name }
   }
   /** Returns the configured Blender log level. */
   fun getBlenderLogLevel(): BlenderLogLevel {
@@ -152,7 +174,7 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
    * @param reload true to reload on save, false otherwise.
    */
   fun setReloadOnSave(reload: Boolean) {
-    state.reloadOnSave = reload
+    updateState { reloadOnSave = reload }
   }
   /** Returns whether add-ons should reload automatically on save. */
   fun getReloadOnSave(): Boolean = state.reloadOnSave
@@ -163,7 +185,7 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
    * @param justMyCode true to focus on project code, false otherwise.
    */
   fun setJustMyCode(justMyCode: Boolean) {
-    state.justMyCode = justMyCode
+    updateState { this.justMyCode = justMyCode }
   }
   /** Returns whether debugger behavior is configured as just-my-code. */
   fun getJustMyCode(): Boolean = state.justMyCode
@@ -178,7 +200,7 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
     if (!PythonModuleNameValidator.isValid(normalizedRepository)) {
       return
     }
-    state.extensionsRepository = normalizedRepository
+    updateState { extensionsRepository = normalizedRepository }
   }
   /** Returns the configured Blender extensions repository path or URL. */
   fun getExtensionsRepository(): String = state.extensionsRepository
@@ -189,7 +211,7 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
    * @param variables environment variables map.
    */
   fun setEnvironmentVariables(variables: Map<String, String>) {
-    state.environmentVariables = variables
+    updateState { environmentVariables = variables.toMap() }
   }
   /** Returns project-scoped environment variables for Blender runtime workflows. */
   fun getEnvironmentVariables(): Map<String, String> = state.environmentVariables
@@ -200,7 +222,7 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
    * @param directories optional list of script directory paths.
    */
   fun setScriptDirectories(directories: List<String>?) {
-    state.scriptDirectories = directories
+    updateState { scriptDirectories = directories?.toList() }
   }
   /** Returns optional script directories used by runtime workflows. */
   fun getScriptDirectories(): List<String>? = state.scriptDirectories
@@ -222,10 +244,39 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
    * @param p0 deserialized state payload.
    */
   override fun loadState(p0: ProjectState) {
-    state = p0
+    state = p0.copy(
+      environmentVariables = p0.environmentVariables.toMap(),
+      scriptDirectories = p0.scriptDirectories?.toList(),
+    )
+    publishState()
   }
   /** Returns the current persisted workspace state payload. */
   override fun getState(): ProjectState = state
+
+  private inline fun updateState(update: ProjectState.() -> Unit) {
+    state.update()
+    publishState()
+  }
+
+  private fun publishState() {
+    mutableStateFlow.value = state.toSnapshot()
+  }
+
+  private fun ProjectState.toSnapshot(): ProjectSnapshot {
+    return ProjectSnapshot(
+      blenderPath = blenderPath,
+      installedStubRequirement = installedStubRequirement,
+      addonSymlinkName = addonSymlinkName,
+      sourceFolder = sourceFolder,
+      runArguments = runArguments,
+      blenderLogLevel = BlenderLogLevel.entries.firstOrNull { it.name == blenderLogLevel } ?: BlenderLogLevel.INFO,
+      reloadOnSave = reloadOnSave,
+      justMyCode = justMyCode,
+      extensionsRepository = extensionsRepository,
+      environmentVariables = environmentVariables.toMap(),
+      scriptDirectories = scriptDirectories?.toList(),
+    )
+  }
   
   
   companion object {
