@@ -21,6 +21,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.options.SearchableConfigurable
+import com.sakurasedaia.blenderdevelopment.core.InstallBlender
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersion
 import com.sakurasedaia.blenderdevelopment.lib.services.ScrapeBlenderVersionLists
 import com.sakurasedaia.blenderdevelopment.lib.services.SettingsInstallationScanService
@@ -30,6 +31,9 @@ import com.sakurasedaia.blenderdevelopment.state.BlenderVersionCache
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import kotlinx.coroutines.runBlocking
+import java.nio.file.Path
+import java.util.concurrent.CancellationException
+import java.util.concurrent.CompletionException
 import javax.swing.JComponent
 
 /** Global plugin settings configurable for Blender plugin state. */
@@ -47,6 +51,8 @@ class BlenderSettingsFactory : SearchableConfigurable, Configurable.NoScroll {
             },
             onRefreshVersions = ::refreshVersions,
             onClearVersionCache = ::clearVersionCache,
+            onInstallVersion = ::installVersion,
+            onDeleteVersion = ::deleteVersion,
         ).also { content = it }
         ui.reset(PluginConfig.getInstance())
         return ui.component()
@@ -102,5 +108,54 @@ class BlenderSettingsFactory : SearchableConfigurable, Configurable.NoScroll {
         NotificationModal.getInstance().sendInfo(
             MessageBundle.message("notification.settings.versions.cache.cleared"),
         )
+    }
+
+    private fun installVersion(version: BlenderVersion, onComplete: (Result<Path>) -> Unit) {
+        val modalityState = ModalityState.current()
+        InstallBlender.getInstance().extractBlender(version.blMajorMinor).whenComplete { installedPath, error ->
+            ApplicationManager.getApplication().invokeLater({
+                val result = error?.let { Result.failure(unwrapCompletionError(it)) }
+                    ?: Result.success(installedPath)
+                result.onSuccess {
+                    NotificationModal.getInstance().sendInfo(
+                        MessageBundle.message("notification.settings.versions.install.succeeded", version.blVersion),
+                    )
+                }.onFailure { failure ->
+                    if (failure !is CancellationException) {
+                        NotificationModal.getInstance().sendError(
+                            MessageBundle.message("notification.settings.versions.install.failed", version.blVersion),
+                            throwable = failure,
+                        )
+                    }
+                }
+                onComplete(result)
+            }, modalityState)
+        }
+    }
+
+    private fun unwrapCompletionError(error: Throwable): Throwable =
+        if (error is CompletionException && error.cause != null) error.cause!! else error
+
+    private fun deleteVersion(version: BlenderVersion, onComplete: (Result<Boolean>) -> Unit) {
+        val modalityState = ModalityState.current()
+        InstallBlender.getInstance().deleteVersion(version.blMajorMinor).whenComplete { deleted, error ->
+            ApplicationManager.getApplication().invokeLater({
+                val result = if (error != null) Result.failure(error) else Result.success(deleted == true)
+                result.onSuccess { wasDeleted ->
+                    val key = if (wasDeleted) {
+                        "notification.settings.versions.delete.succeeded"
+                    } else {
+                        "notification.settings.versions.delete.not-found"
+                    }
+                    NotificationModal.getInstance().sendInfo(MessageBundle.message(key, version.blVersion))
+                }.onFailure { failure ->
+                    NotificationModal.getInstance().sendError(
+                        MessageBundle.message("notification.settings.versions.delete.failed", version.blVersion),
+                        throwable = failure,
+                    )
+                }
+                onComplete(result)
+            }, modalityState)
+        }
     }
 }

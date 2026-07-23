@@ -20,8 +20,7 @@ package com.sakurasedaia.blenderdevelopment.core
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
-import com.sakurasedaia.blenderdevelopment.util.SysInfo
-import com.sakurasedaia.blenderdevelopment.util.SystemHelper
+import com.sakurasedaia.blenderdevelopment.util.SystemInfo
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig
@@ -47,7 +46,7 @@ class BlenderInstallationScanner(val project: Project) {
 
   /** Scans known OS-specific install locations and refreshes detected Blender installations cache. */
   fun refreshInstalledVersionsCache() {
-    val systemInfo: SysInfo = SystemHelper.getSysInfo
+    val systemInfo: SystemInfo.Format = SystemInfo()
     val diagnostics = ScanDiagnostics()
     val installedVersions = linkedMapOf<String, BlendInstallInfo>()
     

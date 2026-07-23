@@ -17,7 +17,6 @@
 
 package com.sakurasedaia.blenderdevelopment.ui.settings
 
-import com.intellij.ide.BrowserUtil
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.ui.TextBrowseFolderListener
@@ -37,6 +36,8 @@ import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.ui.components.EnvironmentVariablesTable
+import com.sakurasedaia.blenderdevelopment.util.SystemInfo
+import java.nio.file.Path
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -49,6 +50,7 @@ internal data class BlenderVersionSettingsRow(
     val version: BlenderVersion,
     val pythonVersion: String,
     val installStatus: String,
+    val isInstalled: Boolean,
 )
 
 /** Settings panel content for global Blender plugin configuration. */
@@ -56,6 +58,8 @@ internal class BlenderSettingsContent(
     private val onScanInstallations: ((List<PluginConfig.BlendInstallInfo>) -> Unit) -> Unit,
     private val onRefreshVersions: ((Result<List<BlenderVersion>>) -> Unit) -> Unit,
     private val onClearVersionCache: () -> Unit,
+    private val onInstallVersion: (BlenderVersion, (Result<Path>) -> Unit) -> Unit = { _, _ -> },
+    private val onDeleteVersion: (BlenderVersion, (Result<Boolean>) -> Unit) -> Unit = { _, _ -> },
 ) {
     private data class SettingBinding(
       val getFromConfig: (PluginConfig) -> String,
@@ -88,17 +92,20 @@ internal class BlenderSettingsContent(
         tableHeader.reorderingAllowed = false
     }
     private val lastRefreshedLabel = JBLabel()
-    private val downloadVersionButton = JButton(MessageBundle.message("ui.settings.group.versions.download.button")).apply {
+    private var versionOperationInProgress = false
+    private val installVersionButton = JButton(MessageBundle.message("ui.settings.group.versions.install.button")).apply {
         isEnabled = false
-        addActionListener {
-            selectedVersion()?.getDownloadURL()?.takeIf(String::isNotBlank)?.let(BrowserUtil::browse)
-        }
+        addActionListener { installSelectedVersion() }
+    }
+    private val deleteVersionButton = JButton(MessageBundle.message("ui.settings.group.versions.delete.button")).apply {
+        isEnabled = false
+        addActionListener { deleteSelectedVersion() }
     }
     private val globalEnvironmentVariablesTable = EnvironmentVariablesTable()
 
     init {
         versionTable.selectionModel.addListSelectionListener {
-            downloadVersionButton.isEnabled = selectedVersion()?.getDownloadURL()?.isNotBlank() == true
+            updateVersionActionState()
         }
     }
 
@@ -192,7 +199,8 @@ internal class BlenderSettingsContent(
                 button(MessageBundle.message("ui.settings.group.versions.clear-cache.button")) {
                     clearVersionCache()
                 }
-                cell(downloadVersionButton)
+                cell(installVersionButton)
+                cell(deleteVersionButton)
             }
         }
     }
@@ -284,6 +292,7 @@ internal class BlenderSettingsContent(
         if (versionTableModel.rowCount > 0 && versionTable.selectedRow < 0) {
             versionTable.setRowSelectionInterval(0, 0)
         }
+        updateVersionActionState()
     }
 
     private fun updateLastRefreshed(epochMillis: Long) {
@@ -300,6 +309,42 @@ internal class BlenderSettingsContent(
     private fun selectedVersion(): BlenderVersion? {
         val selectedRow = versionTable.selectedRow
         return if (selectedRow < 0) null else versionTableModel.getItem(selectedRow).version
+    }
+
+    private fun selectedVersionRow(): BlenderVersionSettingsRow? {
+        val selectedRow = versionTable.selectedRow
+        return if (selectedRow < 0) null else versionTableModel.getItem(selectedRow)
+    }
+
+    private fun installSelectedVersion() {
+        val version = selectedVersion() ?: return
+        setVersionOperationInProgress(true)
+        onInstallVersion(version) { result ->
+            setVersionOperationInProgress(false)
+            if (result.isSuccess) onScanInstallations(::refreshVersionRows)
+        }
+    }
+
+    private fun deleteSelectedVersion() {
+        val version = selectedVersion() ?: return
+        setVersionOperationInProgress(true)
+        onDeleteVersion(version) { result ->
+            setVersionOperationInProgress(false)
+            if (result.getOrNull() == true) onScanInstallations(::refreshVersionRows)
+        }
+    }
+
+    private fun setVersionOperationInProgress(inProgress: Boolean) {
+        versionOperationInProgress = inProgress
+        versionTable.isEnabled = !inProgress
+        updateVersionActionState()
+    }
+
+    private fun updateVersionActionState() {
+        val selected = selectedVersionRow()
+        installVersionButton.isEnabled = !versionOperationInProgress && selected != null &&
+            !selected.isInstalled && SystemInfo.isOSCompatible(selected.version.blMajorMinor)
+        deleteVersionButton.isEnabled = !versionOperationInProgress && selected?.isInstalled == true
     }
 
     companion object {
@@ -319,6 +364,7 @@ internal class BlenderSettingsContent(
                     installStatus = installed?.let {
                         MessageBundle.message("ui.settings.group.versions.status.installed", it.version)
                     } ?: MessageBundle.message("ui.settings.group.versions.status.not-detected"),
+                    isInstalled = installed != null,
                 )
             }
         }

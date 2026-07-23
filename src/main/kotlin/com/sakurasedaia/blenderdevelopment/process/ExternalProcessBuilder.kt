@@ -22,7 +22,7 @@ import com.intellij.execution.process.OSProcessHandler
 import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.openapi.project.Project
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
-import com.sakurasedaia.blenderdevelopment.util.SystemHelper
+import com.sakurasedaia.blenderdevelopment.util.SystemInfo
 import java.io.IOException
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
@@ -219,7 +219,7 @@ class ExternalProcessBuilder(val project: Project) {
     internalBinary: String? = null,
   ): String {
     var processedCommand = command
-    if (SystemHelper.getSysInfo.osName == "macos") {
+    if (SystemInfo.getSysInfo.osName == "macos") {
       if (internalBinary != null) {
         processedCommand = java.nio.file.Path.of(command, "Contents", "MacOS", internalBinary).toString()
       } else if (command.removeSuffix("/").endsWith(".app", ignoreCase = true)) {

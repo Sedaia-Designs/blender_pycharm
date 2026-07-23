@@ -24,6 +24,7 @@ out/
 .output.txt
 .reference
 docs/Wiki/
+blender_plugin_*.log
 
 ### Python ###
 __pycache__/

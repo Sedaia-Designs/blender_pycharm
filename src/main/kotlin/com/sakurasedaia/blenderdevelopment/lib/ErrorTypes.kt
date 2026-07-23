@@ -25,6 +25,8 @@ package com.sakurasedaia.blenderdevelopment.lib
 enum class ErrorTypes(val message: String) {
     UNSUPPORTED_OS("[BL-001]: User's OS is not a compatible type, Supported Operating Systems: Windows, MacOS, and Linux (Or alternate Linux Kernel Fork)"),
     BLENDER_LAUNCH_ERROR("[BL-002]: Failed to launch Blender"),
+    ARCHIVE_EXTRACTION_ERROR("[BL-003]: Failed to extract archive"),
+    UNKNOWN_DOWNLOAD_URL("[BL-004]: Could not get the download URL for that version.")
     ;
 
     /**

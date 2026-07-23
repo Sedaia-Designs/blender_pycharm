@@ -33,10 +33,12 @@ class BlenderSettingsContentTest : BasePlatformTestCase() {
     val installed = rows.first { it.version.blMajorMinor == "4.5" }
     assertEquals("3.11.9", installed.pythonVersion)
     assertEquals("Installed (4.5.12)", installed.installStatus)
+    assertTrue(installed.isInstalled)
 
     val notInstalled = rows.first { it.version.blMajorMinor == "4.2" }
     assertEquals("—", notInstalled.pythonVersion)
     assertEquals("Not detected", notInstalled.installStatus)
+    assertFalse(notInstalled.isInstalled)
   }
 
   fun testSettingsContentUsesVerticalOnlyScrollPane() {
@@ -97,6 +99,14 @@ class BlenderSettingsContentTest : BasePlatformTestCase() {
     assertEquals(
       "Cleared the online Blender version cache. The built-in compatibility table is now active.",
       MessageBundle.message("notification.settings.versions.cache.cleared"),
+    )
+    assertEquals(
+      "Installed Blender 4.5.8.",
+      MessageBundle.message("notification.settings.versions.install.succeeded", "4.5.8"),
+    )
+    assertEquals(
+      "Deleted the managed Blender 4.5.8 installation.",
+      MessageBundle.message("notification.settings.versions.delete.succeeded", "4.5.8"),
     )
   }
 }

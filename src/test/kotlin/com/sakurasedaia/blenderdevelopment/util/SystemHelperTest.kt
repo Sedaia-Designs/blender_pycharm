@@ -20,30 +20,36 @@ package com.sakurasedaia.blenderdevelopment.util
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SystemHelperTest {
   @Test
+  fun invocationReturnsCachedSystemInfo() {
+    assertSame(SystemInfo.getSysInfo, SystemInfo())
+  }
+
+  @Test
   fun mapsSupportedDownloadBundleTypes() {
-    assertEquals("zip", SystemHelper.normalizeBundleFileType("windows"))
-    assertEquals("dmg", SystemHelper.normalizeBundleFileType("macos"))
-    assertEquals("tar.xz", SystemHelper.normalizeBundleFileType("linux"))
-    assertTrue(SystemHelper.isBundleFileTypeSupported("windows", "msi"))
-    assertTrue(SystemHelper.isBundleFileTypeSupported("windows", "msix"))
-    assertFalse(SystemHelper.isBundleFileTypeSupported("windows", "exe"))
+    assertEquals("zip", SystemInfo.normalizeBundleFileType("windows"))
+    assertEquals("dmg", SystemInfo.normalizeBundleFileType("macos"))
+    assertEquals("tar.xz", SystemInfo.normalizeBundleFileType("linux"))
+    assertTrue(SystemInfo.isBundleFileTypeSupported("windows", "msi"))
+    assertTrue(SystemInfo.isBundleFileTypeSupported("windows", "msix"))
+    assertFalse(SystemInfo.isBundleFileTypeSupported("windows", "exe"))
   }
 
   @Test
   fun unknownVersionIsAlwaysIncompatible() {
-    assertFalse(SystemHelper.isOSCompatible("9.9"))
+    assertFalse(SystemInfo.isOSCompatible("9.9"))
   }
 
   @Test
   fun compatibilityLookupMatchesCurrentHostWhenVersionExists() {
-    val hostInfo = SystemHelper.getSysInfo
+    val hostInfo = SystemInfo.getSysInfo
     if (hostInfo.osName == "unknown" || hostInfo.osArch == "unknown") {
-      assertFalse(SystemHelper.isOSCompatible("4.5"))
+      assertFalse(SystemInfo.isOSCompatible("4.5"))
       return
     }
 
@@ -52,10 +58,10 @@ class SystemHelperTest {
     }
 
     if (compatibleVersion != null) {
-      assertTrue(SystemHelper.isOSCompatible(compatibleVersion.blMajorMinor))
+      assertTrue(SystemInfo.isOSCompatible(compatibleVersion.blMajorMinor))
     } else {
       BlenderVersions.LIST.forEach { entry ->
-        assertFalse(SystemHelper.isOSCompatible(entry.blMajorMinor))
+        assertFalse(SystemInfo.isOSCompatible(entry.blMajorMinor))
       }
     }
   }

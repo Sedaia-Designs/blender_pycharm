@@ -19,7 +19,7 @@ package com.sakurasedaia.blenderdevelopment.lib
 
 import com.intellij.openapi.application.ApplicationManager
 import com.sakurasedaia.blenderdevelopment.state.BlenderVersionCache
-import com.sakurasedaia.blenderdevelopment.util.SystemHelper
+import com.sakurasedaia.blenderdevelopment.util.SystemInfo
 
 /**
  * Version mapping row between a Blender release and its bundled Python runtime.
@@ -37,22 +37,22 @@ data class BlenderVersion(
     val blVersion: String get() = blender.joinToString(separator = ".")
     /** Full Python version in `major.minor.patch` format. */
     val pyVersion: String get() = python.joinToString(separator = ".")
-    
+
     /** Blender version selector in `major.minor` format. */
     val blMajorMinor: String get() = "${blender[0]}.${blender[1]}"
     /** Python version selector in `major.minor` format. */
     val pyMajorMinor: String get() = python.take(2).joinToString(separator = ".")
-    
+
     /** Blender patch component as a string. */
     val blFallback: String get() = blender[2].toString()
     /** Python patch component as a string. */
     val pyFallback: String get() = python.getOrNull(2)?.toString().orEmpty()
-    
+
     /** Blender version components as `[major, minor, patch]`. */
     val blVersionList: List<Int> get() = blender
     /** Python version components as `[major, minor, patch]`. */
     val pyVersionList: List<Int> get() = python
-    
+
     /** Fake-BPY package name, including any release-specific package suffix override. */
     val fakeBpyPackage = "fake-bpy-module-${fakeBpy ?: blMajorMinor}"
 
@@ -64,19 +64,28 @@ data class BlenderVersion(
      * @param fileExtension requested distribution file suffix.
      * @return artifact URL, or an empty string when the target combination is unsupported.
      */
-    fun getDownloadURL(
-        fileExtension: String = SystemHelper.getSysInfo.bundleFileType
+
+    private val normalizedPlatform = SystemInfo.normalizeOSName
+    private val normalizedArch = SystemInfo.normalizeOsArch
+
+    val artifactName: String = "blender-$blVersion-$normalizedPlatform-$normalizedArch"
+
+    fun getArchiveName(
+        fileExtension: String = SystemInfo.getSysInfo.bundleFileType
     ): String {
-        val normalizedPlatform = SystemHelper.normalizeOSName
-        val normalizedArch = SystemHelper.normalizeOsArch
         if (
             compatWithOs[normalizedPlatform]?.contains(normalizedArch) != true
             ||
-            !SystemHelper.isBundleFileTypeSupported(normalizedPlatform, fileExtension)
+            !SystemInfo.isBundleFileTypeSupported(normalizedPlatform, fileExtension)
         ) {
             return ""
         }
-        return "${DOWNLOAD_BASE_URL}Blender$blMajorMinor/blender-$blVersion-$normalizedPlatform-$normalizedArch.$fileExtension"
+
+        return "$artifactName.$fileExtension"
+    }
+    fun getDownloadURL(
+    ): String {
+        return "${DOWNLOAD_BASE_URL}Blender$blMajorMinor/${getArchiveName()}"
     }
 
     companion object {
@@ -114,7 +123,7 @@ object BlenderVersions {
                 "linux" to listOf("x64")
             ))
     )
-    
+
     internal fun mergeDiscoveredVersions(discoveredVersions: List<List<Int>>): List<BlenderVersion> {
         val latestPatchByMinor = discoveredVersions
             .filter { it.size == 3 }
@@ -138,8 +147,8 @@ object BlenderVersions {
             compareBy({ it.blVersionList[0] }, { it.blVersionList[1] }, { it.blVersionList[2] }),
         )
     }
-    
-    
+
+
     /**
      * Returns the loaded Blender/Python compatibility table.
      *
@@ -149,11 +158,11 @@ object BlenderVersions {
         val application = ApplicationManager.getApplication() ?: return FALLBACK_VERSION_TABLE
         return application.getService(BlenderVersionCache::class.java)?.getVersionTable() ?: FALLBACK_VERSION_TABLE
     }
-    
+
     /** Public alias for [getVersionTable]. */
     val LIST: List<BlenderVersion>
         get() = getVersionTable()
-    
+
 
     /**
      * Returns full Blender version (e.g. `4.5.8`) for a major/minor selector (e.g. `4.5`).
@@ -165,7 +174,12 @@ object BlenderVersions {
         val normalized = normalizeVersion(blMajorMinor)
         return getVersionTable().find { it.blMajorMinor == normalized }?.blVersion
     }
-    
+
+    fun getVersionMeta(blMajorMinor: String): BlenderVersion? {
+        val normalized = normalizeVersion(blMajorMinor)
+        return getVersionTable().find { it.blMajorMinor == normalized }
+    }
+
     /**
      * Returns full Python version that corresponds to the provided Blender major/minor value.
      *
@@ -176,7 +190,7 @@ object BlenderVersions {
         val normalized = normalizeVersion(blMajorMinor)
         return getVersionTable().find { it.blMajorMinor == normalized }?.pyVersion?.takeIf(String::isNotBlank)
     }
-    
+
     /**
      * Returns the configured Fake-BPY package name for a Blender version.
      *
@@ -189,7 +203,7 @@ object BlenderVersions {
             .find { it.blMajorMinor == normalized && it.pyVersion.isNotBlank() }
             ?.fakeBpyPackage
     }
-    
+
     /**
      * Returns OS/architecture compatibility matrix for the selected Blender version.
      *
@@ -203,8 +217,8 @@ object BlenderVersions {
             ?.compatWithOs
             ?.takeIf(Map<String, List<String>>::isNotEmpty)
     }
-    
-    
+
+
     /**
      * Normalizes version strings to `major.minor` for table lookup.
      *
@@ -215,7 +229,7 @@ object BlenderVersions {
         val parts = version.split('.')
         return if (parts.size >= 2) "${parts[0]}.${parts[1]}" else version
     }
-    
+
     fun normalizeVersionFromList(version: List<Int>): String {
         if (version.size >= 2) {
             return version.take(2).joinToString(".")

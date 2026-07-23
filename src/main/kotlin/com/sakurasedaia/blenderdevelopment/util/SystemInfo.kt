@@ -21,30 +21,33 @@ import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
 import com.intellij.openapi.application.PathManager
 import java.nio.file.Path
 
-/**
- * Normalized host platform information used by Blender compatibility checks.
- *
- * @property osName normalized operating system identifier (`windows`, `macos`, `linux`, or `unknown`).
- * @property osVersion raw host OS version string from the JVM `os.version` property.
- * @property osArch normalized CPU architecture (`arm64`, `x64`, or `unknown`).
- * @property isWSL whether execution appears to be under Windows Subsystem for Linux.
- * @property bundleFileType expected Blender distribution file suffix for the current platform.
- * @property tempDir plugin-specific temporary directory under the IDE temp path.
- */
-data class SysInfo(
-    val osName: String,
-    val osVersion: String,
-    val osArch: String,
-    val isWSL: Boolean? = null,
-    val bundleFileType: String,
-    val tempDir: Path
-)
-
 
 /**
  * Helpers for host OS/CPU detection and Blender version compatibility validation.
  */
-object SystemHelper {
+object SystemInfo {
+    /**
+     * Normalized host platform information used by Blender compatibility checks.
+     *
+     * @property osName normalized operating system identifier (`windows`, `macos`, `linux`, or `unknown`).
+     * @property osVersion raw host OS version string from the JVM `os.version` property.
+     * @property osArch normalized CPU architecture (`arm64`, `x64`, or `unknown`).
+     * @property isWSL whether execution appears to be under Windows Subsystem for Linux.
+     * @property bundleFileType expected Blender distribution file suffix for the current platform.
+     * @property tempDir plugin-specific temporary directory under the IDE temp path.
+     */
+    data class Format(
+        val osName: String,
+        val osVersion: String,
+        val osArch: String,
+        val isWSL: Boolean? = null,
+        val bundleFileType: String,
+        val tempDir: Path
+    )
+
+    /** Returns the cached snapshot of normalized host system information. */
+    operator fun invoke(): Format = getSysInfo
+
     private val sysArch = System.getProperty("os.arch").orEmpty().lowercase()
     private val osName = System.getProperty("os.name").orEmpty().lowercase()
 
@@ -105,7 +108,7 @@ object SystemHelper {
      *
      * Values are derived from JVM system properties and environment variables.
      */
-    val getSysInfo: SysInfo = SysInfo(
+    val getSysInfo: Format = Format(
         osName = normalizeOSName,
         osVersion = System.getProperty("os.version"),
         osArch = normalizeOsArch,
@@ -113,5 +116,4 @@ object SystemHelper {
         bundleFileType = normalizeBundleFileType(normalizeOSName),
         tempDir = PathManager.getTempDir().resolve("blender-development")
     )
-    
 }

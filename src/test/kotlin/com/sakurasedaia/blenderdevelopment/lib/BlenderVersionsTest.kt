@@ -17,7 +17,7 @@
 
 package com.sakurasedaia.blenderdevelopment.lib
 
-import com.sakurasedaia.blenderdevelopment.util.SystemHelper
+import com.sakurasedaia.blenderdevelopment.util.SystemInfo
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -90,7 +90,7 @@ class BlenderVersionsTest {
 
   @Test
   fun downloadUrlMatchesCurrentHostArtifactName() {
-    val systemInfo = SystemHelper.getSysInfo
+    val systemInfo = SystemInfo.getSysInfo
     val compatibleVersion = BlenderVersions.LIST.firstOrNull { version ->
       version.compatWithOs[systemInfo.osName]?.contains(systemInfo.osArch) == true
     } ?: return
@@ -103,9 +103,9 @@ class BlenderVersionsTest {
   }
 
   @Test
-  fun downloadUrlRejectsUnsupportedArtifacts() {
+  fun archiveNameRejectsUnsupportedArtifacts() {
     val blenderVersion = BlenderVersions.LIST.first()
 
-    assertEquals("", blenderVersion.getDownloadURL("exe"))
+    assertEquals("", blenderVersion.getArchiveName("exe"))
   }
 }
