@@ -29,8 +29,7 @@ import kotlinx.coroutines.flow.asStateFlow
 @State(
   name = "BlenderExtensionManifest",
   storages = [
-    Storage("\$PROJECT_CONFIG_DIR\$/blender-workspace.xml"),
-    Storage(value = StoragePathMacros.WORKSPACE_FILE, deprecated = true),
+    Storage($$"$PROJECT_CONFIG_DIR$/blender-workspace.xml"),
   ]
 )
 class ProjectConfig(private val project: Project): PersistentStateComponent<ProjectConfig.ProjectState> {
@@ -47,25 +46,15 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
   /** Persisted project-scoped settings stored in project-level configuration. */
   data class ProjectState(
     var blenderPath: String = "",
-
     var installedStubRequirement: String = "",
-    
     var addonSymlinkName: String = "",
-    
     var sourceFolder: String = "src/",
-    
     var runArguments: String = "",
-    
     var blenderLogLevel: String = BlenderLogLevel.DEBUG.name,
-    
     var reloadOnSave: Boolean = true,
-    
     var justMyCode: Boolean = true,
-    
     var extensionsRepository: String = "pycharm_blender",
-    
     var environmentVariables: Map<String, String> = emptyMap(),
-    
     var scriptDirectories: List<String>? = null
   )
 
@@ -99,6 +88,7 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
   fun setBlenderPath(path: String) {
     updateState { blenderPath = path }
   }
+  
   /** Returns the configured Blender executable path for this project. */
   fun getBlenderPath(): String = state.blenderPath
   
@@ -114,6 +104,7 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
 
   /** Returns the exact linting-stub requirement last installed by the plugin. */
   fun getInstalledStubRequirement(): String = state.installedStubRequirement
+  
   /**
    * Stores the add-on symlink name.
    *
@@ -126,6 +117,7 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
     }
     updateState { addonSymlinkName = normalized }
   }
+  
   /** Returns the configured add-on symlink name. */
   fun getAddonSymlinkName(): String = state.addonSymlinkName
 
@@ -152,6 +144,7 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
   fun setRunArguments(arguments: String) {
     updateState { runArguments = arguments }
   }
+  
   /** Returns the stored Blender run arguments string. */
   fun getRunArguments(): String = state.runArguments
   
@@ -163,6 +156,7 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
   fun setBlenderLogLevel(logLevel: BlenderLogLevel) {
     updateState { blenderLogLevel = logLevel.name }
   }
+  
   /** Returns the configured Blender log level. */
   fun getBlenderLogLevel(): BlenderLogLevel {
     return BlenderLogLevel.entries.firstOrNull { it.name == state.blenderLogLevel } ?: BlenderLogLevel.INFO
@@ -187,6 +181,7 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
   fun setJustMyCode(justMyCode: Boolean) {
     updateState { this.justMyCode = justMyCode }
   }
+  
   /** Returns whether debugger behavior is configured as just-my-code. */
   fun getJustMyCode(): Boolean = state.justMyCode
   
@@ -202,6 +197,7 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
     }
     updateState { extensionsRepository = normalizedRepository }
   }
+  
   /** Returns the configured Blender extensions repository path or URL. */
   fun getExtensionsRepository(): String = state.extensionsRepository
   
@@ -213,6 +209,7 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
   fun setEnvironmentVariables(variables: Map<String, String>) {
     updateState { environmentVariables = variables.toMap() }
   }
+  
   /** Returns project-scoped environment variables for Blender runtime workflows. */
   fun getEnvironmentVariables(): Map<String, String> = state.environmentVariables
   
@@ -250,6 +247,7 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
     )
     publishState()
   }
+  
   /** Returns the current persisted workspace state payload. */
   override fun getState(): ProjectState = state
 
@@ -277,7 +275,6 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
       scriptDirectories = scriptDirectories?.toList(),
     )
   }
-  
   
   companion object {
     private val SYMLINK_NAME_SEPARATOR_REGEX = Regex("[\\s-]+")

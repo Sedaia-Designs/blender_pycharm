@@ -57,7 +57,8 @@ class BlenderSettingsContentTest : BasePlatformTestCase() {
     val rows = BlenderSettingsContent.buildVersionSettingsRows(
       versions = listOf(
         BlenderVersion(
-          blender = listOf(4, 3, 9),
+          installName = "Blender 4.3.9",
+          blVersionList = listOf(4, 3, 9),
           compatWithOs = emptyMap(),
         ),
       ),

@@ -29,6 +29,7 @@ import com.sakurasedaia.blenderdevelopment.util.BlenderRuntimeResources
 
 /** Eagerly loads project workspace configuration when the IDE opens a project. */
 internal class ProjectConfigStartupLoader : ProjectActivity {
+    // TODO: Add a new step which performs a load from cache.
     override suspend fun execute(project: Project) {
         val pluginConfig = PluginConfig.getInstance()
         pluginConfig.loadPluginState()

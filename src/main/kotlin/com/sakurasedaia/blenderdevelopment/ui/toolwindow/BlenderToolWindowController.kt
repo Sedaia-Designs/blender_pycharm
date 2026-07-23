@@ -23,64 +23,75 @@ import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
 import com.sakurasedaia.blenderdevelopment.util.PythonModuleNameValidator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 internal class BlenderToolWindowController(
   private val scope: CoroutineScope,
   private val view: BlenderToolWindowView,
-  private val config: ProjectConfig,
-  initialInstallations: List<PluginConfig.BlendInstallInfo>,
+  private val projectConfig: ProjectConfig,
+  private val pluginConfig: PluginConfig,
   private val scanInstallations: (onCompleted: () -> Unit) -> Unit,
   private val detectedInstallations: () -> List<PluginConfig.BlendInstallInfo>,
   private val reloadAddon: () -> Unit,
   private val logAutosave: (String) -> Unit,
 ) {
-  private val installations = MutableStateFlow(initialInstallations.toList())
-
   init {
     bindView()
-    view.render(toViewState(config.stateFlow.value, installations.value))
+    view.render(
+      toViewState(
+        projectConfig.stateFlow.value,
+        pluginConfig.stateFlow.value
+      )
+    )
     scope.launch(Dispatchers.EDT) {
-      combine(config.stateFlow, installations, ::toViewState).collect(view::render)
+      combine(
+        projectConfig.stateFlow,
+        pluginConfig.stateFlow,
+        ::toViewState
+      ).collect(view::render)
     }
   }
 
   private fun bindView() {
-    view.onBlenderPathChanged = { save("blenderPath") { config.setBlenderPath(it.trim()) } }
+    view.onBlenderPathChanged = { save("blenderPath") { projectConfig.setBlenderPath(it.trim()) } }
     view.onAddonSymlinkNameChanged = ::saveAddonSymlinkName
-    view.onSourceFolderChanged = { save("sourceFolder") { config.setSourceFolder(it.trim()) } }
-    view.onRunArgumentsChanged = { save("runArguments") { config.setRunArguments(it.trim()) } }
-    view.onBlenderLogLevelChanged = { save("blenderLogLevel") { config.setBlenderLogLevel(it) } }
-    view.onReloadOnSaveChanged = { save("reloadOnSave") { config.setReloadOnSave(it) } }
-    view.onJustMyCodeChanged = { save("justMyCode") { config.setJustMyCode(it) } }
+    view.onSourceFolderChanged = { save("sourceFolder") { projectConfig.setSourceFolder(it.trim()) } }
+    view.onRunArgumentsChanged = { save("runArguments") { projectConfig.setRunArguments(it.trim()) } }
+    view.onBlenderLogLevelChanged = { save("blenderLogLevel") { projectConfig.setBlenderLogLevel(it) } }
+    view.onReloadOnSaveChanged = { save("reloadOnSave") { projectConfig.setReloadOnSave(it) } }
+    view.onJustMyCodeChanged = { save("justMyCode") { projectConfig.setJustMyCode(it) } }
     view.onExtensionsRepositoryChanged = ::saveExtensionsRepository
     view.onEnvironmentVariablesChanged = {
-      save("environmentVariables") { config.setEnvironmentVariables(it) }
+      save("environmentVariables") { projectConfig.setEnvironmentVariables(it) }
     }
     view.onScriptDirectoriesChanged = {
-      save("scriptDirectories") { config.setScriptDirectories(it.ifEmpty { null }) }
+      save("scriptDirectories") { projectConfig.setScriptDirectories(it.ifEmpty { null }) }
     }
     view.onReloadRequested = reloadAddon
     view.onScanInstallationsRequested = ::scanForInstallations
   }
 
   internal fun scanForInstallations() {
-    scanInstallations(::onInstallationScanCompleted)
+    val previousInstallations = pluginConfig.stateFlow.value.detectedBlenderInstalls
+    
+    scanInstallations{
+      onInstallationScanCompleted(previousInstallations)
+    }
   }
 
-  private fun onInstallationScanCompleted() {
-    val previousInstallations = installations.value
-    val updatedInstallations = detectedInstallations().toList()
-    val configuredPath = config.stateFlow.value.blenderPath
-    installations.value = updatedInstallations
-
-    val removedSelectedInstall = previousInstallations.any { it.path == configuredPath } &&
-      updatedInstallations.none { it.path == configuredPath }
-    if (removedSelectedInstall) {
+  private fun onInstallationScanCompleted(previousInstallations: List<PluginConfig.BlendInstallInfo>) {
+    val updatedInstallations = pluginConfig.stateFlow.value.detectedBlenderInstalls
+    val configuredPath = projectConfig.stateFlow.value.blenderPath
+    
+    val removeSelectedInstall = previousInstallations.any { it.path == configuredPath } &&
+        updatedInstallations.none { it.path == configuredPath }
+    
+    if (removeSelectedInstall) {
       save("blenderPath") {
-        config.setBlenderPath(updatedInstallations.firstOrNull()?.path.orEmpty())
+        projectConfig.setBlenderPath(
+          updatedInstallations.firstOrNull()?.path.orEmpty()
+        )
       }
     }
   }
@@ -89,7 +100,7 @@ internal class BlenderToolWindowController(
     val normalizedCandidate = candidate.trim()
     if (!PythonModuleNameValidator.isValid(normalizedCandidate)) return
     save("addonSymlinkName") {
-      config.setAddonSymlinkName(normalizedCandidate)
+      projectConfig.setAddonSymlinkName(normalizedCandidate)
     }
   }
 
@@ -97,7 +108,7 @@ internal class BlenderToolWindowController(
     val normalizedCandidate = candidate.trim()
     if (!PythonModuleNameValidator.isValid(normalizedCandidate)) return
     save("extensionsRepository") {
-      config.setExtensionsRepository(normalizedCandidate)
+      projectConfig.setExtensionsRepository(normalizedCandidate)
     }
   }
 
@@ -108,11 +119,11 @@ internal class BlenderToolWindowController(
 
   private fun toViewState(
     projectState: ProjectConfig.ProjectSnapshot,
-    detectedInstallations: List<PluginConfig.BlendInstallInfo>,
+    pluginState: PluginConfig.PluginSnapshot
   ): BlenderToolWindowState {
     return BlenderToolWindowState(
       blenderPath = projectState.blenderPath,
-      detectedBlenderInstalls = detectedInstallations,
+      detectedBlenderInstalls = pluginState.detectedBlenderInstalls,
       addonSymlinkName = projectState.addonSymlinkName,
       sourceFolder = projectState.sourceFolder,
       runArguments = projectState.runArguments,

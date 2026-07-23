@@ -27,9 +27,14 @@ import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 /** Application-level persisted configuration for global Blender plugin settings. */
 @Service(Service.Level.APP)
@@ -82,11 +87,64 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
 		var globalEnvironmentVariables: Map<String, String> = emptyMap(),
 
 		var blenderUpdateCheck: UpdateChecked = UpdateChecked(),
-
+	) {
+		fun toSnapshot(): PluginSnapshot {
+			return PluginSnapshot(
+				blenderInstallPath = blenderInstallPath,
+				codeCompletionPath = bpyApiInstallPath,
+				downloadPath = downloadPath,
+				clearDownloadsAfterInstall = clearDownloadsAfterInstall,
+				downloadCacheMaxSize = downloadCacheMaxSize,
+				logPath = logPath,
+				detectedBlenderInstalls = detectedBlender.toList(),
+				minimumBlenderVersion = minimumBlenderVersion
+					.takeIf(::isValidMinorVersion)
+					?: DEFAULT_MINIMUM_BLENDER_VERSION,
+				globalEnvironmentVariables = globalEnvironmentVariables.toMap(),
+				blenderUpdateCheck = BlenderUpdateCheckSnapshot(
+					interval = blenderUpdateCheck.interval,
+					intervalType = blenderUpdateCheck.intervalType,
+					lastCheckedEpochMillis = blenderUpdateCheck.lastCheckedEpochMillis,
+				),
+			)
+		}
+	}
+	/** Immutable observable Blender release refresh schedule. */
+	data class BlenderUpdateCheckSnapshot(
+		val interval: Int,
+		val intervalType: PluginConfig.TimeUnits,
+		val lastCheckedEpochMillis: Long
+	)
+	
+	/** Immutable observable application-level state */
+	data class PluginSnapshot(
+		val blenderInstallPath: String,
+		val codeCompletionPath: String,
+		val downloadPath: String,
+		val clearDownloadsAfterInstall: Boolean,
+		val downloadCacheMaxSize: Int,
+		val logPath: String,
+		val detectedBlenderInstalls: List<PluginConfig.BlendInstallInfo>,
+		val minimumBlenderVersion: String = "4.2", // Local only, not shown to UI
+		val globalEnvironmentVariables: Map<String, String>,
+		val blenderUpdateCheck: BlenderUpdateCheckSnapshot,
 	)
 
 	private var blenderUpdateCheckJob: Job? = null
 	private var state: PluginState = PluginState()
+	
+	private var mutableStateFlow: MutableStateFlow<PluginSnapshot> = MutableStateFlow(state.toSnapshot())
+	
+	val stateFlow: StateFlow<PluginSnapshot> = mutableStateFlow.asStateFlow()
+	
+	private inline fun updateState(update: PluginState.() -> Unit) {
+		state.update()
+		publishState()
+	}
+	
+	private fun publishState() {
+		mutableStateFlow.value = state.toSnapshot()
+	}
 	
 	/**
 	 * Sets the path to the Blender application bundle.
@@ -94,7 +152,7 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
 	 * @param path path to the Blender application bundle.
 	 */
 	fun setBlenderInstallPath(path: String) {
-		state.blenderInstallPath = path
+		updateState { blenderInstallPath = path }
 	}
 	/** Returns the configured folder used to store Blender application bundles. */
 	fun getBlenderInstallPath(): String = state.blenderInstallPath
@@ -105,7 +163,7 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
 	 * @param path path to the Fake-Bpy-Module installation.
 	 */
 	fun setCodeCompletionPath(path: String) {
-		state.bpyApiInstallPath = path
+		updateState { bpyApiInstallPath = path }
 	}
 	/** Returns the configured installation folder for Fake-Bpy-Module stubs. */
 	fun getCodeCompletionPath(): String = state.bpyApiInstallPath
@@ -116,7 +174,7 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
 	 * @param path path to the log file.
 	 */
 	fun setLogPath(path: String) {
-		state.logPath = path
+		updateState { logPath = path }
 	}
 	/** Returns the configured directory for plugin log files. */
 	fun getLogPath(): String = state.logPath
@@ -127,7 +185,7 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
 	 * @param path path to the download folder.
 	 */
 	fun setDownloadPath(path: String) {
-		state.downloadPath = path
+		updateState { downloadPath = path }
 	}
 	/** Returns the configured directory used for downloaded artifacts. */
 	fun getDownloadPath(): String = state.downloadPath
@@ -138,18 +196,18 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
 	 * @param clear true to clear the download folder after installation, false otherwise.
 	 */
 	fun setClearDownloadsAfterInstall(clear: Boolean) {
-		state.clearDownloadsAfterInstall = clear
+		updateState { clearDownloadsAfterInstall = clear }
 	}
 	/** Returns whether downloads are deleted automatically after installation. */
 	fun getClearDownloadsAfterInstall(): Boolean = state.clearDownloadsAfterInstall
 	
 	/**
-	 * Sets the maximum download cache size in gigabytes.
+	 * Sets the maximum download cache size in megabytes.
 	 *
-	 * @param size maximum cache size in gigabytes.
+	 * @param size maximum cache size in megabytes.
 	 */
 	fun setDownloadCacheSize(size: Int) {
-		state.downloadCacheMaxSize = size
+		updateState { downloadCacheMaxSize = size }
 	}
 	/** Returns the configured maximum download cache size in gigabytes. */
 	fun getDownloadCacheSize(): Int = state.downloadCacheMaxSize
@@ -160,7 +218,7 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
 	 * @param installs discovered Blender installations.
 	 */
 	fun setDetectedBlenderInstalls(installs: List<BlendInstallInfo>) {
-		state.detectedBlender = installs
+		updateState { detectedBlender = installs.toList() }
 	}
 	/** Returns the cached list of discovered Blender installations. */
 	fun getDetectedBlenderInstalls(): List<BlendInstallInfo> = state.detectedBlender
@@ -172,7 +230,7 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
 	 */
 	fun setMinimumBlenderVersion(version: String) {
 		require(isValidMinorVersion(version)) { "Minimum Blender version must use major.minor format" }
-		state.minimumBlenderVersion = version
+		updateState { minimumBlenderVersion = version }
 	}
 
 	/** Returns the oldest Blender minor release included in online version discovery. */
@@ -187,7 +245,7 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
 	 * @param
 	 * */
 	fun setGlobalEnvironmentVariables(variables: Map<String, String>) {
-		state.globalEnvironmentVariables = variables
+		updateState { globalEnvironmentVariables = variables.toMap() }
 	}
 	/** Returns the list of Environment Variables */
 	fun getGlobalEnvironmentVariables(): Map<String, String> = state.globalEnvironmentVariables
@@ -202,10 +260,20 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
 	 */
 	fun setBlenderUpdateCheck(updateCheck: UpdateChecked) {
 		require(updateCheck.interval > 0) { "Blender update check interval must be positive" }
-		state.blenderUpdateCheck = updateCheck
+		updateState {
+			blenderUpdateCheck = updateCheck.copy()
+		}
 		restartBlenderUpdateTimerIfRunning()
 	}
-
+	
+	internal fun markBlenderUpdateChecked(newEpochMillis: Long = System.currentTimeMillis()) {
+		updateState {
+			blenderUpdateCheck = blenderUpdateCheck.copy(
+				lastCheckedEpochMillis = newEpochMillis
+			)
+		}
+	}
+	
 	internal fun isBlenderUpdateCheckDue(nowEpochMillis: Long = System.currentTimeMillis()): Boolean =
 		millisUntilNextBlenderUpdateCheck(nowEpochMillis) == 0L
 
@@ -224,17 +292,13 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
 			0L
 		}
 
-	internal fun markBlenderUpdateChecked(nowEpochMillis: Long = System.currentTimeMillis()) {
-		state.blenderUpdateCheck.lastCheckedEpochMillis = nowEpochMillis
-	}
-
 	@Synchronized
 	internal fun startBlenderUpdateTimer() {
 		if (blenderUpdateCheckJob?.isActive == true) return
 
 		blenderUpdateCheckJob = coroutineScope.launch(CoroutineName("Blender version update checker")) {
 			while (isActive) {
-				delay(millisUntilNextBlenderVersionRefresh())
+				delay(millisUntilNextBlenderVersionRefresh().milliseconds)
 				val logger = pluginLogger()
 				try {
 					logger.log("Starting scheduled Blender version cache refresh.")
@@ -245,7 +309,7 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
 					throw error
 				} catch (error: Exception) {
 					logger.warn("Failed to refresh the Blender version cache.", error)
-					delay(UPDATE_CHECK_RETRY_DELAY_MILLIS)
+					delay(UPDATE_CHECK_RETRY_DELAY_MILLIS.milliseconds)
 				}
 			}
 		}
@@ -277,9 +341,6 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
 	
 	/**
 	 * Forces initialization of persisted plugin settings.
-	 *
-	 * This is used at startup so application-level state is loaded before
-	 * project UI and workflows read plugin configuration.
 	 *
 	 * @return currently loaded plugin state.
 	 */

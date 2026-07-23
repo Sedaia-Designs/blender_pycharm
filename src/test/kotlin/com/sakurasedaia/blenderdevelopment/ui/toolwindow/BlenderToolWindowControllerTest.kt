@@ -10,14 +10,15 @@ import kotlinx.coroutines.cancel
 
 class BlenderToolWindowControllerTest : BasePlatformTestCase() {
   private lateinit var scope: CoroutineScope
-  private lateinit var config: ProjectConfig
+  private lateinit var projectConfig: ProjectConfig
+  private lateinit var pluginConfig: PluginConfig
   private lateinit var view: BlenderToolWindowView
 
   override fun setUp() {
     super.setUp()
     scope = CoroutineScope(SupervisorJob())
-    config = ProjectConfig.getInstance(project)
-    config.loadState(ProjectConfig.ProjectState())
+    pluginConfig = PluginConfig.getInstance()
+    pluginConfig.loadState(PluginConfig.PluginState())
     view = BlenderToolWindowView(project)
   }
 
@@ -32,7 +33,7 @@ class BlenderToolWindowControllerTest : BasePlatformTestCase() {
   fun testExternalProjectConfigUpdateRendersThroughStateFlow() {
     createController()
 
-    config.setBlenderPath("/Applications/Custom Blender.app")
+    projectConfig.setBlenderPath("/Applications/Custom Blender.app")
     PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
 
     assertEquals("/Applications/Custom Blender.app", view.blenderPath)
@@ -42,7 +43,7 @@ class BlenderToolWindowControllerTest : BasePlatformTestCase() {
     val originalInstall = install("Blender 4.5", "/Applications/Blender 4.5.app")
     val replacementInstall = install("Blender 4.2", "/Applications/Blender 4.2.app")
     var detectedInstallations = listOf(originalInstall)
-    config.setBlenderPath(originalInstall.path)
+    projectConfig.setBlenderPath(originalInstall.path)
     val controller = createController(
       initialInstallations = detectedInstallations,
       detectedInstallations = { detectedInstallations },
@@ -52,13 +53,13 @@ class BlenderToolWindowControllerTest : BasePlatformTestCase() {
     controller.scanForInstallations()
     PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
 
-    assertEquals(replacementInstall.path, config.getBlenderPath())
+    assertEquals(replacementInstall.path, projectConfig.getBlenderPath())
     assertEquals(replacementInstall.path, view.blenderPath)
   }
 
   fun testScanPreservesCustomProjectPath() {
     val customPath = "/opt/blender-custom"
-    config.setBlenderPath(customPath)
+    projectConfig.setBlenderPath(customPath)
     val controller = createController(
       initialInstallations = listOf(install("Blender 4.5", "/Applications/Blender 4.5.app")),
       detectedInstallations = { emptyList() },
@@ -67,7 +68,7 @@ class BlenderToolWindowControllerTest : BasePlatformTestCase() {
     controller.scanForInstallations()
     PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
 
-    assertEquals(customPath, config.getBlenderPath())
+    assertEquals(customPath, projectConfig.getBlenderPath())
     assertEquals(customPath, view.blenderPath)
   }
 
@@ -78,8 +79,8 @@ class BlenderToolWindowControllerTest : BasePlatformTestCase() {
     return BlenderToolWindowController(
       scope = scope,
       view = view,
-      config = config,
-      initialInstallations = initialInstallations,
+      projectConfig = projectConfig,
+      pluginConfig = pluginConfig,
       scanInstallations = { onCompleted -> onCompleted() },
       detectedInstallations = detectedInstallations,
       reloadAddon = {},

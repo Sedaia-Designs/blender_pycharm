@@ -44,8 +44,8 @@ class BlenderToolWindowContent(
     BlenderToolWindowController(
       scope = scope,
       view = view,
-      config = ProjectConfig.getInstance(project),
-      initialInstallations = pluginConfig.getDetectedBlenderInstalls(),
+      projectConfig = ProjectConfig.getInstance(project),
+      pluginConfig = pluginConfig,
       scanInstallations = onScanInstallations,
       detectedInstallations = pluginConfig::getDetectedBlenderInstalls,
       reloadAddon = BlenderRuntimeCommandService.getInstance(project)::sendReloadCommand,

@@ -24,7 +24,7 @@ import java.nio.file.Path
 
 enum class InstallType {
     USER, // Installs on the User's system
-    PYCHARM // Installs used by Pycharm
+    PYCHARM // Installs made by Pycharm
 }
 
 /**
@@ -43,19 +43,19 @@ data class BlenderVersion(
     val installLocation: Map<InstallType, Path> = emptyMap()
 ) {
     /** Full Blender version in `major.minor.patch` format. */
-    val blVersion: String get() = blender.joinToString(separator = ".")
+    val blVersion: String get() = blVersionList.joinToString(separator = ".")
     /** Full Python version in `major.minor.patch` format. */
-    val pyVersion: String get() = python.joinToString(separator = ".")
+    val pyVersion: String get() = pyVersionList.joinToString(separator = ".")
 
     /** Blender version selector in `major.minor` format. */
-    val blMajorMinor: String get() = "${blender[0]}.${blender[1]}"
+    val blMajorMinor: String get() = "${blVersionList[0]}.${blVersionList[1]}"
     /** Python version selector in `major.minor` format. */
-    val pyMajorMinor: String get() = python.take(2).joinToString(separator = ".")
+    val pyMajorMinor: String get() = pyVersionList.take(2).joinToString(separator = ".")
 
     /** Blender patch component as a string. */
-    val blFallback: String get() = blender[2].toString()
+    val blFallback: String get() = blVersionList[2].toString()
     /** Python patch component as a string. */
-    val pyFallback: String get() = python.getOrNull(2)?.toString().orEmpty()
+    val pyFallback: String get() = pyVersionList.getOrNull(2)?.toString().orEmpty()
 
     /** Fake-BPY package name, including any release-specific package suffix override. */
     val fakeBpyPackage = "fake-bpy-module-${fakeBpy ?: blMajorMinor}"
@@ -104,24 +104,27 @@ data class BlenderVersion(
 object BlenderVersions {
     private val FALLBACK_VERSION_TABLE = listOf(
         BlenderVersion(
-            blender = listOf(4, 2, 19),
-            python = listOf(3,11,7),
+            installName = "Blender 4.2.19",
+            blVersionList = listOf(4, 2, 19),
+            pyVersionList = listOf(3,11,7),
             compatWithOs = mapOf(
                 "windows" to listOf("x64"),
                 "macos" to listOf("x64", "arm64"),
                 "linux" to listOf("x64")
             )),
         BlenderVersion(
-            blender = listOf(4,5,8),
-            python = listOf(3,11,9),
+            installName = "Blender 4.5.8",
+            blVersionList = listOf(4,5,8),
+            pyVersionList = listOf(3,11,9),
             compatWithOs = mapOf(
                 "windows" to listOf("x64", "arm64"),
                 "macos" to listOf("x64", "arm64"),
                 "linux" to listOf("x64")
             )),
         BlenderVersion(
-            blender = listOf(5,2,0),
-            python = listOf(3,13,13),
+            installName = "Blender 5.2.0",
+            blVersionList = listOf(5,2,0),
+            pyVersionList = listOf(3,13,13),
             fakeBpy = "latest",
             compatWithOs = mapOf(
                 "windows" to listOf("x64", "arm64"),
@@ -143,11 +146,15 @@ object BlenderVersions {
             val discoveredVersion = latestPatchByMinor[minorVersion]
             when {
                 configuredVersion == null -> BlenderVersion(
-                    blender = checkNotNull(discoveredVersion),
+                    installName = "Blender ${checkNotNull(discoveredVersion).joinToString(".")}",
+                    blVersionList = discoveredVersion,
                     compatWithOs = emptyMap(),
                 )
                 discoveredVersion == null -> configuredVersion
-                else -> configuredVersion.copy(blender = discoveredVersion)
+                else -> configuredVersion.copy(
+                    installName = "Blender ${discoveredVersion.joinToString(".")}",
+                    blVersionList = discoveredVersion,
+                )
             }
         }
         return mergedVersions.sortedWith(
