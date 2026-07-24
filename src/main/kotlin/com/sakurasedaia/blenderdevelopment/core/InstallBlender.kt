@@ -131,8 +131,8 @@ private object IdeBlenderArtifactDownloader : BlenderArtifactDownloader {
 @Service
 internal class InstallBlender(
   private val artifactDownloader: BlenderArtifactDownloader = IdeBlenderArtifactDownloader,
-  private val downloadPath: Path = Path.of(PluginConfig.getInstance().state.downloadPath),
-  private val installPath: Path = Path.of(PluginConfig.getInstance().state.blenderInstallPath),
+  private val downloadPathOverride: Path? = null,
+  private val installPathOverride: Path? = null,
   private val errorReporter: BlenderInstallErrorReporter = IdeBlenderInstallErrorReporter,
   private val tempPath: Path = Path.of(PathManager.getTempPath()),
   private val platformName: String = SystemInfo.getSysInfo.osName,
@@ -147,7 +147,7 @@ internal class InstallBlender(
   internal fun downloadBlenderService(
     project: Project = currentProject(),
     downloadUrl: String,
-    targetDirectory: Path = downloadPath,
+    targetDirectory: Path = downloadPath(),
     version: String
   ): CompletableFuture<Path> {
     val archiveName = BlenderVersions.getVersionMeta(version)?.getArchiveName()
@@ -176,7 +176,7 @@ internal class InstallBlender(
     val versionMeta = BlenderVersions.getVersionMeta(version)
     val archiveName = versionMeta?.getArchiveName()?.takeIf(String::isNotBlank)
 
-    val downloadedArchive = archiveName?.let(downloadPath::resolve)
+    val downloadedArchive = archiveName?.let(downloadPath()::resolve)
     if (downloadedArchive != null && Files.isRegularFile(downloadedArchive)) {
       return downloadedArchive
     }
@@ -195,7 +195,7 @@ internal class InstallBlender(
     val versionMeta = BlenderVersions.getVersionMeta(version)
     val installName = versionMeta?.let(::installedArtifactName)
 
-    val installedApp = installName?.let(installPath::resolve)
+    val installedApp = installName?.let(installPath()::resolve)
     if (installedApp != null && Files.isDirectory(installedApp)) {
       return CompletableFuture.completedFuture(installedApp)
     }
@@ -220,7 +220,7 @@ internal class InstallBlender(
     }
 
     // 3. Download the artifact
-    return downloadBlenderService(project, downloadUrl, downloadPath, version)
+    return downloadBlenderService(project, downloadUrl, downloadPath(), version)
   }
 
   /**
@@ -236,6 +236,7 @@ internal class InstallBlender(
     val versionMeta = requireNotNull(BlenderVersions.getVersionMeta(version)) {
       "Unknown Blender version: $version"
     }
+    val installPath = installPath()
     val destination = installPath.resolve(installedArtifactName(versionMeta))
     NioFiles.createDirectories(installPath)
     if (Files.exists(destination)) {
@@ -295,6 +296,12 @@ internal class InstallBlender(
 
   private fun installedArtifactName(version: BlenderVersion): String =
     if (platformName == "macos") "${version.artifactName}.app" else version.artifactName
+
+  private fun downloadPath(): Path =
+    downloadPathOverride ?: Path.of(PluginConfig.getInstance().getDownloadPath())
+
+  private fun installPath(): Path =
+    installPathOverride ?: Path.of(PluginConfig.getInstance().getBlenderInstallPath())
 
   private fun archiveBaseName(archive: Path): String {
     val fileName = archive.fileName.toString()

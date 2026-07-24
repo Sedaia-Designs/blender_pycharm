@@ -2,6 +2,7 @@ package com.sakurasedaia.blenderdevelopment.core
 
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
+import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -39,7 +40,7 @@ class InstallBlenderTest : BasePlatformTestCase() {
         request = DownloadRequest(actualProject === project, url, target, archiveName)
         completedDownload(expectedDownload)
       },
-      downloadPath = downloadDirectory,
+      downloadPathOverride = downloadDirectory,
     )
 
     val result = installer.downloadBlenderService(
@@ -74,7 +75,7 @@ class InstallBlenderTest : BasePlatformTestCase() {
         downloadInvoked = true
         failedDownload(AssertionError("Downloader should not be invoked"))
       },
-      downloadPath = downloadDirectory,
+      downloadPathOverride = downloadDirectory,
     )
 
     val result = installer.downloadVersion("4.5", project).join()
@@ -91,7 +92,7 @@ class InstallBlenderTest : BasePlatformTestCase() {
         downloadInvoked = true
         completedDownload(downloadDirectory.resolve("unexpected"))
       },
-      downloadPath = downloadDirectory,
+      downloadPathOverride = downloadDirectory,
       errorReporter = BlenderInstallErrorReporter { errorReported = true },
     )
 
@@ -111,7 +112,7 @@ class InstallBlenderTest : BasePlatformTestCase() {
         downloadInvoked = true
         failedDownload(expectedFailure)
       },
-      downloadPath = downloadDirectory,
+      downloadPathOverride = downloadDirectory,
     )
 
     val failure = runCatching { installer.downloadVersion("4.5", project).join() }.exceptionOrNull()
@@ -126,7 +127,7 @@ class InstallBlenderTest : BasePlatformTestCase() {
       artifactDownloader = BlenderArtifactDownloader { _, _, _, _ ->
         CompletableFuture.completedFuture(BlenderArtifactDownloadResult.Cancelled)
       },
-      downloadPath = downloadDirectory,
+      downloadPathOverride = downloadDirectory,
     )
 
     val failure = runCatching { installer.downloadVersion("4.5", project).join() }.exceptionOrNull()
@@ -145,8 +146,8 @@ class InstallBlenderTest : BasePlatformTestCase() {
         downloadInvoked = true
         completedDownload(downloadDirectory.resolve("unexpected"))
       },
-      downloadPath = downloadDirectory,
-      installPath = installDirectory,
+      downloadPathOverride = downloadDirectory,
+      installPathOverride = installDirectory,
       platformName = "linux",
     )
 
@@ -158,11 +159,43 @@ class InstallBlenderTest : BasePlatformTestCase() {
 
   fun testCheckForArtifactReturnsNullWhenInstallationDoesNotExist() {
     val installer = InstallBlender(
-      downloadPath = downloadDirectory,
-      installPath = installDirectory,
+      downloadPathOverride = downloadDirectory,
+      installPathOverride = installDirectory,
     )
 
     assertNull(installer.checkForArtifact("4.5").join())
+  }
+
+  fun testConfiguredPathsAreReadForEachOperation() {
+    val config = PluginConfig.getInstance()
+    val originalState = config.state.copy()
+    val firstDownloadDirectory = Files.createTempDirectory("install-blender-first-download-test")
+    val firstInstallDirectory = Files.createTempDirectory("install-blender-first-artifact-test")
+    try {
+      config.loadState(
+        originalState.copy(
+          downloadPath = firstDownloadDirectory.toString(),
+          blenderInstallPath = firstInstallDirectory.toString(),
+        ),
+      )
+      val installer = InstallBlender(platformName = "linux")
+
+      config.setDownloadPath(downloadDirectory.toString())
+      config.setBlenderInstallPath(installDirectory.toString())
+      val archiveName = BlenderVersions.getVersionMeta("4.5")?.getArchiveName()
+        ?.takeIf(String::isNotBlank)
+        ?: error("Expected a supported archive for the current test platform")
+      val expectedArchive = Files.createFile(downloadDirectory.resolve(archiveName))
+      val expectedInstallation = Files.createDirectory(installDirectory.resolve(artifactName()))
+
+      assertEquals(expectedArchive, installer.checkForArchive("4.5"))
+      assertEquals(expectedInstallation, installer.checkForArtifact("4.5").join())
+    }
+    finally {
+      config.loadState(originalState)
+      firstDownloadDirectory.toFile().deleteRecursively()
+      firstInstallDirectory.toFile().deleteRecursively()
+    }
   }
 
   fun testMoveFromTempFlattensWindowsArchiveRoot() {
@@ -170,7 +203,7 @@ class InstallBlenderTest : BasePlatformTestCase() {
     val extractedRoot = Files.createDirectory(tempDirectory.resolve(artifactName))
     Files.writeString(extractedRoot.resolve("blender.exe"), "binary")
     val installer = InstallBlender(
-      installPath = installDirectory,
+      installPathOverride = installDirectory,
       tempPath = tempDirectory,
       platformName = "windows",
     )
@@ -187,7 +220,7 @@ class InstallBlenderTest : BasePlatformTestCase() {
     val extractedRoot = Files.createDirectory(tempDirectory.resolve(artifactName))
     Files.writeString(extractedRoot.resolve("blender"), "binary")
     val installer = InstallBlender(
-      installPath = installDirectory,
+      installPathOverride = installDirectory,
       tempPath = tempDirectory,
       platformName = "linux",
     )
@@ -205,7 +238,7 @@ class InstallBlenderTest : BasePlatformTestCase() {
     Files.writeString(contents.resolve("Blender"), "binary")
     val expectedInstallation = installDirectory.resolve("${artifactName()}.app")
     val installer = InstallBlender(
-      installPath = installDirectory,
+      installPathOverride = installDirectory,
       tempPath = tempDirectory,
       platformName = "macos",
     )
@@ -222,7 +255,7 @@ class InstallBlenderTest : BasePlatformTestCase() {
     val installedArtifact = Files.createDirectory(installDirectory.resolve(artifactName()))
     Files.writeString(installedArtifact.resolve("blender"), "binary")
     val installer = InstallBlender(
-      installPath = installDirectory,
+      installPathOverride = installDirectory,
       platformName = "linux",
     )
 
@@ -232,7 +265,7 @@ class InstallBlenderTest : BasePlatformTestCase() {
 
   fun testDeleteVersionReportsMissingManagedInstallation() {
     val installer = InstallBlender(
-      installPath = installDirectory,
+      installPathOverride = installDirectory,
       platformName = "linux",
     )
 
@@ -243,8 +276,8 @@ class InstallBlenderTest : BasePlatformTestCase() {
     val archive = Files.createFile(downloadDirectory.resolve("blender-test.archive"))
     val installer = InstallBlender(
       artifactDownloader = BlenderArtifactDownloader { _, _, _, _ -> completedDownload(archive) },
-      downloadPath = downloadDirectory,
-      installPath = installDirectory,
+      downloadPathOverride = downloadDirectory,
+      installPathOverride = installDirectory,
       platformName = "unsupported",
     )
 
