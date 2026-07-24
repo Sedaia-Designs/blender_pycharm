@@ -19,6 +19,7 @@ package com.sakurasedaia.blenderdevelopment.state
 
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig.BlenderLogLevel
+import java.nio.file.Path
 
 class ProjectConfigTest : BasePlatformTestCase() {
   override fun runInDispatchThread(): Boolean = false
@@ -69,7 +70,19 @@ class ProjectConfigTest : BasePlatformTestCase() {
     assertFalse(config.getJustMyCode())
     assertEquals("extensions_example", config.getExtensionsRepository())
     assertEquals(envVars, config.getEnvironmentVariables())
-    assertEquals(scriptDirectories, config.getScriptDirectories())
+    assertEquals(
+      scriptDirectories.map { Path.of(project.basePath!!).resolve(it).normalize().toString() },
+      config.getScriptDirectories(),
+    )
+  }
+
+  fun testRelativeBlenderPathResolvesAgainstProjectDirectory() {
+    config.setBlenderPath("tools/blender")
+
+    assertEquals(
+      Path.of(project.basePath!!).resolve("tools/blender").normalize().toString(),
+      config.getBlenderPath(),
+    )
   }
 
   fun testLoadStateFallsBackToInfoForUnknownLogLevel() {

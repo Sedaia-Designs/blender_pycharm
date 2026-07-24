@@ -17,7 +17,9 @@
 
 package com.sakurasedaia.blenderdevelopment.state
 
+import com.intellij.openapi.util.JDOMUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.intellij.util.xmlb.XmlSerializer
 
 class PluginConfigTest : BasePlatformTestCase() {
   override fun runInDispatchThread(): Boolean = false
@@ -70,6 +72,61 @@ class PluginConfigTest : BasePlatformTestCase() {
     assertEquals(installs, config.getDetectedBlenderInstalls())
     assertEquals("4.5", config.getMinimumBlenderVersion())
     assertEquals(env, config.getGlobalEnvironmentVariables())
+  }
+
+  fun testDetectedBlenderInstallsRoundTripThroughXml() {
+    val installs = listOf(
+      PluginConfig.BlendInstallInfo(
+        name = "Blender 4.5.8 (User)",
+        version = "4.5.8",
+        path = "/Applications/Blender.app",
+      ),
+      PluginConfig.BlendInstallInfo(
+        name = "Blender 4.2.12 (Custom)",
+        version = "4.2.12",
+        path = "/opt/blender 4.2",
+      ),
+    )
+    val original = PluginConfig.PluginState(detectedBlender = installs)
+
+    val serialized = XmlSerializer.serialize(original)
+    val xml = JDOMUtil.writeElement(serialized)
+    val restored = XmlSerializer.deserialize(serialized, PluginConfig.PluginState::class.java)
+
+    assertTrue(
+      "Installed Blender details must be persisted as XML attributes; got: $xml",
+      xml.contains("""<BlendInstallInfo name="Blender 4.5.8 (User)" version="4.5.8" path="/Applications/Blender.app" />"""),
+    )
+    assertEquals(installs, restored.detectedBlender)
+  }
+
+  fun testDetectedBlenderInstallCacheOwnsItsValues() {
+    val install = PluginConfig.BlendInstallInfo(
+      name = "Blender 4.5.8 (User)",
+      version = "4.5.8",
+      path = "/Applications/Blender.app",
+    )
+
+    config.setDetectedBlenderInstalls(listOf(install))
+    install.path = "/changed/by/caller"
+    val returnedInstall = config.getDetectedBlenderInstalls().single()
+    returnedInstall.path = "/changed/after/read"
+
+    assertEquals("/Applications/Blender.app", config.getDetectedBlenderInstalls().single().path)
+  }
+
+  fun testLoadStatePublishesDetectedBlenderInstalls() {
+    val installs = listOf(
+      PluginConfig.BlendInstallInfo(
+        name = "Blender 4.5.8 (User)",
+        version = "4.5.8",
+        path = "/Applications/Blender.app",
+      ),
+    )
+
+    config.loadState(PluginConfig.PluginState(detectedBlender = installs))
+
+    assertEquals(installs, config.stateFlow.value.detectedBlenderInstalls)
   }
 
   fun testInvalidPersistedMinimumVersionFallsBackToDefault() {

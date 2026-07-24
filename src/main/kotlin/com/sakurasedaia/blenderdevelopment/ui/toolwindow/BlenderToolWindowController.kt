@@ -75,7 +75,7 @@ internal class BlenderToolWindowController(
   internal fun scanForInstallations() {
     val previousInstallations = pluginConfig.stateFlow.value.detectedBlenderInstalls
     
-    scanInstallations{
+    scanInstallations {
       onInstallationScanCompleted(previousInstallations)
     }
   }

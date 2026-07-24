@@ -28,6 +28,12 @@ These are changes made to the project prior to the next release.
   ensuring consistent state management.
 - Updated all tests according to new changes.
 
+### Fixed
+
+- Fixed discovered Blender installation caching so names, versions, and paths persist across IDE restarts.
+- Fixed Project Blender Manager startup so persisted Blender installations populate without requiring another scan.
+- Fixed relative project Blender executable paths so they resolve against the project directory before being stored.
+
 ### Removed
 
 - Removed the redundant Target Blender Version selector, API stub update action, and persisted target version from Project Blender Manager.

@@ -108,7 +108,7 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
    * @return `Unit`.
    */
   fun setBlenderPath(path: String) {
-    updateState { blenderPath = path }
+    updateState { blenderPath = toAbsoluteProjectPath(path) }
   }
   
   /** Returns the configured Blender executable path for this project. */

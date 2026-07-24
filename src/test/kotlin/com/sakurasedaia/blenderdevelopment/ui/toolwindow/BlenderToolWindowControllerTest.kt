@@ -19,6 +19,8 @@ class BlenderToolWindowControllerTest : BasePlatformTestCase() {
     scope = CoroutineScope(SupervisorJob())
     pluginConfig = PluginConfig.getInstance()
     pluginConfig.loadState(PluginConfig.PluginState())
+    projectConfig = ProjectConfig.getInstance(project)
+    projectConfig.loadState(ProjectConfig.ProjectState())
     view = BlenderToolWindowView(project)
   }
 
@@ -37,6 +39,15 @@ class BlenderToolWindowControllerTest : BasePlatformTestCase() {
     PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
 
     assertEquals("/Applications/Custom Blender.app", view.blenderPath)
+  }
+
+  fun testInitialRenderUsesPersistedDetectedInstallation() {
+    val persistedInstall = install("Blender 4.5", "/Applications/Blender 4.5.app")
+    pluginConfig.loadState(PluginConfig.PluginState(detectedBlender = listOf(persistedInstall)))
+
+    createController()
+
+    assertEquals(persistedInstall.path, view.blenderPath)
   }
 
   fun testScanReplacesRemovedSelectedInstallation() {
@@ -73,15 +84,19 @@ class BlenderToolWindowControllerTest : BasePlatformTestCase() {
   }
 
   private fun createController(
-    initialInstallations: List<PluginConfig.BlendInstallInfo> = emptyList(),
+    initialInstallations: List<PluginConfig.BlendInstallInfo> = pluginConfig.stateFlow.value.detectedBlenderInstalls,
     detectedInstallations: () -> List<PluginConfig.BlendInstallInfo> = { initialInstallations },
   ): BlenderToolWindowController {
+    pluginConfig.setDetectedBlenderInstalls(initialInstallations)
     return BlenderToolWindowController(
       scope = scope,
       view = view,
       projectConfig = projectConfig,
       pluginConfig = pluginConfig,
-      scanInstallations = { onCompleted -> onCompleted() },
+      scanInstallations = { onCompleted ->
+        pluginConfig.setDetectedBlenderInstalls(detectedInstallations())
+        onCompleted()
+      },
       detectedInstallations = detectedInstallations,
       reloadAddon = {},
       logAutosave = {},

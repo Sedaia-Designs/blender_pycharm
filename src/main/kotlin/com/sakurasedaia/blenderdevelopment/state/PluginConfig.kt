@@ -20,6 +20,7 @@ package com.sakurasedaia.blenderdevelopment.state
 import com.intellij.openapi.components.*
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.PathManager
+import com.intellij.util.xmlb.annotations.Attribute
 import com.sakurasedaia.blenderdevelopment.lib.services.ScrapeBlenderVersionLists
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import kotlinx.coroutines.CancellationException
@@ -41,7 +42,11 @@ import kotlin.time.Duration.Companion.milliseconds
 @State(name = "PluginConfig", storages = [Storage("blender_pycharm.config.xml")])
 class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentStateComponent<PluginConfig.PluginState> {
 	/** Descriptor for an installed Blender instance discovered on disk. */
-	data class BlendInstallInfo(val name: String = "", val version: String = "", val path: String = "")
+	data class BlendInstallInfo(
+		@Attribute var name: String = "",
+		@Attribute var version: String = "",
+		@Attribute var path: String = "",
+	)
 
 	/** Time units supported by the automatic Blender version refresh interval. */
 	enum class TimeUnits {
@@ -96,7 +101,7 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
 				clearDownloadsAfterInstall = clearDownloadsAfterInstall,
 				downloadCacheMaxSize = downloadCacheMaxSize,
 				logPath = logPath,
-				detectedBlenderInstalls = detectedBlender.toList(),
+				detectedBlenderInstalls = detectedBlender.map(BlendInstallInfo::copy),
 				minimumBlenderVersion = minimumBlenderVersion
 					.takeIf(::isValidMinorVersion)
 					?: DEFAULT_MINIMUM_BLENDER_VERSION,
@@ -218,10 +223,10 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
 	 * @param installs discovered Blender installations.
 	 */
 	fun setDetectedBlenderInstalls(installs: List<BlendInstallInfo>) {
-		updateState { detectedBlender = installs.toList() }
+		updateState { detectedBlender = installs.map(BlendInstallInfo::copy) }
 	}
 	/** Returns the cached list of discovered Blender installations. */
-	fun getDetectedBlenderInstalls(): List<BlendInstallInfo> = state.detectedBlender
+	fun getDetectedBlenderInstalls(): List<BlendInstallInfo> = state.detectedBlender.map(BlendInstallInfo::copy)
 
 	/**
 	 * Sets the oldest Blender minor release included in online version discovery.
@@ -356,6 +361,7 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
 	 */
 	override fun loadState(state: PluginState) {
 		this.state = state
+		publishState()
 	}
 
 	companion object {

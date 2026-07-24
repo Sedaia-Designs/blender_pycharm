@@ -123,7 +123,7 @@ internal class BlenderToolWindowView(project: Project) {
   private fun createContentPanel(): JComponent = panel {
     group(MessageBundle.message("ui.toolwindow.group.executable.title")) {
       row {
-        comboBox(emptyList<String>())
+        comboBox(detectedBlenderInstalls.map { it.name }.toList())
           .align(AlignX.FILL)
           .applyToComponent {
             availableBlenderInstalls = this
