@@ -2,9 +2,22 @@
 
 # Blender Development for PyCharm Changelog
 
-## [Unreleased] - Unreleased
+## [0.10.0-Snapshot] - 2026-07-23
 
-These are changes made to the project prior to the next release.
+The 0.10.0 snapshot does not add many new features. With the plugin's core feature set largely established in 0.9.0, this
+release instead focuses on refining the underlying configuration systems, improving state consistency, and polishing the
+overall user experience.
+
+Application- and project-level configuration now expose immutable observable snapshots, giving the Project Blender Manager
+a more reliable source of state and ensuring persisted Blender installations are available when a project starts. Blender
+installation discovery and caching were strengthened so detected names, versions, and paths survive IDE restarts, while
+relative executable paths are resolved consistently against the project directory.
+
+The Project Blender Manager was also reorganized to make its most important controls easier to find and understand. Blender
+installation selection is more compact, related launch controls are grouped under `Run and Debug`, and redundant target
+version and repository controls were removed. Alongside these structural changes, 0.10.0 fixes recursive table-editor updates
+and other state synchronization problems that could previously cause stack overflows or leave the UI out of step with saved
+configuration.
 
 ### Added
 
@@ -27,6 +40,7 @@ These are changes made to the project prior to the next release.
 
 - Fixed stack overflows when editing environment variables or browsing for a script directory.
 - Fixed discovered Blender installation caching so names, versions, and paths persist across IDE restarts.
+- Fixed managed Blender installation and download paths so Settings changes take effect without restarting the IDE.
 - Fixed Project Blender Manager startup so persisted Blender installations populate without requiring another scan.
 - Fixed relative project Blender executable paths so they resolve against the project directory before being stored.
 
@@ -36,6 +50,16 @@ These are changes made to the project prior to the next release.
   available for internal runtime use.
 - Removed the redundant Target Blender Version selector, API stub update action, and persisted target-version setting from
   Project Blender Manager.
+
+### Known Issues
+
+- This remains a pre-release and is not production-hardened.
+- Managed Blender installations do not yet support in-place version updates.
+- Managed Blender downloads do not yet enforce automatic cleanup or cache-size limits.
+- Managed Blender archives are not verified against published checksums before extraction.
+- Managed Blender extraction uses a shared staging directory and is not isolated against concurrent or stale extractions.
+- Live Blender integration and platform-specific archive extraction are not covered by the automated JVM and Python test
+  suites.
 
 ## [0.9.0-Snapshot] - 2026-07-22
 

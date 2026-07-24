@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "com.sakurasedaia"
-version = "0.10.0-INDEV"
+version = "0.10.0-SNAPSHOT"
 
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html
 dependencies {
@@ -46,12 +46,12 @@ intellijPlatform {
         }
         
         changeNotes = """
-            <h3>0.9.0-Snapshot</h3>
+            <h3>0.10.0-Snapshot</h3>
             <ul>
-              <li>Adds online Blender release discovery with persistent caching and scheduled refreshes.</li>
-              <li>Adds managed Blender installation and removal from the plugin settings.</li>
-              <li>Improves host artifact validation and live Blender version status updates.</li>
-              <li>Fixes vertical scrolling in the plugin settings.</li>
+              <li>Refines Project Blender Manager around synchronized application and project state.</li>
+              <li>Restores cached Blender installations when a project opens.</li>
+              <li>Simplifies executable, source, and launch controls.</li>
+              <li>Fixes recursive table edits and applies managed installation path changes without restarting the IDE.</li>
             </ul>
             <p>This is a pre-release snapshot and is not production-hardened.</p>
         """.trimIndent()
