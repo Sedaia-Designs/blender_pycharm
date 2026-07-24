@@ -4,9 +4,23 @@
 [![License](https://img.shields.io/badge/License-GPL--3.0--or--later-blue.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/status-pre--release-orange)](CHANGELOG.md)
 
-Blender Development is a pre-release PyCharm plugin for creating, configuring, running, and debugging Blender add-ons and extensions. It provides Blender project templates, installation discovery, project settings, version-matched API stubs, and Blender run/debug integration.
+Blender Development is a pre-release PyCharm plugin for creating, configuring, running, and debugging Blender add-ons and
+extensions. It provides Blender project templates, installation discovery and management, project-scoped launch settings,
+version-matched API stubs, and Blender run/debug integration.
 
 The plugin currently targets PyCharm 2026.1 or newer and Blender 4.2 or newer.
+
+## Key capabilities
+
+- Create add-on and extension projects through PyCharm's native Python environment workflow.
+- Discover existing Blender installations or install and remove host-compatible versions from plugin Settings.
+- Configure the active Blender installation, source folder, add-on symlink name, launch arguments, environment variables,
+  and debugger preferences in **Project Blender Manager**.
+- Install version-matched Blender API stubs during project creation.
+- Run Blender from PyCharm or attach the debugger for reload-on-save, script execution, add-on reload, and stop commands.
+
+The 0.10.0 development cycle primarily refines state synchronization and the Project Blender Manager experience rather than
+adding a large set of new features. See the [changelog](CHANGELOG.md) for the complete release delta and current limitations.
 
 ## Documentation
 

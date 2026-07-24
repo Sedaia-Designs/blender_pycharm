@@ -5,16 +5,16 @@
 
     <!-- Public plugin name should be written in Title Case.
      Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-name -->
-    <name>Blender Python Development</name>
+    <name>Blender Development</name>
 
     <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
-    <vendor url="https://www.sakura-sedaia.com" email="sakusedaia@outlook.com">Sakura Sedaia</vendor>
+    <vendor url="https://sakura-sedaia.com" email="sakusedaia@outlook.com">Sakura Sedaia</vendor>
     <resource-bundle>messages.MessageBundle</resource-bundle>
 
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-description -->
     <description><![CDATA[
-        <h1>Blender Python Development for PyCharm</h1>
+        <h1>Blender Development for PyCharm</h1>
         <p>Create, configure, run, and debug Blender 4.2+ add-ons and extensions from PyCharm.</p>
 
         <h3>Key capabilities</h3>
@@ -22,8 +22,8 @@
             <li>Create add-on and extension projects with a source root, project metadata, Blender manifest, and optional example code.</li>
             <li>Use PyCharm's native Python environment workflow with virtual environments, optional uv environments, or existing interpreters.</li>
             <li>Install version-matched Blender API stubs into the project interpreter.</li>
-            <li>Discover existing Blender installations on Windows, macOS, and Linux.</li>
-            <li>Configure the Blender executable, target version, source folder, module name, launch arguments, environment variables, and reload preferences per project.</li>
+            <li>Discover existing Blender installations on Windows, macOS, and Linux, or install and remove compatible versions from plugin Settings.</li>
+            <li>Configure the Blender executable, source folder, add-on symlink name, launch arguments, environment variables, and reload preferences per project.</li>
             <li>Launch Blender with a dedicated run configuration and refresh the configured add-on or extension.</li>
             <li>Debug inside Blender through PyCharm with debugger attachment, reload-on-save, script execution, add-on reload, and stop commands.</li>
         </ul>
