@@ -25,11 +25,13 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.dsl.builder.AlignX
+import com.intellij.ui.dsl.builder.RightGap
 import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig.BlenderLogLevel
+import com.sakurasedaia.blenderdevelopment.ui.IconBundle
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.ui.components.EnvironmentVariablesTable
 import com.sakurasedaia.blenderdevelopment.ui.components.ScriptDirectoriesTable
@@ -55,7 +57,6 @@ internal class BlenderToolWindowView(project: Project) {
   var onBlenderLogLevelChanged: (BlenderLogLevel) -> Unit = {}
   var onReloadOnSaveChanged: (Boolean) -> Unit = {}
   var onJustMyCodeChanged: (Boolean) -> Unit = {}
-  var onExtensionsRepositoryChanged: (String) -> Unit = {}
   var onEnvironmentVariablesChanged: (Map<String, String>) -> Unit = {}
   var onScriptDirectoriesChanged: (List<String>) -> Unit = {}
   var onReloadRequested: () -> Unit = {}
@@ -74,7 +75,6 @@ internal class BlenderToolWindowView(project: Project) {
   private lateinit var blenderLogLevelCombo: JComboBox<String>
   private lateinit var reloadOnSaveCheckBox: JCheckBox
   private lateinit var justMyCodeCheckBox: JCheckBox
-  private lateinit var extensionsRepositoryField: JTextField
   private lateinit var useCustomBlenderInstall: JCheckBox
   private lateinit var availableBlenderInstalls: JComboBox<String>
 
@@ -109,7 +109,6 @@ internal class BlenderToolWindowView(project: Project) {
       selectBlenderLogLevel(state.blenderLogLevel)
       reloadOnSaveCheckBox.isSelected = state.reloadOnSave
       justMyCodeCheckBox.isSelected = state.justMyCode
-      extensionsRepositoryField.text = state.extensionsRepository
       environmentVariablesTable.setVariables(state.environmentVariables)
       scriptDirectoriesTable.setDirectories(state.scriptDirectories)
       detectedBlenderInstalls = state.detectedBlenderInstalls
@@ -125,13 +124,22 @@ internal class BlenderToolWindowView(project: Project) {
       row {
         comboBox(detectedBlenderInstalls.map { it.name }.toList())
           .align(AlignX.FILL)
+          .resizableColumn()
           .applyToComponent {
             availableBlenderInstalls = this
             addActionListener {
               syncBlenderPathFromInstallSelection()
               emitBlenderPath()
             }
-          }
+          }.gap(RightGap.SMALL)
+        button("") {
+          onScanInstallationsRequested()
+        }.applyToComponent {
+          icon = IconBundle.Refresh
+          toolTipText = MessageBundle.message("ui.toolwindow.group.executable.scan-for-install")
+          accessibleContext.accessibleName =
+            MessageBundle.message("ui.toolwindow.group.executable.scan-for-install")
+        }
       }.visibleIf(useCustomBlenderInstallProperty.equalsTo(false))
       row {
         textFieldWithBrowseButton(fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileOrFolderDescriptor())
@@ -151,13 +159,10 @@ internal class BlenderToolWindowView(project: Project) {
               emitBlenderPath()
             }
           }
-        button(MessageBundle.message("ui.toolwindow.group.executable.scan-for-install")) {
-          onScanInstallationsRequested()
-        }
       }
     }
 
-    group(MessageBundle.message("ui.toolwindow.group.project.title")) {
+    group(MessageBundle.message("ui.toolwindow.group.run-and-debug.title")) {
       row(MessageBundle.message("ui.toolwindow.group.environment.addon-symlink-name")) {
         textField()
           .align(AlignX.FILL)
@@ -179,21 +184,6 @@ internal class BlenderToolWindowView(project: Project) {
             addDocumentListener(this) { emit { onSourceFolderChanged(text) } }
           }
       }
-      row(MessageBundle.message("ui.toolwindow.group.environment.extensions-repository")) {
-        textField()
-          .align(AlignX.FILL)
-          .validationOnInput {
-            if (PythonModuleNameValidator.isValid(it.text.trim())) null
-            else error(MessageBundle.message("ui.common.python.module.name.validation"))
-          }
-          .applyToComponent {
-            extensionsRepositoryField = this
-            addDocumentListener(this) { emit { onExtensionsRepositoryChanged(text) } }
-          }
-      }
-    }
-
-    group(MessageBundle.message("ui.toolwindow.group.run-and-debug.title")) {
       row(MessageBundle.message("ui.toolwindow.group.environment.run-arguments")) {
         textField()
           .align(AlignX.FILL)

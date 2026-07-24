@@ -17,6 +17,9 @@ These are changes made to the project prior to the next release.
 
 ### Changed
 
+- Compacted Blender installation selection into a full-width combo box with a right-aligned, icon-only refresh action, and
+  consolidated the add-on name, source folder, and launch controls under Run and Debug. Installation discovery, cached
+  selection, custom executable paths, and scan behavior remain unchanged.
 - Reorganized Project Blender Manager into separate View, controller, and immutable UI-state components while preserving
   autosave, validation, installation scanning, custom executable selection, and runtime reload behavior.
 - Bound Project Blender Manager state collection to the tool-window content lifecycle and rendered observable state on the
@@ -39,6 +42,9 @@ These are changes made to the project prior to the next release.
 
 ### Removed
 
+- Removed only the editable extension repository field and its Tool Window callback/projection. The
+  `ProjectConfig.ProjectState.extensionsRepository` default, persistence, getter/setter, snapshots, and `BlenderLauncher`
+  environment/template usage remain unchanged, so it continues to provide the internal runtime repository name.
 - Removed the redundant Target Blender Version selector, API stub update action, and persisted target version from Project Blender Manager.
 
 ## [0.9.0-Snapshot] - 2026-07-22

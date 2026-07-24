@@ -29,7 +29,6 @@ internal data class BlenderToolWindowState(
   val blenderLogLevel: BlenderLogLevel,
   val reloadOnSave: Boolean,
   val justMyCode: Boolean,
-  val extensionsRepository: String,
   val environmentVariables: Map<String, String>,
   val scriptDirectories: List<String>,
 )

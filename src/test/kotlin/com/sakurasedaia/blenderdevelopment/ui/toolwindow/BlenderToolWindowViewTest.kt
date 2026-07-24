@@ -17,7 +17,6 @@ class BlenderToolWindowViewTest : BasePlatformTestCase() {
     view.onBlenderLogLevelChanged = { changeCount++ }
     view.onReloadOnSaveChanged = { changeCount++ }
     view.onJustMyCodeChanged = { changeCount++ }
-    view.onExtensionsRepositoryChanged = { changeCount++ }
     view.onEnvironmentVariablesChanged = { changeCount++ }
     view.onScriptDirectoriesChanged = { changeCount++ }
 
@@ -64,7 +63,6 @@ class BlenderToolWindowViewTest : BasePlatformTestCase() {
       blenderLogLevel = BlenderLogLevel.DEBUG,
       reloadOnSave = true,
       justMyCode = true,
-      extensionsRepository = "extensions",
       environmentVariables = mapOf("EXAMPLE" to "value"),
       scriptDirectories = listOf("/project/scripts"),
     )

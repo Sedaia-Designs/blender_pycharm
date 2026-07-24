@@ -61,7 +61,6 @@ internal class BlenderToolWindowController(
     view.onBlenderLogLevelChanged = { save("blenderLogLevel") { projectConfig.setBlenderLogLevel(it) } }
     view.onReloadOnSaveChanged = { save("reloadOnSave") { projectConfig.setReloadOnSave(it) } }
     view.onJustMyCodeChanged = { save("justMyCode") { projectConfig.setJustMyCode(it) } }
-    view.onExtensionsRepositoryChanged = ::saveExtensionsRepository
     view.onEnvironmentVariablesChanged = {
       save("environmentVariables") { projectConfig.setEnvironmentVariables(it) }
     }
@@ -104,14 +103,6 @@ internal class BlenderToolWindowController(
     }
   }
 
-  private fun saveExtensionsRepository(candidate: String) {
-    val normalizedCandidate = candidate.trim()
-    if (!PythonModuleNameValidator.isValid(normalizedCandidate)) return
-    save("extensionsRepository") {
-      projectConfig.setExtensionsRepository(normalizedCandidate)
-    }
-  }
-
   private fun save(fieldName: String, update: () -> Unit) {
     update()
     logAutosave(fieldName)
@@ -130,7 +121,6 @@ internal class BlenderToolWindowController(
       blenderLogLevel = projectState.blenderLogLevel,
       reloadOnSave = projectState.reloadOnSave,
       justMyCode = projectState.justMyCode,
-      extensionsRepository = projectState.extensionsRepository,
       environmentVariables = projectState.environmentVariables,
       scriptDirectories = projectState.scriptDirectories.orEmpty(),
     )
