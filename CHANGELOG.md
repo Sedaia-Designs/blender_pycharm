@@ -8,44 +8,34 @@ These are changes made to the project prior to the next release.
 
 ### Added
 
-- New `installLocation` Map parameter to `BlenderVersions.kt`
-- New `InstallType` data class feeds into the `installLocation` map.
-- Added immutable `ProjectConfig.ProjectSnapshot` values and a read-only `StateFlow` so project configuration changes and
-  persisted-state loading are observable without exposing the mutable persistence object.
-- Added immutable `PluginConfig.PluginSnapshot` values and a read-only `StateFlow` so plugin configuration changes and
-  persisted-state loading are observable without exposing the mutable persistence object.
+- Added installation-location metadata to Blender compatibility entries, keyed by whether Blender was installed by the user
+  or managed by PyCharm.
+- Added read-only observable snapshots for application- and project-level configuration.
 
 ### Changed
 
-- Compacted Blender installation selection into a full-width combo box with a right-aligned, icon-only refresh action, and
-  consolidated the add-on name, source folder, and launch controls under Run and Debug. Installation discovery, cached
-  selection, custom executable paths, and scan behavior remain unchanged.
-- Reorganized Project Blender Manager into separate View, controller, and immutable UI-state components while preserving
-  autosave, validation, installation scanning, custom executable selection, and runtime reload behavior.
-- Bound Project Blender Manager state collection to the tool-window content lifecycle and rendered observable state on the
-  Swing event dispatch thread.
-- Deprecated the `mergeDiscoveredVersions` function, until the Tool-window and Settings pane are updated.
-- Renamed the `blender` and `python` parameters in `BlenderVersions.kt` to `blVersionList` and `pyVersionList`, removed
-  dedicated methods and made parameters public.
-- All state setters in `PluginState` and `ProjectState` updated to use the new `updateState` inline function, 
-  ensuring consistent state management.
-- Updated all tests according to new changes.
+- Compacted the Blender installation selector into a full-width combo box with a right-aligned, icon-only refresh action.
+- Consolidated the add-on name, source folder, and launch controls under `Run and Debug`.
+- Reworked Project Blender Manager around immutable configuration-driven UI state with tool-window-scoped observation.
+- Exposed Blender and Python version component lists directly on `BlenderVersion` as `blVersionList` and `pyVersionList`.
+
+### Deprecated
+
+- Deprecated `BlenderVersions.mergeDiscoveredVersions` pending replacement by UI-specific version handling.
 
 ### Fixed
 
-- Fixed environment-variable and script-directory table listeners so they emit read-only model snapshots instead of
-  recursively committing an active cell editor, preventing stack overflows during text edits and script-directory browsing.
-  Existing add/remove actions, committed values, Tool Window autosave, and persisted project configuration remain unchanged.
+- Fixed stack overflows when editing environment variables or browsing for a script directory.
 - Fixed discovered Blender installation caching so names, versions, and paths persist across IDE restarts.
 - Fixed Project Blender Manager startup so persisted Blender installations populate without requiring another scan.
 - Fixed relative project Blender executable paths so they resolve against the project directory before being stored.
 
 ### Removed
 
-- Removed only the editable extension repository field and its Tool Window callback/projection. The
-  `ProjectConfig.ProjectState.extensionsRepository` default, persistence, getter/setter, snapshots, and `BlenderLauncher`
-  environment/template usage remain unchanged, so it continues to provide the internal runtime repository name.
-- Removed the redundant Target Blender Version selector, API stub update action, and persisted target version from Project Blender Manager.
+- Removed the editable extension repository field from Project Blender Manager. The persisted repository name remains
+  available for internal runtime use.
+- Removed the redundant Target Blender Version selector, API stub update action, and persisted target-version setting from
+  Project Blender Manager.
 
 ## [0.9.0-Snapshot] - 2026-07-22
 

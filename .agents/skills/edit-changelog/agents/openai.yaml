@@ -1,0 +1,4 @@
+interface:
+  display_name: "Edit Changelog"
+  short_description: "Curate release deltas without noisy entries"
+  default_prompt: "Use $edit-changelog to update CHANGELOG.md from the changes since the latest released version."
