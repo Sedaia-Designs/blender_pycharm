@@ -41,7 +41,7 @@ internal class EnvironmentVariablesTable {
         fillsViewportHeight = true
     }
     private var isApplyingState = false
-    private var onChange: (() -> Unit)? = null
+    private var onChange: ((Map<String, String>) -> Unit)? = null
 
     private val root: JComponent = ToolbarDecorator.createDecorator(table)
         .setAddAction {
@@ -71,15 +71,15 @@ internal class EnvironmentVariablesTable {
         .createPanel()
         .also {
             model.addTableModelListener {
-              if (! isApplyingState) {
-                onChange?.invoke()
-              }
+                if (!isApplyingState) {
+                    onChange?.invoke(readVariables())
+                }
             }
         }
 
     fun component(): JComponent = root
 
-    fun setOnChangeListener(listener: () -> Unit) {
+    fun setOnChangeListener(listener: (Map<String, String>) -> Unit) {
         onChange = listener
     }
 
@@ -97,6 +97,10 @@ internal class EnvironmentVariablesTable {
             table.cellEditor?.stopCellEditing()
         }
 
+        return readVariables()
+    }
+
+    private fun readVariables(): Map<String, String> {
         val variables = linkedMapOf<String, String>()
         for (row in 0 until model.rowCount) {
             val key = model.getValueAt(row, 0)?.toString()?.trim().orEmpty()

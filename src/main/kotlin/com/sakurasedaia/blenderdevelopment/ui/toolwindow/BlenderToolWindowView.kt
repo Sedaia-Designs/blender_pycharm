@@ -92,11 +92,11 @@ internal class BlenderToolWindowView(project: Project) {
       border = JBUI.Borders.empty()
       viewportBorder = JBUI.Borders.empty()
     }
-    environmentVariablesTable.setOnChangeListener {
-      emit { onEnvironmentVariablesChanged(environmentVariablesTable.getVariables()) }
+    environmentVariablesTable.setOnChangeListener { variables ->
+      emit { onEnvironmentVariablesChanged(variables) }
     }
-    scriptDirectoriesTable.setOnChangeListener {
-      emit { onScriptDirectoriesChanged(scriptDirectoriesTable.getDirectories()) }
+    scriptDirectoriesTable.setOnChangeListener { directories ->
+      emit { onScriptDirectoriesChanged(directories) }
     }
   }
 

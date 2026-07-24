@@ -59,7 +59,7 @@ internal class ScriptDirectoriesTable(private val project: Project) {
         fillsViewportHeight = true
     }
     private var isApplyingState = false
-    private var onChange: (() -> Unit)? = null
+    private var onChange: ((List<String>) -> Unit)? = null
 
     private val browseButtonRenderer = TableCellRenderer { _, _, _, _, _, _ ->
         JButton(browseLabel)
@@ -156,14 +156,14 @@ internal class ScriptDirectoriesTable(private val project: Project) {
 
             model.addTableModelListener(TableModelListener {
                 if (!isApplyingState) {
-                    onChange?.invoke()
+                    onChange?.invoke(readDirectories())
                 }
             })
         }
 
     fun component(): JComponent = root
 
-    fun setOnChangeListener(listener: () -> Unit) {
+    fun setOnChangeListener(listener: (List<String>) -> Unit) {
         onChange = listener
     }
 
@@ -181,6 +181,10 @@ internal class ScriptDirectoriesTable(private val project: Project) {
             table.cellEditor?.stopCellEditing()
         }
 
+        return readDirectories()
+    }
+
+    private fun readDirectories(): List<String> {
         return (0 until model.rowCount)
             .map { row -> model.getValueAt(row, PATH_COLUMN_INDEX)?.toString()?.trim().orEmpty() }
             .filter { it.isNotEmpty() }

@@ -32,6 +32,8 @@ These are changes made to the project prior to the next release.
 
 - Fixed discovered Blender installation caching so names, versions, and paths persist across IDE restarts.
 - Fixed Project Blender Manager startup so persisted Blender installations populate without requiring another scan.
+- Fixed recursive table-editor commits that caused stack overflows when editing environment variables or browsing for script
+  directories.
 - Fixed relative project Blender executable paths so they resolve against the project directory before being stored.
 
 ### Removed
