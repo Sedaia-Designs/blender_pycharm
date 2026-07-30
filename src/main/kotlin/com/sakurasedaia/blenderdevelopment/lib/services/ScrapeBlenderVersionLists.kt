@@ -4,7 +4,6 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.util.io.HttpRequests
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersion
-import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
 import com.sakurasedaia.blenderdevelopment.state.BlenderVersionCache
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import kotlinx.coroutines.Dispatchers

@@ -29,6 +29,7 @@ import com.intellij.execution.process.ProcessTerminatedListener
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.util.execution.ParametersListUtil
+import com.jetbrains.rd.util.UsedImplicitly
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
@@ -103,6 +104,7 @@ internal class Launcher(private val project: Project) {
    *
    * @param args Arguments to launch Blender from
    */
+  @UsedImplicitly
   fun startProcess(args: BlenderArguments) {
     logger.log(MessageBundle.message("notification.blender.launching"))
     try {

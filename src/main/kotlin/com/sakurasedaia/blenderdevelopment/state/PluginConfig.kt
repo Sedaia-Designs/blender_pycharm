@@ -117,7 +117,7 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
 	/** Immutable observable Blender release refresh schedule. */
 	data class BlenderUpdateCheckSnapshot(
 		val interval: Int,
-		val intervalType: PluginConfig.TimeUnits,
+		val intervalType: TimeUnits,
 		val lastCheckedEpochMillis: Long
 	)
 	
@@ -129,7 +129,7 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
 		val clearDownloadsAfterInstall: Boolean,
 		val downloadCacheMaxSize: Int,
 		val logPath: String,
-		val detectedBlenderInstalls: List<PluginConfig.BlendInstallInfo>,
+		val detectedBlenderInstalls: List<BlendInstallInfo>,
 		val minimumBlenderVersion: String = "4.2", // Local only, not shown to UI
 		val globalEnvironmentVariables: Map<String, String>,
 		val blenderUpdateCheck: BlenderUpdateCheckSnapshot,

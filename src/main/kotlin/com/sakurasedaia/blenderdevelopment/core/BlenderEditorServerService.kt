@@ -58,7 +58,7 @@ internal data class BlenderSetupPayload(
 )
 
 @Service(Service.Level.PROJECT)
-internal class BlenderEditorServerService(private val project: Project) : Disposable {
+internal class BlenderEditorServerService(project: Project) : Disposable {
   private val logger = PluginLogger.getInstance(project)
   private val notifications = NotificationModal.getInstance(project)
   private val objectMapper = ObjectMapper()

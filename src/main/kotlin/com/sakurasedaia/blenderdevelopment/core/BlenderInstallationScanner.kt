@@ -36,7 +36,7 @@ import kotlin.io.path.listDirectoryEntries
 /** Project service that discovers Blender installations and updates plugin cache state. */
 @Service(Service.Level.PROJECT)
 class BlenderInstallationScanner(val project: Project) {
-  val logger = PluginLogger.Companion.getInstance(project)
+  val logger = PluginLogger.getInstance(project)
   private val notification = NotificationModal.getInstance(project)
 
   private data class ScanDiagnostics(

@@ -15,25 +15,21 @@ import com.sakurasedaia.blenderdevelopment.util.currentProject
 /** Handles user-initiated Blender installation scanning from plugin settings. */
 @Service(Service.Level.APP)
 class SettingsInstallationScanService {
-    fun scanInstallations() {
-        scanInstallations(projectOverride = null, onComplete = null)
-    }
-
     fun scanInstallations(
         projectOverride: Project? = null,
         onComplete: ((List<PluginConfig.BlendInstallInfo>) -> Unit)? = null,
     ) {
         val project = projectOverride?.takeIf { !it.isDisposed }
             ?: currentProject()
-        val logger = PluginLogger.Companion.getInstance(project)
-        val notifications = NotificationModal.Companion.getInstance(project)
+        val logger = PluginLogger.getInstance(project)
+        val notifications = NotificationModal.getInstance(project)
         val completionModalityState = ModalityState.defaultModalityState()
 
         ApplicationManager.getApplication().executeOnPooledThread {
             if (project.isDisposed) return@executeOnPooledThread
             try {
                 logger.log("Starting user-initiated Blender installation scan from settings.")
-                val pluginConfig = PluginConfig.Companion.getInstance()
+                val pluginConfig = PluginConfig.getInstance()
                 project.getService(BlenderInstallationScanner::class.java).refreshInstalledVersionsCache()
                 val installs = pluginConfig.getDetectedBlenderInstalls()
                 logger.log("Blender installation scan completed with ${installs.size} result(s).")

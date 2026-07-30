@@ -45,7 +45,7 @@ import kotlin.io.path.exists
  * File I/O is dispatched to a pooled thread and serialized to avoid interleaving and to keep the EDT responsive.
  */
 @Service(Service.Level.PROJECT)
-class PluginLogger(private val project: Project) {
+class PluginLogger(project: Project) {
     private val platformLogger = Logger.getInstance(PluginLogger::class.java)
     private val defaultLogDir: Path = Path.of(PathManager.getLogPath()).resolve("BlenderExtensions")
     private val writeLock = Any()

@@ -325,6 +325,7 @@ internal class InstallBlender(
   /**
    * Used to update a Blender version via a very specific sequence and ensures a smooth update transition.
    */
+  @Suppress("unused")
   fun updateVersion() {
     // TODO: This function will perform a sequenced operation with checks to update a selected MajorMinor to the latest blender version.
   }

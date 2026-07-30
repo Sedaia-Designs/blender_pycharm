@@ -47,7 +47,6 @@ class BlenderToolWindowContent(
       projectConfig = ProjectConfig.getInstance(project),
       pluginConfig = pluginConfig,
       scanInstallations = onScanInstallations,
-      detectedInstallations = pluginConfig::getDetectedBlenderInstalls,
       reloadAddon = BlenderRuntimeCommandService.getInstance(project)::sendReloadCommand,
       logAutosave = { fieldName ->
         logger.debug("Autosaved `$fieldName` from Blender tool window.")

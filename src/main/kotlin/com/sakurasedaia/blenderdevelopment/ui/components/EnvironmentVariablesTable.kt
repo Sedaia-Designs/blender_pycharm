@@ -23,7 +23,6 @@ import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import java.awt.Dimension
 import javax.swing.JComponent
 import javax.swing.table.DefaultTableModel
-import javax.swing.event.TableModelListener
 
 /** Table-based editor for key/value environment variables. */
 internal class EnvironmentVariablesTable {

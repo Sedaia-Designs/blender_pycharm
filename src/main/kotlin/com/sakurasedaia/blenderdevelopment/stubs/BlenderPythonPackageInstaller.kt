@@ -72,7 +72,7 @@ class PyCharmBlenderPythonPackageInstaller : BlenderPythonPackageInstaller {
         MessageBundle.message("notification.blender.stubs.package.not-found", requirement),
       )
     val request = PythonPackageInstallRequest.ByRepositoryPythonPackageSpecifications(listOf(specification))
-    return manager.installPackageDetached(request).mapSuccess { Unit }
+    return manager.installPackageDetached(request).mapSuccess {}
   }
 
   /** Removes the requirement from the SDK when present. */
@@ -89,6 +89,6 @@ class PyCharmBlenderPythonPackageInstaller : BlenderPythonPackageInstaller {
     }
     if (!isInstalled) return Result.success(Unit)
 
-    return manager.uninstallPackage(requirement).mapSuccess { Unit }
+    return manager.uninstallPackage(requirement).mapSuccess {}
   }
 }

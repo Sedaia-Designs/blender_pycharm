@@ -27,12 +27,11 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 internal class BlenderToolWindowController(
-  private val scope: CoroutineScope,
+  scope: CoroutineScope,
   private val view: BlenderToolWindowView,
   private val projectConfig: ProjectConfig,
   private val pluginConfig: PluginConfig,
   private val scanInstallations: (onCompleted: () -> Unit) -> Unit,
-  private val detectedInstallations: () -> List<PluginConfig.BlendInstallInfo>,
   private val reloadAddon: () -> Unit,
   private val logAutosave: (String) -> Unit,
 ) {

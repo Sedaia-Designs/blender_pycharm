@@ -97,7 +97,6 @@ class BlenderToolWindowControllerTest : BasePlatformTestCase() {
         pluginConfig.setDetectedBlenderInstalls(detectedInstallations())
         onCompleted()
       },
-      detectedInstallations = detectedInstallations,
       reloadAddon = {},
       logAutosave = {},
     )

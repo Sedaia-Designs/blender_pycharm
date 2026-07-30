@@ -30,7 +30,6 @@ import javax.swing.AbstractCellEditor
 import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.JTable
-import javax.swing.event.TableModelListener
 import javax.swing.table.DefaultTableCellRenderer
 import javax.swing.table.DefaultTableModel
 import javax.swing.table.TableCellEditor
@@ -154,11 +153,11 @@ internal class ScriptDirectoriesTable(private val project: Project) {
                 }
             }
 
-            model.addTableModelListener(TableModelListener {
-                if (!isApplyingState) {
-                    onChange?.invoke(readDirectories())
-                }
-            })
+            model.addTableModelListener {
+              if (!isApplyingState) {
+                onChange?.invoke(readDirectories())
+              }
+            }
         }
 
     fun component(): JComponent = root
