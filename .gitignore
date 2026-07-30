@@ -5,6 +5,9 @@ build
 !**/src/test/**/build/
 .kotlin
 
+### LOCAL SECRETS ###
+.env
+
 ### IntelliJ IDEA ###
 .idea
 .intellijPlatform
