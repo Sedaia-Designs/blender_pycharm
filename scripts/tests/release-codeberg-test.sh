@@ -34,6 +34,12 @@ cat > "$test_tmpdir/CHANGELOG.md" <<'EOF'
 
 ## [Unreleased]
 
+## [1.2.3-beta.4]
+
+### Added
+
+- Expected beta release note.
+
 ## [1.2.3-Snapshot] - 2026-01-02
 
 ### Added
@@ -51,6 +57,25 @@ assert_equals '1.2.3-SNAPSHOT' \
 assert_equals '1.2.3-Snapshot' \
   "$(release_version_from_gradle_version '1.2.3-SNAPSHOT')" \
   'Snapshot release-version normalization'
+assert_equals '1.2.3-alpha.1' \
+  "$(release_version_from_gradle_version '1.2.3-alpha.1')" \
+  'Alpha release-version preservation'
+assert_equals '1.2.3-beta.4' \
+  "$(release_version_from_gradle_version '1.2.3-beta.4')" \
+  'Beta release-version preservation'
+assert_equals '1.2.3-rc.0' \
+  "$(release_version_from_gradle_version '1.2.3-rc.0')" \
+  'Release-candidate version preservation'
+
+beta_release_notes="$(extract_release_notes "$test_tmpdir/CHANGELOG.md" '1.2.3-beta.4')"
+if ! printf '%s\n' "$beta_release_notes" | grep -q 'Expected beta release note'; then
+  printf 'FAIL: matching beta changelog section was not extracted.\n' >&2
+  exit 1
+fi
+if printf '%s\n' "$beta_release_notes" | grep -q 'Expected release note'; then
+  printf 'FAIL: beta changelog extraction included the following release.\n' >&2
+  exit 1
+fi
 
 release_notes="$(extract_release_notes "$test_tmpdir/CHANGELOG.md" '1.2.3-Snapshot')"
 if ! printf '%s\n' "$release_notes" | grep -q 'Expected release note'; then
@@ -62,9 +87,22 @@ if printf '%s\n' "$release_notes" | grep -q 'Older release note'; then
   exit 1
 fi
 if release_version_from_gradle_version '1.2.3' >/dev/null 2>&1; then
-  printf 'FAIL: stable version was accepted by the snapshot release script.\n' >&2
+  printf 'FAIL: stable version was accepted by the pre-release script.\n' >&2
   exit 1
 fi
+for invalid_version in \
+  '1.2.3-BETA' \
+  '1.2.3-beta' \
+  '1.2.3-beta.01' \
+  '01.2.3-beta.1' \
+  '1.2-beta.1' \
+  'release-SNAPSHOT' \
+  '1.2.3-preview.1'; do
+  if release_version_from_gradle_version "$invalid_version" >/dev/null 2>&1; then
+    printf 'FAIL: invalid pre-release version was accepted: %s\n' "$invalid_version" >&2
+    exit 1
+  fi
+done
 
 printf '%s\n' \
   'version = "1.2.3-SNAPSHOT"' \

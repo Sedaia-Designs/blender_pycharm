@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Publishes the snapshot version declared in build.gradle.kts as a Codeberg pre-release.
+# Publishes the supported pre-release version declared in build.gradle.kts as a Codeberg pre-release.
 
 release_error() {
   printf 'Error: %s\n' "$*" >&2
@@ -36,16 +36,20 @@ read_gradle_version() {
 
 release_version_from_gradle_version() {
   local gradle_version="$1"
+  local semver_number='(0|[1-9][0-9]*)'
 
-  case "$gradle_version" in
-    *-SNAPSHOT)
-      printf '%s-Snapshot\n' "${gradle_version%-SNAPSHOT}"
-      ;;
-    *)
-      release_error "Only -SNAPSHOT versions can be published with this script: $gradle_version"
-      return 1
-      ;;
-  esac
+  if [[ "$gradle_version" =~ ^${semver_number}\.${semver_number}\.${semver_number}-SNAPSHOT$ ]]; then
+    printf '%s-Snapshot\n' "${gradle_version%-SNAPSHOT}"
+    return
+  fi
+
+  if [[ "$gradle_version" =~ ^${semver_number}\.${semver_number}\.${semver_number}-(alpha|beta|rc)\.${semver_number}$ ]]; then
+    printf '%s\n' "$gradle_version"
+    return
+  fi
+
+  release_error "Expected X.Y.Z-SNAPSHOT or X.Y.Z-(alpha|beta|rc).N pre-release version: $gradle_version"
+  return 1
 }
 
 extract_release_notes() {
@@ -64,8 +68,9 @@ usage() {
   cat <<'EOF'
 Usage: scripts/release-codeberg.sh [--check] [--skip-build]
 
-Publishes the -SNAPSHOT version declared in build.gradle.kts as an idempotent
-Codeberg pre-release and uploads its Gradle distribution ZIP.
+Publishes the supported pre-release version declared in build.gradle.kts as an
+idempotent Codeberg pre-release and uploads its Gradle distribution ZIP. Accepted
+versions are X.Y.Z-SNAPSHOT and ordinal SemVer pre-releases such as X.Y.Z-beta.1.
 
 Options:
   --check       Validate and print local release inputs without Keychain or network access.

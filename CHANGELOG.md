@@ -2,6 +2,44 @@
 
 # Blender Development for PyCharm Changelog
 
+## [1.0.0-beta.1]
+
+The 1.0.0-beta.1 release begins the final stabilization phase toward 1.0. The core feature set is largely complete, while
+the remaining work focuses on Python-version updates, Blender API stub integration, Run and Debug behavior, release
+hardening, and code-quality review.
+
+### Added
+
+- Added a combined release workflow for building, validating, tagging, and publishing pre-releases to Codeberg and the
+  JetBrains Marketplace `dev` channel.
+- Added destination-specific release options for Codeberg-only and Marketplace-only publication or recovery.
+- Added explicit publication confirmation, clean-worktree validation, local tag verification, and optional branch and tag
+  pushing to the combined release workflow.
+- Added JetBrains Marketplace signing and publishing configuration using protected certificate files and an environment
+  token.
+
+### Changed
+
+- Updated the IntelliJ Platform Gradle settings plugin from 2.16.0 to 2.18.1.
+- Reworked Marketplace change notes to reference the full changelog instead of duplicating a release-specific summary in
+  the build configuration.
+- Extended release publication and validation to support ordinal SemVer `alpha`, `beta`, and `rc` versions while retaining
+  compatibility with legacy snapshot version mapping.
+
+### Fixed
+
+- None.
+
+### Removed
+
+- None.
+
+### Known Issues
+
+- Managed Blender installations do not yet support in-place version updates.
+- Blender API stub integration and Python-version update workflows remain incomplete.
+- Run and Debug integration still requires stabilization before the full 1.0 release.
+
 ## [0.10.0-Snapshot] - 2026-07-23
 
 The 0.10.0 snapshot does not add many new features. With the plugin's core feature set largely established in 0.9.0, this

@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "com.sakurasedaia"
-version = "0.10.0-SNAPSHOT"
+version = "1.0.0-beta.1"
 
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html
 dependencies {
@@ -32,7 +32,6 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.6.3") { // Required by tomlkt
         exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
     }
-
 }
 
 intellijPlatform {
@@ -46,16 +45,22 @@ intellijPlatform {
         }
         
         changeNotes = """
-            <h3>0.10.0-Snapshot</h3>
-            <ul>
-              <li>Refines Project Blender Manager around synchronized application and project state.</li>
-              <li>Restores cached Blender installations when a project opens.</li>
-              <li>Simplifies executable, source, and launch controls.</li>
-              <li>Fixes recursive table edits and applies managed installation path changes without restarting the IDE.</li>
-            </ul>
-            <p>This is a pre-release snapshot and is not production-hardened.</p>
+            <h3>${project.version}</h3>
+            <p>This is a development build and is not production-hardened.</p>
+            <p>See the <a href="https://codeberg.org/SakuraSedaia/blender_pycharm/src/branch/main/CHANGELOG.md">changelog</a> for the latest release notes and known issues.</p>
         """.trimIndent()
     }
+
+    signing {
+        privateKeyFile.set(layout.projectDirectory.file(".env/private.pem"))
+        certificateChainFile.set(layout.projectDirectory.file(".env/chain.crt"))
+    }
+
+    publishing {
+        token.set(providers.environmentVariable("PUBLISH_TOKEN"))
+        channels.set(listOf("dev"))
+    }
+
     autoReload = true
 }
 
