@@ -11,7 +11,7 @@ plugins {
 }
 
 group = "com.sakurasedaia"
-version = "1.1.0-beta.1"
+version = "1.0.0-beta.2"
 
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html
 dependencies {

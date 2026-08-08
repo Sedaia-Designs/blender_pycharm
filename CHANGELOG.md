@@ -2,11 +2,12 @@
 
 # Blender Development for PyCharm Changelog
 
-## [1.0.0-beta.1]
+## [Unreleased]
 
-The 1.0.0-beta.1 release begins the final stabilization phase toward 1.0. The core feature set is largely complete, while
-the remaining work focuses on Python-version updates, Blender API stub integration, Run and Debug behavior, release
-hardening, and code-quality review.
+This beta expands Blender's Run and Debug integration with dedicated command and extension-build configurations, while
+improving compatibility with PyCharm 2026.1 and making managed Blender installations more reliable. Plugin settings now
+present Blender discovery and version management as one workflow, with immediate installation-state updates and built-in
+system diagnostics.
 
 ### Added
 
@@ -14,6 +15,39 @@ hardening, and code-quality review.
   extension commands and options, validation, and support for installation-defined commands.
 - Added a dedicated **Build or Validate Extension** configuration with operation-specific source and output path controls.
   Paths can be project-relative or absolute, with portable project-relative defaults.
+
+### Changed
+
+- Consolidated Blender discovery and version management into a single **Blender Versions** settings section.
+- Moved managed-installation actions beside the version table as accessible icon-only buttons.
+- Updated Blender API stub package installation and removal to invoke `pip` through the selected Python interpreter.
+- Updated debugger attachment and tool-window lifecycle handling to avoid removed or internal PyCharm APIs.
+- Embedded generated plugin-version metadata for runtime resource extraction.
+
+### Fixed
+
+- Fixed managed installations so successful install and removal operations update the selected version row immediately.
+- Fixed archive extraction collisions by using an isolated temporary directory for each managed Blender installation.
+- Fixed macOS DMG extraction by mounting images through `diskutil`, copying only `Blender.app`, parsing the attached disk
+  identifier, and ejecting the image during cleanup.
+- Fixed Blender runtime add-on state initialization.
+
+### Known Issues
+
+- Managed Blender installations do not yet support in-place version updates.
+- Blender API stub integration and Python-version update workflows remain incomplete.
+- Run and Debug integration still requires stabilization before the full 1.0 release.
+- Managed Blender archives are not verified against published checksums before extraction.
+- Live Blender integration and platform-specific archive extraction are not fully covered by automated tests.
+
+## [1.0.0-beta.1] - 2026-08-07
+
+The 1.0.0-beta.1 release begins the final stabilization phase toward 1.0. The core feature set is largely complete, while
+the remaining work focuses on Python-version updates, Blender API stub integration, Run and Debug behavior, release
+hardening, and code-quality review.
+
+### Added
+
 - Added a combined release workflow for building, validating, tagging, and publishing pre-releases to GitLab and the
   JetBrains Marketplace `dev` channel.
 - Added destination-specific release options for repository-only and Marketplace-only publication or recovery.
