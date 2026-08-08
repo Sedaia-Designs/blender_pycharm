@@ -20,10 +20,7 @@ package com.sakurasedaia.blenderdevelopment.core
 import com.intellij.execution.ExecutionResult
 import com.intellij.execution.ProgramRunnerUtil
 import com.intellij.execution.RunManager
-import com.intellij.execution.configurations.ConfigurationType
 import com.intellij.execution.configurations.ConfigurationTypeUtil
-import com.intellij.execution.process.ProcessEvent
-import com.intellij.execution.process.ProcessListener
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.execution.executors.DefaultDebugExecutor
 import com.intellij.openapi.application.ApplicationManager
@@ -37,9 +34,7 @@ import com.intellij.xdebugger.XDebugProcess
 import com.intellij.xdebugger.XDebugProcessStarter
 import com.intellij.xdebugger.XDebuggerManager
 import com.jetbrains.python.debugger.PyDebugProcess
-import com.jetbrains.python.debugger.PyDebugRunner
 import com.jetbrains.python.debugger.remote.vfs.PyRemotePositionConverter
-import com.jetbrains.python.debugger.settings.PyDebuggerSettings
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
@@ -83,7 +78,6 @@ internal class BlenderDebugAttachService(private val project: Project) {
               logger.debug("Attached Python debugger with DAP protocol to Blender debugpy port ${setupPayload.debugpyPort}.")
             }
             BlenderDebugProtocol.PYDEVD -> {
-              applyDebuggerFiltersForSession(executionResult)
               attachWithPydevClientMode(environment, executionResult, setupPayload, mappingSettings)
               logger.debug("Attached Python debugger with pydev protocol to Blender debug port ${setupPayload.debugpyPort}.")
             }
@@ -151,47 +145,70 @@ internal class BlenderDebugAttachService(private val project: Project) {
   }
 
   private fun attachWithDebugpyDap(setupPayload: BlenderSetupPayload, mappingSettings: PathMappingSettings): Boolean {
-    val localToRemote = mappingSettings.pathMappings.firstOrNull() ?: return false
+    val configurationType = ConfigurationTypeUtil.findConfigurationType(PYTHON_DAP_ATTACH_CONFIGURATION_TYPE_ID)
+      ?: run {
+        logger.debug("Python DAP attach configuration type is not registered.")
+        return false
+      }
+    val factory = configurationType.configurationFactories.firstOrNull()
+      ?: run {
+        logger.debug("Python DAP attach configuration type does not provide a configuration factory.")
+        return false
+      }
 
-    return runCatching {
-      val configurationTypeClass = Class.forName("com.intellij.python.dap.attach.PythonDapAttachConfigurationType")
-      val typedConfigurationClass = configurationTypeClass.asSubclass(ConfigurationType::class.java)
-      val configurationType = ConfigurationTypeUtil.findConfigurationType(typedConfigurationClass)
-      val factory = configurationType.configurationFactories.firstOrNull() ?: return false
+    val settings = RunManager.getInstance(project).createConfiguration(
+      "Blender Debug Attach (${setupPayload.debugpyPort})",
+      factory,
+    )
+    val configuration = settings.configuration
+    val configurationClass = configuration.javaClass
 
-      val settings = RunManager.getInstance(project).createConfiguration(
-        "Blender Debug Attach (${setupPayload.debugpyPort})",
-        factory,
-      )
-      val configuration = settings.configuration
-      val configurationClass = configuration.javaClass
+    configurationClass
+      .getMethod("setRemoteAddress", String::class.java)
+      .invoke(configuration, "127.0.0.1:${setupPayload.debugpyPort}")
+    val pathMappingsSetter = configurationClass.methods.firstOrNull { method ->
+      method.name == "setPathMappingSettings" && method.parameterCount == 1
+    }
+    if (pathMappingsSetter != null) {
+      pathMappingsSetter.invoke(configuration, mappingSettings)
+    }
+    else {
+      val firstMapping = mappingSettings.pathMappings.firstOrNull()
+      val localRootSetter = configurationClass.methods.firstOrNull { method ->
+        method.name == "setLocalRoot" && method.parameterCount == 1
+      }
+      val remoteRootSetter = configurationClass.methods.firstOrNull { method ->
+        method.name == "setRemoteRoot" && method.parameterCount == 1
+      }
+      if (firstMapping != null && localRootSetter != null && remoteRootSetter != null) {
+        localRootSetter.invoke(configuration, firstMapping.localRoot)
+        remoteRootSetter.invoke(configuration, firstMapping.remoteRoot)
+      }
+      else if (mappingSettings.pathMappings.isNotEmpty()) {
+        logger.debug("Python DAP attach configuration does not expose a supported path-mapping setter.")
+      }
+    }
+    configurationClass.methods
+      .firstOrNull { method ->
+        method.name == "setJustMyCode" &&
+          method.parameterTypes.contentEquals(arrayOf(Boolean::class.javaPrimitiveType))
+      }
+      ?.invoke(configuration, projectConfig.getJustMyCode())
 
-      configurationClass
-        .getMethod("setRemoteAddress", String::class.java)
-        .invoke(configuration, "127.0.0.1:${setupPayload.debugpyPort}")
-      configurationClass
-        .getMethod("setLocalRoot", String::class.java)
-        .invoke(configuration, localToRemote.localRoot)
-      configurationClass
-        .getMethod("setRemoteRoot", String::class.java)
-        .invoke(configuration, localToRemote.remoteRoot)
-
-      val debugpyRegistry = Registry.get("debugpy.dap.is.enable")
-      val wasDebugpyEnabled = debugpyRegistry.asBoolean()
+    val debugpyRegistry = Registry.get("debugpy.dap.is.enable")
+    val wasDebugpyEnabled = debugpyRegistry.asBoolean()
+    if (!wasDebugpyEnabled) {
+      debugpyRegistry.setValue(true)
+    }
+    try {
+      ProgramRunnerUtil.executeConfiguration(settings, DefaultDebugExecutor.getDebugExecutorInstance())
+    }
+    finally {
       if (!wasDebugpyEnabled) {
-        debugpyRegistry.setValue(true)
+        debugpyRegistry.setValue(false)
       }
-      try {
-        ProgramRunnerUtil.executeConfiguration(settings, DefaultDebugExecutor.getDebugExecutorInstance())
-      } finally {
-        if (!wasDebugpyEnabled) {
-          debugpyRegistry.setValue(false)
-        }
-      }
-      true
-    }.onFailure { error ->
-      logger.debug("Python DAP attach is unavailable: ${error.message}")
-    }.getOrDefault(false)
+    }
+    return true
   }
 
   private fun attachWithPydevClientMode(
@@ -200,7 +217,7 @@ internal class BlenderDebugAttachService(private val project: Project) {
     setupPayload: BlenderSetupPayload,
     mappingSettings: PathMappingSettings,
   ) {
-    XDebuggerManager.getInstance(project).startSession(environment, object : XDebugProcessStarter() {
+    val starter = object : XDebugProcessStarter() {
       override fun start(session: com.intellij.xdebugger.XDebugSession): XDebugProcess {
         val debugProcess = PyDebugProcess(
           session,
@@ -212,32 +229,19 @@ internal class BlenderDebugAttachService(private val project: Project) {
         if (mappingSettings.pathMappings.isNotEmpty()) {
           debugProcess.setPositionConverter(PyRemotePositionConverter(debugProcess, mappingSettings))
         }
-        PyDebugRunner.createConsoleCommunication(project, executionResult, debugProcess, session)
         return debugProcess
       }
-    })
-  }
-
-  private fun applyDebuggerFiltersForSession(executionResult: ExecutionResult) {
-    val debuggerSettings = PyDebuggerSettings.getInstance()
-    val previousLibrariesFilter = debuggerSettings.isLibrariesFilterEnabled
-    val previousSteppingFilters = debuggerSettings.isSteppingFiltersEnabled
-    val justMyCodeEnabled = projectConfig.getJustMyCode()
-
-    debuggerSettings.setLibrariesFilterEnabled(justMyCodeEnabled)
-    debuggerSettings.setSteppingFiltersEnabled(justMyCodeEnabled)
-
-    executionResult.processHandler.addProcessListener(object : ProcessListener {
-      override fun processTerminated(event: ProcessEvent) {
-        debuggerSettings.setLibrariesFilterEnabled(previousLibrariesFilter)
-        debuggerSettings.setSteppingFiltersEnabled(previousSteppingFilters)
-      }
-    })
+    }
+    XDebuggerManager.getInstance(project)
+      .newSessionBuilder(starter)
+      .environment(environment)
+      .startSession()
   }
 
   companion object {
     private const val DEBUG_ATTACH_TIMEOUT_MS = 45_000L
     private const val DEBUG_ATTACH_POLL_INTERVAL_MS = 200L
+    private const val PYTHON_DAP_ATTACH_CONFIGURATION_TYPE_ID = "PythonDapAttachConfiguration"
 
     fun getInstance(project: Project): BlenderDebugAttachService = project.service()
   }
