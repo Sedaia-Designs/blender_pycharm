@@ -26,14 +26,17 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
+import com.intellij.ui.dsl.builder.AlignY
 import com.intellij.ui.dsl.builder.columns
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.ColumnInfo
+import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.ListTableModel
 import com.intellij.ui.table.JBTable
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersion
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig
+import com.sakurasedaia.blenderdevelopment.ui.IconBundle
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.ui.components.EnvironmentVariablesTable
 import com.sakurasedaia.blenderdevelopment.util.SystemInfo
@@ -93,11 +96,25 @@ internal class BlenderSettingsContent(
     }
     private val lastRefreshedLabel = JBLabel()
     private var versionOperationInProgress = false
-    private val installVersionButton = JButton(MessageBundle.message("ui.settings.group.versions.install.button")).apply {
+    private val installVersionButton = JButton(IconBundle.Install).apply {
+        val actionName = MessageBundle.message("ui.settings.group.versions.install.button")
+        val buttonSize = JBUI.size(VERSION_ACTION_BUTTON_SIZE)
+        toolTipText = actionName
+        accessibleContext.accessibleName = actionName
+        minimumSize = buttonSize
+        preferredSize = buttonSize
+        maximumSize = buttonSize
         isEnabled = false
         addActionListener { installSelectedVersion() }
     }
-    private val deleteVersionButton = JButton(MessageBundle.message("ui.settings.group.versions.delete.button")).apply {
+    private val deleteVersionButton = JButton(IconBundle.Delete).apply {
+        val actionName = MessageBundle.message("ui.settings.group.versions.delete.button")
+        val buttonSize = JBUI.size(VERSION_ACTION_BUTTON_SIZE)
+        toolTipText = actionName
+        accessibleContext.accessibleName = actionName
+        minimumSize = buttonSize
+        preferredSize = buttonSize
+        maximumSize = buttonSize
         isEnabled = false
         addActionListener { deleteSelectedVersion() }
     }
@@ -150,41 +167,34 @@ internal class BlenderSettingsContent(
                     .align(AlignX.FILL)
             }
         }
-        group(MessageBundle.message("ui.settings.group.discovery.title")) {
-            row(MessageBundle.message("ui.settings.group.discovery.minimum-version.label")) {
+        group(MessageBundle.message("ui.settings.group.versions.title")) {
+            row(MessageBundle.message("ui.settings.group.versions.minimum-version.label")) {
                 textField()
                     .columns(8)
                     .validationOnInput {
                         if (PluginConfig.isValidMinorVersion(it.text)) null
-                        else error(MessageBundle.message("ui.settings.group.discovery.minimum-version.validation"))
+                        else error(MessageBundle.message("ui.settings.group.versions.minimum-version.validation"))
                     }
                     .validationOnApply {
                         if (PluginConfig.isValidMinorVersion(it.text)) null
-                        else error(MessageBundle.message("ui.settings.group.discovery.minimum-version.validation"))
+                        else error(MessageBundle.message("ui.settings.group.versions.minimum-version.validation"))
                     }
                     .applyToComponent { minimumBlenderVersion = this }
-                    .comment(MessageBundle.message("ui.settings.group.discovery.minimum-version.comment"))
+                    .comment(MessageBundle.message("ui.settings.group.versions.minimum-version.comment"))
             }
-            row {
-                button(MessageBundle.message("ui.settings.group.discovery.scan.button")) {
-                    onScanInstallations(::refreshVersionRows)
-                }
-            }.comment(MessageBundle.message("ui.settings.group.discovery.scan.comment"))
-        }
-        group(MessageBundle.message("ui.settings.group.environment.variables.title")) {
-            row {
-                cell(globalEnvironmentVariablesTable.component())
-                    .align(AlignX.FILL)
-                    .resizableColumn()
-                contextHelp(MessageBundle.message("ui.settings.group.environment.variables.comment"))
-            }.resizableRow()
-        }
-        group(MessageBundle.message("ui.settings.group.versions.title")) {
             row {
                 cell(ScrollPaneFactory.createScrollPane(versionTable, true))
                     .align(AlignX.FILL)
                     .resizableColumn()
-            }.resizableRow()
+                panel {
+                    row {
+                        cell(installVersionButton)
+                    }
+                    row {
+                        cell(deleteVersionButton)
+                    }
+                }.align(AlignY.TOP)
+            }
             row {
                 cell(lastRefreshedLabel)
             }.comment(MessageBundle.message("ui.settings.group.versions.management.comment"))
@@ -199,9 +209,15 @@ internal class BlenderSettingsContent(
                 button(MessageBundle.message("ui.settings.group.versions.clear-cache.button")) {
                     clearVersionCache()
                 }
-                cell(installVersionButton)
-                cell(deleteVersionButton)
             }
+        }
+        group(MessageBundle.message("ui.settings.group.environment.variables.title")) {
+            row {
+                cell(globalEnvironmentVariablesTable.component())
+                    .align(AlignX.FILL)
+                    .resizableColumn()
+                contextHelp(MessageBundle.message("ui.settings.group.environment.variables.comment"))
+            }.resizableRow()
         }
     }
 
@@ -361,6 +377,7 @@ internal class BlenderSettingsContent(
     }
 
     companion object {
+        private const val VERSION_ACTION_BUTTON_SIZE = 28
         private val LAST_REFRESHED_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
             .withZone(ZoneId.systemDefault())
 
@@ -381,6 +398,7 @@ internal class BlenderSettingsContent(
                 )
             }
         }
+
         internal fun markVersionInstalled(
             rows: List<BlenderVersionSettingsRow>,
             version: BlenderVersion,

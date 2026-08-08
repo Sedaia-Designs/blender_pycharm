@@ -7,6 +7,8 @@ import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
 import com.sakurasedaia.blenderdevelopment.state.BlenderVersionCache
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
+import java.awt.Container
+import javax.swing.JButton
 import javax.swing.ScrollPaneConstants
 
 class BlenderSettingsContentTest : BasePlatformTestCase() {
@@ -51,6 +53,22 @@ class BlenderSettingsContentTest : BasePlatformTestCase() {
     val scrollPane = content.component() as JBScrollPane
     assertEquals(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, scrollPane.verticalScrollBarPolicy)
     assertEquals(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER, scrollPane.horizontalScrollBarPolicy)
+  }
+
+  fun testVersionInstallManagementUsesAccessibleIconButtons() {
+    val content = BlenderSettingsContent(
+      onScanInstallations = {},
+      onRefreshVersions = {},
+      onClearVersionCache = {},
+    )
+    val buttons = descendantsOf(content.component()).filterIsInstance<JButton>()
+
+    listOf("Install Selected", "Delete Selected").forEach { actionName ->
+      val button = buttons.single { it.toolTipText == actionName }
+      assertTrue(button.text.isNullOrEmpty())
+      assertNotNull(button.icon)
+      assertEquals(actionName, button.accessibleContext.accessibleName)
+    }
   }
 
   fun testDiscoveredVersionWithoutPythonMappingShowsPlaceholder() {
@@ -134,4 +152,9 @@ class BlenderSettingsContentTest : BasePlatformTestCase() {
       MessageBundle.message("notification.settings.versions.delete.succeeded", "4.5.8"),
     )
   }
+
+  private fun descendantsOf(container: Container): List<java.awt.Component> =
+    container.components.flatMap { component ->
+      listOf(component) + if (component is Container) descendantsOf(component) else emptyList()
+    }
 }

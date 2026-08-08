@@ -21,5 +21,11 @@ object IconBundle {
   val Refresh: Icon = AllIcons.Actions.Refresh
 
   @JvmField
+  val Install: Icon = AllIcons.Actions.Install
+
+  @JvmField
+  val Delete: Icon = AllIcons.General.Delete
+
+  @JvmField
   val InstallStubs: Icon = AllIcons.Nodes.Library
 }
