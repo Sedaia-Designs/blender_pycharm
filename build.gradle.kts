@@ -1,4 +1,5 @@
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.gradle.api.tasks.WriteProperties
 import org.gradle.api.tasks.bundling.Zip
 
 plugins {
@@ -10,7 +11,7 @@ plugins {
 }
 
 group = "com.sakurasedaia"
-version = "1.0.0-beta.1"
+version = "1.1.0-beta.1"
 
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html
 dependencies {
@@ -65,6 +66,14 @@ intellijPlatform {
 }
 
 tasks {
+    val generatePluginMetadata by registering(WriteProperties::class) {
+        destinationFile = layout.buildDirectory
+            .file("generated/plugin-metadata/blender-development.properties")
+            .get()
+            .asFile
+        property("plugin.version", version.toString())
+    }
+
     val packageBlenderRuntime by registering(Zip::class) {
         group = "build"
         description = "Packages Blender runtime API files into an archive for plugin distribution."
@@ -77,7 +86,8 @@ tasks {
     }
 
     processResources {
-        dependsOn(packageBlenderRuntime)
+        dependsOn(packageBlenderRuntime, generatePluginMetadata)
+        from(generatePluginMetadata)
         from(packageBlenderRuntime) {
             into("blender-runtime")
         }

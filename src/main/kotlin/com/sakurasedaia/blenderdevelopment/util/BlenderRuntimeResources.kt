@@ -17,19 +17,19 @@
 
 package com.sakurasedaia.blenderdevelopment.util
 
-import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.application.PathManager
-import com.intellij.openapi.extensions.PluginId
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import java.security.MessageDigest
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.Properties
 import java.util.zip.ZipInputStream
 import kotlin.io.path.exists
 import kotlin.io.path.isDirectory
 
 internal object BlenderRuntimeResources {
-  private const val PLUGIN_ID = "com.sakurasedaia.BlenderDevelopment"
+  private const val PLUGIN_METADATA_RESOURCE = "blender-development.properties"
+  private const val PLUGIN_VERSION_PROPERTY = "plugin.version"
   private const val RUNTIME_ARCHIVE_RESOURCE = "blender-runtime/blender-runtime.zip"
   private const val SETTINGS_RUNTIME_DIRECTORY = "BlenderDevelopment/DebugRunner"
   private const val RUNTIME_VERSION_MARKER = ".runtime.version"
@@ -62,8 +62,15 @@ internal object BlenderRuntimeResources {
     return Path.of(optionsPath).resolve(SETTINGS_RUNTIME_DIRECTORY)
   }
 
-  private fun resolvePluginVersion(): String {
-    return PluginManagerCore.getPlugin(PluginId.getId(PLUGIN_ID))?.version ?: "dev"
+  internal fun resolvePluginVersion(): String {
+    val properties = Properties()
+    val resource = BlenderRuntimeResources::class.java.classLoader
+      .getResourceAsStream(PLUGIN_METADATA_RESOURCE)
+      ?: return "dev"
+    resource.use(properties::load)
+    return properties.getProperty(PLUGIN_VERSION_PROPERTY)
+      ?.takeIf(String::isNotBlank)
+      ?: "dev"
   }
 
   private fun resolveRuntimeFingerprint(): String {
