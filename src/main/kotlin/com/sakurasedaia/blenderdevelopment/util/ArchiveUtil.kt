@@ -2,6 +2,7 @@ package com.sakurasedaia.blenderdevelopment.util
 
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.CapturingProcessHandler
+import com.intellij.execution.process.ProcessOutput
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.io.NioFiles
 import com.intellij.util.io.Decompressor
@@ -46,7 +47,7 @@ object ArchiveUtil {
   }
 
   /**
-   * Extracts a DMG by mounting it with macOS `hdiutil` and copying its contents.
+   * Extracts a DMG by mounting it with macOS `diskutil` and copying its contents.
    *
    * @param archive archive to extract.
    * @param destination directory that receives the extracted files.
@@ -67,30 +68,45 @@ object ArchiveUtil {
       )
 
       var attached = false
+      var deviceIdentifier: String? = null
+      var extractionFailure: Exception? = null
       try {
-        runHdiutil(
-          "attach",
-          archive.toString(),
-          "-readonly",
-          "-nobrowse",
-          "-mountpoint",
-          mountPoint.toString(),
-        )
+        val output = runDiskutil(*diskutilAttachArguments(archive, mountPoint))
         attached = true
-        NioFiles.createDirectories(destination)
-
-        Files.list(mountPoint).use { entries ->
-          entries.forEach { source ->
-            NioFiles.copyRecursively(source, destination.resolve(source.fileName))
-          }
-        }
-      } finally {
-        if (attached) {
-          runHdiutil("detach", mountPoint.toString())
-        }
-        NioFiles.deleteRecursively(mountPoint)
+        deviceIdentifier = findDiskIdentifier(output.stdout)
+        copyDmgApplication(mountPoint, destination)
+      }
+      catch (exception: Exception) {
+        extractionFailure = exception
+        throw exception
+      }
+      finally {
+        cleanupMountedImage(attached, deviceIdentifier, mountPoint, extractionFailure)
       }
     }
+  }
+
+  internal fun diskutilAttachArguments(archive: Path, mountPoint: Path): Array<String> = arrayOf(
+    "image",
+    "attach",
+    "--readOnly",
+    "--nobrowse",
+    "--mountPoint",
+    mountPoint.toString(),
+    archive.toString(),
+  )
+
+  internal fun findDiskIdentifier(output: String): String? =
+    DEVICE_IDENTIFIER_PATTERN.find(output)?.value
+
+  internal fun copyDmgApplication(mountPoint: Path, destination: Path) {
+    val sourceApplication = mountPoint.resolve("Blender.app")
+    if (!Files.isDirectory(sourceApplication)) {
+      throw IOException("Mounted DMG does not contain Blender.app")
+    }
+
+    NioFiles.createDirectories(destination)
+    NioFiles.copyRecursively(sourceApplication, destination.resolve(sourceApplication.fileName))
   }
 
   private inline fun extract(archive: Path, destination: Path, project: Project, operation: () -> Unit) {
@@ -116,15 +132,49 @@ object ArchiveUtil {
     NotificationModal.getInstance(project).sendError(message)
   }
 
-  private fun runHdiutil(vararg arguments: String) {
-    val commandLine = GeneralCommandLine("/usr/bin/hdiutil")
+  private fun cleanupMountedImage(
+    attached: Boolean,
+    deviceIdentifier: String?,
+    mountPoint: Path,
+    extractionFailure: Exception?,
+  ) {
+    var cleanupFailure: Exception? = null
+    if (attached) {
+      try {
+        runDiskutil("eject", deviceIdentifier ?: mountPoint.toString())
+      }
+      catch (exception: Exception) {
+        cleanupFailure = exception
+      }
+    }
+
+    try {
+      NioFiles.deleteRecursively(mountPoint)
+    }
+    catch (exception: Exception) {
+      cleanupFailure?.addSuppressed(exception)
+      if (cleanupFailure == null) cleanupFailure = exception
+    }
+
+    cleanupFailure?.let { failure ->
+      if (extractionFailure != null) extractionFailure.addSuppressed(failure)
+      else throw failure
+    }
+  }
+
+  private fun runDiskutil(vararg arguments: String): ProcessOutput {
+    val commandLine = GeneralCommandLine("/usr/sbin/diskutil")
       .withParameters(*arguments)
     val output = CapturingProcessHandler(commandLine).runProcess()
 
     if (output.exitCode != 0) {
       throw IOException(
-        "hdiutil failed with exit code ${output.exitCode}: ${output.stderr}",
+        "diskutil failed with exit code ${output.exitCode}: ${output.stderr}",
       )
     }
+
+    return output
   }
+
+  private val DEVICE_IDENTIFIER_PATTERN = Regex("/dev/disk\\d+(?:s\\d+)*")
 }

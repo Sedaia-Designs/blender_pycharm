@@ -270,25 +270,32 @@ internal class InstallBlender(
       else {
         downloadVersion(version)
           .thenApplyAsync({ archive ->
-            val extractedArtifact = when (platformName) {
-              "windows" -> {
-                ArchiveUtil.extractZip(archive, tempPath)
-                tempPath.resolve(archiveBaseName(archive))
+            NioFiles.createDirectories(tempPath)
+            val extractionPath = Files.createTempDirectory(tempPath, "blender-extract-")
+            try {
+              val extractedArtifact = when (platformName) {
+                "windows" -> {
+                  ArchiveUtil.extractZip(archive, extractionPath)
+                  extractionPath.resolve(archiveBaseName(archive))
+                }
+                "macos" -> {
+                  ArchiveUtil.extractDmg(archive, extractionPath)
+                  extractionPath.resolve("Blender.app")
+                }
+                "linux" -> {
+                  ArchiveUtil.extractTar(archive, extractionPath)
+                  extractionPath.resolve(archiveBaseName(archive))
+                }
+                else -> {
+                  throw UnsupportedOperationException(ErrorTypes.UNSUPPORTED_OS.message)
+                }
               }
-              "macos" -> {
-                ArchiveUtil.extractDmg(archive, tempPath)
-                tempPath.resolve("Blender.app")
-              }
-              "linux" -> {
-                ArchiveUtil.extractTar(archive, tempPath)
-                tempPath.resolve(archiveBaseName(archive))
-              }
-              else -> {
-                throw UnsupportedOperationException(ErrorTypes.UNSUPPORTED_OS.message)
-              }
-            }
 
-            moveFromTemp(extractedArtifact, version)
+              moveFromTemp(extractedArtifact, version)
+            }
+            finally {
+              NioFiles.deleteRecursively(extractionPath)
+            }
           }, AppExecutorUtil.getAppExecutorService())
       }
     }
