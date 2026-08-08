@@ -19,8 +19,7 @@ The plugin currently targets PyCharm 2026.1 or newer and Blender 4.2 or newer.
 - Install version-matched Blender API stubs during project creation.
 - Run Blender from PyCharm or attach the debugger for reload-on-save, script execution, add-on reload, and stop commands.
 
-The 0.10.0 development cycle primarily refines state synchronization and the Project Blender Manager experience rather than
-adding a large set of new features. See the [changelog](CHANGELOG.md) for the complete release delta and current limitations.
+The plugin is undergoing it's final beta stages to finally reach release status, now updated to version 1.0.0-beta.1, the project is in it's final, pre-release stages. Feel free to track what changes have been made in [CHANGELOG.md](/CHANGELOG.md)
 
 ## Documentation
 

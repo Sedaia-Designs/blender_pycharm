@@ -1,10 +1,4 @@
----
-name: Documentation issue
-about: Report missing, incorrect, or unclear project documentation
-title: "[Docs] "
-labels: ""
-assignees: ""
----
+<!-- Issue title: [Docs] A short description of the documentation problem -->
 
 ## Documentation location
 

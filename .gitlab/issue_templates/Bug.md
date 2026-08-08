@@ -1,14 +1,8 @@
----
-name: Bug report
-about: Report a reproducible problem with the Blender Python Development plugin
-title: "[Bug] "
-labels: ""
-assignees: ""
----
-
 <!--
 Thank you for taking the time to report a problem.
 Please search existing issues before submitting and remove any sensitive data from logs.
+
+Issue title: [Bug] A short description of the problem
 -->
 
 ## Problem

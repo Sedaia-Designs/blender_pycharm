@@ -1,12 +1,8 @@
----
-name: Feature request
-about: Suggest an improvement to the Blender development workflow
-title: "[Feature] "
-labels: ""
-assignees: ""
----
+<!--
+Thank you for helping improve Blender Python Development.
 
-<!-- Thank you for helping improve Blender Python Development. -->
+Issue title: [Feature] A short description of the requested improvement
+-->
 
 ## Problem or limitation
 
