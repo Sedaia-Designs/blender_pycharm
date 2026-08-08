@@ -30,7 +30,7 @@ Treat line counts as prompts to inspect complexity, not hard thresholds.
 
 - **Level 1 — one View or component class:** Start here for a small feature, roughly under 200 LOC, containing only layout and local presentation behavior. Extract a Controller if it invokes services, owns workflows, or becomes hard to test or reason about.
 - **Level 2 — View + Controller:** Start here around 200-600 LOC when validation, services, navigation, or non-trivial interactions are present. Add immutable State when several visual modes or concurrent operations make implicit state ambiguous.
-- **Level 3 — State + explicit Intent, optionally Reducer and Effects:** Consider this for several asynchronous operations or a complex multi-step workflow, and only when the added types reduce branching and clarify transitions.
+- **Level 3 — State + explicit Intent, optionally Reducer and Effects:** Consider this for several asynchronous operations or a complex multistep workflow, and only when the added types reduce branching and clarify transitions.
 
 Never add an interface, presenter, reducer, effect layer, event bus, global UI store, or framework merely to satisfy a pattern. Require every abstraction to remove concrete duplication, isolate a dependency, make ownership clear, or make important behavior testable.
 

@@ -20,7 +20,7 @@ def is_addon_legacy(addon_dir: Path) -> bool:
 
 
 def addon_has_bl_info(addon_dir: Path) -> bool:
-    """Perform best effort check to find bl_info. Does not perform an import on file to avoid code execution."""
+    """Perform the best effort check to find bl_info. Does not perform an import on file to avoid code execution."""
     init_file = addon_dir / "__init__.py"
     if not init_file.exists():
         return False

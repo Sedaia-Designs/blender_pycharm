@@ -17,7 +17,7 @@ description: Create or revise public Blender Development documentation in the se
 
 1. Inspect the relevant implementation, tests, messages, README, changelog, and release metadata in this repository.
 2. Read the affected destination page and `src/content/docs/blender-development/index.md`.
-3. Reconcile product names, PyCharm and Blender versions, menu labels, commands, URLs, and limitations against current code.
+3. Reconcile product names, PyCharm and Blender versions, menu labels, commands, URLs, and limitations against the current code.
 4. Prefer Markdown. Use MDX only when an imported component is required.
 5. Add meaningful `title` and `description` frontmatter to every page.
 6. Write for the reader's outcome: prerequisites, ordered steps, verification, and source-supported troubleshooting as useful.

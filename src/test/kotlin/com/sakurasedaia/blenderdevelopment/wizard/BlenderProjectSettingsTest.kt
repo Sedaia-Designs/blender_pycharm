@@ -23,7 +23,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Tests Blender form state and its immutable generation payload. */
+/** Tests the Blender form state and its immutable generation payload. */
 class BlenderProjectSettingsTest {
     /** Verifies that automatic stub installation is enabled for new projects. */
     @Test

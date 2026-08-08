@@ -38,7 +38,7 @@ def _parse_log(env_var_name: str) -> Tuple[int, bool]:
         return logging.WARNING, False
 
 
-# binary_path_python was removed in blender 2.92
+# binary_path_python was removed in blender 2.92,
 # but it is the most reliable way of getting python path for older versions
 # https://github.com/JacquesLucke/blender_vscode/issues/80
 python_path = Path(getattr(bpy.app, "binary_path_python", sys.executable))

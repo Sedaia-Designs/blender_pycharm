@@ -253,7 +253,7 @@ class ProjectConfig(private val project: Project): PersistentStateComponent<Proj
   /**
    * Forces initialization of persisted workspace settings for this project.
    *
-   * This should be called during project startup to ensure state from
+   * This should be called during project startup to ensure the state from
    * the project-level workspace file is loaded before UI and run flows use it.
    *
    * @return currently loaded project state.

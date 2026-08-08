@@ -70,7 +70,7 @@ when {
 
 ### EelDescriptor vs EelMachine
 
-- **EelDescriptor**: lightweight, durable marker for a path-based access to an environment. Use for most operations.
+- **EelDescriptor**: lightweight, durable marker for path-based access to an environment. Use for most operations.
 - **EelMachine**: physical host instance. Use as cache key when managing shared resources (connection pools, etc.). Multiple descriptors can resolve to the same machine (e.g., `\\wsl$\Ubuntu` and `\\wsl.localhost\Ubuntu`).
 
 ### EelApi Subsystems

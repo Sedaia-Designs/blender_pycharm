@@ -184,7 +184,7 @@ internal class InstallBlender(
   }
 
   /**
-   * Checks to make sure an install doesn't already exist at the desired location.
+   * Checks to make sure an installation doesn't already exist at the desired location.
    *
    * @param version Blender version to check for.
    * @return completed future containing the installation directory, or `null` when it is not installed.

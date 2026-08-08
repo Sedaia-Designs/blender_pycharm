@@ -155,7 +155,7 @@ class BlenderInstallationScanner(val project: Project) {
   }
   
   /**
-   * Simple discovery logic for Blender Installs on MacOS, does not attempt to locate
+   * Simple discovery logic for Blender Installs on macOS, does not attempt to locate
    * portable installations due to increased complexity, and user can set their own paths.
    */
   private fun getMacBlenderInstalls(diagnostics: ScanDiagnostics): List<BlendInstallInfo> {
