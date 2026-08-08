@@ -321,7 +321,9 @@ internal class BlenderSettingsContent(
         setVersionOperationInProgress(true)
         onInstallVersion(version) { result ->
             setVersionOperationInProgress(false)
-            if (result.isSuccess) onScanInstallations(::refreshVersionRows)
+            result.onSuccess {
+                targetedVersionRowRefresh(version)
+            }
         }
     }
 
@@ -330,8 +332,19 @@ internal class BlenderSettingsContent(
         setVersionOperationInProgress(true)
         onDeleteVersion(version) { result ->
             setVersionOperationInProgress(false)
-            if (result.getOrNull() == true) onScanInstallations(::refreshVersionRows)
+            result.onSuccess {
+                targetedVersionRowRefresh(version)
+            }
         }
+    }
+
+    private fun targetedVersionRowRefresh(version: BlenderVersion) {
+        versionTableModel.items = markVersionInstalled(
+            rows = versionTableModel.items,
+            version = version,
+        )
+        updateVersionActionState()
+        onScanInstallations(::refreshVersionRows)
     }
 
     private fun setVersionOperationInProgress(inProgress: Boolean) {
@@ -366,6 +379,23 @@ internal class BlenderSettingsContent(
                     } ?: MessageBundle.message("ui.settings.group.versions.status.not-detected"),
                     isInstalled = installed != null,
                 )
+            }
+        }
+        internal fun markVersionInstalled(
+            rows: List<BlenderVersionSettingsRow>,
+            version: BlenderVersion,
+        ): List<BlenderVersionSettingsRow> {
+            return rows.map { row ->
+                if (row.version.blMajorMinor == version.blMajorMinor) {
+                    row.copy(
+                        pythonVersion = version.pyVersion.takeIf(String::isNotBlank) ?: "—",
+                        installStatus = MessageBundle.message("ui.settings.group.versions.status.installed", version.blVersion),
+                        isInstalled = true,
+                    )
+                }
+                else {
+                    row
+                }
             }
         }
     }

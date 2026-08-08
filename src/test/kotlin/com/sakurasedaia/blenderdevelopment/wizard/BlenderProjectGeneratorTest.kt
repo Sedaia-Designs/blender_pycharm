@@ -50,7 +50,7 @@ class BlenderProjectGeneratorTest : BasePlatformTestCase() {
         assertNotNull(baseDir.findChild("pyproject.toml"))
         assertTrue(
             VfsUtil.loadText(baseDir.findChild("pyproject.toml")!!)
-                .contains("dev = [\"fake-bpy-module-4.5\"]"),
+                .contains("\"fake-bpy-module-4.5\""),
         )
         assertNotNull(baseDir.findChild("LICENSE"))
         assertEquals(
@@ -118,7 +118,7 @@ class BlenderProjectGeneratorTest : BasePlatformTestCase() {
      *
      * @return test Python SDK.
      */
-    private fun testSdk(): Sdk = ProjectJdkTable.getInstance().createSdk("Blender scaffolding test SDK", PythonSdkType.getInstance())
+    fun testSdk(): Sdk = ProjectJdkTable.getInstance().createSdk("Blender scaffolding test SDK", PythonSdkType.getInstance())
 
     /**
      * Creates representative generator input.

@@ -75,6 +75,30 @@ class BlenderSettingsContentTest : BasePlatformTestCase() {
     assertEquals("Installed (4.3.9)", rows.single().installStatus)
   }
 
+  fun testSuccessfulInstallRefreshesOnlyMatchingVersionRow() {
+    val rows = BlenderSettingsContent.buildVersionSettingsRows(
+      versions = BlenderVersions.LIST,
+      installs = emptyList(),
+    )
+    val installedVersion = BlenderVersions.LIST.first { it.blMajorMinor == "4.5" }
+
+    val refreshedRows = BlenderSettingsContent.markVersionInstalled(
+      rows = rows,
+      version = installedVersion,
+    )
+
+    val refreshed = refreshedRows.first { it.version.blMajorMinor == "4.5" }
+    assertTrue(refreshed.isInstalled)
+    assertEquals("Installed (${installedVersion.blVersion})", refreshed.installStatus)
+    assertEquals(installedVersion.pyVersion, refreshed.pythonVersion)
+
+    val unchangedVersion = BlenderVersions.LIST.first { it.blMajorMinor != "4.5" }
+    assertSame(
+      rows.first { it.version.blMajorMinor == unchangedVersion.blMajorMinor },
+      refreshedRows.first { it.version.blMajorMinor == unchangedVersion.blMajorMinor },
+    )
+  }
+
   fun testClearVersionCacheInvokesHook() {
     var cacheCleared = false
     val content = BlenderSettingsContent(
