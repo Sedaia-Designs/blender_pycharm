@@ -19,7 +19,7 @@ There are a few ways one can contribute to the project, those are:
 
 1. **Fork and Clone** the repository:
    ```bash
-   git clone https://codeberg.org/SakuraSedaia/blender_pycharm.git
+   git clone https://gitlab.com/sedaia-designs/blender_pycharm.git
    cd blender_pycharm
    ```
 2. **Open the project** in IntelliJ IDEA.
@@ -28,4 +28,4 @@ There are a few ways one can contribute to the project, those are:
 
 ### Make changes
 
-For Localization, all relevant source files are in 
+For Localization, all relevant source files are in

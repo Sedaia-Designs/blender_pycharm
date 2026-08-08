@@ -29,7 +29,7 @@ description: Create or revise public Blender Development documentation in the se
 
 - Preserve the product name **Blender Development**.
 - Use relative links within the Blender Development documentation area.
-- Use absolute HTTPS URLs for other origins, including `sakura-sedaia.com`, Codeberg, and GitLab.
+- Use absolute HTTPS URLs for other origins, including `sakura-sedaia.com` and GitLab.
 - Add language identifiers to fenced code blocks and use Starlight asides only for meaningful callouts.
 - Do not expose local paths, credentials, private assets, source-reference inventories, or security-sensitive implementation details.
 - Mark pre-release behavior, version constraints, deprecations, and genuinely unverified instructions explicitly.

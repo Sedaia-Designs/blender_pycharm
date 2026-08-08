@@ -32,7 +32,7 @@ The [Blender Development documentation](https://docs.sakura-sedaia.com/blender-d
 - [Troubleshooting](https://docs.sakura-sedaia.com/blender-development/guides/troubleshooting/)
 - [Contributing and building from source](https://docs.sakura-sedaia.com/blender-development/development/contributing/)
 
-Release changes are recorded in the [changelog](CHANGELOG.md). Bugs and feature requests can be submitted through the [Codeberg issue tracker](https://codeberg.org/SakuraSedaia/blender_pycharm/issues).
+Release changes are recorded in the [changelog](CHANGELOG.md). Bugs and feature requests can be submitted through the [GitLab issue tracker](https://gitlab.com/sedaia-designs/blender_pycharm/-/issues).
 
 ## License
 

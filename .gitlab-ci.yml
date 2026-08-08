@@ -1,0 +1,56 @@
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - when: never
+
+stages:
+  - build
+  - release
+
+prepare_release:
+  stage: build
+  image: eclipse-temurin:21-jdk
+  rules:
+    - when: manual
+      allow_failure: false
+  manual_confirmation: "Build, test, and prepare this commit for a GitLab release?"
+  script:
+    - ./gradlew compileKotlin test buildPlugin --no-daemon
+    - scripts/prepare-gitlab-release.sh .release
+  artifacts:
+    name: "release-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - build/distributions/BlenderPythonDevelopment-*.zip
+      - .release/release-notes.md
+    reports:
+      dotenv: .release/release.env
+
+publish_release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/cli:latest
+  needs:
+    - job: prepare_release
+      artifacts: true
+  rules:
+    - when: manual
+      allow_failure: false
+  manual_confirmation: "Create the Git tag and publish this GitLab release?"
+  script:
+    - test -f ".release/release-notes.md"
+    - test -f "build/distributions/$ASSET_NAME"
+    - >-
+      curl --fail-with-body --location
+      --header "JOB-TOKEN: $CI_JOB_TOKEN"
+      --upload-file "build/distributions/$ASSET_NAME"
+      "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/blender-python-development/$RELEASE_VERSION/$ASSET_NAME"
+  release:
+    name: "Blender Python Development $TAG_NAME"
+    tag_name: "$TAG_NAME"
+    ref: "$CI_COMMIT_SHA"
+    description: .release/release-notes.md
+    assets:
+      links:
+        - name: "$ASSET_NAME"
+          url: "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/blender-python-development/$RELEASE_VERSION/$ASSET_NAME"
+          filepath: "/$ASSET_NAME"
+          link_type: package

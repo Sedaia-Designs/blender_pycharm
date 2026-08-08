@@ -47,7 +47,7 @@ intellijPlatform {
         changeNotes = """
             <h3>${project.version}</h3>
             <p>This is a development build and is not production-hardened.</p>
-            <p>See the <a href="https://codeberg.org/SakuraSedaia/blender_pycharm/src/branch/main/CHANGELOG.md">changelog</a> for the latest release notes and known issues.</p>
+            <p>See the <a href="https://gitlab.com/sedaia-designs/blender_pycharm/-/blob/main/CHANGELOG.md">changelog</a> for the latest release notes and known issues.</p>
         """.trimIndent()
     }
 

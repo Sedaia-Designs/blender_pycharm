@@ -3,12 +3,12 @@
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-release_script="$script_dir/../release-codeberg.sh"
+release_script="$script_dir/../prepare-gitlab-release.sh"
 
-# shellcheck source=../release-codeberg.sh
+# shellcheck source=../prepare-gitlab-release.sh
 source "$release_script"
 
-test_tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/release-codeberg-test.XXXXXX")"
+test_tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/prepare-gitlab-release-test.XXXXXX")"
 trap 'rm -rf -- "$test_tmpdir"' EXIT
 
 assert_equals() {
@@ -117,4 +117,4 @@ if extract_release_notes "$test_tmpdir/CHANGELOG.md" '9.9.9-Snapshot' >/dev/null
   exit 1
 fi
 
-printf 'All release-codeberg tests passed.\n'
+printf 'All prepare-gitlab-release tests passed.\n'

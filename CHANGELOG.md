@@ -10,9 +10,9 @@ hardening, and code-quality review.
 
 ### Added
 
-- Added a combined release workflow for building, validating, tagging, and publishing pre-releases to Codeberg and the
+- Added a combined release workflow for building, validating, tagging, and publishing pre-releases to GitLab and the
   JetBrains Marketplace `dev` channel.
-- Added destination-specific release options for Codeberg-only and Marketplace-only publication or recovery.
+- Added destination-specific release options for repository-only and Marketplace-only publication or recovery.
 - Added explicit publication confirmation, clean-worktree validation, local tag verification, and optional branch and tag
   pushing to the combined release workflow.
 - Added JetBrains Marketplace signing and publishing configuration using protected certificate files and an environment
@@ -163,15 +163,15 @@ names to the extension ID declared in `blender_manifest.toml`.
 ## [0.8.0-Snapshot] - 2026-07-20
 
 This pre-release builds on `v0.7.0-Snapshot` with structured Blender extension metadata handling, expanded runtime
-diagnostics, a simplified runtime source layout, and a repeatable Codeberg release workflow.
+diagnostics, a simplified runtime source layout, and a repeatable hosted release workflow.
 
 ### Added
 
 - Added a typed TOML reader for Blender extension manifests, including focused parsing and validation tests.
 - Added Blender-side runtime communication and repository-sync logging with Python regression coverage.
-- Added an idempotent Codeberg snapshot release script that validates the tag and changelog, builds the plugin,
+- Added an idempotent snapshot release script that validates the tag and changelog, builds the plugin,
   publishes the pre-release, uploads the distribution ZIP, and verifies its SHA-256 hash.
-- Added Codeberg issue templates and a shared Gradle run configuration for building the plugin distribution.
+- Added repository issue templates and a shared Gradle run configuration for building the plugin distribution.
 - Added project documentation for snapshot publishing and updated runtime workflow and troubleshooting guidance.
 
 ### Changed
@@ -272,7 +272,7 @@ the current branch history and a direct tree comparison rather than a shared-anc
 
 ## [0.6.0] - 4-26-2026
 ### Added
-- **uv-Powered Python Integration ([#4](https://codeberg.org/SakuraSedaia/blender_pycharm/issues/4))**: Implemented a mandatory `uv` integration for ultra-fast virtual environment management and linter installation.
+- **uv-Powered Python Integration**: Implemented a mandatory `uv` integration for ultra-fast virtual environment management and linter installation.
   - Added automated `uv` installation for the user and support for specific Python versions per Blender release.
   - Deep integration with PyCharm's native `uv` metadata.
   - Enhanced `uv` venv creation with the `--seed` flag to ensure `pip`, `setuptools`, and `wheel` are always present, resolving packaging tool failures.
@@ -297,11 +297,11 @@ the current branch history and a direct tree comparison rather than a shared-anc
 ### Changed
 - **UI Modernization**: Updated the Virtual Environment recreation prompt to display the project name instead of the absolute file path for a cleaner, more user-friendly interface.
   - Refactored the Tool Window, Settings, and Run Configuration editors using modern Kotlin DSL components for a cleaner, more responsive interface.
-- **Repository & CI Migration**: Migrated the project templates and CI workflows from `.github` to `.forgejo` for native Codeberg compatibility.
+- **Repository & CI Migration**: Migrated the project templates and CI workflows to the repository's then-current forge configuration.
   - Fixed the `release.yml` workflow to use the correct `inputs.version` syntax for `workflow_dispatch`.
 - **Process Management**: Refactored Blender process launching to use `KillableProcessHandler`, improving responsiveness and termination handling.
 - **Run Configuration Flow**: Improved path resolution and validation to ensure managed versions are correctly handled before launch.
-- **Enhanced Build & Validate ([#5](https://codeberg.org/SakuraSedaia/blender_pycharm/issues/5), [#6](https://codeberg.org/SakuraSedaia/blender_pycharm/issues/6))**: Added dedicated inputs for source and output directories in Build and Validate run configurations, allowing for more flexible extension packaging.
+- **Enhanced Build & Validate**: Added dedicated inputs for source and output directories in Build and Validate run configurations, allowing for more flexible extension packaging.
 - **Reactive Error Handling**: Refactored permission checks to be reactive, triggering detailed diagnostics only when a "Permission denied" error occurs.
 - **Sandbox Management**: Relocated the Sandbox directory from `.venv/blender_sandbox` to `.blender_sandbox` at the project root level.
   - This preserves sandbox data when switching Python virtual environments or recreating the `.venv`.

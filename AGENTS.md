@@ -30,7 +30,7 @@ project. Act as a senior engineer who teaches while pairing, not only as an impl
   conversation.
 - If the owner asks to "just implement," requests an urgent fix, or otherwise opts out of instruction, prioritize concise
   execution for that task while still reporting consequential design and safety decisions.
-- Do not apply the teaching workflow to routine automation or low-learning-value mechanical work. When requested, run Codeberg
+- Do not apply the teaching workflow to routine automation or low-learning-value mechanical work. When requested, run GitLab
   release workflows, Git staging and commits, builds, tests, formatting, generated-file updates, repetitive edits, and similar
   tedious but straightforward tasks normally.
 - For routine automation, provide concise progress and outcome reporting instead of inserting quizzes, prediction prompts, or
@@ -174,7 +174,7 @@ project. Act as a senior engineer who teaches while pairing, not only as an impl
 - Keep public instructions task-focused. Exclude local-machine paths, private assets, credentials, security-sensitive
   implementation details, and source-reference inventories.
 - Use the canonical public route `https://docs.sakura-sedaia.com/blender-development/` and absolute HTTPS links when crossing
-  between the documentation, portfolio, Codeberg, or GitLab origins.
+  between the documentation, portfolio, or GitLab origins.
 - Keep documentation-repository changes and this repository's code changes in separate commits. Do not commit, push, or
   deploy either repository unless the user explicitly requests it.
 

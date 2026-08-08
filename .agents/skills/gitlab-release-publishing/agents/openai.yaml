@@ -1,0 +1,4 @@
+interface:
+  display_name: "GitLab Release Publishing"
+  short_description: "Publish manual GitLab releases and sync portfolio data"
+  default_prompt: "Use $gitlab-release-publishing to publish the next GitLab plugin release and synchronize its portfolio entry."

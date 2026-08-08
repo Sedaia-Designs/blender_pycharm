@@ -30,7 +30,7 @@
 
         <p><b>Compatibility:</b> PyCharm 2026.1 or newer and Blender 4.2 or newer.</p>
 
-        <p><i>This plugin is in active pre-release development. See the <a href="https://docs.sakura-sedaia.com/blender-development/">documentation</a> for setup and current limitations, or report issues in the <a href="https://codeberg.org/SakuraSedaia/blender_pycharm/issues">Codeberg issue tracker</a>.</i></p>
+        <p><i>This plugin is in active pre-release development. See the <a href="https://docs.sakura-sedaia.com/blender-development/">documentation</a> for setup and current limitations, or report issues in the <a href="https://gitlab.com/sedaia-designs/blender_pycharm/-/issues">GitLab issue tracker</a>.</i></p>
 
         <p>The bundled Blender runtime is derived from Jacques Lucke's <a href="https://github.com/JacquesLucke/blender_vscode">Blender Development extension for Visual Studio Code</a> and adapted for PyCharm.</p>
 
