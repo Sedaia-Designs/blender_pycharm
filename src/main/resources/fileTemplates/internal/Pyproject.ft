@@ -1,10 +1,30 @@
 [project]
 name = "$name"
 version = "$version"
+description = "A Blender extension"
+readme = "README.md"
 requires-python = ">=$python"
 license = "$license"
+dependencies = []
 
-#if($stubRequirement && $stubRequirement != "")
 [dependency-groups]
-dev = ["$stubRequirement"]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.9",
+#if($stubRequirement && $stubRequirement != "")
+    "$stubRequirement",
 #end
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.ruff.format]
+quote-style = "double"
