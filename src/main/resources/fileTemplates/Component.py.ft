@@ -1,9 +1,5 @@
 # Imports
 import bpy
-import bpy.types as T
-import bpy.props as P
-import bpy.ops as O
-import bpy.utils as U
 
 # Write Code Here
 
@@ -15,8 +11,8 @@ classes = (
 
 def register():
     for cls in classes:
-        U.register_class(cls)
+        bpy.utils.register_class(cls)
 
 def unregister():
     for cls in reversed(classes):
-        U.unregister_class(cls)
+        bpy.utils.unregister_class(cls)
