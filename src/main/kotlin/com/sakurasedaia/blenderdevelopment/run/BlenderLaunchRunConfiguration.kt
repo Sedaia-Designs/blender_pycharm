@@ -30,9 +30,9 @@ import com.intellij.execution.runners.ProgramRunner
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
-import com.sakurasedaia.blenderdevelopment.core.BlenderArguments
+import com.sakurasedaia.blenderdevelopment.core.BlenderPythonLaunchRequest
 import com.sakurasedaia.blenderdevelopment.core.BlenderDebugAttachService
-import com.sakurasedaia.blenderdevelopment.core.Launcher
+import com.sakurasedaia.blenderdevelopment.core.BlenderPythonLauncher
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
 import javax.swing.JComponent
@@ -65,8 +65,8 @@ internal class BlenderLaunchRunConfiguration(
         val shouldAttachDebugger = executor.id == DefaultDebugExecutor.EXECUTOR_ID
         return object : CommandLineState(environment) {
             override fun startProcess(): OSProcessHandler {
-                return Launcher.getInstance(project).startBlender(
-                    BlenderArguments(
+                return BlenderPythonLauncher.getInstance(project).start(
+                    BlenderPythonLaunchRequest(
                         blenderPath = ProjectConfig.getInstance(project).getBlenderPath().trim(),
                         debugger = shouldAttachDebugger,
                     )
@@ -77,7 +77,7 @@ internal class BlenderLaunchRunConfiguration(
                 val executionResult = super.execute(executor, runner)
                 if (shouldAttachDebugger) {
                     val sessionIdentifier = executionResult.processHandler
-                        .getUserData(Launcher.LAUNCH_SESSION_IDENTIFIER_KEY)
+                        .getUserData(BlenderPythonLauncher.LAUNCH_SESSION_IDENTIFIER_KEY)
                     if (!sessionIdentifier.isNullOrBlank()) {
                         BlenderDebugAttachService.getInstance(project).scheduleAttach(
                             environment = environment,
