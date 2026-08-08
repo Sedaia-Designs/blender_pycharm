@@ -17,6 +17,9 @@ LOG = log.getLogger()
 
 @dataclass
 class AddonInfo:
+    def __init__(self):
+        pass
+
     load_dir: Path
     module_name: str
 
