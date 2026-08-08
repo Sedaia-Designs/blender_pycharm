@@ -20,7 +20,9 @@ package com.sakurasedaia.blenderdevelopment.run
 import com.intellij.execution.configurations.ConfigurationFactory
 import com.intellij.execution.configurations.ConfigurationTypeBase
 import com.intellij.execution.configurations.RunConfiguration
+import com.intellij.openapi.components.BaseState
 import com.intellij.openapi.project.Project
+import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
 import com.sakurasedaia.blenderdevelopment.ui.IconBundle
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 
@@ -33,6 +35,43 @@ internal class BlenderConfigurationType : ConfigurationTypeBase(
 ) {
     init {
         addFactory(BlenderLaunchConfigurationFactory(this))
+        addFactory(BlenderCommandConfigurationFactory(this))
+        addFactory(BlenderExtensionBuildConfigurationFactory(this))
+    }
+}
+
+private class BlenderExtensionBuildConfigurationFactory(type: BlenderConfigurationType) : ConfigurationFactory(type) {
+    override fun getId(): String = "BlenderExtensionBuildConfigurationFactory"
+
+    override fun getName(): String = MessageBundle.message("run.configuration.blender.extension.build.factory.name")
+
+    override fun getOptionsClass(): Class<out BaseState> = BlenderExtensionBuildRunConfigurationOptions::class.java
+
+    override fun createTemplateConfiguration(project: Project): RunConfiguration {
+        val configuration = BlenderExtensionBuildRunConfiguration(
+            project,
+            this,
+            MessageBundle.message("run.configuration.blender.extension.build.default.name")
+        )
+        configuration.sourcePath = ProjectConfig.getInstance(project).getSourceFolder()
+        configuration.outputDirectory = "."
+        return configuration
+    }
+}
+
+private class BlenderCommandConfigurationFactory(type: BlenderConfigurationType) : ConfigurationFactory(type) {
+    override fun getId(): String = "BlenderCommandConfigurationFactory"
+
+    override fun getName(): String = MessageBundle.message("run.configuration.blender.command.factory.name")
+
+    override fun getOptionsClass(): Class<out BaseState> = BlenderCommandRunConfigurationOptions::class.java
+
+    override fun createTemplateConfiguration(project: Project): RunConfiguration {
+        return BlenderCommandRunConfiguration(
+            project,
+            this,
+            MessageBundle.message("run.configuration.blender.command.default.name")
+        )
     }
 }
 
