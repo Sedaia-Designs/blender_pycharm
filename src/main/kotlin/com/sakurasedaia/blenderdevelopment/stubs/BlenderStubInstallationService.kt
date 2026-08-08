@@ -15,7 +15,6 @@ import com.intellij.openapi.application.edtWriteAction
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.projectRoots.Sdk
-import com.jetbrains.python.Result
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
@@ -33,7 +32,7 @@ enum class BlenderStubOperationStatus {
 /** Coordinates safe version-specific stub installation for a project Python SDK. */
 @Service(Service.Level.PROJECT)
 class BlenderStubInstallationService(private val project: Project) {
-  private var packageInstaller: BlenderPythonPackageInstaller = PyCharmBlenderPythonPackageInstaller()
+  private var packageInstaller: BlenderPythonPackageInstaller = PlatformBlenderPythonPackageInstaller()
 
   /**
    * Installs stubs for a generated project without making scaffolding depend on network success.
@@ -124,12 +123,12 @@ class BlenderStubInstallationService(private val project: Project) {
         sdk,
         previousRequirement,
       )) {
-        is Result.Success -> config.setInstalledStubRequirement("")
-        is Result.Failure -> {
+        BlenderPackageOperationResult.Success -> config.setInstalledStubRequirement("")
+        is BlenderPackageOperationResult.Failure -> {
           val message = MessageBundle.message(
             "notification.blender.stubs.uninstall.failed",
             previousRequirement,
-            uninstallResult.error.toString(),
+            uninstallResult.message,
           )
           logger.warn(message)
           notifications.sendError(message)
@@ -139,7 +138,7 @@ class BlenderStubInstallationService(private val project: Project) {
     }
 
     return when (val installResult = packageInstaller.installDevelopmentPackage(project, module, sdk, requirement)) {
-      is Result.Success -> {
+      BlenderPackageOperationResult.Success -> {
         config.setInstalledStubRequirement(requirement)
         try {
           edtWriteAction {
@@ -162,11 +161,11 @@ class BlenderStubInstallationService(private val project: Project) {
         }
         status
       }
-      is Result.Failure -> {
+      is BlenderPackageOperationResult.Failure -> {
         val message = MessageBundle.message(
           "notification.blender.stubs.install.failed",
           requirement,
-          installResult.error.toString(),
+          installResult.message,
         )
         logger.warn(message)
         notifications.sendError(message)

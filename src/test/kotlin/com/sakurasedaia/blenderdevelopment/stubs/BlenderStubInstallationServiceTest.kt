@@ -14,7 +14,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.projectRoots.ProjectJdkTable
 import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import com.jetbrains.python.errorProcessing.PyResult
 import com.jetbrains.python.sdk.PythonSdkType
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
 import kotlinx.coroutines.runBlocking
@@ -118,10 +117,10 @@ class BlenderStubInstallationServiceTest : BasePlatformTestCase() {
       module: Module,
       sdk: Sdk,
       requirement: String,
-    ): PyResult<Unit> {
+    ): BlenderPackageOperationResult {
       operations += "install:$requirement"
-      if (failInstallation) return PyResult.localizedError("Simulated installation failure")
-      return PyResult.success(Unit)
+      if (failInstallation) return BlenderPackageOperationResult.Failure("Simulated installation failure")
+      return BlenderPackageOperationResult.Success
     }
 
     /** Records an uninstallation request. */
@@ -130,9 +129,9 @@ class BlenderStubInstallationServiceTest : BasePlatformTestCase() {
       module: Module,
       sdk: Sdk,
       requirement: String,
-    ): PyResult<Unit> {
+    ): BlenderPackageOperationResult {
       operations += "uninstall:$requirement"
-      return PyResult.success(Unit)
+      return BlenderPackageOperationResult.Success
     }
   }
 }
