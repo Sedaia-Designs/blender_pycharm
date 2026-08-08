@@ -10,6 +10,10 @@ hardening, and code-quality review.
 
 ### Added
 
+- Added a dedicated **Run Blender Command** configuration with an editable command selector, guided completion for built-in
+  extension commands and options, validation, and support for installation-defined commands.
+- Added a dedicated **Build or Validate Extension** configuration with operation-specific source and output path controls.
+  Paths can be project-relative or absolute, with portable project-relative defaults.
 - Added a combined release workflow for building, validating, tagging, and publishing pre-releases to GitLab and the
   JetBrains Marketplace `dev` channel.
 - Added destination-specific release options for repository-only and Marketplace-only publication or recovery.
