@@ -18,13 +18,15 @@
 package com.sakurasedaia.blenderdevelopment.ui.toolwindow
 
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.components.ComponentManagerEx
 import com.intellij.openapi.project.Project
-import com.intellij.platform.util.coroutines.childScope
 import com.sakurasedaia.blenderdevelopment.core.BlenderRuntimeCommandService
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import javax.swing.JComponent
 
@@ -33,9 +35,10 @@ class BlenderToolWindowContent(
   project: Project,
   onScanInstallations: (onCompleted: () -> Unit) -> Unit,
 ) : Disposable {
-  private val scope = (project as ComponentManagerEx)
-    .getCoroutineScope()
-    .childScope("Project Blender Manager")
+  @Suppress("RAW_SCOPE_CREATION")
+  private val scope = CoroutineScope(
+    SupervisorJob() + Dispatchers.Default + CoroutineName("Project Blender Manager")
+  )
   private val view = BlenderToolWindowView(project)
 
   init {
