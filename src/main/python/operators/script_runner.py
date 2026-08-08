@@ -49,6 +49,7 @@ def prepare_script_context(filepath):
         if match:
             area_type = match.group(1)
 
+    # noinspection dict-creation
     context = {}
     context["window_manager"] = bpy.data.window_managers[0]
     context["window"] = context["window_manager"].windows[0]

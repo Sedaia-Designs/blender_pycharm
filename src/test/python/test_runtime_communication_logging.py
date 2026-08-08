@@ -39,6 +39,7 @@ class RuntimeCommunicationLoggingTest(unittest.TestCase):
             def __init__(self, _name):
                 self.logger = types.SimpleNamespace(setLevel=lambda _level: None)
 
+            # noinspection method-may-be-static
             def route(self, *_args, **_kwargs):
                 return lambda function: function
 
