@@ -46,4 +46,43 @@ class BlenderStubDependencyFileUpdaterTest {
 
     assertEquals(original, updated)
   }
+
+  @Test
+  fun replacesStubRequirementInMultilineDevGroup() {
+    val original = """
+      [dependency-groups]
+      dev = [
+          "fake-bpy-module-5.1",
+          "pytest",
+      ]
+    """.trimIndent()
+
+    val updated = BlenderStubDependencyFileUpdater.updateContent(original, "fake-bpy-module-5.2")
+
+    assertEquals(
+      "[dependency-groups]\ndev = [\"fake-bpy-module-5.2\", \"pytest\"]",
+      updated,
+    )
+  }
+
+  @Test
+  fun mergesDuplicateDevGroupsCreatedByEarlierWorkflow() {
+    val original = """
+      [project]
+      dependencies = ["fake-bpy-module-5.2"]
+
+      [dependency-groups]
+      dev = ["fake-bpy-module-5.1"]
+      dev = [
+          "black[d]>=26.5.1",
+          "numpy>=2.5.1",
+      ]
+    """.trimIndent()
+
+    val updated = BlenderStubDependencyFileUpdater.updateContent(original, "fake-bpy-module-5.2")
+
+    assertEquals(1, Regex("(?m)^dev\\s*=").findAll(updated).count())
+    assertTrue(updated.contains("dev = [\"fake-bpy-module-5.2\", \"black[d]>=26.5.1\", \"numpy>=2.5.1\"]"))
+    assertTrue(updated.contains("dependencies = [\"fake-bpy-module-5.2\"]"))
+  }
 }

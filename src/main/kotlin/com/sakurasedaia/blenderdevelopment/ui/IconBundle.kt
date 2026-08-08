@@ -19,4 +19,7 @@ object IconBundle {
 
   @JvmField
   val Refresh: Icon = AllIcons.Actions.Refresh
+
+  @JvmField
+  val InstallStubs: Icon = AllIcons.Nodes.Library
 }

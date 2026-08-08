@@ -40,6 +40,7 @@ import javax.swing.DefaultComboBoxModel
 import javax.swing.JCheckBox
 import javax.swing.JComboBox
 import javax.swing.JComponent
+import javax.swing.JButton
 import javax.swing.JScrollPane
 import javax.swing.JTextField
 import javax.swing.event.DocumentEvent
@@ -61,6 +62,7 @@ internal class BlenderToolWindowView(project: Project) {
   var onScriptDirectoriesChanged: (List<String>) -> Unit = {}
   var onReloadRequested: () -> Unit = {}
   var onScanInstallationsRequested: () -> Unit = {}
+  var onInstallStubsRequested: (String) -> Unit = {}
 
   private val environmentVariablesTable = EnvironmentVariablesTable()
   private val scriptDirectoriesTable = ScriptDirectoriesTable(project)
@@ -77,6 +79,7 @@ internal class BlenderToolWindowView(project: Project) {
   private lateinit var justMyCodeCheckBox: JCheckBox
   private lateinit var useCustomBlenderInstall: JCheckBox
   private lateinit var availableBlenderInstalls: JComboBox<String>
+  private lateinit var installStubsButton: JButton
 
   private var detectedBlenderInstalls: List<PluginConfig.BlendInstallInfo> = emptyList()
   private var isRendering = false
@@ -129,6 +132,7 @@ internal class BlenderToolWindowView(project: Project) {
             availableBlenderInstalls = this
             addActionListener {
               syncBlenderPathFromInstallSelection()
+              updateInstallControlState()
               emitBlenderPath()
             }
           }.gap(RightGap.SMALL)
@@ -139,6 +143,15 @@ internal class BlenderToolWindowView(project: Project) {
           toolTipText = MessageBundle.message("ui.toolwindow.group.executable.scan-for-install")
           accessibleContext.accessibleName =
             MessageBundle.message("ui.toolwindow.group.executable.scan-for-install")
+        }
+        button("") {
+          selectedBlenderVersion()?.let(onInstallStubsRequested)
+        }.applyToComponent {
+          installStubsButton = this
+          icon = IconBundle.InstallStubs
+          toolTipText = MessageBundle.message("ui.toolwindow.group.executable.install-stubs")
+          accessibleContext.accessibleName =
+            MessageBundle.message("ui.toolwindow.group.executable.install-stubs")
         }
       }.visibleIf(useCustomBlenderInstallProperty.equalsTo(false))
       row {
@@ -274,10 +287,15 @@ internal class BlenderToolWindowView(project: Project) {
     val useCustomPath = useCustomBlenderInstall.isSelected
     blenderPathField.isEnabled = useCustomPath
     availableBlenderInstalls.isEnabled = !useCustomPath && detectedBlenderInstalls.isNotEmpty()
+    installStubsButton.isEnabled = !useCustomPath && selectedBlenderVersion() != null
   }
 
   private fun selectedInstallPath(): String? {
     return detectedBlenderInstalls.getOrNull(availableBlenderInstalls.selectedIndex)?.path
+  }
+
+  private fun selectedBlenderVersion(): String? {
+    return detectedBlenderInstalls.getOrNull(availableBlenderInstalls.selectedIndex)?.version
   }
 
   private fun syncBlenderPathFromInstallSelection() {

@@ -103,7 +103,7 @@ class BlenderStubInstallationServiceTest : BasePlatformTestCase() {
   }
 
   /** Creates a lightweight Python SDK for installer-boundary tests. */
-  private fun testSdk(): Sdk =
+  fun testSdk(): Sdk =
     ProjectJdkTable.getInstance().createSdk("Blender stub test SDK", PythonSdkType.getInstance())
 
   /** Records package operations while returning successful PyCharm results. */

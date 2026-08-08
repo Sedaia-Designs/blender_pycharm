@@ -32,6 +32,7 @@ internal class BlenderToolWindowController(
   private val projectConfig: ProjectConfig,
   private val pluginConfig: PluginConfig,
   private val scanInstallations: (onCompleted: () -> Unit) -> Unit,
+  private val installStubs: (String) -> Unit,
   private val reloadAddon: () -> Unit,
   private val logAutosave: (String) -> Unit,
 ) {
@@ -68,6 +69,7 @@ internal class BlenderToolWindowController(
     }
     view.onReloadRequested = reloadAddon
     view.onScanInstallationsRequested = ::scanForInstallations
+    view.onInstallStubsRequested = installStubs
   }
 
   internal fun scanForInstallations() {

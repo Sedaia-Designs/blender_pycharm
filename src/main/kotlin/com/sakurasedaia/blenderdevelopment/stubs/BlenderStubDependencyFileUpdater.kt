@@ -14,7 +14,9 @@ import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtil
 
 internal object BlenderStubDependencyFileUpdater {
-  private val devGroupPattern = Regex("(?m)^dev\\s*=\\s*\\[([^\\]]*)][ \\t]*$")
+  private val dependencyGroupHeaderPattern = Regex("(?m)^\\[dependency-groups][ \\t]*$")
+  private val tableHeaderPattern = Regex("(?m)^\\[[^\\r\\n]+][ \\t]*$")
+  private val devGroupPattern = Regex("(?ms)^dev[ \\t]*=[ \\t]*\\[(.*?)](?=[ \\t]*(?:\\r?$|\\z))")
   private val quotedRequirementPattern = Regex("[\"']([^\"']+)[\"']")
 
   fun update(project: Project, targetRequirement: String) {
@@ -24,24 +26,32 @@ internal object BlenderStubDependencyFileUpdater {
   }
 
   fun updateContent(content: String, targetRequirement: String): String {
-    val existingDevGroup = devGroupPattern.find(content)
-    if (existingDevGroup != null) {
-      val retainedRequirements = quotedRequirementPattern.findAll(existingDevGroup.groupValues[1])
-        .map { it.groupValues[1] }
-        .filterNot { it.startsWith("fake-bpy-module-") }
-        .toList()
-      val requirements = (listOf(targetRequirement) + retainedRequirements)
-        .joinToString(", ") { requirement -> "\"$requirement\"" }
-      return content.replaceRange(existingDevGroup.range, "dev = [$requirements]")
+    val dependencyGroupHeader = dependencyGroupHeaderPattern.find(content)
+    if (dependencyGroupHeader != null) {
+      val sectionStart = dependencyGroupHeader.range.last + 1
+      val sectionEnd = tableHeaderPattern.find(content, sectionStart)?.range?.first ?: content.length
+      val section = content.substring(sectionStart, sectionEnd)
+      val existingDevGroups = devGroupPattern.findAll(section).toList()
+      if (existingDevGroups.isNotEmpty()) {
+        val retainedRequirements = existingDevGroups.asSequence()
+          .flatMap { match -> quotedRequirementPattern.findAll(match.groupValues[1]) }
+          .map { it.groupValues[1] }
+          .filterNot { it.startsWith("fake-bpy-module-") }
+          .distinct()
+          .toList()
+        val requirements = (listOf(targetRequirement) + retainedRequirements)
+          .joinToString(", ") { requirement -> "\"$requirement\"" }
+        val updatedSection = StringBuilder(section)
+        existingDevGroups.asReversed().forEachIndexed { reversedIndex, match ->
+          val replacement = if (reversedIndex == existingDevGroups.lastIndex) "dev = [$requirements]" else ""
+          updatedSection.replace(match.range.first, match.range.last + 1, replacement)
+        }
+        return content.replaceRange(sectionStart, sectionEnd, updatedSection.toString())
+      }
+
+      return content.substring(0, sectionStart) + "\ndev = [\"$targetRequirement\"]" + content.substring(sectionStart)
     }
 
-    val dependencyGroupHeader = "[dependency-groups]"
-    val headerIndex = content.indexOf(dependencyGroupHeader)
-    if (headerIndex >= 0) {
-      val insertionIndex = headerIndex + dependencyGroupHeader.length
-      return content.substring(0, insertionIndex) + "\ndev = [\"$targetRequirement\"]" + content.substring(insertionIndex)
-    }
-
-    return content.trimEnd() + "\n\n$dependencyGroupHeader\ndev = [\"$targetRequirement\"]\n"
+    return content.trimEnd() + "\n\n[dependency-groups]\ndev = [\"$targetRequirement\"]\n"
   }
 }

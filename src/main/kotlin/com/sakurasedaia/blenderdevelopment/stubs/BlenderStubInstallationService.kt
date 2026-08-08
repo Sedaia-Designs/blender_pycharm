@@ -13,8 +13,10 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.application.edtWriteAction
 import com.intellij.openapi.module.Module
+import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.projectRoots.Sdk
+import com.jetbrains.python.sdk.PythonSdkUtil
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
@@ -33,6 +35,25 @@ enum class BlenderStubOperationStatus {
 @Service(Service.Level.PROJECT)
 class BlenderStubInstallationService(private val project: Project) {
   private var packageInstaller: BlenderPythonPackageInstaller = PlatformBlenderPythonPackageInstaller()
+
+  /**
+   * Installs or replaces stubs using the first project module with a configured Python SDK.
+   *
+   * @param blenderVersion selected Blender version.
+   * @return operation status for UI feedback.
+   */
+  suspend fun installForProject(blenderVersion: String): BlenderStubOperationStatus {
+    val moduleAndSdk = ModuleManager.getInstance(project).modules.firstNotNullOfOrNull { module ->
+      PythonSdkUtil.findPythonSdk(module)?.let { sdk -> module to sdk }
+    }
+    if (moduleAndSdk == null) {
+      val message = MessageBundle.message("notification.blender.stubs.interpreter.missing")
+      PluginLogger.getInstance(project).warn(message)
+      NotificationModal.getInstance(project).sendWarning(message)
+      return BlenderStubOperationStatus.FAILED
+    }
+    return replaceForChangedVersion(moduleAndSdk.first, moduleAndSdk.second, blenderVersion)
+  }
 
   /**
    * Installs stubs for a generated project without making scaffolding depend on network success.
