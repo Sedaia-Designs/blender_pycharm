@@ -11,7 +11,9 @@ internal class BlenderSettingsComponent(
   private val config: PluginConfig = PluginConfig.getInstance(),
   operations: BlenderSettingsOperations = BlenderSettingsOperations(),
 ) : Disposable {
-  private val versionView = BlenderVersionManagementView()
+  private val versionView = BlenderVersionManagementView(
+    isValidMinorVersion = PluginConfig::isValidMinorVersion,
+  )
   private val versionController = BlenderVersionManagementController(
     view = versionView,
     refreshVersions = operations::refreshVersions,
@@ -22,8 +24,7 @@ internal class BlenderSettingsComponent(
     lastRefreshedEpochMillis = { config.getBlenderUpdateCheck().lastCheckedEpochMillis },
   )
   private val view = BlenderSettingsView(
-    versionManagementComponent = versionView.component(),
-    isValidMinorVersion = PluginConfig::isValidMinorVersion,
+    versionManagementView = versionView,
   )
   private val controller = BlenderSettingsController(view, config)
   private var isDisposed = false

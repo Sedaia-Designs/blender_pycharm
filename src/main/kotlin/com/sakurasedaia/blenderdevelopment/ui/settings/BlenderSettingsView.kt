@@ -5,18 +5,16 @@ import com.intellij.openapi.ui.TextBrowseFolderListener
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBScrollPane
-import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
-import com.intellij.ui.dsl.builder.columns
 import com.intellij.ui.dsl.builder.panel
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.ui.components.EnvironmentVariablesTable
+import com.sakurasedaia.blenderdevelopment.ui.settings.versions.BlenderVersionManagementView
 import javax.swing.JComponent
 import javax.swing.ScrollPaneConstants
 
 internal class BlenderSettingsView(
-  versionManagementComponent: JComponent,
-  isValidMinorVersion: (String) -> Boolean,
+  private val versionManagementView: BlenderVersionManagementView,
 ) {
   private val blenderInstallPath = folderField()
   private val codeCompletionPath = folderField()
@@ -25,7 +23,6 @@ internal class BlenderSettingsView(
   private val clearDownloadsAfterInstall = JBCheckBox(
     MessageBundle.message("ui.settings.group.download.clear-after-install"),
   )
-  private lateinit var minimumBlenderVersion: JBTextField
   private val globalEnvironmentVariables = EnvironmentVariablesTable()
 
   private val root = panel {
@@ -56,22 +53,8 @@ internal class BlenderSettingsView(
       }
     }
     group(MessageBundle.message("ui.settings.group.versions.title")) {
-      row(MessageBundle.message("ui.settings.group.versions.minimum-version.label")) {
-        textField()
-          .columns(8)
-          .validationOnInput {
-            if (isValidMinorVersion(it.text)) null
-            else error(MessageBundle.message("ui.settings.group.versions.minimum-version.validation"))
-          }
-          .validationOnApply {
-            if (isValidMinorVersion(it.text)) null
-            else error(MessageBundle.message("ui.settings.group.versions.minimum-version.validation"))
-          }
-          .applyToComponent { minimumBlenderVersion = this }
-          .comment(MessageBundle.message("ui.settings.group.versions.minimum-version.comment"))
-      }
       row {
-        cell(versionManagementComponent)
+        cell(versionManagementView.component())
           .align(AlignX.FILL)
           .resizableColumn()
       }
@@ -103,7 +86,7 @@ internal class BlenderSettingsView(
     logPath.text = form.logPath
     downloadPath.text = form.downloadPath
     clearDownloadsAfterInstall.isSelected = form.clearDownloadsAfterInstall
-    minimumBlenderVersion.text = form.minimumBlenderVersion
+    versionManagementView.renderMinimumVersion(form.minimumBlenderVersion)
     globalEnvironmentVariables.setVariables(form.globalEnvironmentVariables)
   }
 
@@ -113,7 +96,7 @@ internal class BlenderSettingsView(
     logPath = logPath.text,
     downloadPath = downloadPath.text,
     clearDownloadsAfterInstall = clearDownloadsAfterInstall.isSelected,
-    minimumBlenderVersion = minimumBlenderVersion.text,
+    minimumBlenderVersion = versionManagementView.readMinimumVersion(),
     globalEnvironmentVariables = globalEnvironmentVariables.getVariables(),
   )
 

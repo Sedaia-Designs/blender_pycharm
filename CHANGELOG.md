@@ -19,10 +19,13 @@ system diagnostics.
 ### Changed
 
 - Consolidated Blender discovery and version management into a single **Blender Versions** settings section.
+- Refactored global Blender settings into focused UI, coordination, and operation components with explicit lifecycle ownership.
+- Reorganized the Visual Flow of the Blender settings.
 - Moved managed-installation actions beside the version table as accessible icon-only buttons.
 - Updated Blender API stub package installation and removal to invoke `pip` through the selected Python interpreter.
 - Updated debugger attachment and tool-window lifecycle handling to avoid removed or internal PyCharm APIs.
 - Embedded generated plugin-version metadata for runtime resource extraction.
+- Improved the Pyproject.toml file template to be more accurate to Blender's style guide.
 
 ### Fixed
 

@@ -16,7 +16,7 @@ Use one of these forms:
 [Type] Description
 ```
 
-- Use a concise, title-cased type that describes the change, such as `Feature`, `Fix`, `Docs`, `Style`, `Refactor`, `Performance`, `Test`, `Build`, `CI`, `Config`, `Chore`, `Release`, or `Revert`.
+- Use a concise, title-cased type that describes the change, such as `Feature`, `Fix`, `Docs`, `UI/UX`, `Refactor`, `Test`, `Build`, `CI`, `Chore`, `Release`, or `Revert`.
 - Use `-> module` when one or two modules are affected. Derive a short, lowercase module name from the affected area or established repository history.
 - Omit `-> module` when three or more modules are affected.
 - Write the description in imperative mood and sentence case, without a trailing period.

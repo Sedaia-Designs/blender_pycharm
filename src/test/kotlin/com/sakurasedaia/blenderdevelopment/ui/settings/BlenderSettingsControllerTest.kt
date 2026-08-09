@@ -2,7 +2,7 @@ package com.sakurasedaia.blenderdevelopment.ui.settings
 
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig
-import javax.swing.JPanel
+import com.sakurasedaia.blenderdevelopment.ui.settings.versions.BlenderVersionManagementView
 
 internal class BlenderSettingsControllerTest : BasePlatformTestCase() {
   fun testResetModifiedDetectionAndApplyCoverEveryFormField() {
@@ -15,7 +15,7 @@ internal class BlenderSettingsControllerTest : BasePlatformTestCase() {
       setMinimumBlenderVersion("4.2")
       setGlobalEnvironmentVariables(mapOf("ORIGINAL" to "value"))
     }
-    val view = BlenderSettingsView(JPanel(), isValidMinorVersion = { true })
+    val view = BlenderSettingsView(BlenderVersionManagementView())
     val controller = BlenderSettingsController(view, config)
 
     controller.reset()

@@ -27,5 +27,11 @@ object IconBundle {
   val Delete: Icon = AllIcons.General.Delete
 
   @JvmField
+  val Uninstall: Icon = AllIcons.Actions.Uninstall
+  
+  @JvmField
   val InstallStubs: Icon = AllIcons.Nodes.Library
+  
+  @JvmField
+  val Scan: Icon = AllIcons.Actions.ShortcutFilter
 }

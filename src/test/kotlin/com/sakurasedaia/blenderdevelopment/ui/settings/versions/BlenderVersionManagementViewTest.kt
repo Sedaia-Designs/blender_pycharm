@@ -2,6 +2,7 @@ package com.sakurasedaia.blenderdevelopment.ui.settings.versions
 
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.ui.components.JBLabel
+import com.intellij.ui.components.JBTextField
 import com.intellij.ui.table.JBTable
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersion
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
@@ -14,6 +15,18 @@ import javax.swing.JButton
 import javax.swing.ListSelectionModel
 
 internal class BlenderVersionManagementViewTest : BasePlatformTestCase() {
+  fun testOwnsMinimumVersionDraftAndAccessibleLabel() {
+    val view = BlenderVersionManagementView(isValidMinorVersion = { it == "4.5" })
+
+    view.renderMinimumVersion("invalid")
+
+    assertEquals("invalid", view.readMinimumVersion())
+    assertEquals(
+      MessageBundle.message("ui.settings.group.versions.minimum-version.label"),
+      minimumVersionField(view).accessibleContext.accessibleName,
+    )
+  }
+
   fun testRenderCompletelyAndIdempotentlyAppliesState() {
     val view = BlenderVersionManagementView()
     val versions = BlenderVersions.LIST.take(2)
@@ -168,6 +181,9 @@ internal class BlenderVersionManagementViewTest : BasePlatformTestCase() {
     descendantsOf(view.component()).filterIsInstance<JBLabel>().single {
       it.text.startsWith("Last refreshed:") || it.text == MessageBundle.message("ui.settings.group.versions.refreshing")
     }
+
+  private fun minimumVersionField(view: BlenderVersionManagementView): JBTextField =
+    descendantsOf(view.component()).filterIsInstance<JBTextField>().single()
 
   private fun actionButton(view: BlenderVersionManagementView, messageKey: String): JButton {
     val actionName = MessageBundle.message(messageKey)
