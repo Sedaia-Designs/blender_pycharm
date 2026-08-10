@@ -6,6 +6,10 @@
 
 Beta 3 focuses on stability and improving forward compatibility.
 
+### Added
+
+- Added Plugin Verification steps to `build.gradle.kts`
+
 ### Fixed
 
 - Replaced `SimpleListCellRenderer.create {...}` with its `textListCellRenderer {...}` successor

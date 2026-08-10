@@ -1,3 +1,4 @@
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.changelog.Changelog
 import org.gradle.api.tasks.WriteProperties
@@ -60,6 +61,13 @@ intellijPlatform {
     }
 
     autoReload = true
+
+    pluginVerification {
+        ides {
+            create(IntelliJPlatformType.PyCharm, "261.27258.30")
+            create(IntelliJPlatformType.PyCharm, "262.9437.71")
+        }
+    }
 }
 
 tasks {
