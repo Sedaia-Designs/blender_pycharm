@@ -12,14 +12,17 @@ import com.intellij.util.ui.ColumnInfo
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.ListTableModel
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersion
+import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
 import com.sakurasedaia.blenderdevelopment.ui.IconBundle
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
+import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.ListSelectionModel
+import javax.swing.ScrollPaneConstants
 
 internal class BlenderVersionManagementView(
   isValidMinorVersion: (String) -> Boolean = { true },
@@ -49,7 +52,13 @@ internal class BlenderVersionManagementView(
     tableHeader.reorderingAllowed = false
   }
   private val lastRefreshedLabel = JBLabel(MessageBundle.message("ui.settings.group.versions.last-refreshed.never"))
-  
+  private val selectedVersionInstallPath = JBLabel(
+    MessageBundle.message(
+      "ui.settings.group.versions.selected-install-path.none"
+    )
+  ).apply {
+    border = JBUI.Borders.emptyBottom(12)
+  }
   private val installButton = iconButton(
     icon = IconBundle.Install,
     actionName = MessageBundle.message("ui.settings.group.versions.install.button"),
@@ -96,7 +105,7 @@ internal class BlenderVersionManagementView(
       label(MessageBundle.message("ui.settings.group.versions.management.comment"))
     }
     row {
-      cell(ScrollPaneFactory.createScrollPane(table, true))
+      cell(ScrollPaneFactory.createScrollPane(table, false))
         .align(AlignX.FILL)
         .resizableColumn()
       panel {
@@ -111,28 +120,35 @@ internal class BlenderVersionManagementView(
         }
       }.align(AlignY.TOP)
     }
-    collapsibleGroup(MessageBundle.message("ui.settings.group.versions.version-cache.label")) {
-      row {
-        textField()
-          .label(MessageBundle.message("ui.settings.group.versions.minimum-version.label"))
-          .columns(8)
-          .validationOnInput {
-            if (isValidMinorVersion(it.text)) null
-            else error(MessageBundle.message("ui.settings.group.versions.minimum-version.validation"))
+    row {
+      cell(
+        ScrollPaneFactory.createScrollPane(selectedVersionInstallPath, true)
+          .apply {
+            horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS
+            verticalScrollBarPolicy = ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER
           }
-          .validationOnApply {
-            if (isValidMinorVersion(it.text)) null
-            else error(MessageBundle.message("ui.settings.group.versions.minimum-version.validation"))
-          }
-          .applyToComponent { minimumBlenderVersion = this }
-        
-        cell(refreshVersionCacheButton)
-        cell(clearVersionCacheButton)
-      }
-      row {
-        cell(lastRefreshedLabel)
-      }
-    }.expanded = false
+      )
+        .align(AlignX.FILL)
+    }
+    row {
+      textField()
+        .label(MessageBundle.message("ui.settings.group.versions.minimum-version.label"))
+        .columns(8)
+        .validationOnInput {
+          if (isValidMinorVersion(it.text)) null
+          else error(MessageBundle.message("ui.settings.group.versions.minimum-version.validation"))
+        }
+        .validationOnApply {
+          if (isValidMinorVersion(it.text)) null
+          else error(MessageBundle.message("ui.settings.group.versions.minimum-version.validation"))
+        }
+        .applyToComponent { minimumBlenderVersion = this }
+      cell(refreshVersionCacheButton)
+      cell(clearVersionCacheButton)
+    }
+    row {
+      cell(lastRefreshedLabel)
+    }
   }
 
   init {
@@ -192,6 +208,8 @@ internal class BlenderVersionManagementView(
       else {
         formatLastRefreshed(state.lastRefreshedEpochMillis)
       }
+      selectedVersionInstallPath.text = selectedVersionPath(state.selectedVersion)
+      
     }
     finally {
       isRendering = false
@@ -223,7 +241,23 @@ internal class BlenderVersionManagementView(
     val selectedRow = table.selectedRow
     return if (selectedRow < 0) null else tableModel.getItem(selectedRow).version
   }
-
+  
+  private fun selectedVersionPath(version: BlenderVersion?): String {
+    val installPath = version?.let {
+      selectedInstall ->
+      PluginConfig.getInstance()
+        .getDetectedBlenderInstalls().firstOrNull { install ->
+          BlenderVersions.normalizeVersion(install.version) == selectedInstall.blMajorMinor
+        }
+        ?.path
+    }
+    
+    return if (installPath == null) {
+      MessageBundle.message("ui.settings.group.versions.selected-install-path.selected.none", version?.blMajorMinor)
+    } else {
+      MessageBundle.message("ui.settings.group.versions.selected-install-path.selected.found", version.blMajorMinor, installPath)
+    }
+  }
   private fun formatLastRefreshed(epochMillis: Long): String {
     return if (epochMillis <= 0) {
       MessageBundle.message("ui.settings.group.versions.last-refreshed.never")
