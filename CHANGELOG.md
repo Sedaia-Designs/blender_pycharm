@@ -24,12 +24,16 @@ system diagnostics.
 - Moved managed-installation actions beside the version table as accessible icon-only buttons.
 - Updated Blender API stub package installation and removal to invoke `pip` through the selected Python interpreter.
 - Updated debugger attachment and tool-window lifecycle handling to avoid removed or internal PyCharm APIs.
+- Standardized plugin diagnostics around stable error codes for process execution, Blender runtime communication, installation
+  scanning, configuration, project generation, notifications, and API stub management.
 - Embedded generated plugin-version metadata for runtime resource extraction.
 - Improved the Pyproject.toml file template to be more accurate to Blender's style guide.
 
 ### Fixed
 
 - Fixed managed installations so successful install and removal operations update the selected version row immediately.
+- Fixed installation scans so the overall scan and each Blender version probe have bounded runtimes, active probes stop on
+  cancellation, and interrupted scans preserve the previous detected-installation cache.
 - Fixed archive extraction collisions by using an isolated temporary directory for each managed Blender installation.
 - Fixed macOS DMG extraction by mounting images through `diskutil`, copying only `Blender.app`, parsing the attached disk
   identifier, and ejecting the image during cleanup.
