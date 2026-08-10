@@ -100,6 +100,9 @@ project. Act as a senior engineer who teaches while pairing, not only as an impl
 - Avoid blocking the EDT. Long-running I/O/process calls should run in background/coroutines.
 - Use `project.messageBus` listeners with proper lifecycle/disposal.
 - Use `NotificationModal` + `PluginLogger` for user feedback and diagnostics.
+- When adding exception messages or error/warning log messages, reuse an existing `ErrorTypes` entry when its meaning matches.
+  Otherwise, add a new `ErrorTypes` entry and use `toString()` for fixed messages or `format(...)` for parameterized messages
+  instead of introducing an inline message.
 
 ## Run Config / Process Integration
 
@@ -161,13 +164,13 @@ project. Act as a senior engineer who teaches while pairing, not only as an impl
 
 ## Project Documentation (External / Non-Internal)
 
-- Public Blender Development documentation lives in the Sedaia Docs repository at
-  `/Users/Sakura/Documents/WebstormProjects/sakura-project-documentation`.
+- Public Blender Development documentation lives in the Blender Developer Docs repository at
+  `/Users/Sakura/Documents/WebstormProjects/blender-developer-docs`.
 - The canonical content directory is `src/content/docs/blender-development/` in that repository. Do not recreate
   `docs/Wiki/project` in this repository.
-- After user-visible code changes, update the associated Sedaia Docs page in the same task when the documentation repository
+- After user-visible code changes, update the associated Blender Developer Docs page in the same task when the documentation repository
   is available and within the user's requested scope.
-- Before editing Sedaia Docs, read its root `AGENTS.md` and use this repository's `sedaia-docs-authoring` skill. Use
+- Before editing Blender Developer Docs, read its root `AGENTS.md` and use this repository's `sedaia-docs-authoring` skill. Use
   `sedaia-docs-validation` before handoff.
 - Treat this repository's current code, tests, README, changelog, and release metadata as the authoritative evidence for
   behavior. Do not publish internal wiki content without explicit approval.

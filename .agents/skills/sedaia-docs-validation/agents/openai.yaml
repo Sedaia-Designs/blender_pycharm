@@ -1,4 +1,4 @@
 interface:
-  display_name: "Sedaia Docs Validation"
+  display_name: "Blender Developer Docs Validation"
   short_description: "Validate Blender Development documentation"
   default_prompt: "Use $sedaia-docs-validation to verify the Blender Development documentation changes."

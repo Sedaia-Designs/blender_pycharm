@@ -1,11 +1,11 @@
 ---
 name: sedaia-docs-validation
-description: Validate public Blender Development content edited in the separate Sedaia Docs repository. Use after Markdown, MDX, Astro/Starlight configuration, routes, SolidJS components, SCSS, dependencies, or links affecting Blender Development documentation are changed.
+description: Validate public Blender Development content edited in the separate Blender Developer Docs repository. Use after Markdown, MDX, Astro/Starlight configuration, routes, SolidJS components, SCSS, dependencies, or links affecting Blender Development documentation are changed.
 ---
 
-# Sedaia Docs validation
+# Blender Developer Docs validation
 
-Run checks from `/Users/Sakura/Documents/WebstormProjects/sakura-project-documentation`.
+Run checks from `/Users/Sakura/Documents/WebstormProjects/blender-developer-docs`.
 
 ## Required checks
 

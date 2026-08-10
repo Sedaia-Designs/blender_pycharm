@@ -212,7 +212,7 @@ not reach into private Swing widgets.
   - [x] Run `./gradlew compileKotlin --no-daemon`.
   - [x] Manually verify reset, apply, modified detection, validation, scan, refresh, cache clear, installation, deletion,
     accessibility, and disposal while an operation is active.
-  - [x] Confirm no public Sedaia Docs update is required because observable behavior did not change.
+  - [x] Confirm no public Blender Developer Docs update is required because observable behavior did not change.
 
 ### Phase 11 validation
 
@@ -224,7 +224,7 @@ not reach into private Swing widgets.
   A live IDE screen-reader and UI Inspector session was not performed.
 - Validation found and corrected one remaining dependency-direction defect: minimum-version validation is now injected into
   `BlenderSettingsView`, so the View preserves the existing rule without depending on `PluginConfig`.
-- `./gradlew compileKotlin --no-daemon` and `git diff --check` pass. No public Sedaia Docs update is required because the
+- `./gradlew compileKotlin --no-daemon` and `git diff --check` pass. No public Blender Developer Docs update is required because the
   refactor preserves observable settings behavior and configuration.
 - [x] Commit Changes.
   - [x] Exclude `docs/Wiki/internal`, the IntelliJ scratch wiki, `CHANGELOG.md`, and unrelated `docs/planning.md` changes.

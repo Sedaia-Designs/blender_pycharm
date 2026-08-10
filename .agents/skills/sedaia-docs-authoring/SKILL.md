@@ -1,14 +1,14 @@
 ---
 name: sedaia-docs-authoring
-description: Create or revise public Blender Development documentation in the separate Sedaia Docs Astro/Starlight repository. Use after user-visible plugin changes, when a prompt asks to update public docs, or when Blender Development routes, workflows, settings, compatibility, releases, or troubleshooting guidance change.
+description: Create or revise public Blender Development documentation in the separate Blender Developer Docs Astro/Starlight repository. Use after user-visible plugin changes, when a prompt asks to update public docs, or when Blender Development routes, workflows, settings, compatibility, releases, or troubleshooting guidance change.
 ---
 
-# Sedaia Docs authoring
+# Blender Developer Docs authoring
 
 ## Repository boundary
 
 - Treat the current Blender Development repository as the authoritative product source.
-- Edit public pages in `/Users/Sakura/Documents/WebstormProjects/sakura-project-documentation/src/content/docs/blender-development/`.
+- Edit public pages in `/Users/Sakura/Documents/WebstormProjects/blender-developer-docs/src/content/docs/blender-development/`.
 - Read the documentation repository's root `AGENTS.md` before making changes; its instructions govern files edited there.
 - Keep internal material in `docs/Wiki/internal` private. Never copy it into public documentation without explicit approval.
 - Preserve unrelated changes in both worktrees. Do not create commits, push, or deploy unless requested.

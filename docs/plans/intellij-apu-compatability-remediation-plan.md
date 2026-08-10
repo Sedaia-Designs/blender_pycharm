@@ -55,8 +55,8 @@ Scope: remove or isolate IntelliJ/PyCharm internal API dependencies reported for
 - [ ] Investigate and repair the two `BlenderProjectGeneratorTest` failures caused by `VueLspServerLoader` initialization and stale index state.
 - [ ] Manually verify Blender launch, DAP attach, pydev fallback, path mappings, package install/uninstall, and tool-window disposal in the IDE sandbox.
 - [ ] Manually verify package install/uninstall with local, WSL, and Docker-backed SDKs before treating `GeneralCommandLine` environment selection as complete.
-- [x] Confirm that no public Sedaia Docs update is required for this implementation-only compatibility migration.
-- [x] Commit Changes.
+- [x] Confirm that no public Blender Developer Docs update is required for this implementation-only compatibility migration.
+- [ ] Commit Changes.
 
 ## Risks and decision points
 
@@ -78,3 +78,5 @@ Scope: remove or isolate IntelliJ/PyCharm internal API dependencies reported for
 - `/intellij-community/python/src/com/jetbrains/python/packaging/management/PythonPackageInstallRequest.kt`
 - `/intellij-community/python/openapi/src/com/jetbrains/python/packaging/PyPackageName.kt`
 - `/intellij-community/platform/platform-api/src/com/intellij/openapi/wm/ToolWindowFactory.kt`
+
+---
