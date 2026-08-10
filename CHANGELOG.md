@@ -14,6 +14,7 @@ Beta 3 focuses on stability and improving forward compatibility.
 
 - Replaced `SimpleListCellRenderer.create {...}` with its `textListCellRenderer {...}` successor
 - Changelog Parser now **only** grabs the current version's changelog in  `build.gradle.kts`.
+- Set `JvmDefaultMode` to `NO_COMPATABILITY`, fixing compiler warnings regarding a deprecated `ToolWindowFactory` class
 
 ## [1.0.0-beta.2] - 2026-08-10
 

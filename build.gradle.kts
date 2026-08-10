@@ -3,6 +3,7 @@ import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.changelog.Changelog
 import org.gradle.api.tasks.WriteProperties
 import org.gradle.api.tasks.bundling.Zip
+import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
 
 plugins {
     id("org.jetbrains.kotlin.jvm")
@@ -122,6 +123,7 @@ tasks {
 
 kotlin {
     compilerOptions {
+        jvmDefault.set(JvmDefaultMode.NO_COMPATIBILITY)
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
     }
 }
