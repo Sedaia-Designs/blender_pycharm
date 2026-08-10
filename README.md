@@ -25,7 +25,7 @@ The plugin currently targets PyCharm 2026.1 or newer and Blender 4.2 or newer.
 
 ## Current status
 
-The current development version is **1.0.0-beta.2**. The core project, installation-management, and run/debug workflows are
+The current development version is **1.0.0-beta.3**. The core project, installation-management, and run/debug workflows are
 implemented, and development is focused on stabilization and release hardening before 1.0. Recent beta work added dedicated
 run configurations for Blender commands and extension build/validation, improved PyCharm 2026.1 compatibility, and made
 managed installation state and scanning more reliable.

@@ -3,6 +3,13 @@
 # Blender Development for PyCharm Changelog
 
 ## [1.0.0-beta.2]
+## [1.0.0-beta.3]
+
+Beta 3 focuses on stability and improving forward compatibility.
+
+### Fixed
+
+## [1.0.0-beta.2] - 2026-08-10
 
 This beta expands Blender's Run and Debug integration with dedicated command and extension-build configurations, while
 improving compatibility with PyCharm 2026.1 and making managed Blender installations more reliable. Plugin settings now
