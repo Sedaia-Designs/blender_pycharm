@@ -1,5 +1,8 @@
 # IntelliJ API Compatibility Remediation Plan
 
+> [!WARNING]
+> This plan is now stale, please refer to [intellij-marketplace-api-warning-remediation-plan.md](intellij-marketplace-api-warning-remediation-plan.md) for the updated plan.
+
 Scope: remove or isolate IntelliJ/PyCharm internal API dependencies reported for PyCharm 2026.1 and 2026.2, then resolve the associated binary incompatibilities. Deprecated and experimental APIs are tracked after the internal-API work. Unrelated Qodana cleanup and feature changes are out of scope.
 
 ## Evidence and constraints

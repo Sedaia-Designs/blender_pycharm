@@ -31,8 +31,8 @@ import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
-import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.components.JBLabel
+import com.intellij.ui.dsl.listCellRenderer.textListCellRenderer
 import com.intellij.util.ui.FormBuilder
 import com.intellij.util.xmlb.annotations.OptionTag
 import com.sakurasedaia.blenderdevelopment.core.BlenderCommandLaunchRequest
@@ -153,7 +153,7 @@ internal class BlenderExtensionBuildRunConfiguration(
 private class BlenderExtensionBuildSettingsEditor(project: Project) :
   SettingsEditor<BlenderExtensionBuildRunConfiguration>() {
   private val operationField = ComboBox(BlenderExtensionBuildOperation.entries.toTypedArray()).apply {
-    renderer = SimpleListCellRenderer.create("") { operation -> operation.presentableName() }
+    renderer = textListCellRenderer { operation -> operation.presentableName() }
   }
   private val operationLabel = JBLabel(
     MessageBundle.message("run.configuration.blender.extension.build.operation.label")
