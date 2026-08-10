@@ -10,6 +10,7 @@ import java.nio.file.Path
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionException
+import java.util.concurrent.CompletableFuture.completedFuture
 
 internal class BlenderSettingsOperationsTest : BasePlatformTestCase() {
   fun testRefreshRunsInBackgroundCompletesOnUiAndReportsSuccess() {
@@ -26,6 +27,7 @@ internal class BlenderSettingsOperationsTest : BasePlatformTestCase() {
       executeInBackground = {
         events += "background"
         it()
+        completedFuture(Unit)
       },
       invokeLater = { _, action ->
         events += "ui"
@@ -83,6 +85,31 @@ internal class BlenderSettingsOperationsTest : BasePlatformTestCase() {
 
     assertSame(cancellation, completion!!.exceptionOrNull())
     assertEmpty(errors)
+  }
+
+  fun testDisposeCancelsOwnedScanAndSuppressesCompletion() {
+    var queuedAction: (() -> Unit)? = null
+    val task = CompletableFuture<Unit>()
+    var cancellationObserved = false
+    var completed = false
+    val operations = operations(
+      scanInstallations = { shouldCancel ->
+        cancellationObserved = shouldCancel()
+        emptyList()
+      },
+      executeInBackground = { action ->
+        queuedAction = action
+        task
+      },
+    )
+
+    operations.scanInstallations { completed = true }
+    operations.dispose()
+    queuedAction!!()
+
+    assertTrue(task.isCancelled)
+    assertTrue(cancellationObserved)
+    assertFalse(completed)
   }
 
   fun testInstallUnwrapsCompletionFailureAndCompletesOnUi() {
@@ -155,7 +182,7 @@ internal class BlenderSettingsOperationsTest : BasePlatformTestCase() {
 
   private fun operations(
     refreshVersionCache: () -> List<BlenderVersion> = { BlenderVersions.LIST },
-    scanInstallations: () -> List<PluginConfig.BlendInstallInfo> = { emptyList() },
+    scanInstallations: ((() -> Boolean) -> List<PluginConfig.BlendInstallInfo>) = { emptyList() },
     clearVersionCache: () -> Unit = {},
     installVersion: (String) -> CompletableFuture<Path> = {
       CompletableFuture.completedFuture(Path.of("/managed/blender"))
@@ -165,7 +192,10 @@ internal class BlenderSettingsOperationsTest : BasePlatformTestCase() {
     log: (String) -> Unit = {},
     sendInfo: (String) -> Unit = {},
     sendError: (String, Throwable?) -> Unit = { _, _ -> },
-    executeInBackground: (() -> Unit) -> Unit = { it() },
+    executeInBackground: (() -> Unit) -> java.util.concurrent.Future<*> = {
+      it()
+      completedFuture(Unit)
+    },
     invokeLater: (ModalityState, () -> Unit) -> Unit = { _, action -> action() },
   ): BlenderSettingsOperations = BlenderSettingsOperations(
     BlenderSettingsOperations.Dependencies(

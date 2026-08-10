@@ -2,6 +2,7 @@ package com.sakurasedaia.blenderdevelopment.ui.settings
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.sakurasedaia.blenderdevelopment.core.InstallBlender
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersion
@@ -19,10 +20,15 @@ import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionException
 import java.util.concurrent.ExecutionException
+import java.util.concurrent.Future
+import java.util.concurrent.atomic.AtomicBoolean
 
 internal class BlenderSettingsOperations(
   private val dependencies: Dependencies = Dependencies.production(),
-) {
+) : Disposable {
+  private val isDisposed = AtomicBoolean(false)
+  private val taskLock = Any()
+  private val backgroundTasks = mutableListOf<Future<*>>()
   constructor(project: Project) : this(Dependencies.production(project))
 
   fun refreshVersions(onComplete: (Result<List<BlenderVersion>>) -> Unit) {
@@ -46,7 +52,7 @@ internal class BlenderSettingsOperations(
   fun scanInstallations(onComplete: (Result<List<PluginConfig.BlendInstallInfo>>) -> Unit) {
     runInBackground(onComplete) {
       dependencies.log("Starting user-initiated Blender installation scan from settings.")
-      runCatching(dependencies.scanInstallations).onSuccess { installs ->
+      runCatching { dependencies.scanInstallations(::isCancelled) }.onSuccess { installs ->
         dependencies.log("Blender installation scan completed with ${installs.size} result(s).")
         val messageKey = if (installs.isEmpty()) {
           "notification.settings.scan.completed.none"
@@ -122,12 +128,28 @@ internal class BlenderSettingsOperations(
     onComplete: (Result<T>) -> Unit,
     operation: () -> Result<T>,
   ) {
+    if (isDisposed.get()) return
     val modalityState = dependencies.currentModalityState()
-    dependencies.executeInBackground {
+    val task = dependencies.executeInBackground {
       val result = operation()
+      if (isCancelled()) return@executeInBackground
       dependencies.invokeLater(modalityState) {
-        onComplete(result)
+        if (!isDisposed.get()) onComplete(result)
       }
+    }
+    synchronized(taskLock) {
+      if (isDisposed.get()) task.cancel(true)
+      else if (!task.isDone) backgroundTasks += task
+    }
+  }
+
+  private fun isCancelled(): Boolean = isDisposed.get() || Thread.currentThread().isInterrupted
+
+  override fun dispose() {
+    if (!isDisposed.compareAndSet(false, true)) return
+    synchronized(taskLock) {
+      backgroundTasks.forEach { it.cancel(true) }
+      backgroundTasks.clear()
     }
   }
 
@@ -147,7 +169,7 @@ internal class BlenderSettingsOperations(
 
   internal data class Dependencies(
     val refreshVersionCache: () -> List<BlenderVersion>,
-    val scanInstallations: () -> List<PluginConfig.BlendInstallInfo>,
+    val scanInstallations: ((() -> Boolean) -> List<PluginConfig.BlendInstallInfo>),
     val clearVersionCache: () -> Unit,
     val installVersion: (String) -> CompletableFuture<Path>,
     val deleteVersion: (String) -> CompletableFuture<Boolean>,
@@ -155,7 +177,7 @@ internal class BlenderSettingsOperations(
     val log: (String) -> Unit,
     val sendInfo: (String) -> Unit,
     val sendError: (String, Throwable?) -> Unit,
-    val executeInBackground: (() -> Unit) -> Unit,
+    val executeInBackground: (() -> Unit) -> Future<*>,
     val invokeLater: (ModalityState, () -> Unit) -> Unit,
     val currentModalityState: () -> ModalityState,
   ) {
@@ -170,8 +192,8 @@ internal class BlenderSettingsOperations(
           refreshVersionCache = {
             runBlocking { ScrapeBlenderVersionLists.getInstance().refreshVersionCache() }
           },
-          scanInstallations = {
-            SettingsInstallationScanService.getInstance().scanInstallations(project)
+          scanInstallations = { shouldCancel ->
+            SettingsInstallationScanService.getInstance().scanInstallations(project, shouldCancel)
           },
           clearVersionCache = { BlenderVersionCache.getInstance().clear() },
           installVersion = installer::extractBlender,

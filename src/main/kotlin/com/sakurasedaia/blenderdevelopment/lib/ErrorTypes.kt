@@ -50,8 +50,8 @@ enum class ErrorTypes(private val message: String) {
     RUNTIME_COMMAND_SEND_FAILED("[BL-210]: Failed to send Blender runtime command `{0}`."),
 
     // Install Scanner Failures [BL-300]
-    INSTALL_SCAN_FAIL_GENERIC("[BL-300]: User-initiated lender Installation Scan exceeded allowable deadline"),
-    INSTALL_SCAN_DEADLINE_EXCEEDED("[BL-301]: User-initiated lender Installation Scan exceeded allowable deadline"),
+    INSTALL_SCAN_FAIL_GENERIC("[BL-300]: User-initiated Blender installation scan failed."),
+    INSTALL_SCAN_DEADLINE_EXCEEDED("[BL-301]: User-initiated Blender installation scan exceeded its deadline."),
     INSTALL_VERSION_PROBE_FAILED("[BL-302]: Version probe failed for `{0}`"),
     INSTALL_SCAN_NO_INSTALLS("[BL-303]: No Blender installations detected on {0}."),
     INSTALL_SCAN_NO_INSTALLS_WITH_SKIPPED_ROOTS(

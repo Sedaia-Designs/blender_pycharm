@@ -17,6 +17,7 @@
 
 package com.sakurasedaia.blenderdevelopment.core
 
+import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
@@ -28,9 +29,11 @@ import com.sakurasedaia.blenderdevelopment.state.PluginConfig.BlendInstallInfo
 import com.sakurasedaia.blenderdevelopment.process.ExternalProcessBuilder
 import java.io.File
 import java.io.IOException
-import java.nio.file.Path
 import java.nio.file.AccessDeniedException
 import java.nio.file.NoSuchFileException
+import java.nio.file.Path
+import java.time.Duration
+import java.util.concurrent.CancellationException
 import kotlin.io.path.listDirectoryEntries
 
 /** Project service that discovers Blender installations and updates plugin cache state. */
@@ -44,30 +47,42 @@ class BlenderInstallationScanner(val project: Project) {
     var versionProbeFailures: Int = 0,
   )
 
-  /** Scans known OS-specific install locations and refreshes detected Blender installations cache. */
-  fun refreshInstalledVersionsCache() {
+  /**
+   * Scans known OS-specific install locations and refreshes detected Blender installations cache.
+   *
+   * @param shouldCancel callback checked during discovery and process execution.
+   */
+  fun refreshInstalledVersionsCache(
+    shouldCancel: () -> Boolean = { false }
+  ) {
+
+    ensureActive(shouldCancel)
     val systemInfo: SystemInfo.Format = SystemInfo()
     val diagnostics = ScanDiagnostics()
     val installedVersions = linkedMapOf<String, BlendInstallInfo>()
-    
+
     when (systemInfo.osName) {
-      "windows" -> getWindowsBlenderInstalls(diagnostics).forEach { installedVersions.putIfAbsent(it.path, it) }
-      "macos" -> getMacBlenderInstalls(diagnostics).forEach { installedVersions.putIfAbsent(it.path, it) }
-      "linux" -> getLinuxBlenderInstalls(diagnostics).forEach { installedVersions.putIfAbsent(it.path, it) }
+      "windows" -> getWindowsBlenderInstalls(diagnostics, shouldCancel).forEach { installedVersions.putIfAbsent(it.path, it) }
+      "macos" -> getMacBlenderInstalls(diagnostics, shouldCancel).forEach { installedVersions.putIfAbsent(it.path, it) }
+      "linux" -> getLinuxBlenderInstalls(diagnostics, shouldCancel).forEach { installedVersions.putIfAbsent(it.path, it) }
       else -> notification.sendError(MessageBundle.message("notification.settings.scan.unsupported.os", systemInfo.osName))
     }
 
-    getConfiguredRootBlenderInstalls(diagnostics).forEach { installedVersions.putIfAbsent(it.path, it) }
-    
+    getConfiguredRootBlenderInstalls(diagnostics, shouldCancel).forEach { installedVersions.putIfAbsent(it.path, it) }
+
+    ensureActive(shouldCancel)
     PluginConfig.getInstance().setDetectedBlenderInstalls(installedVersions.values.toList())
     notifyCriticalScanFeedback(installedVersions.size, diagnostics)
   }
-  
-  private fun getBlenderVersion(binary: File, diagnostics: ScanDiagnostics, internalBinary: String? = null): String? {
+
+  private fun getBlenderVersion(binary: File, diagnostics: ScanDiagnostics, shouldCancel: () -> Boolean, internalBinary: String? = null): String? {
+    ensureActive(shouldCancel)
     val result = ExternalProcessBuilder(project).launchAndCaptureOutput(
       command = binary.absolutePath,
       args = arrayOf("--version"),
+      shouldCancel = shouldCancel,
       internalBinary = internalBinary,
+      timeout = Duration.ofSeconds(10)
     )
     if (result.cancelled) {
       logger.debug("Version probe cancelled for `${binary.absolutePath}`")
@@ -75,14 +90,17 @@ class BlenderInstallationScanner(val project: Project) {
     }
     if (result.failure != null) {
       diagnostics.versionProbeFailures += 1
-      logger.warn("Version probe failed for `${binary.absolutePath}`", result.failure)
+      logger.warn(ErrorTypes.INSTALL_VERSION_PROBE_FAILED.format(binary.absolutePath), result.failure)
+      return null
+    }
+    if (result.timedOut) {
+      logger.debug("Version probe timed out for `${binary.absolutePath}`")
       return null
     }
     if (result.exitCode != 0) {
       logger.debug("Version probe exited with code ${result.exitCode} for `${binary.absolutePath}`")
       return null
     }
-
     val firstLine = result.firstLine.trim()
     if (firstLine.isBlank()) {
       logger.debug("Version probe returned empty output for `${binary.absolutePath}`")
@@ -91,8 +109,8 @@ class BlenderInstallationScanner(val project: Project) {
     return firstLine
   }
 
-  private fun buildInstallInfo(binary: File, installPath: String, diagnostics: ScanDiagnostics, internalBinary: String? = null, whereIsInstall: String = "User"): BlendInstallInfo? {
-    val detectedVersion = getBlenderVersion(binary, diagnostics, internalBinary) ?: return null
+  private fun buildInstallInfo(binary: File, installPath: String, diagnostics: ScanDiagnostics, shouldCancel: () -> Boolean, internalBinary: String? = null, whereIsInstall: String = "User"): BlendInstallInfo? {
+    val detectedVersion = getBlenderVersion(binary, diagnostics, shouldCancel, internalBinary) ?: return null
     return BlendInstallInfo(
       name = "$detectedVersion ($whereIsInstall)",
       version = formSemanticVersion(detectedVersion),
@@ -100,9 +118,12 @@ class BlenderInstallationScanner(val project: Project) {
     )
   }
 
-  private inline fun listDirectoryEntriesSafely(path: Path, onFailure: () -> Unit, consume: (Path) -> Unit) {
+  private fun listDirectoryEntriesSafely(path: Path, shouldCancel: () -> Boolean, onFailure: () -> Unit, consume: (Path) -> Unit) {
     try {
-      path.listDirectoryEntries().forEach(consume)
+      path.listDirectoryEntries().forEach { entry ->
+        ensureActive(shouldCancel)
+        consume(entry)
+      }
     } catch (_: AccessDeniedException) {
       onFailure()
     } catch (_: NoSuchFileException) {
@@ -115,17 +136,26 @@ class BlenderInstallationScanner(val project: Project) {
   private fun logNoInstallsSummary(osName: String, installsFound: Int, skippedInaccessibleRoots: Int) {
     if (installsFound > 0) return
     if (skippedInaccessibleRoots > 0) {
-      logger.warn("No Blender installations detected on $osName. Skipped $skippedInaccessibleRoots inaccessible install root(s).")
+      logger.warn(ErrorTypes.INSTALL_SCAN_NO_INSTALLS_WITH_SKIPPED_ROOTS.format(osName, skippedInaccessibleRoots))
     } else {
-      logger.warn("No Blender installations detected on $osName.")
+      logger.warn(ErrorTypes.INSTALL_SCAN_NO_INSTALLS.format(osName))
     }
   }
 
   /**
-   * Simple discovery logic for Blender Installs on Windows, does not attempt to locate
-   * Portable Installs due to increased complexity, and user can set their own paths
+   * Scans default installation directories for Blender on Windows OS and attempts to locate installed versions.
+   *
+   * @param diagnostics Tracks diagnostic information during the scanning process, including inaccessible paths and version probe failures.
+   * @param shouldCancel A callback function that, when invoked, checks if the scanning process should be cancelled.
+   * @param timeout An optional timeout duration for the scanning process. If set, the timeout must be non-negative. If null or zero, no timeout is applied.
+   * @return A list of discovered Blender installations, where each installation is represented by a `BlendInstallInfo` object containing details like name, version, and path.
+   *         Returns an empty list if no installations are found.
    */
-  private fun getWindowsBlenderInstalls(diagnostics: ScanDiagnostics): List<BlendInstallInfo> {
+  private fun getWindowsBlenderInstalls(
+    diagnostics: ScanDiagnostics,
+    shouldCancel: () -> Boolean,
+  ): List<BlendInstallInfo> {
+
     val blenderInstalls = mutableListOf<BlendInstallInfo>()
     val blenderProgramFiles: Path = Path.of("Blender Foundation", "Blender")
     // Default Install location of all Blender Apps
@@ -133,45 +163,46 @@ class BlenderInstallationScanner(val project: Project) {
       Path.of(System.getenv("ProgramFiles(x86)") ?: "C:\\Program Files (x86)"),
       Path.of(System.getenv("ProgramFiles") ?: "C:\\Program Files"),
     ).distinct()
-    
-    
+
     programFiles.forEach { path ->
+      ensureActive(shouldCancel)
       val blenderInstallPath = path.resolve(blenderProgramFiles)
       if (blenderInstallPath.toFile().isDirectory()) {
-        listDirectoryEntriesSafely(blenderInstallPath, onFailure = { diagnostics.inaccessibleRoots += 1 }) { version ->
+        listDirectoryEntriesSafely(blenderInstallPath, shouldCancel, onFailure = { diagnostics.inaccessibleRoots += 1 }) { version ->
           if (!version.toFile().isDirectory) return@listDirectoryEntriesSafely
 
           val blenderExecutable = version.resolve("blender.exe").toFile()
           if (!isExecutableFile(blenderExecutable)) return@listDirectoryEntriesSafely
 
-          buildInstallInfo(blenderExecutable, version.toString(), diagnostics)?.let { install ->
+          buildInstallInfo(blenderExecutable, version.toString(), diagnostics, shouldCancel)?.let { install ->
             blenderInstalls.add(install)
           }
         }
       }
     }
-    
+
     return blenderInstalls
   }
-  
+
   /**
    * Simple discovery logic for Blender Installs on macOS, does not attempt to locate
    * portable installations due to increased complexity, and user can set their own paths.
    */
-  private fun getMacBlenderInstalls(diagnostics: ScanDiagnostics): List<BlendInstallInfo> {
+  private fun getMacBlenderInstalls(diagnostics: ScanDiagnostics, shouldCancel: () -> Boolean): List<BlendInstallInfo> {
     val blenderInstalls = mutableListOf<BlendInstallInfo>()
-    
+
     val blenderBinaryRelative = "Contents/MacOS/Blender"
-    
+
     // Default Install location of all Blender Apps, checks system level first since that's what Blender links in their DMG installer
     val applicationDirectories: List<Path> = listOf(
       Path.of("/Applications"),
       Path.of(System.getProperty("user.home"), "Applications"),
     ).distinct()
     applicationDirectories.forEach { appDir ->
+      ensureActive(shouldCancel)
       if (!appDir.toFile().isDirectory) return@forEach
 
-      listDirectoryEntriesSafely(appDir, onFailure = { diagnostics.inaccessibleRoots += 1 }) { appBundlePath ->
+      listDirectoryEntriesSafely(appDir, shouldCancel, onFailure = { diagnostics.inaccessibleRoots += 1 }) { appBundlePath ->
         val appBundle = appBundlePath.toFile()
         if (!appBundle.isDirectory) return@listDirectoryEntriesSafely
         if (!appBundle.name.startsWith("Blender", ignoreCase = true) || !appBundle.name.endsWith(".app", ignoreCase = true)) {
@@ -181,27 +212,27 @@ class BlenderInstallationScanner(val project: Project) {
         val blenderBinary = appBundlePath.resolve(blenderBinaryRelative).toFile()
         if (!isExecutableFile(blenderBinary)) return@listDirectoryEntriesSafely
 
-        buildInstallInfo(appBundle, appBundle.absolutePath, diagnostics, internalBinary = "Blender")?.let { install ->
+        buildInstallInfo(appBundle, appBundle.absolutePath, diagnostics, shouldCancel, internalBinary = "Blender")?.let { install ->
           blenderInstalls.add(install)
         }
       }
     }
-    
+
     return blenderInstalls.distinct()
   }
-  
+
   /**
    * Blender discovery logic for Blender Installs on Linux, does not attempt to locate
    * portable installations due to increased complexity, and user can set their own paths.
    *
    * Scans common Linux package managers and Linux Homebrew installations.
    */
-  private fun getLinuxBlenderInstalls(diagnostics: ScanDiagnostics): List<BlendInstallInfo> {
+  private fun getLinuxBlenderInstalls(diagnostics: ScanDiagnostics, shouldCancel: () -> Boolean): List<BlendInstallInfo> {
     val blenderInstalls = linkedSetOf<BlendInstallInfo>()
 
     // Fast path: prefer shell discovery first to respect current PATH precedence.
-    resolveBinaryPathWithWhich()?.let {
-      buildInstallInfo(Path.of(it).toFile(), it, diagnostics)?.let { install ->
+    resolveBinaryPathWithWhich(shouldCancel)?.let {
+      buildInstallInfo(Path.of(it).toFile(), it, diagnostics, shouldCancel)?.let { install ->
         blenderInstalls.add(install)
       }
     }
@@ -214,9 +245,10 @@ class BlenderInstallationScanner(val project: Project) {
       Path.of("/usr/lib64/blender/blender"),
     )
     explicitBinaryPaths.forEach { candidate ->
+      ensureActive(shouldCancel)
       val candidateFile = candidate.toFile()
       if (isExecutableFile(candidateFile)) {
-        buildInstallInfo(candidateFile, candidateFile.absolutePath, diagnostics)?.let { install ->
+        buildInstallInfo(candidateFile, candidateFile.absolutePath, diagnostics, shouldCancel)?.let { install ->
           blenderInstalls.add(install)
         }
       }
@@ -229,21 +261,22 @@ class BlenderInstallationScanner(val project: Project) {
     ).distinct()
 
     brewPrefixes.forEach { prefix ->
+      ensureActive(shouldCancel)
       val linkedBinary = prefix.resolve("bin").resolve("blender-runtime").toFile()
       if (isExecutableFile(linkedBinary)) {
-        buildInstallInfo(linkedBinary, linkedBinary.absolutePath, diagnostics)?.let { install ->
+        buildInstallInfo(linkedBinary, linkedBinary.absolutePath, diagnostics, shouldCancel)?.let { install ->
           blenderInstalls.add(install)
         }
       }
 
       val blenderCellar = prefix.resolve("Cellar").resolve("blender-runtime")
       if (blenderCellar.toFile().isDirectory) {
-        listDirectoryEntriesSafely(blenderCellar, onFailure = { diagnostics.inaccessibleRoots += 1 }) { versionPath ->
+        listDirectoryEntriesSafely(blenderCellar, shouldCancel, onFailure = { diagnostics.inaccessibleRoots += 1 }) { versionPath ->
           if (!versionPath.toFile().isDirectory) return@listDirectoryEntriesSafely
           val cellarBinary = versionPath.resolve("bin").resolve("blender-runtime").toFile()
           if (!isExecutableFile(cellarBinary)) return@listDirectoryEntriesSafely
 
-          buildInstallInfo(cellarBinary, cellarBinary.absolutePath, diagnostics)?.let { install ->
+          buildInstallInfo(cellarBinary, cellarBinary.absolutePath, diagnostics, shouldCancel)?.let { install ->
             blenderInstalls.add(install)
           }
         }
@@ -275,7 +308,8 @@ class BlenderInstallationScanner(val project: Project) {
     }
   }
 
-  private fun getConfiguredRootBlenderInstalls(diagnostics: ScanDiagnostics): List<BlendInstallInfo> {
+  private fun getConfiguredRootBlenderInstalls(diagnostics: ScanDiagnostics, shouldCancel: () -> Boolean): List<BlendInstallInfo> {
+    ensureActive(shouldCancel)
     val rawConfiguredRoot = PluginConfig.getInstance().getBlenderInstallPath().trim()
     if (rawConfiguredRoot.isBlank()) {
       return emptyList()
@@ -287,13 +321,13 @@ class BlenderInstallationScanner(val project: Project) {
     }
 
     val discovered = linkedMapOf<String, BlendInstallInfo>()
-    scanInstallCandidate(configuredRoot, diagnostics)?.let { install ->
+    scanInstallCandidate(configuredRoot, diagnostics, shouldCancel)?.let { install ->
       discovered[install.path] = install
     }
 
-    listDirectoryEntriesSafely(configuredRoot, onFailure = { diagnostics.inaccessibleRoots += 1 }) { entry ->
+    listDirectoryEntriesSafely(configuredRoot, shouldCancel, onFailure = { diagnostics.inaccessibleRoots += 1 }) { entry ->
       if (!entry.toFile().isDirectory) return@listDirectoryEntriesSafely
-      scanInstallCandidate(entry, diagnostics)?.let { install ->
+      scanInstallCandidate(entry, diagnostics, shouldCancel)?.let { install ->
         discovered[install.path] = install
       }
     }
@@ -301,13 +335,14 @@ class BlenderInstallationScanner(val project: Project) {
     return discovered.values.toList()
   }
 
-  private fun scanInstallCandidate(candidatePath: Path, diagnostics: ScanDiagnostics): BlendInstallInfo? {
+  private fun scanInstallCandidate(candidatePath: Path, diagnostics: ScanDiagnostics, shouldCancel: () -> Boolean): BlendInstallInfo? {
+    ensureActive(shouldCancel)
     val candidateDir = candidatePath.toFile()
 
     if (candidateDir.name.endsWith(".app", ignoreCase = true)) {
       val appBinary = candidatePath.resolve("Contents").resolve("MacOS").resolve("Blender").toFile()
       if (isExecutableFile(appBinary)) {
-        return buildInstallInfo(candidateDir, candidateDir.absolutePath, diagnostics, internalBinary = "Blender", whereIsInstall = "Custom")
+        return buildInstallInfo(candidateDir, candidateDir.absolutePath, diagnostics, shouldCancel, internalBinary = "Blender", whereIsInstall = "Custom")
       }
     }
 
@@ -321,7 +356,7 @@ class BlenderInstallationScanner(val project: Project) {
     )
 
     directBinaries.firstOrNull { isExecutableFile(it) }?.let { binary ->
-      return buildInstallInfo(binary, candidateDir.absolutePath, diagnostics, whereIsInstall = "Custom")
+      return buildInstallInfo(binary, candidateDir.absolutePath, diagnostics, shouldCancel, whereIsInstall = "Custom")
     }
 
     return null
@@ -335,9 +370,10 @@ class BlenderInstallationScanner(val project: Project) {
     val withoutTilde = value.removePrefix("~").removePrefix("/")
     return Path.of(home).resolve(withoutTilde).normalize()
   }
-  
-  private fun resolveBinaryPathWithWhich(): String? {
-    val result = ExternalProcessBuilder(project).launchAndCaptureOutput("which", "blender-runtime")
+
+  private fun resolveBinaryPathWithWhich(shouldCancel: () -> Boolean): String? {
+    ensureActive(shouldCancel)
+    val result = ExternalProcessBuilder(project).launchAndCaptureOutput("which", "blender-runtime", shouldCancel = shouldCancel)
     if (result.cancelled || result.failure != null || result.exitCode != 0) return null
 
     val locatedPath = result.firstLine.trim()
@@ -348,13 +384,19 @@ class BlenderInstallationScanner(val project: Project) {
   }
 
   private fun isExecutableFile(file: File): Boolean = file.exists() && file.isFile && file.canExecute()
-  
+
+  private fun ensureActive(shouldCancel: () -> Boolean) {
+    if (project.isDisposed || Thread.currentThread().isInterrupted || shouldCancel()) {
+      throw CancellationException("Blender installation scan was cancelled")
+    }
+  }
+
   /**
-   * Extracts the semantic version from the Blender version string, returned 
+   * Extracts the semantic version from the Blender version string, returned
    * from `blender --version`, which usually is formatted "Blender X.X.X"
-   * Function attempts a simple extraction of the semantic version from the 
+   * Function attempts a simple extraction of the semantic version from the
    * Blender version string, before falling back to more complex extraction methods.
-   * 
+   *
    * @param commandOutput Blender version string from `blender --version`
    */
   private fun formSemanticVersion(commandOutput: String): String {
@@ -362,13 +404,13 @@ class BlenderInstallationScanner(val project: Project) {
       return commandOutput.split(" ")[1]
     } catch (e: Exception) {
       val firstLine = commandOutput.lineSequence().firstOrNull().orEmpty().trim()
-      
+
       // Preferred: full semver (e.g. 4.2.1)
       Regex("""\b(\d+\.\d+\.\d+)\b""").find(firstLine)?.let { return it.groupValues[1] }
-      
+
       // Fallback: major.minor (e.g. 4.2) -> normalize to semver
       Regex("""\b(\d+\.\d+)\b""").find(firstLine)?.let { return "${it.groupValues[1]}.0" }
-      
+
       // Last resort: extract first 2-3 numeric chunks and build semver
       val nums = Regex("""\d+""").findAll(firstLine).map { it.value }.toList()
       return when {
@@ -378,4 +420,5 @@ class BlenderInstallationScanner(val project: Project) {
       }
     }
   }
+
 }

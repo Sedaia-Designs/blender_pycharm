@@ -51,7 +51,10 @@ internal class BlenderSettingsComponentTest : BasePlatformTestCase() {
 
     component.dispose()
     component.dispose()
-    textButton(component, "ui.settings.group.versions.refresh.button").doClick()
+    textButton(component, "ui.settings.group.versions.refresh.button").apply {
+      isEnabled = true
+      doClick()
+    }
 
     assertEquals(0, refreshCount)
     assertFalse(component.isModified())
@@ -61,13 +64,19 @@ internal class BlenderSettingsComponentTest : BasePlatformTestCase() {
     var refreshAction: (() -> Unit)? = null
     val component = BlenderSettingsComponent(
       config = PluginConfig.getInstance(),
-      operations = operations(executeInBackground = { refreshAction = it }),
+      operations = operations(executeInBackground = { action ->
+        refreshAction = action
+        CompletableFuture<Unit>()
+      }),
     )
     component.reset()
     val table = versionTable(component)
     val originalFirstVersion = table.getValueAt(0, 0)
 
-    textButton(component, "ui.settings.group.versions.refresh.button").doClick()
+    textButton(component, "ui.settings.group.versions.refresh.button").apply {
+      isEnabled = true
+      doClick()
+    }
     component.dispose()
     refreshAction!!()
 
@@ -76,7 +85,10 @@ internal class BlenderSettingsComponentTest : BasePlatformTestCase() {
 
   private fun operations(
     refreshVersionCache: () -> List<BlenderVersion> = { BlenderVersions.LIST },
-    executeInBackground: (() -> Unit) -> Unit = { it() },
+    executeInBackground: (() -> Unit) -> java.util.concurrent.Future<*> = {
+      it()
+      CompletableFuture.completedFuture(Unit)
+    },
   ): BlenderSettingsOperations = BlenderSettingsOperations(
     BlenderSettingsOperations.Dependencies(
       refreshVersionCache = refreshVersionCache,

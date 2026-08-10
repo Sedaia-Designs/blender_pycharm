@@ -19,24 +19,34 @@ package com.sakurasedaia.blenderdevelopment.process
 
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
-import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.openapi.project.Project
+import com.intellij.util.concurrency.AppExecutorUtil
+import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.util.SystemInfo
 import java.io.IOException
+import java.time.Duration
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 
 class ExternalProcessBuilder(val project: Project) {
   private val logger = PluginLogger.getInstance(project)
 
+  private enum class ProcessResult {
+    COMPLETED,
+    CANCELLED,
+    TIMED_OUT,
+  }
+
   data class ProcessExecutionResult(
     val command: String,
     val args: List<String>,
     val output: String,
     val exitCode: Int?,
-    val cancelled: Boolean,
+    val cancelled: Boolean = false,
     val failure: Throwable? = null,
+    val timedOut: Boolean = false,
   ) {
     val firstLine: String
       get() = output.lineSequence().firstOrNull().orEmpty()
@@ -50,6 +60,7 @@ class ExternalProcessBuilder(val project: Project) {
    * @param shouldCancel optional callback polled during execution; when it returns `true`,
    * the process is terminated and the result is marked as cancelled.
    * @param internalBinary optional macOS app bundle binary name used when [command] points to an app bundle.
+   * @param timeout optional maximum process runtime; `null` or [Duration.ZERO] disables the timeout.
    * @return captured process execution details including output, exit code, and cancellation state.
    */
   fun launchAndCaptureOutput(
@@ -57,41 +68,60 @@ class ExternalProcessBuilder(val project: Project) {
     vararg args: String,
     shouldCancel: (() -> Boolean)? = null,
     internalBinary: String? = null,
+    timeout: Duration? = null,
   ): ProcessExecutionResult {
+    require(timeout == null || !timeout.isNegative) {
+      "Timeout must be zero or greater"
+    }
+
+    // Normalize zero to the disabled-timeout representation.
+    val actualTimeout = if (timeout == Duration.ZERO) null else timeout
+
     val argumentList = args.toMutableList()
     val processedCommand = prepareCommandForLaunch(command, argumentList, internalBinary)
-    return try {
+
+    val result: ProcessExecutionResult = try {
       val process = ProcessBuilder(processedCommand, *argumentList.toTypedArray()).redirectErrorStream(true).start()
       val outputFuture = AppExecutorUtil.getAppExecutorService().submit<String> {
         process.inputStream.bufferedReader().use { it.readText() }
       }
 
-      val wasCancelled = waitForTermination(process, shouldCancel)
-      val output = outputFuture.get()
-      val exitCode = runCatching { process.exitValue() }.getOrNull()
+      try {
+        val processResult = waitForTermination(process, shouldCancel, actualTimeout)
 
-      logger.debug("Process `${buildCommandString(command, argumentList)}` finished with exit code $exitCode")
+        if (processResult != ProcessResult.COMPLETED) {
+          killProcess(process)
+        }
 
-      ProcessExecutionResult(
-        command = command,
-        args = argumentList,
-        output = output,
-        exitCode = exitCode,
-        cancelled = wasCancelled,
-      )
+        val output = outputFuture.get()
+        val exitCode = runCatching { process.exitValue() }.getOrNull()
+
+        logger.debug("Process `${buildCommandString(command, argumentList)}` finished with exit code $exitCode")
+
+        ProcessExecutionResult(
+          command = command,
+          args = argumentList,
+          exitCode = exitCode,
+          output = output,
+          cancelled = processResult == ProcessResult.CANCELLED,
+          timedOut = processResult == ProcessResult.TIMED_OUT,
+        )
+      } catch (exception: InterruptedException) {
+        killProcess(process)
+        throw exception
+      }
     } catch (exception: IOException) {
-      logger.warn("Failed to execute `${buildCommandString(command, argumentList)}`", exception)
+      logger.warn(ErrorTypes.PROCESS_EXECUTION_FAILED.format(buildCommandString(command, argumentList)), exception)
       ProcessExecutionResult(
         command = command,
         args = argumentList,
         output = "",
         exitCode = null,
-        cancelled = false,
         failure = exception,
       )
     } catch (exception: InterruptedException) {
+      logger.warn(ErrorTypes.PROCESS_EXECUTION_INTERRUPTED.format(buildCommandString(command, argumentList)), exception)
       Thread.currentThread().interrupt()
-      logger.warn("Interrupted while executing `${buildCommandString(command, argumentList)}`", exception)
       ProcessExecutionResult(
         command = command,
         args = argumentList,
@@ -100,7 +130,17 @@ class ExternalProcessBuilder(val project: Project) {
         cancelled = true,
         failure = exception,
       )
+    } catch (exception: ExecutionException) {
+      logger.warn(ErrorTypes.PROCESS_EXECUTION_FAILED.format(buildCommandString(command, argumentList)), exception)
+      ProcessExecutionResult(
+        command = command,
+        args = argumentList,
+        output = "",
+        exitCode = null,
+        failure = exception,
+      )
     }
+    return result
   }
 
   /**
@@ -113,6 +153,7 @@ class ExternalProcessBuilder(val project: Project) {
    * @param args command arguments.
    * @param shouldCancel optional callback polled during execution to request cancellation.
    * @param internalBinary optional macOS app bundle binary name used when [command] points to an app bundle.
+   * @param timeout optional maximum process runtime; `null` or [Duration.ZERO] disables the timeout.
    * @return a future that completes with the process execution result.
    */
   fun launchAndCaptureOutputAsync(
@@ -120,11 +161,17 @@ class ExternalProcessBuilder(val project: Project) {
     vararg args: String,
     shouldCancel: (() -> Boolean)? = null,
     internalBinary: String? = null,
+    timeout: Duration? = null,
   ): Future<ProcessExecutionResult> {
     val argumentList = args.toMutableList()
-    val processedCommand = prepareCommandForLaunch(command, argumentList, internalBinary)
     return AppExecutorUtil.getAppExecutorService().submit<ProcessExecutionResult> {
-      launchAndCaptureOutput(processedCommand, argumentList, shouldCancel = shouldCancel)
+      launchAndCaptureOutput(
+        command,
+        args = argumentList,
+        shouldCancel = shouldCancel,
+        internalBinary = internalBinary,
+        timeout = timeout,
+      )
     }
   }
 
@@ -134,14 +181,24 @@ class ExternalProcessBuilder(val project: Project) {
    * @param command executable path or command name to run.
    * @param args command arguments.
    * @param shouldCancel optional callback polled during execution to request cancellation.
+   * @param internalBinary optional macOS app bundle binary name used when [command] points to an app bundle.
+   * @param timeout optional maximum process runtime; `null` or [Duration.ZERO] disables the timeout.
    * @return captured process execution details including output, exit code, and cancellation state.
    */
   fun launchAndCaptureOutput(
     command: String,
     args: List<String>,
     shouldCancel: (() -> Boolean)? = null,
+    internalBinary: String? = null,
+    timeout: Duration? = null,
   ): ProcessExecutionResult {
-    return launchAndCaptureOutput(command, *args.toTypedArray(), shouldCancel = shouldCancel)
+    return launchAndCaptureOutput(
+      command,
+      *args.toTypedArray(),
+      shouldCancel = shouldCancel,
+      internalBinary = internalBinary,
+      timeout = timeout,
+    )
   }
 
   /**
@@ -151,6 +208,7 @@ class ExternalProcessBuilder(val project: Project) {
    * @param args command arguments.
    * @param shouldCancel optional callback polled during execution to request cancellation.
    * @param internalBinary optional macOS app bundle binary name used when [command] points to an app bundle.
+   * @param timeout optional maximum process runtime; `null` or [Duration.ZERO] disables the timeout.
    * @return a future that completes with the process execution result.
    */
   fun launchAndCaptureOutputAsync(
@@ -158,11 +216,17 @@ class ExternalProcessBuilder(val project: Project) {
     args: List<String>,
     shouldCancel: (() -> Boolean)? = null,
     internalBinary: String? = null,
+    timeout: Duration? = null,
   ): Future<ProcessExecutionResult> {
     val argumentList = args.toMutableList()
-    val processedCommand = prepareCommandForLaunch(command, argumentList, internalBinary)
     return AppExecutorUtil.getAppExecutorService().submit<ProcessExecutionResult> {
-      launchAndCaptureOutput(processedCommand, argumentList, shouldCancel = shouldCancel)
+      launchAndCaptureOutput(
+        command,
+        argumentList,
+        internalBinary = internalBinary,
+        timeout = timeout,
+        shouldCancel = shouldCancel,
+      )
     }
   }
 
@@ -192,20 +256,44 @@ class ExternalProcessBuilder(val project: Project) {
     return OSProcessHandler(commandLine)
   }
 
-  private fun waitForTermination(process: Process, shouldCancel: (() -> Boolean)?): Boolean {
+  /**
+   * Waits for the termination of a specified process, with optional cancellation and timeout checks.
+   *
+   * @param process the process to monitor for termination.
+   * @param shouldCancel an optional callback that determines whether the process should be cancelled.
+   *        If the callback returns `true`, the process is terminated.
+   * @param timeout an optional duration to wait for the process to complete.
+   * @return the mode of termination, indicating whether the process completed normally, was cancelled,
+   *         or timed out.
+   */
+  private fun waitForTermination(
+    process: Process,
+    shouldCancel: (() -> Boolean)?,
+    timeout: Duration? = null,
+  ): ProcessResult {
+    val startedAtNanos = System.nanoTime()
+
     while (true) {
       if (process.waitFor(PROCESS_WAIT_INTERVAL_MS, TimeUnit.MILLISECONDS)) {
-        return false
+        return ProcessResult.COMPLETED
       }
 
       if (shouldCancel?.invoke() == true) {
-        process.destroy()
-        if (!process.waitFor(PROCESS_DESTROY_GRACE_PERIOD_MS, TimeUnit.MILLISECONDS)) {
-          process.destroyForcibly()
-          process.waitFor()
-        }
-        return true
+        return ProcessResult.CANCELLED
       }
+
+      val elapsed = Duration.ofNanos(System.nanoTime() - startedAtNanos)
+      if (timeout != null && elapsed >= timeout) {
+        return ProcessResult.TIMED_OUT
+      }
+    }
+  }
+
+  private fun killProcess(process: Process) {
+    process.destroy()
+    if (!process.waitFor(PROCESS_DESTROY_GRACE_PERIOD_MS, TimeUnit.MILLISECONDS)) {
+      process.destroyForcibly()
+      process.waitFor()
     }
   }
 

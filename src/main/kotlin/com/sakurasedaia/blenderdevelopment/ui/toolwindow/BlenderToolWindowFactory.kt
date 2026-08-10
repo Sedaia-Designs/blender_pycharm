@@ -36,9 +36,10 @@ class BlenderToolWindowFactory : ToolWindowFactory {
     val toolWindowContent = BlenderToolWindowContent(
       project = project,
       onScanInstallations = { onCompleted ->
-        SettingsInstallationScanService.getInstance().scanInstallations(projectOverride = project) {
-          onCompleted()
-        }
+        SettingsInstallationScanService.getInstance().scanInstallations(
+          projectOverride = project,
+          onComplete = { onCompleted() },
+        )
       },
     )
     val content = ContentFactory.getInstance().createContent(

@@ -9,7 +9,7 @@ import javax.swing.JComponent
 
 internal class BlenderSettingsComponent(
   private val config: PluginConfig = PluginConfig.getInstance(),
-  operations: BlenderSettingsOperations = BlenderSettingsOperations(),
+  private val operations: BlenderSettingsOperations = BlenderSettingsOperations(),
 ) : Disposable {
   private val versionView = BlenderVersionManagementView(
     isValidMinorVersion = PluginConfig::isValidMinorVersion,
@@ -52,5 +52,6 @@ internal class BlenderSettingsComponent(
     if (isDisposed) return
     isDisposed = true
     versionController.dispose()
+    operations.dispose()
   }
 }
