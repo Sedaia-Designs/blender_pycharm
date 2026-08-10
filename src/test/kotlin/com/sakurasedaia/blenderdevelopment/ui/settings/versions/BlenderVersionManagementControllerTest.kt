@@ -5,6 +5,7 @@ import com.intellij.ui.table.JBTable
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersion
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig
+import com.sakurasedaia.blenderdevelopment.ui.IconBundle
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import java.awt.Container
 import java.nio.file.Path
@@ -54,12 +55,18 @@ internal class BlenderVersionManagementControllerTest : BasePlatformTestCase() {
 
     assertFalse(table(view).isEnabled)
     assertFalse(installButton(view).isEnabled)
+    assertFalse(scanButton(view).isEnabled)
+    assertFalse(textButton(view, "ui.settings.group.versions.refresh.button").isEnabled)
+    assertFalse(textButton(view, "ui.settings.group.versions.clear-cache.button").isEnabled)
     assertEquals(0, refreshCount)
 
     installCompletion!!(Result.failure(IllegalStateException("install failed")))
 
     assertTrue(table(view).isEnabled)
     assertTrue(installButton(view).isEnabled)
+    assertTrue(scanButton(view).isEnabled)
+    assertTrue(textButton(view, "ui.settings.group.versions.refresh.button").isEnabled)
+    assertTrue(textButton(view, "ui.settings.group.versions.clear-cache.button").isEnabled)
   }
 
   fun testSuccessfulInstallTargetsRowBeforeAuthoritativeScan() {
@@ -167,7 +174,7 @@ internal class BlenderVersionManagementControllerTest : BasePlatformTestCase() {
     refreshCompletion!!(Result.success(listOf(builtInVersion)))
     assertEquals(builtInVersion.blVersion, table(view).getValueAt(0, 0))
 
-    textButton(view, "ui.settings.group.versions.scan.button").doClick()
+    scanButton(view).doClick()
     scanCompletion!!(Result.success(listOf(installInfo(builtInVersion))))
     assertEquals(
       MessageBundle.message("ui.settings.group.versions.status.installed", builtInVersion.blVersion),
@@ -199,10 +206,13 @@ internal class BlenderVersionManagementControllerTest : BasePlatformTestCase() {
     assertTrue(table(view).isEnabled)
     assertTrue(installButton(view).isEnabled)
 
-    textButton(view, "ui.settings.group.versions.scan.button").doClick()
+    scanButton(view).doClick()
     scanCompletion!!(Result.failure(IllegalStateException("scan failed")))
     assertTrue(table(view).isEnabled)
     assertTrue(installButton(view).isEnabled)
+    assertTrue(scanButton(view).isEnabled)
+    assertTrue(textButton(view, "ui.settings.group.versions.refresh.button").isEnabled)
+    assertTrue(textButton(view, "ui.settings.group.versions.clear-cache.button").isEnabled)
 
     textButton(view, "ui.settings.group.versions.clear-cache.button").doClick()
     assertTrue(table(view).isEnabled)
@@ -249,6 +259,9 @@ internal class BlenderVersionManagementControllerTest : BasePlatformTestCase() {
     val actionName = MessageBundle.message(messageKey)
     return descendantsOf(view.component()).filterIsInstance<JButton>().single { it.toolTipText == actionName }
   }
+
+  private fun scanButton(view: BlenderVersionManagementView): JButton =
+    descendantsOf(view.component()).filterIsInstance<JButton>().single { it.icon == IconBundle.Scan }
 
   private fun textButton(view: BlenderVersionManagementView, messageKey: String): JButton {
     val buttonText = MessageBundle.message(messageKey)

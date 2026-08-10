@@ -27,6 +27,9 @@ internal class BlenderVersionManagementController(
     isTableEnabled = true,
     isInstallEnabled = false,
     isDeleteEnabled = false,
+    isScanEnabled = false,
+    isRefreshVersionCacheEnabled = false,
+    isClearVersionCacheEnabled = false,
   )
   private var generation = 0L
   private var isDisposed = false
@@ -192,6 +195,9 @@ internal class BlenderVersionManagementController(
       isInstallEnabled = isIdle && selectedRow != null && !selectedRow.isInstalled &&
         isCompatible(selectedRow.version.blMajorMinor),
       isDeleteEnabled = isIdle && selectedRow?.isInstalled == true,
+      isScanEnabled = isIdle,
+      isRefreshVersionCacheEnabled = isIdle,
+      isClearVersionCacheEnabled = isIdle,
     )
     view.render(state)
   }

@@ -6,6 +6,7 @@ import com.intellij.ui.components.JBTextField
 import com.intellij.ui.table.JBTable
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersion
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
+import com.sakurasedaia.blenderdevelopment.ui.IconBundle
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import java.awt.Container
 import java.time.Instant
@@ -40,6 +41,9 @@ internal class BlenderVersionManagementViewTest : BasePlatformTestCase() {
       isTableEnabled = false,
       isInstallEnabled = true,
       isDeleteEnabled = false,
+      isScanEnabled = false,
+      isRefreshVersionCacheEnabled = false,
+      isClearVersionCacheEnabled = false,
     )
 
     view.render(state)
@@ -51,6 +55,9 @@ internal class BlenderVersionManagementViewTest : BasePlatformTestCase() {
     assertFalse(table.isEnabled)
     assertTrue(actionButton(view, "ui.settings.group.versions.install.button").isEnabled)
     assertFalse(actionButton(view, "ui.settings.group.versions.delete.button").isEnabled)
+    assertFalse(scanButton(view).isEnabled)
+    assertFalse(textButton(view, "ui.settings.group.versions.refresh.button").isEnabled)
+    assertFalse(textButton(view, "ui.settings.group.versions.clear-cache.button").isEnabled)
     assertEquals(0, selectionIntentCount)
     assertEquals(
       MessageBundle.message(
@@ -97,6 +104,9 @@ internal class BlenderVersionManagementViewTest : BasePlatformTestCase() {
         rows = listOf(row(version)),
         isInstallEnabled = true,
         isDeleteEnabled = true,
+        isScanEnabled = true,
+        isRefreshVersionCacheEnabled = true,
+        isClearVersionCacheEnabled = true,
       ),
     )
 
@@ -104,7 +114,7 @@ internal class BlenderVersionManagementViewTest : BasePlatformTestCase() {
     actionButton(view, "ui.settings.group.versions.install.button").doClick()
     actionButton(view, "ui.settings.group.versions.delete.button").doClick()
     textButton(view, "ui.settings.group.versions.refresh.button").doClick()
-    textButton(view, "ui.settings.group.versions.scan.button").doClick()
+    scanButton(view).doClick()
     textButton(view, "ui.settings.group.versions.clear-cache.button").doClick()
 
     assertSame(version, selectedVersion)
@@ -157,6 +167,9 @@ internal class BlenderVersionManagementViewTest : BasePlatformTestCase() {
     isTableEnabled: Boolean = true,
     isInstallEnabled: Boolean = false,
     isDeleteEnabled: Boolean = false,
+    isScanEnabled: Boolean = true,
+    isRefreshVersionCacheEnabled: Boolean = true,
+    isClearVersionCacheEnabled: Boolean = true,
   ): BlenderVersionManagementState = BlenderVersionManagementState(
     rows = rows,
     selectedVersion = selectedVersion,
@@ -165,6 +178,9 @@ internal class BlenderVersionManagementViewTest : BasePlatformTestCase() {
     isTableEnabled = isTableEnabled,
     isInstallEnabled = isInstallEnabled,
     isDeleteEnabled = isDeleteEnabled,
+    isScanEnabled = isScanEnabled,
+    isRefreshVersionCacheEnabled = isRefreshVersionCacheEnabled,
+    isClearVersionCacheEnabled = isClearVersionCacheEnabled,
   )
 
   private fun row(version: BlenderVersion): BlenderVersionSettingsRow = BlenderVersionSettingsRow(
@@ -189,6 +205,9 @@ internal class BlenderVersionManagementViewTest : BasePlatformTestCase() {
     val actionName = MessageBundle.message(messageKey)
     return descendantsOf(view.component()).filterIsInstance<JButton>().single { it.toolTipText == actionName }
   }
+
+  private fun scanButton(view: BlenderVersionManagementView): JButton =
+    descendantsOf(view.component()).filterIsInstance<JButton>().single { it.icon == IconBundle.Scan }
 
   private fun textButton(view: BlenderVersionManagementView, messageKey: String): JButton {
     val buttonText = MessageBundle.message(messageKey)

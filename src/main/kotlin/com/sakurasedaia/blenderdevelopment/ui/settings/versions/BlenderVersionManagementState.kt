@@ -10,7 +10,11 @@ internal data class BlenderVersionManagementState(
   val isTableEnabled: Boolean,
   val isInstallEnabled: Boolean,
   val isDeleteEnabled: Boolean,
+  val isScanEnabled: Boolean,
+  val isRefreshVersionCacheEnabled: Boolean,
+  val isClearVersionCacheEnabled: Boolean,
 ) {
+  
   internal enum class Operation {
     REFRESHING,
     SCANNING,

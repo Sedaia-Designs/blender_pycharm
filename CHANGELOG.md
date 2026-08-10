@@ -37,7 +37,6 @@ system diagnostics.
 - Fixed archive extraction collisions by using an isolated temporary directory for each managed Blender installation.
 - Fixed macOS DMG extraction by mounting images through `diskutil`, copying only `Blender.app`, parsing the attached disk
   identifier, and ejecting the image during cleanup.
-- Fixed Blender runtime add-on state initialization.
 
 ### Known Issues
 

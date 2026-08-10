@@ -49,19 +49,39 @@ internal class BlenderVersionManagementView(
     tableHeader.reorderingAllowed = false
   }
   private val lastRefreshedLabel = JBLabel(MessageBundle.message("ui.settings.group.versions.last-refreshed.never"))
-  private val installButton = iconButton( // Not in UI code itself due to Render State relying on its output
+  
+  private val installButton = iconButton(
     icon = IconBundle.Install,
     actionName = MessageBundle.message("ui.settings.group.versions.install.button"),
   ) {
     selectedVersion()?.let { onInstallRequested?.invoke(it) }
   }
-  private val deleteButton = iconButton( // Not in UI code itself due to Render State relying on its output
+  private val deleteButton = iconButton(
     icon = IconBundle.Uninstall,
     actionName = MessageBundle.message("ui.settings.group.versions.delete.button"),
   ) {
     selectedVersion()?.let { onDeleteRequested?.invoke(it) }
   }
-
+  private val scanInstallButton = iconButton(
+    icon=IconBundle.Scan,
+    actionName = MessageBundle.message("ui.settings.group.versions.scan.button")
+  ) {
+    onScanRequested?.invoke()
+  }
+  private val refreshVersionCacheButton = iconButtonWithLabel(
+    icon = IconBundle.Refresh,
+    label = MessageBundle.message("ui.settings.group.versions.refresh.button")
+  ) {
+    onRefreshRequested?.invoke()
+  }
+  private val clearVersionCacheButton = iconButtonWithLabel(
+    icon = IconBundle.Delete,
+    label = MessageBundle.message("ui.settings.group.versions.clear-cache.button")
+  ) {
+    onClearCacheRequested?.invoke()
+  }
+  
+  
   private var onSelectionChanged: ((BlenderVersion?) -> Unit)? = null
   private var onInstallRequested: ((BlenderVersion) -> Unit)? = null
   private var onDeleteRequested: ((BlenderVersion) -> Unit)? = null
@@ -87,21 +107,14 @@ internal class BlenderVersionManagementView(
           cell(deleteButton)
         }
         row {
-          cell(
-            iconButton(
-              icon=IconBundle.Scan,
-              actionName = "Scan for Installed Versions"
-            ) {
-              onScanRequested?.invoke()
-            }
-          )
+          cell(scanInstallButton)
         }
       }.align(AlignY.TOP)
     }
     collapsibleGroup(MessageBundle.message("ui.settings.group.versions.version-cache.label")) {
       row {
         textField()
-          .label("Minimum version:")
+          .label(MessageBundle.message("ui.settings.group.versions.minimum-version.label"))
           .columns(8)
           .validationOnInput {
             if (isValidMinorVersion(it.text)) null
@@ -113,23 +126,8 @@ internal class BlenderVersionManagementView(
           }
           .applyToComponent { minimumBlenderVersion = this }
         
-        cell(
-          iconButtonWithLabel(
-            icon = IconBundle.Refresh,
-            label = MessageBundle.message("ui.settings.group.versions.refresh.button")
-          ) {
-            onRefreshRequested?.invoke()
-          }
-        )
-        
-        cell(
-          iconButtonWithLabel(
-            icon = IconBundle.Delete,
-            label = MessageBundle.message("ui.settings.group.versions.clear-cache.button")
-          ) {
-            onClearCacheRequested?.invoke()
-          }
-        )
+        cell(refreshVersionCacheButton)
+        cell(clearVersionCacheButton)
       }
       row {
         cell(lastRefreshedLabel)
@@ -185,6 +183,9 @@ internal class BlenderVersionManagementView(
       table.isEnabled = state.isTableEnabled
       installButton.isEnabled = state.isInstallEnabled
       deleteButton.isEnabled = state.isDeleteEnabled
+      scanInstallButton.isEnabled = state.isScanEnabled
+      refreshVersionCacheButton.isEnabled = state.isRefreshVersionCacheEnabled
+      clearVersionCacheButton.isEnabled = state.isClearVersionCacheEnabled
       lastRefreshedLabel.text = if (state.operation == BlenderVersionManagementState.Operation.REFRESHING) {
         MessageBundle.message("ui.settings.group.versions.refreshing")
       }
