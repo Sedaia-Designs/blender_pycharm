@@ -5,6 +5,7 @@ import com.intellij.notification.NotificationType
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
+import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.util.currentProject
 
@@ -64,9 +65,9 @@ class NotificationModal(private val project: Project) {
     fun sendError(content: String, title: String = DEFAULT_TITLE, throwable: Throwable? = null) {
         send(title, content, NotificationType.ERROR)
         if (throwable != null) {
-            logger.warn(content, throwable)
+            logger.warn(ErrorTypes.NOTIFICATION_ERROR.format(content), throwable)
         } else {
-            logger.warn(content)
+            logger.warn(ErrorTypes.NOTIFICATION_ERROR.format(content))
         }
     }
 

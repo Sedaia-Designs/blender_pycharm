@@ -24,6 +24,7 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.concurrency.AppExecutorUtil
+import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.lib.BlenderManifest
@@ -54,7 +55,7 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
   fun sendReloadCommand(showSuccessNotification: Boolean = true) {
     val addonTargets = resolveConfiguredAddonTargets()
     if (addonTargets.isEmpty()) {
-      logger.warn("Skipped Blender runtime reload command because no configured add-on directories are available.")
+      logger.warn(ErrorTypes.RUNTIME_RELOAD_MISSING_ADDON_DIRECTORIES.toString())
       notifications.sendWarning(MessageBundle.message("notification.blender.runtime.command.reload.source.missing"))
       return
     }
@@ -101,15 +102,12 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
   ) {
     val activeSession = editorServerService.findLatestActiveSessionPayload()
     if (activeSession == null) {
-      logger.warn("Skipped Blender runtime command `${payload["type"]}` because no active session is available.")
+      logger.warn(ErrorTypes.RUNTIME_COMMAND_MISSING_SESSION.format(payload["type"]))
       notifications.sendWarning(MessageBundle.message("notification.blender.runtime.command.session.missing"))
       return
     }
     if (activeSession.blenderPort <= 0) {
-      logger.warn(
-        "Skipped Blender runtime command `${payload["type"]}` because session `${activeSession.identifier}` " +
-          "reported invalid port ${activeSession.blenderPort}.",
-      )
+      logger.warn(ErrorTypes.RUNTIME_COMMAND_INVALID_PORT.format(payload["type"], activeSession.identifier, activeSession.blenderPort))
       notifications.sendError(
         MessageBundle.message(
           "notification.blender.runtime.command.port.invalid",
@@ -139,8 +137,12 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
           logger.debug("Sent Blender runtime command `${payload["type"]}` to session `${activeSession.identifier}`.")
         } else {
           logger.warn(
-            "Blender runtime command `${payload["type"]}` was rejected by session " +
-              "`${activeSession.identifier}` with HTTP ${response.statusCode()}: ${response.body()}",
+            ErrorTypes.RUNTIME_COMMAND_REJECTED.format(
+              payload["type"],
+              activeSession.identifier,
+              response.statusCode(),
+              response.body(),
+            ),
           )
           notifications.sendError(
             MessageBundle.message(
@@ -151,7 +153,7 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
           )
         }
       }.onFailure { error ->
-        logger.warn("Failed to send Blender runtime command `${payload["type"]}`.", error)
+        logger.warn(ErrorTypes.RUNTIME_COMMAND_SEND_FAILED.format(payload["type"]), error)
         if (error is ConnectException) {
           editorServerService.unregisterSession(activeSession.identifier)
           notifications.sendWarning(

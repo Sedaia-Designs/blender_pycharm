@@ -49,7 +49,7 @@ internal class ProjectConfigStartupLoader : ProjectActivity {
                 warnLog = logger::warn,
             )
         }.onFailure { error ->
-            logger.warn("Failed to run stale bootstrap cleanup.", error)
+            logger.warn(ErrorTypes.BOOTSTRAP_CLEANUP_FAILED.toString(), error)
         }
         logger.debug("Loaded plugin and project workspace configuration on startup.")
     }

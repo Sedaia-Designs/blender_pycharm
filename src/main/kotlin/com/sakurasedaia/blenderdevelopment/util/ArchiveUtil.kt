@@ -126,7 +126,7 @@ object ArchiveUtil {
     val message = MessageBundle.message(
       "notification.archive.extraction.failed",
       (archive.fileName ?: archive).toString(),
-      exception.message ?: errorType.message,
+      exception.message ?: errorType.toString(),
     )
     PluginLogger.getInstance(project).error(errorType, exception)
     NotificationModal.getInstance(project).sendError(message)

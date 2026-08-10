@@ -17,6 +17,7 @@
 
 package com.sakurasedaia.blenderdevelopment.util
 
+import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.FileTime
@@ -44,7 +45,7 @@ internal object BlenderBootstrapScriptCleanup {
 
     runCatching { Files.deleteIfExists(path) }
       .onFailure { error ->
-        warnLog("Failed to delete bootstrap script at `${path.toAbsolutePath()}`.", error)
+        warnLog(ErrorTypes.BOOTSTRAP_SCRIPT_DELETE_FAILED.format(path.toAbsolutePath()), error)
       }
       .onSuccess { deleted ->
         if (deleted) {
@@ -69,7 +70,7 @@ internal object BlenderBootstrapScriptCleanup {
           .forEach { cleanupScript(it, debugLog, warnLog) }
       }
     }.onFailure { error ->
-      warnLog("Failed while scanning stale bootstrap scripts in `${directory.toAbsolutePath()}`.", error)
+      warnLog(ErrorTypes.BOOTSTRAP_SCRIPT_SCAN_FAILED.format(directory.toAbsolutePath()), error)
     }
   }
 

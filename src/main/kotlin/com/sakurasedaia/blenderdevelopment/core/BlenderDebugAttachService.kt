@@ -35,6 +35,7 @@ import com.intellij.xdebugger.XDebugProcessStarter
 import com.intellij.xdebugger.XDebuggerManager
 import com.jetbrains.python.debugger.PyDebugProcess
 import com.jetbrains.python.debugger.remote.vfs.PyRemotePositionConverter
+import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
@@ -83,7 +84,7 @@ internal class BlenderDebugAttachService(private val project: Project) {
             }
           }
         }.onFailure { error ->
-          logger.warn("Failed to attach Python debugger to Blender runtime session `$sessionIdentifier`.", error)
+          logger.warn(ErrorTypes.DEBUG_ATTACH_FAILED.format(sessionIdentifier), error)
           notifications.sendError(
             error.message ?: MessageBundle.message("notification.blender.debug.attach.generic.error"),
             MessageBundle.message("notification.blender.debug.attach.failed"),

@@ -21,6 +21,7 @@ import com.intellij.openapi.components.*
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.PathManager
 import com.intellij.util.xmlb.annotations.Attribute
+import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
 import com.sakurasedaia.blenderdevelopment.lib.services.ScrapeBlenderVersionLists
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import kotlinx.coroutines.CancellationException
@@ -313,7 +314,7 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
 				} catch (error: CancellationException) {
 					throw error
 				} catch (error: Exception) {
-					logger.warn("Failed to refresh the Blender version cache.", error)
+					logger.warn(ErrorTypes.VERSION_CACHE_REFRESH_FAILED.toString(), error)
 					delay(UPDATE_CHECK_RETRY_DELAY_MILLIS.milliseconds)
 				}
 			}

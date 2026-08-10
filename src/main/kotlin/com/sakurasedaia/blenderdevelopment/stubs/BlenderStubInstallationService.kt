@@ -17,6 +17,7 @@ import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.projectRoots.Sdk
 import com.jetbrains.python.sdk.PythonSdkUtil
+import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
@@ -48,7 +49,7 @@ class BlenderStubInstallationService(private val project: Project) {
     }
     if (moduleAndSdk == null) {
       val message = MessageBundle.message("notification.blender.stubs.interpreter.missing")
-      PluginLogger.getInstance(project).warn(message)
+      PluginLogger.getInstance(project).warn(ErrorTypes.STUB_INTERPRETER_MISSING.toString())
       NotificationModal.getInstance(project).sendWarning(message)
       return BlenderStubOperationStatus.FAILED
     }
@@ -76,7 +77,10 @@ class BlenderStubInstallationService(private val project: Project) {
       "notification.blender.stubs.unexpected.failure",
       exception.message ?: exception.javaClass.simpleName,
     )
-    PluginLogger.getInstance(project).warn(message, exception)
+    PluginLogger.getInstance(project).warn(
+      ErrorTypes.STUB_OPERATION_FAILED.format(exception.message ?: exception.javaClass.simpleName),
+      exception,
+    )
     NotificationModal.getInstance(project).sendError(message)
     BlenderStubOperationStatus.FAILED
   }
@@ -130,7 +134,7 @@ class BlenderStubInstallationService(private val project: Project) {
     val requirement = BlenderStubRequirementResolver.resolve(blenderVersion)
     if (requirement == null) {
       val message = MessageBundle.message("notification.blender.stubs.unsupported", blenderVersion)
-      logger.warn(message)
+      logger.warn(ErrorTypes.STUB_VERSION_UNSUPPORTED.format(blenderVersion))
       notifications.sendWarning(message)
       return BlenderStubOperationStatus.UNSUPPORTED
     }
@@ -151,7 +155,7 @@ class BlenderStubInstallationService(private val project: Project) {
             previousRequirement,
             uninstallResult.message,
           )
-          logger.warn(message)
+          logger.warn(ErrorTypes.STUB_UNINSTALL_FAILED.format(previousRequirement, uninstallResult.message))
           notifications.sendError(message)
           return BlenderStubOperationStatus.FAILED
         }
@@ -173,7 +177,10 @@ class BlenderStubInstallationService(private val project: Project) {
             requirement,
             exception.message ?: exception.javaClass.simpleName,
           )
-          logger.warn(message, exception)
+          logger.warn(
+            ErrorTypes.STUB_METADATA_FAILED.format(requirement, exception.message ?: exception.javaClass.simpleName),
+            exception,
+          )
           notifications.sendWarning(message)
         }
         val status = if (shouldRemovePrevious) BlenderStubOperationStatus.UPDATED else BlenderStubOperationStatus.INSTALLED
@@ -188,7 +195,7 @@ class BlenderStubInstallationService(private val project: Project) {
           requirement,
           installResult.message,
         )
-        logger.warn(message)
+        logger.warn(ErrorTypes.STUB_INSTALL_FAILED.format(requirement, installResult.message))
         notifications.sendError(message)
         BlenderStubOperationStatus.FAILED
       }

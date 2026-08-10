@@ -24,6 +24,7 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.util.concurrency.AppExecutorUtil
+import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
@@ -188,7 +189,7 @@ internal class BlenderEditorServerService(project: Project) : Disposable {
       exchange.sendResponseHeaders(200, 0)
       exchange.responseBody.use { it.write("OK".toByteArray()) }
     }.onFailure { error ->
-      logger.warn("Failed to handle Blender runtime payload.", error)
+      logger.warn(ErrorTypes.RUNTIME_PAYLOAD_HANDLING_FAILED.toString(), error)
       runCatching {
         exchange.sendResponseHeaders(400, -1)
       }
@@ -200,12 +201,12 @@ internal class BlenderEditorServerService(project: Project) : Disposable {
   private fun registerSetupPayload(payloadNode: JsonNode) {
     val identifier = payloadNode.readFirstTextValue("identifier", "pycharmIdentifier", "vscodeIdentifier")
     if (identifier.isBlank()) {
-      logger.warn("Blender setup payload is missing identifier: $payloadNode")
+      logger.warn(ErrorTypes.SETUP_PAYLOAD_MISSING_IDENTIFIER.format(payloadNode))
       return
     }
 
     if (!pendingSessionIdentifiers.contains(identifier)) {
-      logger.warn("Blender setup payload received for unknown session identifier `$identifier`.")
+      logger.warn(ErrorTypes.SETUP_PAYLOAD_UNKNOWN_SESSION.format(identifier))
     }
 
     val setupPayload = BlenderSetupPayload(
@@ -238,9 +239,9 @@ internal class BlenderEditorServerService(project: Project) : Disposable {
     }
     val details = payloadNode.path("details").asText("")
     if (details.isNotBlank()) {
-      logger.warn("Blender runtime bootstrap reported failure: $message ($details)")
+      logger.warn(ErrorTypes.RUNTIME_BOOTSTRAP_FAILED_WITH_DETAILS.format(message, details))
     } else {
-      logger.warn("Blender runtime bootstrap reported failure: $message")
+      logger.warn(ErrorTypes.RUNTIME_BOOTSTRAP_FAILED.format(message))
     }
     notifications.sendError(
       message,

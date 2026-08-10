@@ -26,8 +26,9 @@ import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.jetbrains.python.errorProcessing.MessageError
 import com.jetbrains.python.errorProcessing.PyResult
-import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
+import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
+import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
 import com.sakurasedaia.blenderdevelopment.stubs.BlenderStubRequirementResolver
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
@@ -124,7 +125,7 @@ class BlenderProjectGenerator(private val data: BlenderExtensionManifest) {
         } catch (exception: CancellationException) {
             throw exception
         } catch (exception: Exception) {
-            logger.warn("Project generation failed for ${data.name} at ${baseDir.path}", exception)
+            logger.warn(ErrorTypes.PROJECT_GENERATION_FAILED.format(data.name, baseDir.path), exception)
             PyResult.failure(
                 MessageError(
                     MessageBundle.message(

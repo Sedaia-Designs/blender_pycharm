@@ -147,9 +147,9 @@ class PluginLogger(project: Project) {
      * @return `Unit`.
      */
     fun error(errorType: ErrorTypes, throwable: Throwable? = null) {
-        platformLogger.error(errorType.message, throwable)
+        platformLogger.error(errorType.toString(), throwable)
         val suffix = throwable?.let { ": ${it.stackTraceToString()}" } ?: ""
-        log("[ERROR] ${errorType.name}: ${errorType.message}$suffix")
+        log("[ERROR] ${errorType.name}: $errorType$suffix")
     }
 
     companion object {
