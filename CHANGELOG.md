@@ -2,7 +2,7 @@
 
 # Blender Development for PyCharm Changelog
 
-## [Unreleased]
+## [1.0.0-beta.2]
 
 This beta expands Blender's Run and Debug integration with dedicated command and extension-build configurations, while
 improving compatibility with PyCharm 2026.1 and making managed Blender installations more reliable. Plugin settings now
@@ -15,9 +15,11 @@ system diagnostics.
   extension commands and options, validation, and support for installation-defined commands.
 - Added a dedicated **Build or Validate Extension** configuration with operation-specific source and output path controls.
   Paths can be project-relative or absolute, with portable project-relative defaults.
+- The Install Path now renders on the Settings Interface for the selected Blender version
 
 ### Changed
 
+- Synchronized Marketplace change notes directly from the full changelog instead of publishing only a link to it.
 - Consolidated Blender discovery and version management into a single **Blender Versions** settings section.
 - Refactored global Blender settings into focused UI, coordination, and operation components with explicit lifecycle ownership.
 - Reorganized the Visual Flow of the Blender settings.
@@ -28,6 +30,9 @@ system diagnostics.
   scanning, configuration, project generation, notifications, and API stub management.
 - Embedded generated plugin-version metadata for runtime resource extraction.
 - Improved the Pyproject.toml file template to be more accurate to Blender's style guide.
+- Changed macOS DMG extraction by mounting images through `diskutil`, copying only `Blender.app`, parsing the attached disk
+  identifier, and ejecting the image during cleanup.
+  - macOS 27 Golden Gate deprecates the `hdiutil` cli tool, as such, the extraction pipeline now uses its newer alternative, `diskutil`.
 
 ### Fixed
 
@@ -35,8 +40,7 @@ system diagnostics.
 - Fixed installation scans so the overall scan and each Blender version probe have bounded runtimes, active probes stop on
   cancellation, and interrupted scans preserve the previous detected-installation cache.
 - Fixed archive extraction collisions by using an isolated temporary directory for each managed Blender installation.
-- Fixed macOS DMG extraction by mounting images through `diskutil`, copying only `Blender.app`, parsing the attached disk
-  identifier, and ejecting the image during cleanup.
+
 
 ### Known Issues
 

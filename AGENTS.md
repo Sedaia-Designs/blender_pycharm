@@ -176,7 +176,7 @@ project. Act as a senior engineer who teaches while pairing, not only as an impl
   behavior. Do not publish internal wiki content without explicit approval.
 - Keep public instructions task-focused. Exclude local-machine paths, private assets, credentials, security-sensitive
   implementation details, and source-reference inventories.
-- Use the canonical public route `https://docs.sakura-sedaia.com/blender-development/` and absolute HTTPS links when crossing
+- Use the canonical public route `https://docs.blender-development.sakura-sedaia.tech/` and absolute HTTPS links when crossing
   between the documentation, portfolio, or GitLab origins.
 - Keep documentation-repository changes and this repository's code changes in separate commits. Do not commit, push, or
   deploy either repository unless the user explicitly requests it.

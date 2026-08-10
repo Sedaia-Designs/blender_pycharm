@@ -1,4 +1,5 @@
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.jetbrains.changelog.Changelog
 import org.gradle.api.tasks.WriteProperties
 import org.gradle.api.tasks.bundling.Zip
 
@@ -45,11 +46,7 @@ intellijPlatform {
             sinceBuild = "261"
         }
         
-        changeNotes = """
-            <h3>${project.version}</h3>
-            <p>This is a development build and is not production-hardened.</p>
-            <p>See the <a href="https://gitlab.com/sedaia-designs/blender_pycharm/-/blob/main/CHANGELOG.md">changelog</a> for the latest release notes and known issues.</p>
-        """.trimIndent()
+        changeNotes = changelog.render(Changelog.OutputType.HTML)
     }
 
     signing {

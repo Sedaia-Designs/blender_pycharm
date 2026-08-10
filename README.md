@@ -2,11 +2,11 @@
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-JVM%2021-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![License](https://img.shields.io/badge/License-GPL--3.0--or--later-blue.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-pre--release-orange)](CHANGELOG.md)
+[![Status](https://img.shields.io/badge/status-1.0.0--beta.2-orange)](CHANGELOG.md)
 
-Blender Development is a pre-release PyCharm plugin for creating, configuring, running, and debugging Blender add-ons and
-extensions. It provides Blender project templates, installation discovery and management, project-scoped launch settings,
-version-matched API stubs, and Blender run/debug integration.
+Blender Development is a beta PyCharm plugin for creating, configuring, running, debugging, building, and validating Blender
+add-ons and extensions. It provides project templates, Blender installation discovery and management, project-scoped launch
+settings, version-matched API stubs, and dedicated Blender run/debug configurations.
 
 The plugin currently targets PyCharm 2026.1 or newer and Blender 4.2 or newer.
 
@@ -14,23 +14,42 @@ The plugin currently targets PyCharm 2026.1 or newer and Blender 4.2 or newer.
 
 - Create add-on and extension projects through PyCharm's native Python environment workflow.
 - Discover existing Blender installations or install and remove host-compatible versions from plugin Settings.
+- Manage Blender discovery, compatible versions, installation locations, and system diagnostics from the unified
+  **Blender Versions** settings section.
 - Configure the active Blender installation, source folder, add-on symlink name, launch arguments, environment variables,
-  and debugger preferences in **Project Blender Manager**.
-- Install version-matched Blender API stubs during project creation.
-- Run Blender from PyCharm or attach the debugger for reload-on-save, script execution, add-on reload, and stop commands.
+  and debugger preferences from **Project Blender Manager**.
+- Install version-matched Blender API stubs during project creation through the selected Python interpreter.
+- Run or debug Blender with reload-on-save, script execution, add-on reload, and stop commands.
+- Run Blender extension commands with guided completion for built-in commands and options.
+- Build or validate an extension using project-relative or absolute source and output paths.
 
-The plugin is undergoing its final beta stages to finally reach release status, now updated to version 1.0.0-beta.1, the project is in its final, pre-release stages. Feel free to track what changes have been made in [CHANGELOG.md](/CHANGELOG.md)
+## Current status
+
+The current development version is **1.0.0-beta.2**. The core project, installation-management, and run/debug workflows are
+implemented, and development is focused on stabilization and release hardening before 1.0. Recent beta work added dedicated
+run configurations for Blender commands and extension build/validation, improved PyCharm 2026.1 compatibility, and made
+managed installation state and scanning more reliable.
+
+The beta is not yet production-hardened. Current limitations include:
+
+- Managed Blender installations cannot yet be updated in place.
+- Blender API stub integration and Python-version update workflows are not complete.
+- Run and Debug integration still requires stabilization.
+- Managed Blender archives are not verified against published checksums.
+- Live Blender integration and platform-specific archive extraction are not fully covered by automated tests.
+
+See [CHANGELOG.md](CHANGELOG.md) for the complete release history and current beta changes.
 
 ## Documentation
 
-The [Blender Development documentation](https://docs.sakura-sedaia.com/blender-development/) is the canonical source for:
+The [Blender Development documentation](https://docs.blender-development.sakura-sedaia.tech/) is the canonical source for:
 
-- [Installing the plugin](https://docs.sakura-sedaia.com/blender-development/getting-started/)
-- [Creating a Blender project](https://docs.sakura-sedaia.com/blender-development/guides/create-project/)
-- [Running and debugging in Blender](https://docs.sakura-sedaia.com/blender-development/guides/run-and-debug/)
-- [Configuration](https://docs.sakura-sedaia.com/blender-development/reference/configuration/)
-- [Troubleshooting](https://docs.sakura-sedaia.com/blender-development/guides/troubleshooting/)
-- [Contributing and building from source](https://docs.sakura-sedaia.com/blender-development/development/contributing/)
+- [Installing the plugin](https://docs.blender-development.sakura-sedaia.tech/getting-started/)
+- [Creating a Blender project](https://docs.blender-development.sakura-sedaia.tech/guides/create-project/)
+- [Running and debugging in Blender](https://docs.blender-development.sakura-sedaia.tech/guides/run-and-debug/)
+- [Configuration](https://docs.blender-development.sakura-sedaia.tech/reference/configuration/)
+- [Troubleshooting](https://docs.blender-development.sakura-sedaia.tech/guides/troubleshooting/)
+- [Contributing and building from source](https://docs.blender-development.sakura-sedaia.tech/development/contributing/)
 
 Release changes are recorded in the [changelog](CHANGELOG.md). Bugs and feature requests can be submitted through the [GitLab issue tracker](https://gitlab.com/sedaia-designs/blender_pycharm/-/issues).
 
