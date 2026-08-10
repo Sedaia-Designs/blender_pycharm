@@ -47,7 +47,7 @@ intellijPlatform {
             sinceBuild = "261"
         }
         
-        changeNotes = changelog.render(Changelog.OutputType.HTML)
+        changeNotes = changelog.renderItem(changelog.get(project.version.toString()), Changelog.OutputType.HTML)
     }
 
     signing {
