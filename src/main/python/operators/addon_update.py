@@ -3,15 +3,13 @@ from pathlib import Path
 
 import addon_utils
 import bpy
-from bpy.props import *
+from bpy.props import *  # noqa: F403
 
-from ..environment import EXTENSIONS_REPOSITORY
-from ..utils import addon_has_bl_info, extension_manifest_id
-from ..load_addons import is_in_any_addon_directory
-from ..communication import send_dict_as_json, register_post_action
-from ..utils import is_addon_legacy, redraw_all
 from .. import log
-
+from ..communication import register_post_action, send_dict_as_json
+from ..environment import EXTENSIONS_REPOSITORY
+from ..load_addons import is_in_any_addon_directory
+from ..utils import addon_has_bl_info, extension_manifest_id, is_addon_legacy, redraw_all
 
 LOG = log.getLogger()
 
@@ -20,8 +18,8 @@ class UpdateAddonOperator(bpy.types.Operator):
     bl_idname = "dev.update_addon"
     bl_label = "Update Addon"
 
-    module_name: StringProperty()
-    module_dir: StringProperty(default="")
+    module_name: StringProperty()  # noqa: F405
+    module_dir: StringProperty(default="")  # noqa: F405
 
     @staticmethod
     def _is_namespace_package_error(error: Exception) -> bool:

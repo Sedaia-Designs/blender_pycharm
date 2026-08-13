@@ -2,8 +2,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Optional
-from typing import Tuple
+from typing import Optional, Tuple
 
 import addon_utils
 import bpy
@@ -18,13 +17,10 @@ _str_to_log_level = {
 }
 
 
-def _env_with_legacy(primary_name: str, legacy_name: str, default: str = "") -> str:
+def _env(primary_name: str, default: str = "") -> str:
     value = os.environ.get(primary_name, "").strip()
     if value:
         return value
-    legacy_value = os.environ.get(legacy_name, "").strip()
-    if legacy_value:
-        return legacy_value
     return default
 
 
@@ -49,9 +45,8 @@ version = bpy.app.version
 scripts_folder = blender_path.parent / f"{version[0]}.{version[1]}" / "scripts"
 addon_directories = tuple(map(Path, addon_utils.paths()))
 
-EXTENSIONS_REPOSITORY: Optional[str] = _env_with_legacy(
+EXTENSIONS_REPOSITORY: Optional[str] = _env(
     "BLENDER_PYCHARM_EXTENSIONS_REPOSITORY",
-    "VSCODE_EXTENSIONS_REPOSITORY",
     "user_default",
 ) or "user_default"
 LOG_LEVEL, LOG_FLASK = _parse_log(
@@ -59,7 +54,7 @@ LOG_LEVEL, LOG_FLASK = _parse_log(
     if os.environ.get("BLENDER_PYCHARM_LOG_LEVEL")
     else "VSCODE_LOG_LEVEL"
 )
-PYCHARM_IDENTIFIER: Optional[str] = _env_with_legacy("BLENDER_PYCHARM_IDENTIFIER", "VSCODE_IDENTIFIER", "")
+PYCHARM_IDENTIFIER: Optional[str] = _env("BLENDER_PYCHARM_IDENTIFIER", "")
 VSCODE_IDENTIFIER: Optional[str] = PYCHARM_IDENTIFIER
 
 logging.getLogger("werkzeug").setLevel(logging.DEBUG if LOG_FLASK else logging.ERROR)

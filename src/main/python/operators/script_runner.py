@@ -1,11 +1,13 @@
 import re
-import bpy
 import runpy
 from pprint import pformat
-from bpy.props import *
-from ..utils import redraw_all
-from ..communication import register_post_action
+
+import bpy
+from bpy.props import *  # noqa: F403
+
 from .. import log
+from ..communication import register_post_action
+from ..utils import redraw_all
 
 LOG = log.getLogger()
 
@@ -14,7 +16,7 @@ class RunScriptOperator(bpy.types.Operator):
     bl_idname = "dev.run_script"
     bl_label = "Run Script"
 
-    filepath: StringProperty()
+    filepath: StringProperty()  # noqa: F405
 
     def execute(self, context):
         ctx = prepare_script_context(self.filepath)

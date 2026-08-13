@@ -1,11 +1,11 @@
-import sys
-import os
 import json
+import os
+import sys
 import urllib.error
 import urllib.request
-from pprint import pformat
 from dataclasses import dataclass
 from pathlib import Path
+from pprint import pformat
 from typing import List, Optional
 
 import bpy
@@ -109,7 +109,6 @@ def _report_bootstrap_failure(
         "type": payload_type,
         "identifier": identifier,
         "pycharmIdentifier": identifier,
-        "vscodeIdentifier": identifier,
         "message": message,
         "details": details,
     }
@@ -128,4 +127,4 @@ def _report_bootstrap_failure(
 
 
 def _read_runtime_identifier() -> str:
-    return os.environ.get("BLENDER_PYCHARM_IDENTIFIER", "") or os.environ.get("VSCODE_IDENTIFIER", "")
+    return os.environ.get("BLENDER_PYCHARM_IDENTIFIER", "")

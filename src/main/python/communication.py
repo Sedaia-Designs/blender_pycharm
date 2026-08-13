@@ -10,8 +10,7 @@ import requests
 from werkzeug.serving import make_server
 
 from . import log
-from .environment import (LOG_FLASK, PYCHARM_IDENTIFIER, VSCODE_IDENTIFIER, blender_path,
-                          python_path, scripts_folder)
+from .environment import LOG_FLASK, PYCHARM_IDENTIFIER, VSCODE_IDENTIFIER, blender_path, python_path, scripts_folder
 from .utils import run_in_main_thread
 
 LOG = log.getLogger()
@@ -104,7 +103,7 @@ def start_debug_server():
         except Exception as e:
             LOG.warning(f"Debugpy failed to start on port {port}: {e}")
             last_exception = e
-    raise RuntimeError(f"Failed to start debugpy after 15 attempts.") from last_exception
+    raise RuntimeError("Failed to start debugpy after 15 attempts.") from last_exception
 
 
 # Server
@@ -126,7 +125,7 @@ def handle_post():
 
 @SERVER.route("/ping", methods=["GET"])
 def handle_get_ping():
-    LOG.debug(f"Got ping")
+    LOG.debug("Got ping")
     return "OK"
 
 

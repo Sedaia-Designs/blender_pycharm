@@ -1,4 +1,5 @@
 import bpy
+
 from .communication import get_blender_port, get_debugpy_port, get_editor_address
 
 

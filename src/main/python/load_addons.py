@@ -3,14 +3,14 @@ import subprocess
 import sys
 import traceback
 from pathlib import Path
-from typing import List, Union, Optional, Dict
+from typing import Dict, List, Optional, Union
 
 import bpy
 
 from . import AddonInfo, log
 from .communication import send_dict_as_json
-from .environment import addon_directories, EXTENSIONS_REPOSITORY
-from .utils import is_addon_legacy, addon_has_bl_info, extension_manifest_id
+from .environment import EXTENSIONS_REPOSITORY, addon_directories
+from .utils import addon_has_bl_info, extension_manifest_id, is_addon_legacy
 
 LOG = log.getLogger()
 

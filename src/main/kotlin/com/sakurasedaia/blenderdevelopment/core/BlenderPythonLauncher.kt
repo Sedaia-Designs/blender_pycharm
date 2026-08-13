@@ -56,20 +56,23 @@ internal class BlenderPythonLauncher(private val project: Project) {
   private val notificationModal = NotificationModal.getInstance(project)
   private val projectConfig = ProjectConfig.getInstance(project)
   private val blenderLauncher = BlenderLauncher.getInstance(project)
-
+  
+  
   /** Starts Blender with an explicit `--python` launch surface. */
   fun start(request: BlenderPythonLaunchRequest): OSProcessHandler {
+    
     val launchSession = if (request.debugger) {
       BlenderEditorServerService.getInstance(project).prepareLaunchSession()
-    }
-    else {
+    } else {
       null
     }
+    
     val generatedScriptPath = when {
       request.scriptPath != null -> null
       request.debugger -> createScratchDebugLaunchScript()
       else -> createScratchRuntimeSyncLaunchScript()
     }
+    
     val scriptPath = request.scriptPath ?: checkNotNull(generatedScriptPath)
     val workspaceArguments = ParametersListUtil.parse(projectConfig.getRunArguments().trim())
     val arguments = BlenderLaunchArguments.python(
@@ -78,12 +81,13 @@ internal class BlenderPythonLauncher(private val project: Project) {
       scriptPath = scriptPath,
       additionalArguments = request.additionalArguments,
     )
+    
     val processHandler = blenderLauncher.start(
       BlenderLaunchRequest(
         blenderPath = request.blenderPath,
         arguments = arguments,
         environment = buildRuntimeEnvironment(launchSession),
-      )
+      ),
     )
 
     if (generatedScriptPath != null || launchSession != null) {
@@ -127,12 +131,10 @@ internal class BlenderPythonLauncher(private val project: Project) {
     val environment = mutableMapOf<String, String>()
     val runtimeLogLevel = toRuntimeLogLevel(projectConfig.getBlenderLogLevel())
     environment["BLENDER_PYCHARM_LOG_LEVEL"] = runtimeLogLevel
-    environment["VSCODE_LOG_LEVEL"] = runtimeLogLevel
 
     val extensionsRepository = projectConfig.getExtensionsRepository().trim()
     if (extensionsRepository.isNotEmpty()) {
       environment["BLENDER_PYCHARM_EXTENSIONS_REPOSITORY"] = extensionsRepository
-      environment["VSCODE_EXTENSIONS_REPOSITORY"] = extensionsRepository
     }
 
     val configuredScriptDirectories = resolveConfiguredScriptDirectories()
@@ -144,7 +146,6 @@ internal class BlenderPythonLauncher(private val project: Project) {
     if (launchSession != null) {
       environment["EDITOR_PORT"] = launchSession.editorPort.toString()
       environment["BLENDER_PYCHARM_IDENTIFIER"] = launchSession.identifier
-      environment["VSCODE_IDENTIFIER"] = launchSession.identifier
     }
     return environment
   }

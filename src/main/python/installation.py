@@ -1,9 +1,8 @@
-import sys
 import subprocess
+import sys
+from pathlib import Path
 
 import bpy
-
-from pathlib import Path
 
 from . import log
 from .environment import python_path

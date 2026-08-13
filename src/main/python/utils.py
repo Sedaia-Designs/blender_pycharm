@@ -1,9 +1,10 @@
 import ast
-from pathlib import Path
-import bpy
 import queue
-import traceback
 import tomllib
+import traceback
+from pathlib import Path
+
+import bpy
 
 
 def is_addon_legacy(addon_dir: Path) -> bool:

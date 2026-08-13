@@ -1,7 +1,7 @@
 import bpy
-from ..communication import register_post_action
-from .. import log
 
+from .. import log
+from ..communication import register_post_action
 
 LOG = log.getLogger()
 
