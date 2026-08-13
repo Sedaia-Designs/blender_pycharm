@@ -39,6 +39,20 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Duration
 
+/**
+ * Service responsible for managing and dispatching runtime commands to the Blender application.
+ *
+ * This service provides functionality to interact with the Blender runtime environment, allowing
+ * commands to reload addons, execute Python scripts, or stop the runtime session. It ensures
+ * proper notification handling, session validation, and error reporting during the execution
+ * of commands.
+ *
+ * The commands dispatched by this service are typically targeted at a locally hosted Blender
+ * runtime, as configured by the project settings.
+ *
+ * @constructor Initializes the service with the associated project instance.
+ * @param project The IntelliJ project instance associated with the service.
+ */
 @Service(Service.Level.PROJECT)
 internal class BlenderRuntimeCommandService(private val project: Project) {
   private data class AddonTarget(val directory: Path, val moduleName: String)
@@ -51,7 +65,13 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
     .connectTimeout(Duration.ofSeconds(4))
     .build()
   private val objectMapper = ObjectMapper()
-
+  
+  /**
+   * Sends a reload command to the configured addon targets for the Blender runtime.
+   * If no addon targets are found, a warning is logged and a user notification is displayed.
+   *
+   * @param showSuccessNotification indicates whether to show a notification upon successful command execution. Defaults to `true`.
+   */
   fun sendReloadCommand(showSuccessNotification: Boolean = true) {
     val addonTargets = resolveConfiguredAddonTargets()
     if (addonTargets.isEmpty()) {
@@ -70,7 +90,22 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
       showSuccessNotification = showSuccessNotification,
     )
   }
-
+  
+  /**
+   * Sends a command to execute a Python script in the Blender runtime.
+   *
+   * This method attempts to retrieve the currently selected Python script file. If no suitable file
+   * is selected, a warning notification is displayed to the user indicating the missing script file.
+   *
+   * Upon locating a valid Python script, a command payload is constructed, containing the script's type
+   * and path. This payload is then dispatched to the Blender runtime for execution. A success notification
+   * is displayed if the command is sent successfully.
+   *
+   * Notifications for errors or warnings are also managed internally:
+   * - A warning is displayed when no Python script file is selected.
+   * - Any issues during the command's sending process, such as session or connection problems,
+   *   are logged and notified appropriately.
+   */
   fun sendRunScriptCommand() {
     val scriptFile = selectedPythonFile() ?: run {
       notifications.sendWarning(MessageBundle.message("notification.blender.runtime.command.script.file.missing"))
@@ -85,14 +120,34 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
       onSuccessMessage = MessageBundle.message("notification.blender.runtime.command.script.sent", scriptFile.name),
     )
   }
-
+  
+  /**
+   * Sends a "stop" command to the configured Blender runtime session.
+   *
+   * This method constructs a payload with the command type set to "stop" and dispatches it to the
+   * Blender runtime. The command notifies the user upon successful delivery using a localized
+   * success message.
+   *
+   * If there are issues with the session, such as an inactive session or an invalid endpoint,
+   * the appropriate warning or error notifications are sent to the user. The command execution
+   * process is logged for debugging purposes, and any failures during the sending process
+   * are handled gracefully, including session termination if the Blender runtime becomes unreachable.
+   */
   fun sendStopCommand() {
     sendCommand(
       payload = mapOf("type" to "stop"),
       onSuccessMessage = MessageBundle.message("notification.blender.runtime.command.stop.sent"),
     )
   }
-
+  
+  /**
+   * Checks if there is an active Blender runtime session.
+   *
+   * This method verifies the existence of an active session by inspecting
+   * the latest session payload retrieved from the editor server service.
+   *
+   * @return `true` if an active session payload exists, `false` otherwise.
+   */
   fun hasActiveSession(): Boolean = editorServerService.findLatestActiveSessionPayload() != null
 
   private fun sendCommand(
