@@ -5,15 +5,12 @@ import com.intellij.notification.NotificationType
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.util.currentProject
 
 /** Project service wrapper around IntelliJ notifications for plugin UI feedback. */
 @Service(Service.Level.PROJECT)
 class NotificationModal(private val project: Project) {
-    private val logger by lazy { PluginLogger.getInstance(project) }
-
     companion object {
         private const val GROUP_ID = "Blender Development Notifications"
         private val DEFAULT_TITLE: String
@@ -55,20 +52,14 @@ class NotificationModal(private val project: Project) {
 
     
     /**
-     * Sends an error balloon notification and logs details when available.
+     * Sends an error balloon notification.
      *
      * @param content notification body text.
      * @param title notification title.
-     * @param throwable optional exception associated with the error.
      * @return `Unit`.
      */
-    fun sendError(content: String, title: String = DEFAULT_TITLE, throwable: Throwable? = null) {
+    fun sendError(content: String, title: String = DEFAULT_TITLE) {
         send(title, content, NotificationType.ERROR)
-        if (throwable != null) {
-            logger.warn(ErrorTypes.NOTIFICATION_ERROR.format(content), throwable)
-        } else {
-            logger.warn(ErrorTypes.NOTIFICATION_ERROR.format(content))
-        }
     }
 
     

@@ -6,6 +6,7 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.sakurasedaia.blenderdevelopment.core.InstallBlender
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersion
+import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
 import com.sakurasedaia.blenderdevelopment.lib.services.ScrapeBlenderVersionLists
 import com.sakurasedaia.blenderdevelopment.lib.services.SettingsInstallationScanService
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
@@ -201,7 +202,15 @@ internal class BlenderSettingsOperations(
           markVersionUpdateChecked = config::markBlenderUpdateChecked,
           log = { message -> logger.log(message) },
           sendInfo = { message -> notifications.sendInfo(message) },
-          sendError = { message, error -> notifications.sendError(message, throwable = error) },
+          sendError = { message, error ->
+            if (error != null) {
+              logger.warn(ErrorTypes.NOTIFICATION_ERROR.format(message), error)
+            }
+            else {
+              logger.warn(ErrorTypes.NOTIFICATION_ERROR.format(message))
+            }
+            notifications.sendError(message)
+          },
           executeInBackground = { action -> application.executeOnPooledThread(action) },
           invokeLater = { modalityState, action -> application.invokeLater(action, modalityState) },
           currentModalityState = ModalityState::current,
