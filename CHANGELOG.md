@@ -9,10 +9,21 @@ Beta 3 focuses on stability and improving forward compatibility.
 ### Added
 
 - Added Plugin Verification steps to `build.gradle.kts`
+- Additional KDocs to the appropriate methods and classes.
+
+### Changed
+
+- Sorted and organized Python imports for the Python Runtime.
+- Updated KDocs for changed functions.
+
+### Removed
+
+- Removed redundant logging call from `NotificationModal.sendError()`, enforcing a strict ownership boundary. 
+  - `PluginLogger` for Developer Logging, `NotificationModal` for user facing notifications
 
 ### Fixed
 
-- Replaced `SimpleListCellRenderer.create {...}` with its `textListCellRenderer {...}` successor
+- Replaced the deprecated `SimpleListCellRenderer.create {...}` with its `textListCellRenderer {...}` successor
 - Changelog Parser now **only** grabs the current version's changelog in  `build.gradle.kts`.
 - Set `JvmDefaultMode` to `NO_COMPATABILITY`, fixing compiler warnings regarding a deprecated `ToolWindowFactory` class
 
