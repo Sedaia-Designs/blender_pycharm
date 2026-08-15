@@ -30,12 +30,16 @@ dependencies {
         bundledPlugin("Pythonid")
     }
 
+    // Toml KT Dependencies
     implementation("dev.eav.tomlkt:tomlkt:0.6.0") {
         exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
     }
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.6.3") { // Required by tomlkt
         exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
     }
+
+    // For HMAC Codecs
+    implementation("commons-codec:commons-codec:1.19.0")
 }
 
 intellijPlatform {
@@ -43,11 +47,11 @@ intellijPlatform {
         vendor {
             url="https://sakura-sedaia.com"
         }
-        
+
         ideaVersion {
             sinceBuild = "261"
         }
-        
+
         changeNotes = changelog.renderItem(changelog.get(project.version.toString()), Changelog.OutputType.HTML)
     }
 
@@ -103,19 +107,19 @@ tasks {
         sourceCompatibility = "21"
         targetCompatibility = "21"
     }
-    
+
     buildSearchableOptions {
         enabled = false
     }
-    
+
     prepareJarSearchableOptions {
         enabled = false
     }
-    
+
     jarSearchableOptions {
         enabled = false
     }
-    
+
     runIde {
         autoReload = true
     }

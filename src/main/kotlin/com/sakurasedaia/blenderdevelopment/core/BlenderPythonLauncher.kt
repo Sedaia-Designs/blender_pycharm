@@ -110,23 +110,6 @@ internal class BlenderPythonLauncher(private val project: Project) {
     return processHandler
   }
 
-  /** Starts and notifies a Blender Python process while reporting launch failures to the user. */
-  @UsedImplicitly
-  fun startProcess(request: BlenderPythonLaunchRequest) {
-    logger.log(MessageBundle.message("notification.blender.launching"))
-    try {
-      val processHandler = start(request)
-      processHandler.startNotify()
-    }
-    catch (exception: Exception) {
-      logger.error(ErrorTypes.BLENDER_LAUNCH_ERROR, exception)
-      notificationModal.sendError(
-        exception.message ?: "",
-        MessageBundle.message("notification.blender.launching.error", "")
-      )
-    }
-  }
-
   private fun buildRuntimeEnvironment(launchSession: BlenderRuntimeLaunchSession?): Map<String, String> {
     val environment = mutableMapOf<String, String>()
     val runtimeLogLevel = toRuntimeLogLevel(projectConfig.getBlenderLogLevel())
@@ -146,6 +129,7 @@ internal class BlenderPythonLauncher(private val project: Project) {
     if (launchSession != null) {
       environment["EDITOR_PORT"] = launchSession.editorPort.toString()
       environment["BLENDER_PYCHARM_IDENTIFIER"] = launchSession.identifier
+      environment["BLENDER_PYCHARM_AUTHKEY"] = launchSession.encodedAuthKey
     }
     return environment
   }

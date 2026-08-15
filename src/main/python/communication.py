@@ -1,8 +1,11 @@
+import hashlib
+import hmac
+import json
 import logging
 import random
 import threading
 import time
-from typing import Callable, Dict
+from typing import Callable, Dict, Optional
 
 import debugpy
 import flask
@@ -10,7 +13,14 @@ import requests
 from werkzeug.serving import make_server
 
 from . import log
-from .environment import LOG_FLASK, PYCHARM_IDENTIFIER, VSCODE_IDENTIFIER, blender_path, python_path, scripts_folder
+from .environment import (
+    DECODED_PYCHARM_AUTHKEY,
+    LOG_FLASK,
+    PYCHARM_IDENTIFIER,
+    blender_path,
+    python_path,
+    scripts_folder,
+)
 from .utils import run_in_main_thread
 
 LOG = log.getLogger()
@@ -23,6 +33,7 @@ SERVER = flask.Flask("Blender Server")
 SERVER.logger.setLevel(logging.DEBUG if LOG_FLASK else logging.ERROR)
 POST_HANDLERS = {}
 REQUEST_TIMEOUT_SECONDS = 5
+SIGNATURE_HEADER = "X-Blender-PyCharm-Signature"
 
 
 def setup(address: str, path_mappings, wait_for_debugger: bool = True):
@@ -30,7 +41,7 @@ def setup(address: str, path_mappings, wait_for_debugger: bool = True):
     EDITOR_ADDRESS = address
 
     OWN_SERVER_PORT = start_own_server()
-    DEBUGPY_PORT = start_debug_server()
+    DEBUGPY_PORT = start_debugpy_server()
 
     send_connection_information(path_mappings)
 
@@ -87,7 +98,7 @@ def start_own_server():
     raise TimeoutError(f"Flask server did not start within {timeout} seconds.")
 
 
-def start_debug_server():
+def start_debugpy_server():
     # retry on port conflicts, todo catch only specific exceptions
     # note debugpy changed exception types between versions, todo investigate
     last_exception = None
@@ -105,6 +116,9 @@ def start_debug_server():
             last_exception = e
     raise RuntimeError("Failed to start debugpy after 15 attempts.") from last_exception
 
+# TODO: Write a new pydev backend for the debug server to make plugin compatible with older Pycharm versions
+def start_pydev_server():
+    pass
 
 # Server
 #########################################
@@ -112,6 +126,12 @@ def start_debug_server():
 
 @SERVER.route("/", methods=["POST"])
 def handle_post():
+    request_body = flask.request.get_data(cache=True)
+    signature = flask.request.headers.get(SIGNATURE_HEADER)
+    if not is_request_secure(signature, request_body):
+        LOG.warning("Rejected runtime command with an invalid authentication signature.")
+        return "Invalid authentication signature", 401
+
     data = flask.request.get_json()
     command_type = data.get("type") if isinstance(data, dict) else None
     LOG.info(f"Received runtime command: {command_type or '<missing>'}")
@@ -167,33 +187,104 @@ def send_connection_information(path_mappings: Dict):
             "scriptsFolder": str(scripts_folder),
             "pathMappings": path_mappings,
             "addonPathMappings": path_mappings,
-            "identifier": VSCODE_IDENTIFIER,
-            "pycharmIdentifier": PYCHARM_IDENTIFIER,
-            "vscodeIdentifier": VSCODE_IDENTIFIER,
+            "identifier": PYCHARM_IDENTIFIER,
         }
     )
 
 
 def send_dict_as_json(data):
     LOG.debug(f"Sending: {data}")
-    requests.post(EDITOR_ADDRESS, json=data, timeout=REQUEST_TIMEOUT_SECONDS)
+
+    body = json.dumps(data, separators=(",", ":"))
+    signature = get_post_hmac(body.encode("utf-8"))
+
+    requests.post(
+        EDITOR_ADDRESS,
+        data=body,
+        headers={
+            "Content-Type": "application/json",
+            SIGNATURE_HEADER: signature
+        },
+        timeout=REQUEST_TIMEOUT_SECONDS
+    )
 
 
 # Utils
 ###############################
 
+def get_post_hmac(message: bytes) -> str:
+    if DECODED_PYCHARM_AUTHKEY is None:
+        raise RuntimeError("Runtime authentication key is unavailable.")
+    return hmac.new(DECODED_PYCHARM_AUTHKEY, message, hashlib.sha256).hexdigest()
+
+
+def is_request_secure(hmac_header: Optional[str], message: bytes) -> bool:
+    """Return whether ``hmac_header`` authenticates the exact request body.
+
+    This matches BlenderAuthentication.authenticateMessage(), which generates a
+    hexadecimal HMAC-SHA-256 digest using the shared 32-byte authentication key.
+    """
+    if DECODED_PYCHARM_AUTHKEY is None or hmac_header is None:
+        return False
+
+    try:
+        received_signature = hmac_header.encode("ascii")
+    except UnicodeEncodeError:
+        return False
+
+    expected_signature = get_post_hmac(message).encode("ascii")
+    return hmac.compare_digest(expected_signature, received_signature)
+
 
 def get_random_port():
+    """
+    Generate a random port number within the dynamic/private port range.
+
+    This function generates a random port number between 49152 and 65535,
+    inclusive. These ports are typically used for dynamic or ephemeral
+    port assignments.
+
+    :return: A randomly generated port number within the range of 49152 to 65535.
+    :rtype: int
+    """
     return random.randint(49152, 65535)
 
 
 def get_blender_port():
+    """
+    Retrieve the port number used by the Blender server.
+
+    This function provides the port number assigned to the Blender server,
+    allowing for communication and configuration with the server.
+
+    :return: The port number assigned to the Blender server.
+    :rtype: int
+    """
     return OWN_SERVER_PORT
 
 
 def get_debugpy_port():
+    """
+    Retrieves the port number used for the debugpy debugging tool.
+
+    This function is used to access the port number configured for
+    debugpy, which facilitates interaction with the debugger during
+    runtime.
+
+    :return: The port number currently set for debugpy.
+    :rtype: int
+    """
     return DEBUGPY_PORT
 
 
 def get_editor_address():
+    """
+    Retrieve the address of the editor.
+
+    This function provides the current editor's address, which is stored in a
+    constant.
+
+    :return: The address of the editor.
+    :rtype: str
+    """
     return EDITOR_ADDRESS

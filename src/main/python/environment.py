@@ -7,6 +7,8 @@ from typing import Optional, Tuple
 import addon_utils
 import bpy
 
+from .utils import decode_key
+
 _str_to_log_level = {
     "debug-with-flask": logging.DEBUG,
     "debug": logging.DEBUG,
@@ -49,15 +51,18 @@ EXTENSIONS_REPOSITORY: Optional[str] = _env(
     "BLENDER_PYCHARM_EXTENSIONS_REPOSITORY",
     "user_default",
 ) or "user_default"
-LOG_LEVEL, LOG_FLASK = _parse_log(
-    "BLENDER_PYCHARM_LOG_LEVEL"
-    if os.environ.get("BLENDER_PYCHARM_LOG_LEVEL")
-    else "VSCODE_LOG_LEVEL"
-)
+
+LOG_LEVEL, LOG_FLASK = _parse_log("BLENDER_PYCHARM_LOG_LEVEL")
 PYCHARM_IDENTIFIER: Optional[str] = _env("BLENDER_PYCHARM_IDENTIFIER", "")
-VSCODE_IDENTIFIER: Optional[str] = PYCHARM_IDENTIFIER
+ENCODED_PYCHARM_AUTHKEY: Optional[str] = _env("BLENDER_PYCHARM_AUTHKEY", "")
+DECODED_PYCHARM_AUTHKEY: Optional[bytes] = (
+    decode_key(ENCODED_PYCHARM_AUTHKEY)
+    if ENCODED_PYCHARM_AUTHKEY
+    else None
+)
 
 logging.getLogger("werkzeug").setLevel(logging.DEBUG if LOG_FLASK else logging.ERROR)
-# to mute all logs, disable also those logs. Be careful, the libs are extremely popular and it will mute logs for everyone!
+# to mute all logs, disable also those logs. Be careful, the libs are extremely popular,
+#   and it will mute logs for everyone!
 # logging.getLogger("requests").setLevel(logging.DEBUG if LOG_FLASK else logging.INFO)
 # logging.getLogger("urllib3").setLevel(logging.DEBUG if LOG_FLASK else logging.INFO)

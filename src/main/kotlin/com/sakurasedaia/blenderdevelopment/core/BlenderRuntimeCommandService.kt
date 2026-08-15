@@ -65,7 +65,7 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
     .connectTimeout(Duration.ofSeconds(4))
     .build()
   private val objectMapper = ObjectMapper()
-  
+
   /**
    * Sends a reload command to the configured addon targets for the Blender runtime.
    * If no addon targets are found, a warning is logged and a user notification is displayed.
@@ -90,7 +90,7 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
       showSuccessNotification = showSuccessNotification,
     )
   }
-  
+
   /**
    * Sends a command to execute a Python script in the Blender runtime.
    *
@@ -120,7 +120,7 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
       onSuccessMessage = MessageBundle.message("notification.blender.runtime.command.script.sent", scriptFile.name),
     )
   }
-  
+
   /**
    * Sends a "stop" command to the configured Blender runtime session.
    *
@@ -139,7 +139,7 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
       onSuccessMessage = MessageBundle.message("notification.blender.runtime.command.stop.sent"),
     )
   }
-  
+
   /**
    * Checks if there is an active Blender runtime session.
    *
@@ -162,7 +162,13 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
       return
     }
     if (activeSession.blenderPort <= 0) {
-      logger.warn(ErrorTypes.RUNTIME_COMMAND_INVALID_PORT.format(payload["type"], activeSession.identifier, activeSession.blenderPort))
+      logger.warn(
+        ErrorTypes.RUNTIME_COMMAND_INVALID_PORT.format(
+          payload["type"],
+          activeSession.identifier,
+          activeSession.blenderPort
+        )
+      )
       notifications.sendError(
         MessageBundle.message(
           "notification.blender.runtime.command.port.invalid",
@@ -173,18 +179,29 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
     }
 
     val endpoint = "http://127.0.0.1:${activeSession.blenderPort}/"
+    val authKey = editorServerService.findSessionAuthKey(activeSession.identifier)
+
+    if (authKey == null) {
+      logger.error(ErrorTypes.RETRIEVE_AUTH_FAILURE)
+      notifications.sendError(MessageBundle.message("notification.blender.runtime.command.session.inauthentic"))
+      return
+    }
+
     AppExecutorUtil.getAppExecutorService().submit {
       runCatching {
         val requestBody = objectMapper.writeValueAsString(payload)
+        val signature = BlenderAuthentication.notarizeMessage(authKey, requestBody)
+
         val request = HttpRequest.newBuilder()
           .uri(URI.create(endpoint))
           .header("Content-Type", "application/json")
+          .header("X-Blender-PyCharm-Signature", signature)
           .timeout(Duration.ofSeconds(8))
           .POST(HttpRequest.BodyPublishers.ofString(requestBody))
           .build()
         httpClient.send(request, HttpResponse.BodyHandlers.ofString())
       }.onSuccess { response ->
-        if (response.statusCode() in 200..299) {
+        if (response.statusCode() in 200 .. 299) {
           editorServerService.markSessionActivity(activeSession.identifier)
           if (showSuccessNotification) {
             notifications.sendInfo(onSuccessMessage)
