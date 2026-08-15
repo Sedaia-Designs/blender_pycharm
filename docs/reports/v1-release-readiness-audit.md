@@ -230,9 +230,7 @@ compatibility after all required fields have passed validation.
   project-owned coroutine scopes or expiration conditions.
 - ✅ Kotlin and Gradle Kotlin files are formatted consistently by Spotless with ktfmt, using two-space block indentation and
   a 140-column limit. `spotlessCheck` provides a repeatable repository formatting gate.
-- The root Python project requires Python `>=3.14`, while Blender 4.2+ embeds older Python versions. This is acceptable for
-  developer tooling only, but the distinction should be explicit so contributors do not mistake it for bundled-runtime
-  compatibility.
+- The root Python project now requires `>=3.11.7`, matching the python version bundled with Blender 4.2
 
 ## Redundant and Dead Code
 
