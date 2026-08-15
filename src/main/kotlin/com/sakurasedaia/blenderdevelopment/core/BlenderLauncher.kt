@@ -41,7 +41,13 @@ internal class BlenderLauncher(private val project: Project) {
   private val projectConfig = ProjectConfig.getInstance(project)
   private val pluginConfig = PluginConfig.getInstance()
 
-  /** Starts the Blender process described exactly by [request]. */
+  /**
+   * Launches a Blender process using the specified launch request.
+   *
+   * @param request The request containing the Blender executable path, arguments, environment variables,
+   * and optionally the working directory for the process.
+   * @return The process handler managing the launched Blender process.
+   */
   fun start(request: BlenderLaunchRequest): OSProcessHandler {
     val blenderPath = resolveBlenderPath(request.blenderPath)
     val processHandler = ExternalProcessBuilder(project).startProcessHandler(
