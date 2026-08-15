@@ -24,6 +24,8 @@ authenticated protocol with bounded, validated request handling.
 
 ### Fixed
 
+- Fixed **Perform post-install cleanup?** so successful managed Blender installations remove their downloaded archives when
+  enabled while preserving archives after failed installations or when cleanup is disabled.
 - Fixed generated starter Python scripts so both minimal and example-code projects contain a correctly indented registration
   call.
 - Fixed plugin compatibility metadata to depend on the bundled `PythonCore` plugin directly, allowing Plugin Verifier to

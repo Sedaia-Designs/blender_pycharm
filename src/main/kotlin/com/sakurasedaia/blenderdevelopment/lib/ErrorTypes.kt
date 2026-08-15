@@ -35,6 +35,7 @@ enum class ErrorTypes(private val message: String, private val exceptionFactory:
     BLENDER_LAUNCH_ERROR("[BL-002]: Failed to launch Blender", ::IllegalStateException),
     ARCHIVE_EXTRACTION_ERROR("[BL-003]: Failed to extract archive", ::IOException),
     UNKNOWN_DOWNLOAD_URL("[BL-004]: Could not get the download URL for that version.", ::IllegalStateException),
+    ARCHIVE_CLEANUP_FAILURE_WARNING("[BL-005]: Could not clean installer archive artifacts"),
 
     // Process Execution Failures [BL-100]
     PROCESS_EXECUTION_FAILED("[BL-100]: Failed to execute `{0}`", ::IOException),

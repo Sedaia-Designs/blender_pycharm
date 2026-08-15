@@ -157,6 +157,81 @@ class InstallBlenderTest : BasePlatformTestCase() {
     assertFalse(downloadInvoked)
   }
 
+  fun testSuccessfulInstallationCleansArchiveWhenEnabled() {
+    val archive = Files.createFile(downloadDirectory.resolve("downloaded-blender.tar.xz"))
+    val expectedInstallation = installDirectory.resolve(artifactName())
+    var cleanedArchive: Path? = null
+    val installer = installerForCleanupWorkflow(
+      archive = archive,
+      shouldCleanupArchive = true,
+      archiveCleaner = { path ->
+        assertTrue("Installation must complete before archive cleanup", Files.isDirectory(expectedInstallation))
+        cleanedArchive = path
+        Files.delete(path)
+      },
+    )
+
+    val installed = installer.extractBlender("4.5").join()
+
+    assertEquals(expectedInstallation, installed)
+    assertEquals(archive, cleanedArchive)
+    assertFalse(Files.exists(archive))
+  }
+
+  fun testSuccessfulInstallationPreservesArchiveWhenCleanupDisabled() {
+    val archive = Files.createFile(downloadDirectory.resolve("downloaded-blender.tar.xz"))
+    var cleanupInvoked = false
+    val installer = installerForCleanupWorkflow(
+      archive = archive,
+      shouldCleanupArchive = false,
+      archiveCleaner = { cleanupInvoked = true },
+    )
+
+    val installed = installer.extractBlender("4.5").join()
+
+    assertEquals(installDirectory.resolve(artifactName()), installed)
+    assertFalse(cleanupInvoked)
+    assertTrue(Files.isRegularFile(archive))
+  }
+
+  fun testFailedInstallationPreservesArchive() {
+    val archive = Files.createFile(downloadDirectory.resolve("downloaded-blender.tar.xz"))
+    val expectedFailure = IOException("Extraction failed")
+    var cleanupInvoked = false
+    val installer = InstallBlender(
+      artifactDownloader = BlenderArtifactDownloader { _, _, _, _ -> completedDownload(archive) },
+      downloadPathOverride = downloadDirectory,
+      installPathOverride = installDirectory,
+      tempPath = tempDirectory,
+      platformName = "linux",
+      artifactExtractor = { _, _, _ -> throw expectedFailure },
+      shouldCleanupArchive = { true },
+      archiveCleaner = { cleanupInvoked = true },
+    )
+
+    val failure = runCatching { installer.extractBlender("4.5").join() }.exceptionOrNull()
+
+    assertTrue(failure is CompletionException)
+    assertSame(expectedFailure, failure?.cause)
+    assertFalse(cleanupInvoked)
+    assertTrue(Files.isRegularFile(archive))
+  }
+
+  fun testCleanupFailureDoesNotFailSuccessfulInstallation() {
+    val archive = Files.createFile(downloadDirectory.resolve("downloaded-blender.tar.xz"))
+    val installer = installerForCleanupWorkflow(
+      archive = archive,
+      shouldCleanupArchive = true,
+      archiveCleaner = { throw IOException("Archive is locked") },
+    )
+
+    val installed = installer.extractBlender("4.5").join()
+
+    assertEquals(installDirectory.resolve(artifactName()), installed)
+    assertTrue(Files.isDirectory(installed))
+    assertTrue(Files.isRegularFile(archive))
+  }
+
   fun testCheckForArtifactReturnsNullWhenInstallationDoesNotExist() {
     val installer = InstallBlender(
       downloadPathOverride = downloadDirectory,
@@ -289,6 +364,23 @@ class InstallBlenderTest : BasePlatformTestCase() {
 
   private fun artifactName(): String = BlenderVersions.getVersionMeta("4.5")?.artifactName
     ?: error("Expected Blender 4.5 metadata")
+
+  private fun installerForCleanupWorkflow(
+    archive: Path,
+    shouldCleanupArchive: Boolean,
+    archiveCleaner: (Path) -> Unit,
+  ): InstallBlender = InstallBlender(
+    artifactDownloader = BlenderArtifactDownloader { _, _, _, _ -> completedDownload(archive) },
+    downloadPathOverride = downloadDirectory,
+    installPathOverride = installDirectory,
+    tempPath = tempDirectory,
+    platformName = "linux",
+    artifactExtractor = { _, extractionPath, _ ->
+      Files.createDirectory(extractionPath.resolve(artifactName()))
+    },
+    shouldCleanupArchive = { shouldCleanupArchive },
+    archiveCleaner = archiveCleaner,
+  )
 
   private fun completedDownload(path: Path): CompletableFuture<BlenderArtifactDownloadResult> =
     CompletableFuture.completedFuture(BlenderArtifactDownloadResult.Downloaded(path))
