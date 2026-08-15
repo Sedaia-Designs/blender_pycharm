@@ -18,8 +18,13 @@ assert_fails() {
   fi
 }
 
-if ! release_marketplace_usage | grep -q -- '.gitlab-ci.yml'; then
-  printf 'FAIL: usage does not direct GitLab releases to the manual pipeline.\n' >&2
+if ! release_marketplace_usage | grep -q -- 'GitLab pipeline'; then
+  printf 'FAIL: usage does not describe GitLab Marketplace publication.\n' >&2
+  exit 1
+fi
+
+if ! release_marketplace_usage | grep -q -- 'PRIVATE_KEY and CERTIFICATE_CHAIN'; then
+  printf 'FAIL: usage does not document CI signing variables.\n' >&2
   exit 1
 fi
 

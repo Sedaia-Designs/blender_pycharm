@@ -12,8 +12,9 @@ release_marketplace_usage() {
 Usage: scripts/release-marketplace.sh [options]
 
 Builds and publishes the pre-release declared in build.gradle.kts to the
-JetBrains Marketplace dev channel. GitLab releases are published separately by
-the manual pipeline defined in .gitlab-ci.yml.
+JetBrains Marketplace dev channel. The GitLab pipeline uses this script after
+the manually approved GitLab release succeeds; it also remains available for
+local validation and publication recovery.
 
 Options:
   --check       Build and validate release inputs without signing, protected-secret
@@ -26,8 +27,8 @@ Prerequisites:
   - The worktree and index must be clean.
   - CHANGELOG.md must contain the matching pre-release section.
   - PUBLISH_TOKEN must be available in the environment for publication.
-  - Marketplace signing uses the protected file paths configured in build.gradle.kts.
-  - The first Marketplace publication must still be uploaded manually.
+  - CI signing uses PRIVATE_KEY and CERTIFICATE_CHAIN environment variables.
+  - Local signing falls back to the protected file paths configured in build.gradle.kts.
 EOF
 }
 

@@ -2,8 +2,6 @@
 
 # Blender Development for PyCharm Changelog
 
-## [Unreleased]
-
 ## [1.0.0-beta.3]
 
 Beta 3 hardens communication between PyCharm and Blender, restores compatibility verification across the declared PyCharm

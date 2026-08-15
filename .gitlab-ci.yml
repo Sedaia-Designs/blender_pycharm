@@ -6,10 +6,14 @@ workflow:
 stages:
   - build
   - release
+  - marketplace
 
 prepare_release:
   stage: build
-  image: eclipse-temurin:21-jdk
+  image: eclipse-temurin:21-jdk-jammy
+  before_script:
+    - apt-get update
+    - apt-get install --yes --no-install-recommends python3
   rules:
     - when: manual
       allow_failure: false
@@ -54,3 +58,24 @@ publish_release:
           url: "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/blender-python-development/$RELEASE_VERSION/$ASSET_NAME"
           filepath: "/$ASSET_NAME"
           link_type: package
+
+publish_marketplace:
+  stage: marketplace
+  image: eclipse-temurin:21-jdk-jammy
+  resource_group: jetbrains-marketplace-dev
+  needs:
+    - job: prepare_release
+      artifacts: true
+    - job: publish_release
+      artifacts: false
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: on_success
+    - when: never
+  script:
+    - test -n "$PUBLISH_TOKEN"
+    - test -n "$PRIVATE_KEY"
+    - test -n "$CERTIFICATE_CHAIN"
+    - scripts/release-marketplace.sh --skip-build --yes
+  environment:
+    name: jetbrains-marketplace/dev
