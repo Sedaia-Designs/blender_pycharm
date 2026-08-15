@@ -56,7 +56,7 @@ class BlenderExtensionBuildRunConfigurationTest : BasePlatformTestCase() {
       BlenderExtensionBuildCommand.arguments(
         BlenderExtensionBuildOperation.VALIDATE,
         "/project source",
-        ignoredOutputDirectory(),
+        ignoredOutputDirectory,
       ),
     )
   }
@@ -226,7 +226,7 @@ class BlenderExtensionBuildRunConfigurationTest : BasePlatformTestCase() {
     ProjectConfig.getInstance(project).setBlenderPath("/path/to/blender")
   }
 
-  private fun ignoredOutputDirectory(): String = "ignored"
+  private val ignoredOutputDirectory: String = "ignored"
 
   @Suppress("UNCHECKED_CAST")
   private fun operationField(component: Component): ComboBox<BlenderExtensionBuildOperation> {

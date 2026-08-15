@@ -51,21 +51,22 @@ class BlenderProjectSettingsTest {
     @Test
     fun `recommended Python version follows target Blender selection`() {
         val settings = BlenderProjectSettings("Sample")
-
+        val message = "Recommended Python version:"
+        
         assertEquals(
-            "Active Blender LTS and Latest branches only; Recommended Python version: 3.11.7",
+            "$message 3.11.7",
             settings.recommendedPythonVersionCommentProperty.get(),
         )
 
         settings.blenderVersion = "4.5"
         assertEquals(
-            "Active Blender LTS and Latest branches only; Recommended Python version: 3.11.9",
+            "$message 3.11.9",
             settings.recommendedPythonVersionCommentProperty.get(),
         )
 
         settings.blenderVersion = "5.2"
         assertEquals(
-            "Active Blender LTS and Latest branches only; Recommended Python version: 3.13.13",
+            "$message 3.13.13",
             settings.recommendedPythonVersionCommentProperty.get(),
         )
     }

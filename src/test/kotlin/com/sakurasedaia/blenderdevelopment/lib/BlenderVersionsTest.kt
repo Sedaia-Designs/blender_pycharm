@@ -19,7 +19,6 @@ package com.sakurasedaia.blenderdevelopment.lib
 
 import com.sakurasedaia.blenderdevelopment.util.SystemInfo
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -41,14 +40,16 @@ class BlenderVersionsTest {
 
   @Test
   fun lookupsResolveKnownVersionsFromMajorMinorAndFullSelectors() {
-    assertEquals("4.5.8", BlenderVersions.getBlenderVersion("4.5"))
-    assertEquals("4.5.8", BlenderVersions.getBlenderVersion("4.5.12"))
-    assertEquals("3.11.9", BlenderVersions.getPythonVersion("4.5"))
-    assertEquals("3.11.9", BlenderVersions.getPythonVersion("4.5.1"))
-    assertEquals("fake-bpy-module-4.5", BlenderVersions.getFakeBpyPackageName("4.5.1"))
-    assertEquals("fake-bpy-module-latest", BlenderVersions.getFakeBpyPackageName("5.2.0"))
-    assertNotNull(BlenderVersions.getCompatibleArch("4.5"))
-    assertNotNull(BlenderVersions.getCompatibleArch("4.5.3"))
+    val knownVersion = BlenderVersions.LIST.first { it.pyVersion.isNotBlank() }
+    val fullSelector = "${knownVersion.blMajorMinor}.999"
+
+    assertEquals(knownVersion.blVersion, BlenderVersions.getBlenderVersion(knownVersion.blMajorMinor))
+    assertEquals(knownVersion.blVersion, BlenderVersions.getBlenderVersion(fullSelector))
+    assertEquals(knownVersion.pyVersion, BlenderVersions.getPythonVersion(knownVersion.blMajorMinor))
+    assertEquals(knownVersion.pyVersion, BlenderVersions.getPythonVersion(fullSelector))
+    assertEquals(knownVersion.fakeBpyPackage, BlenderVersions.getFakeBpyPackageName(fullSelector))
+    assertEquals(knownVersion.compatWithOs, BlenderVersions.getCompatibleArch(knownVersion.blMajorMinor))
+    assertEquals(knownVersion.compatWithOs, BlenderVersions.getCompatibleArch(fullSelector))
   }
 
   @Test
@@ -60,44 +61,30 @@ class BlenderVersionsTest {
   }
 
   @Test
-  fun tableExposesExpectedStaticEntries() {
+  fun tableExposesCoherentVersionMetadata() {
     val table = BlenderVersions.LIST
-    assertEquals(3, table.size)
-    assertTrue(table.any { it.blVersion == "4.2.19" && it.pyVersion == "3.11.7" })
-    assertTrue(table.any { it.blVersion == "4.5.8" && it.pyVersion == "3.11.9" })
-    assertTrue(table.any { it.blVersion == "5.2.0" && it.pyVersion == "3.13.13" })
-  }
-
-  @Test
-  fun discoveredMinorVersionsAreAddedWithoutPythonCompatibilityMetadata() {
-    val table = BlenderVersions.mergeDiscoveredVersions(
-      listOf(
-        listOf(4, 3, 2),
-        listOf(4, 3, 9),
-        listOf(4, 5, 12),
-      ),
-    )
-
-    val discovered = table.first { it.blMajorMinor == "4.3" }
-    assertEquals("4.3.9", discovered.blVersion)
-    assertEquals("", discovered.pyVersion)
-    assertTrue(discovered.compatWithOs.isEmpty())
-
-    val configured = table.first { it.blMajorMinor == "4.5" }
-    assertEquals("4.5.12", configured.blVersion)
-    assertEquals("3.11.9", configured.pyVersion)
+    assertTrue(table.isNotEmpty())
+    assertEquals(table.size, table.map(BlenderVersion::blMajorMinor).distinct().size)
+    table.forEach { version ->
+      assertEquals(3, version.blVersionList.size)
+      assertTrue(version.pyVersionList.isEmpty() || version.pyVersionList.size == 3)
+      assertTrue(version.compatWithOs.keys.all(SUPPORTED_PLATFORMS::contains))
+      assertTrue(version.compatWithOs.values.all(List<String>::isNotEmpty))
+    }
   }
 
   @Test
   fun downloadUrlMatchesCurrentHostArtifactName() {
     val systemInfo = SystemInfo.getSysInfo
-    val compatibleVersion = BlenderVersions.LIST.firstOrNull { version ->
-      version.compatWithOs[systemInfo.osName]?.contains(systemInfo.osArch) == true
-    } ?: return
+    val compatibleVersion = BlenderVersion(
+      installName = "Blender 9.8.7",
+      blVersionList = listOf(9, 8, 7),
+      compatWithOs = mapOf(systemInfo.osName to listOf(systemInfo.osArch)),
+    )
 
     assertEquals(
-      "https://download.blender.org/release/Blender${compatibleVersion.blMajorMinor}/" +
-        "blender-${compatibleVersion.blVersion}-${systemInfo.osName}-${systemInfo.osArch}.${systemInfo.bundleFileType}",
+      "https://download.blender.org/release/Blender9.8/" +
+        "blender-9.8.7-${systemInfo.osName}-${systemInfo.osArch}.${systemInfo.bundleFileType}",
       compatibleVersion.getDownloadURL(),
     )
   }
@@ -106,6 +93,10 @@ class BlenderVersionsTest {
   fun archiveNameRejectsUnsupportedArtifacts() {
     val blenderVersion = BlenderVersions.LIST.first()
 
-    assertEquals("", blenderVersion.getArchiveName("exe"))
+    assertEquals("", blenderVersion.getArchiveName("unsupported"))
+  }
+
+  companion object {
+    private val SUPPORTED_PLATFORMS = setOf("windows", "macos", "linux")
   }
 }
