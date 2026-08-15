@@ -1,3 +1,5 @@
+import hashlib
+import hmac
 import json
 import os
 import sys
@@ -10,9 +12,10 @@ from typing import List, Optional
 
 import bpy
 
-from . import log
+from . import environment, log
 
 LOG = log.getLogger()
+SIGNATURE_HEADER = "X-Blender-PyCharm-Signature"
 
 
 @dataclass
@@ -46,7 +49,9 @@ def startup(
 
         # blender 2.80 'ssl' module is compiled with 'OpenSSL 1.1.0h' what breaks with requests >2.29.0
         try:
-            installation.ensure_packages_are_installed(["debugpy", "requests<=2.29.0", "werkzeug<=3.0.3", "flask<=3.0.3"])
+            installation.ensure_packages_are_installed(
+                ["debugpy", "requests<=2.29.0", "werkzeug<=3.0.3", "flask<=3.0.3"]
+            )
         except installation.DependencyInstallationError as error:
             _report_bootstrap_failure(
                 editor_address=editor_address,
@@ -112,11 +117,20 @@ def _report_bootstrap_failure(
         "message": message,
         "details": details,
     }
-    data = json.dumps(payload).encode("utf-8")
+    body = json.dumps(payload).encode("utf-8")
+    auth_key = environment.DECODED_PYCHARM_AUTHKEY
+    if auth_key is None:
+        LOG.error("Cannot authenticate runtime bootstrap failure report because the launch key is unavailable.")
+        return
+    signature = hmac.new(auth_key, body, hashlib.sha256).hexdigest()
+
     request = urllib.request.Request(
         editor_address,
-        data=data,
-        headers={"Content-Type": "application/json"},
+        data=body,
+        headers={
+            "Content-Type": "application/json",
+            SIGNATURE_HEADER: signature,
+        },
         method="POST",
     )
     try:

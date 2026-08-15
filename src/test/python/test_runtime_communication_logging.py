@@ -1,14 +1,12 @@
-import importlib
 import hashlib
 import hmac
+import importlib
 import json
-import logging
 import sys
 import types
 import unittest
 from pathlib import Path
 from unittest.mock import Mock, call
-
 
 RUNTIME_PACKAGE = Path(__file__).parents[2] / "main/python"
 
@@ -39,6 +37,8 @@ class RuntimeCommunicationLoggingTest(unittest.TestCase):
 
         flask = types.ModuleType("flask")
         flask.request = types.SimpleNamespace(
+            is_json=True,
+            content_length=len(b'{"type":"unknown"}'),
             get_data=lambda cache: b'{"type":"unknown"}',
             get_json=lambda: {},
             headers={},
@@ -46,6 +46,7 @@ class RuntimeCommunicationLoggingTest(unittest.TestCase):
 
         class FakeFlask:
             def __init__(self, _name):
+                self.config = {}
                 self.logger = types.SimpleNamespace(setLevel=lambda _level: None)
 
             # noinspection method-may-be-static
@@ -107,6 +108,32 @@ class RuntimeCommunicationLoggingTest(unittest.TestCase):
         self.logger.exception.assert_called_once_with("Runtime command failed: reload")
         self.assertNotIn(call("Runtime command completed: reload"), self.logger.info.call_args_list)
 
+    def test_valid_command_without_registered_handler_is_unavailable(self):
+        request_body = b'{"type":"reload"}'
+        signature = hmac.new(
+            self.communication.DECODED_PYCHARM_AUTHKEY,
+            request_body,
+            hashlib.sha256,
+        ).hexdigest()
+        sys.modules["flask"].request = types.SimpleNamespace(
+            is_json=True,
+            content_length=len(request_body),
+            get_data=lambda cache: request_body,
+            get_json=lambda: {"type": "reload"},
+            headers={self.communication.SIGNATURE_HEADER: signature},
+        )
+
+        response = self.communication.handle_post()
+
+        self.assertEqual(("Runtime command unavailable", 503), response)
+
+    def test_non_json_content_type_is_rejected_before_authentication(self):
+        sys.modules["flask"].request = types.SimpleNamespace(is_json=False)
+
+        response = self.communication.handle_post()
+
+        self.assertEqual(("Content-Type must be application/json", 415), response)
+
     def test_unknown_command_is_logged_and_rejected(self):
         request_body = b'{"type":"unknown"}'
         signature = hmac.new(
@@ -115,6 +142,8 @@ class RuntimeCommunicationLoggingTest(unittest.TestCase):
             hashlib.sha256,
         ).hexdigest()
         sys.modules["flask"].request = types.SimpleNamespace(
+            is_json=True,
+            content_length=len(request_body),
             get_data=lambda cache: request_body,
             get_json=lambda: {"type": "unknown"},
             headers={self.communication.SIGNATURE_HEADER: signature},
@@ -122,8 +151,8 @@ class RuntimeCommunicationLoggingTest(unittest.TestCase):
 
         response = self.communication.handle_post()
 
-        self.assertEqual(("Unhandled runtime command", 400), response)
-        self.logger.warning.assert_called_once_with("Unhandled runtime command payload: {'type': 'unknown'}")
+        self.assertEqual(("Unsupported runtime command", 400), response)
+        self.logger.warning.assert_called_once_with("Rejected unsupported runtime command: unknown")
 
     def test_request_security_accepts_only_the_matching_signature(self):
         request_body = b'{"type":"reload"}'
@@ -146,9 +175,7 @@ class RuntimeCommunicationLoggingTest(unittest.TestCase):
         self.assertFalse(self.communication.is_request_secure(signature, request_body))
 
     def test_request_security_rejects_non_ascii_signature(self):
-        self.assertFalse(
-            self.communication.is_request_secure("\N{LOCK}", b'{"type":"reload"}')
-        )
+        self.assertFalse(self.communication.is_request_secure("\N{LOCK}", b'{"type":"reload"}'))
 
     def test_post_hmac_matches_sha256_hexdigest(self):
         request_body = b'{"type":"setup","identifier":"pycharm-id"}'
@@ -206,6 +233,8 @@ class RuntimeCommunicationLoggingTest(unittest.TestCase):
 
     def test_handle_post_rejects_an_invalid_signature(self):
         sys.modules["flask"].request = types.SimpleNamespace(
+            is_json=True,
+            content_length=len(b'{"type":"reload"}'),
             get_data=lambda cache: b'{"type":"reload"}',
             get_json=lambda: {"type": "reload"},
             headers={self.communication.SIGNATURE_HEADER: "invalid"},
@@ -217,6 +246,8 @@ class RuntimeCommunicationLoggingTest(unittest.TestCase):
 
     def test_handle_post_rejects_a_missing_signature(self):
         sys.modules["flask"].request = types.SimpleNamespace(
+            is_json=True,
+            content_length=len(b'{"type":"reload"}'),
             get_data=lambda cache: b'{"type":"reload"}',
             get_json=lambda: {"type": "reload"},
             headers={},

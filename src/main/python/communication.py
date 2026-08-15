@@ -33,7 +33,19 @@ SERVER = flask.Flask("Blender Server")
 SERVER.logger.setLevel(logging.DEBUG if LOG_FLASK else logging.ERROR)
 POST_HANDLERS = {}
 REQUEST_TIMEOUT_SECONDS = 5
+
 SIGNATURE_HEADER = "X-Blender-PyCharm-Signature"
+
+MAX_REQUEST_SIZE_BYTES = 32 * 1024
+SERVER.config["MAX_CONTENT_LENGTH"] = MAX_REQUEST_SIZE_BYTES
+
+INBOUND_COMMANDS = frozenset(
+    {
+        "stop",
+        "script",
+        "reload",
+    }
+)
 
 
 def setup(address: str, path_mappings, wait_for_debugger: bool = True):
@@ -116,9 +128,11 @@ def start_debugpy_server():
             last_exception = e
     raise RuntimeError("Failed to start debugpy after 15 attempts.") from last_exception
 
+
 # TODO: Write a new pydev backend for the debug server to make plugin compatible with older Pycharm versions
 def start_pydev_server():
     pass
+
 
 # Server
 #########################################
@@ -126,21 +140,38 @@ def start_pydev_server():
 
 @SERVER.route("/", methods=["POST"])
 def handle_post():
+    if not flask.request.is_json:
+        return "Content-Type must be application/json", 415
+
+    declared_size = flask.request.content_length
+    if declared_size is None:
+        return "Content-Length required", 411
+
+    if declared_size > MAX_REQUEST_SIZE_BYTES:
+        return "Request too large", 413
+
     request_body = flask.request.get_data(cache=True)
+    if len(request_body) > MAX_REQUEST_SIZE_BYTES:
+        return "Request too large", 413
+
     signature = flask.request.headers.get(SIGNATURE_HEADER)
     if not is_request_secure(signature, request_body):
         LOG.warning("Rejected runtime command with an invalid authentication signature.")
         return "Invalid authentication signature", 401
-
     data = flask.request.get_json()
     command_type = data.get("type") if isinstance(data, dict) else None
-    LOG.info(f"Received runtime command: {command_type or '<missing>'}")
+    if command_type not in INBOUND_COMMANDS:
+        LOG.warning(f"Rejected unsupported runtime command: {command_type}")
+        return "Unsupported runtime command", 400
 
-    if command_type in POST_HANDLERS:
-        return POST_HANDLERS[command_type](data)
+    LOG.info(f"Received runtime command: {command_type}")
 
-    LOG.warning(f"Unhandled runtime command payload: {data}")
-    return "Unhandled runtime command", 400
+    handler = POST_HANDLERS.get(command_type)
+    if handler is None:
+        LOG.warning(f"No handler registered for runtime command: {command_type}")
+        return "Runtime command unavailable", 503
+
+    return handler(data)
 
 
 @SERVER.route("/ping", methods=["GET"])
@@ -149,27 +180,30 @@ def handle_get_ping():
     return "OK"
 
 
-def register_post_handler(type: str, handler: Callable):
-    assert type not in POST_HANDLERS, POST_HANDLERS
-    POST_HANDLERS[type] = handler
+def register_post_handler(command_type: str, handler: Callable):
+    if command_type not in INBOUND_COMMANDS:
+        raise ValueError(f"Unsupported runtime command type: {command_type}")
+    if command_type in POST_HANDLERS:
+        raise ValueError(f"Runtime command handler already registered: {command_type}")
+    POST_HANDLERS[command_type] = handler
 
 
-def register_post_action(type: str, handler: Callable):
+def register_post_action(command_type: str, handler: Callable):
     def request_handler_wrapper(data):
         def logged_action():
-            LOG.info(f"Executing runtime command: {type}")
+            LOG.info(f"Executing runtime command: {command_type}")
             try:
                 handler(data)
             except Exception:
-                LOG.exception(f"Runtime command failed: {type}")
+                LOG.exception(f"Runtime command failed: {command_type}")
                 return
-            LOG.info(f"Runtime command completed: {type}")
+            LOG.info(f"Runtime command completed: {command_type}")
 
         run_in_main_thread(logged_action)
-        LOG.debug(f"Queued runtime command on Blender's main thread: {type}")
+        LOG.debug(f"Queued runtime command on Blender's main thread: {command_type}")
         return "OK"
 
-    register_post_handler(type, request_handler_wrapper)
+    register_post_handler(command_type, request_handler_wrapper)
 
 
 # Sending Format
@@ -201,16 +235,14 @@ def send_dict_as_json(data):
     requests.post(
         EDITOR_ADDRESS,
         data=body,
-        headers={
-            "Content-Type": "application/json",
-            SIGNATURE_HEADER: signature
-        },
-        timeout=REQUEST_TIMEOUT_SECONDS
+        headers={"Content-Type": "application/json", SIGNATURE_HEADER: signature},
+        timeout=REQUEST_TIMEOUT_SECONDS,
     )
 
 
 # Utils
 ###############################
+
 
 def get_post_hmac(message: bytes) -> str:
     if DECODED_PYCHARM_AUTHKEY is None:

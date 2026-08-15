@@ -66,6 +66,17 @@ enum class ErrorTypes(private val message: String, private val exceptionFactory:
         ::IllegalStateException,
     ),
     RUNTIME_COMMAND_SEND_FAILED("[BL-210]: Failed to send Blender runtime command `{0}`.", ::IOException),
+    UNEXPECTED_RUNTIME_MESSAGE_TYPE(
+        "[BL-211]: Received unexpected runtime message type `{0}`.",
+        ::IllegalArgumentException,
+    ),
+    RUNTIME_PAYLOAD_CONTENT_TYPE(
+        "[BL-212]: Invalid Content-Type; expected `application/json`, received `{0}`.",
+        ::IllegalArgumentException,
+    ),
+    RUNTIME_PAYLOAD_INVALID_JSON("[BL-213]: Invalid JSON received.", ::IllegalStateException),
+    RUNTIME_PAYLOAD_INVALID_SCHEMA("[BL-214]: Runtime payload does not match the expected schema.", ::IllegalArgumentException),
+    RUNTIME_PAYLOAD_TOO_LARGE("[BL-215]: Runtime payload exceeds the maximum request size.", ::IllegalArgumentException),
 
     // Install Scanner Failures [BL-300]
     INSTALL_SCAN_FAIL_GENERIC("[BL-300]: User-initiated Blender installation scan failed.", ::IllegalStateException),

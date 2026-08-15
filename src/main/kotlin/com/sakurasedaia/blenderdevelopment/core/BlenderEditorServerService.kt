@@ -17,6 +17,7 @@
 
 package com.sakurasedaia.blenderdevelopment.core
 
+import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.intellij.openapi.Disposable
@@ -52,6 +53,11 @@ internal enum class BlenderDebugProtocol {
 
 private const val SIGNATURE_HEADER = "X-Blender-PyCharm-Signature"
 
+private class RuntimePayloadException(
+  val statusCode: Int,
+  message: String,
+) : IllegalArgumentException(message)
+
 internal data class BlenderSetupPayload(
   val identifier: String,
   val blenderPort: Int,
@@ -66,6 +72,7 @@ internal class BlenderEditorServerService(project: Project) : Disposable {
   private val logger = PluginLogger.getInstance(project)
   private val notifications = NotificationModal.getInstance(project)
   private val objectMapper = ObjectMapper()
+    .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
   private val pendingSessionIdentifiers = ConcurrentHashMap.newKeySet<String>()
   private val pendingSessionCreatedAtMs = ConcurrentHashMap<String, Long>()
   private val setupPayloadsByIdentifier = ConcurrentHashMap<String, BlenderSetupPayload>()
@@ -257,40 +264,91 @@ internal class BlenderEditorServerService(project: Project) : Disposable {
         return
       }
 
-      val payloadText = exchange.requestBody.bufferedReader().use { it.readText() }
-      val payloadNode = objectMapper.readTree(payloadText)
-      val type = payloadNode.path("type").asText("")
+      val contentType = exchange.requestHeaders.getFirst("Content-Type")
+      val mediaType = contentType?.substringBefore(';')?.trim()
+      if (mediaType?.equals("application/json", ignoreCase = true) != true) {
+        throw RuntimePayloadException(
+          415,
+          ErrorTypes.RUNTIME_PAYLOAD_CONTENT_TYPE.format(contentType ?: "<missing>"),
+        )
+      }
+
+      val payloadBytes = exchange.requestBody.use { it.readNBytes(MAX_REQUEST_SIZE_BYTES + 1) }
+      if (payloadBytes.size > MAX_REQUEST_SIZE_BYTES) {
+        throw RuntimePayloadException(413, ErrorTypes.RUNTIME_PAYLOAD_TOO_LARGE.toString())
+      }
+
+      val payloadNode = runCatching { objectMapper.readTree(payloadBytes) }
+        .getOrElse {
+          throw RuntimePayloadException(400, ErrorTypes.RUNTIME_PAYLOAD_INVALID_JSON.toString())
+        }
+        ?: throw RuntimePayloadException(400, ErrorTypes.RUNTIME_PAYLOAD_INVALID_JSON.toString())
+
+      if (!payloadNode.isObject) {
+        throw RuntimePayloadException(400, ErrorTypes.RUNTIME_PAYLOAD_INVALID_SCHEMA.toString())
+      }
+
+      val identifier = payloadNode.readFirstTextValue("identifier", "pycharmIdentifier")
+      authenticatePayload(
+        identifier,
+        exchange.requestHeaders.getFirst(SIGNATURE_HEADER).orEmpty(),
+        payloadBytes,
+      )
+
+      val rawType = payloadNode.path("type").asText("")
+      val type = BlenderRuntimeMessageType.fromWireValue(rawType)
+        ?: throw RuntimePayloadException(400, ErrorTypes.UNEXPECTED_RUNTIME_MESSAGE_TYPE.format(rawType))
 
       when (type) {
-        "setup" -> registerSetupPayload(
-          payloadNode,
-          payloadText,
-          exchange.requestHeaders.getFirst(SIGNATURE_HEADER).orEmpty(),
+        BlenderRuntimeMessageType.SETUP -> registerSetupPayload(payloadNode, identifier)
+
+        BlenderRuntimeMessageType.DEPENDENCY_FAILURE,
+        BlenderRuntimeMessageType.BOOTSTRAP_FAILURE -> handleRuntimeFailurePayload(payloadNode, identifier)
+
+        BlenderRuntimeMessageType.RELOAD,
+        BlenderRuntimeMessageType.SCRIPT,
+        BlenderRuntimeMessageType.STOP -> throw RuntimePayloadException(
+          400,
+          ErrorTypes.UNEXPECTED_RUNTIME_MESSAGE_TYPE.format(type.wireValue),
         )
-        "dependencyFailure",
-        "bootstrapFailure" -> handleRuntimeFailurePayload(payloadNode)
       }
 
       exchange.sendResponseHeaders(200, 0)
       exchange.responseBody.use { it.write("OK".toByteArray()) }
     }.onFailure { error ->
-      logger.warn(ErrorTypes.RUNTIME_PAYLOAD_HANDLING_FAILED.toString(), error)
+      if (error is RuntimePayloadException) {
+        logger.warn(error.message ?: ErrorTypes.RUNTIME_PAYLOAD_HANDLING_FAILED.toString())
+      }
+      else {
+        logger.warn(ErrorTypes.RUNTIME_PAYLOAD_HANDLING_FAILED.toString(), error)
+      }
       runCatching {
-        exchange.sendResponseHeaders(400, -1)
+        val statusCode = (error as? RuntimePayloadException)?.statusCode ?: 400
+        exchange.sendResponseHeaders(statusCode, -1)
       }
     }.also {
       exchange.close()
     }
   }
 
-  private fun registerSetupPayload(payloadNode: JsonNode, payloadText: String, hmacSignature: String) {
-    val identifier = payloadNode.readFirstTextValue("identifier")
-    if (identifier.isBlank()) {
-      throw ErrorTypes.SETUP_PAYLOAD_MISSING_IDENTIFIER.createException(payloadNode)
-    }
+  private fun registerSetupPayload(payloadNode: JsonNode, identifier: String) {
+    val blenderPort = payloadNode.path("blenderPort").readPort()
+    val debugpyPort = payloadNode.path("debugpyPort").readPort()
+    val scriptsFolderNode = payloadNode.path("scriptsFolder")
+    val scriptsFolder = scriptsFolderNode.asText("")
+    val pathMappingsNode = payloadNode.path("pathMappings").takeIf { !it.isMissingNode }
+      ?: payloadNode.path("addonPathMappings")
+    val pathMappings = parsePathMappings(pathMappingsNode)
+    val debugProtocol = parseDebugProtocol(payloadNode.path("debugProtocol").asText(""))
 
-    if (hmacSignature.isBlank()) {
-      throw ErrorTypes.MISSING_AUTH_SIGNATURE.createException()
+    if (blenderPort !in VALID_PORT_RANGE ||
+        debugpyPort !in VALID_PORT_RANGE ||
+        !scriptsFolderNode.isTextual ||
+        scriptsFolder.isBlank() ||
+        pathMappings == null ||
+        debugProtocol == null
+    ) {
+      throw RuntimePayloadException(400, ErrorTypes.RUNTIME_PAYLOAD_INVALID_SCHEMA.toString())
     }
 
     val setupPayload = synchronized(sessionLock) {
@@ -298,20 +356,13 @@ internal class BlenderEditorServerService(project: Project) : Disposable {
         throw ErrorTypes.SETUP_PAYLOAD_UNKNOWN_SESSION.createException(identifier)
       }
 
-      val currentAuthKey = sessionAuthKeys[identifier]
-        ?: throw ErrorTypes.SETUP_PAYLOAD_UNKNOWN_SESSION.createException(identifier)
-      if (!BlenderAuthentication.isPostAuthentic(hmacSignature, payloadText, currentAuthKey)) {
-        throw ErrorTypes.INVALID_AUTH_RECEIVED.createException()
-      }
-
       BlenderSetupPayload(
         identifier = identifier,
-        blenderPort = payloadNode.path("blenderPort").asInt(-1),
-        debugpyPort = payloadNode.path("debugpyPort").asInt(-1),
-        scriptsFolder = payloadNode.path("scriptsFolder").asText(""),
-        pathMappings = parsePathMappings(payloadNode.path("pathMappings").takeIf { !it.isMissingNode }
-          ?: payloadNode.path("addonPathMappings")),
-        debugProtocol = parseDebugProtocol(payloadNode.path("debugProtocol").asText("")),
+        blenderPort = blenderPort,
+        debugpyPort = debugpyPort,
+        scriptsFolder = scriptsFolder,
+        pathMappings = pathMappings,
+        debugProtocol = debugProtocol,
       ).also { payload ->
         setupPayloadsByIdentifier[identifier] = payload
         activeSessionPayloads[identifier] = payload
@@ -324,18 +375,36 @@ internal class BlenderEditorServerService(project: Project) : Disposable {
     logger.debug("Registered Blender setup payload for session `$identifier`: $setupPayload")
   }
 
-  private fun handleRuntimeFailurePayload(payloadNode: JsonNode) {
-    val identifier = payloadNode.readFirstTextValue("identifier")
-    if (identifier.isNotBlank()) {
-      pendingSessionIdentifiers.remove(identifier)
-      pendingSessionCreatedAtMs.remove(identifier)
-      sessionAuthKeys.remove(identifier)
+  private fun authenticatePayload(identifier: String, signature: String, payloadBytes: ByteArray) {
+    if (identifier.isBlank()) {
+      throw RuntimePayloadException(400, ErrorTypes.SETUP_PAYLOAD_MISSING_IDENTIFIER.format("<missing>"))
+    }
+    if (signature.isBlank()) {
+      throw RuntimePayloadException(401, ErrorTypes.MISSING_AUTH_SIGNATURE.toString())
     }
 
-    val message = payloadNode.path("message").asText("").ifBlank {
-      MessageBundle.message("notification.blender.runtime.bootstrap.failed.generic")
+    val currentAuthKey = sessionAuthKeys[identifier]
+      ?: throw RuntimePayloadException(401, ErrorTypes.SETUP_PAYLOAD_UNKNOWN_SESSION.format(identifier))
+    if (!BlenderAuthentication.isPostAuthentic(signature, payloadBytes, currentAuthKey)) {
+      throw RuntimePayloadException(401, ErrorTypes.INVALID_AUTH_RECEIVED.toString())
     }
-    val details = payloadNode.path("details").asText("")
+  }
+
+  private fun handleRuntimeFailurePayload(payloadNode: JsonNode, identifier: String) {
+    val messageNode = payloadNode.path("message")
+    val message = messageNode.asText("")
+    val detailsNode = payloadNode.path("details")
+    if (!messageNode.isTextual || message.isBlank() || (!detailsNode.isMissingNode && !detailsNode.isTextual)) {
+      throw RuntimePayloadException(400, ErrorTypes.RUNTIME_PAYLOAD_INVALID_SCHEMA.toString())
+    }
+
+    synchronized(sessionLock) {
+      pendingSessionIdentifiers.remove(identifier)
+      pendingSessionCreatedAtMs.remove(identifier)
+      sessionAuthKeys.remove(identifier)?.fill(0)
+    }
+
+    val details = detailsNode.asText("")
     if (details.isNotBlank()) {
       logger.warn(ErrorTypes.RUNTIME_BOOTSTRAP_FAILED_WITH_DETAILS.format(message, details))
     } else {
@@ -365,33 +434,49 @@ internal class BlenderEditorServerService(project: Project) : Disposable {
     }
   }
 
-  private fun parsePathMappings(pathMappingsNode: JsonNode): List<BlenderPathMapping> {
+  private fun parsePathMappings(pathMappingsNode: JsonNode): List<BlenderPathMapping>? {
     if (!pathMappingsNode.isArray) {
-      return emptyList()
+      return null
     }
-    return pathMappingsNode.mapNotNull { mapping ->
+    return pathMappingsNode.map { mapping ->
       val src = mapping.path("src").asText("")
       val load = mapping.path("load").asText("")
-      if (src.isBlank() || load.isBlank()) {
-        null
-      } else {
-        BlenderPathMapping(src = src, load = load)
+      if (!mapping.isObject ||
+          !mapping.path("src").isTextual ||
+          !mapping.path("load").isTextual ||
+          src.isBlank() ||
+          load.isBlank()
+      ) {
+        return null
       }
+      BlenderPathMapping(src = src, load = load)
     }
   }
 
-  private fun parseDebugProtocol(rawProtocol: String): BlenderDebugProtocol {
+  private fun parseDebugProtocol(rawProtocol: String): BlenderDebugProtocol? {
     return when (rawProtocol.trim().lowercase()) {
+      "debugpy-dap" -> BlenderDebugProtocol.DEBUGPY_DAP
       "pydev",
       "pydevd",
       "pydevd-client" -> BlenderDebugProtocol.PYDEVD
-      else -> BlenderDebugProtocol.DEBUGPY_DAP
+      else -> null
     }
+  }
+
+  private fun JsonNode.readPort(): Int {
+    if (!isIntegralNumber || !canConvertToInt()) {
+      return -1
+    }
+    return intValue()
   }
 
   private fun JsonNode.readFirstTextValue(vararg keys: String): String {
     keys.forEach { key ->
-      val value = path(key).asText("")
+      val node = path(key)
+      if (!node.isTextual) {
+        return@forEach
+      }
+      val value = node.asText("")
       if (value.isNotBlank()) {
         return value
       }
@@ -400,8 +485,10 @@ internal class BlenderEditorServerService(project: Project) : Disposable {
   }
 
   companion object {
+    private const val MAX_REQUEST_SIZE_BYTES = 64 * 1024
     private const val PENDING_SESSION_TTL_MS = 60_000L
     private const val ACTIVE_SESSION_TTL_MS = 12 * 60 * 60_000L
+    private val VALID_PORT_RANGE = 1..65_535
 
     fun getInstance(project: Project): BlenderEditorServerService = project.service()
   }

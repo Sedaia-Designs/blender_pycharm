@@ -47,9 +47,11 @@ internal object BlenderAuthentication {
    * @return The HMAC-SHA-256 hexadecimal string of the authenticated message.
    */
   fun notarizeMessage(key: ByteArray, message: String): String {
-    val stringToBytes: ByteArray = message.toByteArray(charset=Charsets.UTF_8)
+    return notarizeMessage(key, message.toByteArray(Charsets.UTF_8))
+  }
 
-    return HmacUtils(HmacAlgorithms.HMAC_SHA_256, requireValid(key)).hmacHex(stringToBytes)
+  fun notarizeMessage(key: ByteArray, message: ByteArray): String {
+    return HmacUtils(HmacAlgorithms.HMAC_SHA_256, requireValid(key)).hmacHex(message)
   }
 
   /**
@@ -61,6 +63,10 @@ internal object BlenderAuthentication {
    * @return `true` if the provided signature matches the computed signature; `false` otherwise.
    */
   fun isPostAuthentic(signature: String, body: String, key: ByteArray): Boolean {
+    return isPostAuthentic(signature, body.toByteArray(Charsets.UTF_8), key)
+  }
+
+  fun isPostAuthentic(signature: String, body: ByteArray, key: ByteArray): Boolean {
     val receivedSignature = try {
       signature.hexToByteArray()
     }

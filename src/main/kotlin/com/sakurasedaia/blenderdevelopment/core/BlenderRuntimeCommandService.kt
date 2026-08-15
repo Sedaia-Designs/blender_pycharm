@@ -35,9 +35,29 @@ import java.net.ConnectException
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
+import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Duration
+
+internal enum class BlenderRuntimeMessageType(val wireValue: String) {
+  STOP("stop"),
+  SCRIPT("script"),
+  RELOAD("reload"),
+  SETUP("setup"),
+  DEPENDENCY_FAILURE("dependencyFailure"),
+  BOOTSTRAP_FAILURE("bootstrapFailure"),
+  ;
+
+  val wireValueByteSize: Int
+    get() = wireValue.toByteArray(StandardCharsets.UTF_8).size
+
+  companion object {
+    private val byWireValue = entries.associateBy(BlenderRuntimeMessageType::wireValue)
+
+    fun fromWireValue(value: String): BlenderRuntimeMessageType? = byWireValue[value]
+  }
+}
 
 /**
  * Service responsible for managing and dispatching runtime commands to the Blender application.
@@ -80,11 +100,11 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
       return
     }
     val payload = mapOf(
-      "type" to "reload",
       "names" to addonTargets.map { it.moduleName },
       "dirs" to addonTargets.map { it.directory.toString() },
     )
     sendCommand(
+      type = BlenderRuntimeMessageType.RELOAD,
       payload = payload,
       onSuccessMessage = MessageBundle.message("notification.blender.runtime.command.reload.sent"),
       showSuccessNotification = showSuccessNotification,
@@ -112,10 +132,10 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
       return
     }
     val payload = mapOf(
-      "type" to "script",
       "path" to scriptFile.path,
     )
     sendCommand(
+      type = BlenderRuntimeMessageType.SCRIPT,
       payload = payload,
       onSuccessMessage = MessageBundle.message("notification.blender.runtime.command.script.sent", scriptFile.name),
     )
@@ -135,7 +155,7 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
    */
   fun sendStopCommand() {
     sendCommand(
-      payload = mapOf("type" to "stop"),
+      type = BlenderRuntimeMessageType.STOP,
       onSuccessMessage = MessageBundle.message("notification.blender.runtime.command.stop.sent"),
     )
   }
@@ -151,20 +171,21 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
   fun hasActiveSession(): Boolean = editorServerService.findLatestActiveSessionPayload() != null
 
   private fun sendCommand(
-    payload: Map<String, Any>,
+    type: BlenderRuntimeMessageType,
+    payload: Map<String, Any> = emptyMap(),
     onSuccessMessage: String,
     showSuccessNotification: Boolean = true,
   ) {
     val activeSession = editorServerService.findLatestActiveSessionPayload()
     if (activeSession == null) {
-      logger.warn(ErrorTypes.RUNTIME_COMMAND_MISSING_SESSION.format(payload["type"]))
+      logger.warn(ErrorTypes.RUNTIME_COMMAND_MISSING_SESSION.format(type.wireValue))
       notifications.sendWarning(MessageBundle.message("notification.blender.runtime.command.session.missing"))
       return
     }
     if (activeSession.blenderPort <= 0) {
       logger.warn(
         ErrorTypes.RUNTIME_COMMAND_INVALID_PORT.format(
-          payload["type"],
+          type.wireValue,
           activeSession.identifier,
           activeSession.blenderPort
         )
@@ -187,9 +208,11 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
       return
     }
 
+    val processedRequest = payload + ("type" to type.wireValue)
+
     AppExecutorUtil.getAppExecutorService().submit {
       runCatching {
-        val requestBody = objectMapper.writeValueAsString(payload)
+        val requestBody = objectMapper.writeValueAsString(processedRequest)
         val signature = BlenderAuthentication.notarizeMessage(authKey, requestBody)
 
         val request = HttpRequest.newBuilder()
@@ -200,17 +223,19 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
           .POST(HttpRequest.BodyPublishers.ofString(requestBody))
           .build()
         httpClient.send(request, HttpResponse.BodyHandlers.ofString())
+      }.also {
+        authKey.fill(0)
       }.onSuccess { response ->
         if (response.statusCode() in 200 .. 299) {
           editorServerService.markSessionActivity(activeSession.identifier)
           if (showSuccessNotification) {
             notifications.sendInfo(onSuccessMessage)
           }
-          logger.debug("Sent Blender runtime command `${payload["type"]}` to session `${activeSession.identifier}`.")
+          logger.debug("Sent Blender runtime command `${type.wireValue}` to session `${activeSession.identifier}`.")
         } else {
           logger.warn(
             ErrorTypes.RUNTIME_COMMAND_REJECTED.format(
-              payload["type"],
+              type.wireValue,
               activeSession.identifier,
               response.statusCode(),
               response.body(),
@@ -219,13 +244,13 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
           notifications.sendError(
             MessageBundle.message(
               "notification.blender.runtime.command.failed",
-              payload["type"]?.toString() ?: "",
+              type.wireValue,
               response.statusCode().toString(),
             ),
           )
         }
       }.onFailure { error ->
-        logger.warn(ErrorTypes.RUNTIME_COMMAND_SEND_FAILED.format(payload["type"]), error)
+        logger.warn(ErrorTypes.RUNTIME_COMMAND_SEND_FAILED.format(type.wireValue), error)
         if (error is ConnectException) {
           editorServerService.unregisterSession(activeSession.identifier)
           notifications.sendWarning(
@@ -236,7 +261,7 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
         notifications.sendError(
           MessageBundle.message(
             "notification.blender.runtime.command.failed.exception",
-            payload["type"]?.toString() ?: "",
+            type.wireValue,
             error.message ?: "",
           ),
         )
