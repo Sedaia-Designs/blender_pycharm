@@ -4,28 +4,49 @@
 
 ## [1.0.0-beta.3]
 
-Beta 3 focuses on stability and improving forward compatibility.
+Beta 3 hardens communication between PyCharm and Blender, restores compatibility verification across the declared PyCharm
+targets, and expands release validation. Runtime commands, setup messages, and early failure reports now share an
+authenticated protocol with bounded, validated request handling.
 
 ### Added
 
-- Added Plugin Verification steps to `build.gradle.kts`
-- Additional KDocs to the appropriate methods and classes.
+- Added Plugin Verifier coverage for the declared PyCharm 2026.1 and 2026.2 targets.
+- Added a V1 release-readiness audit covering release blockers, security risks, stability issues, and validation results.
 
 ### Changed
 
-- Sorted and organized Python imports for the Python Runtime.
-- Updated KDocs for changed functions.
-
-### Removed
-
-- Removed redundant logging call from `NotificationModal.sendError()`, enforcing a strict ownership boundary. 
-  - `PluginLogger` for Developer Logging, `NotificationModal` for user facing notifications
+- Standardized plugin diagnostics around typed error factories while keeping developer logging separate from user-facing
+  notifications.
+- Moved Ruff configuration to [.ruff.toml](.ruff.toml) with explicit Python-version, formatting, linting, and vendored-file
+  exclusions.
+- Restricted generated Marketplace change notes to the current release section.
 
 ### Fixed
 
-- Replaced the deprecated `SimpleListCellRenderer.create {...}` with its `textListCellRenderer {...}` successor
-- Changelog Parser now **only** grabs the current version's changelog in  `build.gradle.kts`.
-- Set `JvmDefaultMode` to `NO_COMPATABILITY`, fixing compiler warnings regarding a deprecated `ToolWindowFactory` class
+- Fixed generated starter Python scripts so both minimal and example-code projects contain a correctly indented registration
+  call.
+- Fixed plugin compatibility metadata to depend on the bundled `PythonCore` plugin directly, allowing Plugin Verifier to
+  resolve the Python APIs used by the plugin on every declared target.
+- Isolated JVM platform tests from unrelated bundled IDE plugins, eliminating environment-dependent fixture shutdown failures.
+- Replaced deprecated IntelliJ renderer and Kotlin JVM-default compatibility paths used by the plugin.
+
+### Security
+
+- Added a unique 32-byte authentication key to each Blender launch and HMAC-SHA-256 signatures over the exact request body for
+  runtime commands, setup messages, and bootstrap or dependency failure reports.
+- Rejected missing, invalid, cross-session, and unknown-session credentials, along with replayed setup messages, without
+  mutating the intended runtime session.
+- Added JSON content-type enforcement, bounded request bodies, message allowlists, setup-schema validation, and distinct HTTP
+  responses for authentication, media-type, size, and payload failures.
+- Cleared discarded authentication-key material when runtime sessions or command requests complete.
+
+### Known Issues
+
+- Managed Blender archives are not yet verified against published checksums before extraction.
+- Project-template values are not yet escaped specifically for TOML and Python output formats.
+- Runtime actions still target the most recently registered Blender session when multiple sessions are active.
+- Several visible cache, stub-path, and logging-path settings are persisted but not yet applied at runtime.
+- Replacing an installed Blender API stub package is not transactional if installation of the new package fails.
 
 ## [1.0.0-beta.2] - 2026-08-10
 
