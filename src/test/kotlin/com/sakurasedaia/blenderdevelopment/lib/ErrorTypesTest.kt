@@ -18,7 +18,10 @@
 package com.sakurasedaia.blenderdevelopment.lib
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.security.InvalidKeyException
 
 class ErrorTypesTest {
   @Test
@@ -67,5 +70,26 @@ class ErrorTypesTest {
       "[BL-302]: Version probe failed for `{0}`",
       ErrorTypes.INSTALL_VERSION_PROBE_FAILED.toString(),
     )
+  }
+
+  @Test
+  fun `createException uses the formatted error message`() {
+    val exception = ErrorTypes.KEY_SIZE_MISMATCH.createException(32, 16)
+
+    assertTrue(exception is InvalidKeyException)
+    assertEquals(ErrorTypes.KEY_SIZE_MISMATCH.format(32, 16), exception.message)
+  }
+
+  @Test
+  fun `createException returns a fresh exception for each call`() {
+    val first = ErrorTypes.KEY_SIZE_MISMATCH.createException(32, 16)
+    val second = ErrorTypes.KEY_SIZE_MISMATCH.createException(32, 16)
+
+    assertTrue(first !== second)
+  }
+
+  @Test
+  fun `createExceptionOrNull returns null for non-exceptional outcomes`() {
+    assertNull(ErrorTypes.INSTALL_SCAN_NO_INSTALLS.createExceptionOrNull("macOS"))
   }
 }

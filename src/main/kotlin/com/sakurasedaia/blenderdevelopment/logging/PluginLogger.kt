@@ -138,18 +138,81 @@ class PluginLogger(project: Project) {
         log("[WARN] $message: ${throwable.stackTraceToString()}")
     }
 
-    
+
     /**
-     * Writes a typed plugin error to IntelliJ logs and plugin logs.
+     * Logs an error of a specified type to both IntelliJ and plugin-specific logs.
      *
-     * @param errorType canonical plugin error code.
-     * @param throwable optional exception details.
-     * @return `Unit`.
+     * @param errorType an instance of [ErrorTypes] representing the specific error to log.
      */
-    fun error(errorType: ErrorTypes, throwable: Throwable? = null) {
-        platformLogger.error(errorType.toString(), throwable)
-        val suffix = throwable?.let { ": ${it.stackTraceToString()}" } ?: ""
-        log("[ERROR] ${errorType.name}: $errorType$suffix")
+    fun error(errorType: ErrorTypes) {
+        writeError(
+            errorType = errorType,
+            message = errorType.toString(),
+            throwable = errorType.createExceptionOrNull(),
+        )
+    }
+
+    /**
+     * Logs an error of a specific type, optionally including a corresponding exception.
+     *
+     * @param errorType the type of the error, represented by an instance of [ErrorTypes].
+     * @param throwable an optional [Throwable] associated with the error. Can be `null` if no exception is available.
+     */
+    fun error(errorType: ErrorTypes, throwable: Throwable?) {
+        writeError(
+            errorType = errorType,
+            message = errorType.toString(),
+            throwable = throwable,
+        )
+    }
+
+    /**
+     * Logs an error of a specific type, optionally including additional parameters that can be used
+     * for message formatting or exception creation.
+     *
+     * @param errorType the type of the error, represented by an instance of [ErrorTypes].
+     * @param firstParameter the primary parameter for message formatting or exception creation.
+     * @param additionalParameters optional additional parameters for message formatting or exception creation.
+     */
+    fun error(
+        errorType: ErrorTypes,
+        firstParameter: Any?,
+        vararg additionalParameters: Any?,
+    ) {
+        val parameters = arrayOf(firstParameter, *additionalParameters)
+
+        writeError(
+            errorType = errorType,
+            message = errorType.format(*parameters),
+            throwable = errorType.createExceptionOrNull(*parameters),
+        )
+    }
+
+    /**
+     * Writes an error entry to both the platform logger and plugin-specific logs. Includes stack trace details
+     * if a throwable is provided.
+     *
+     * @param errorType the type of the error, represented by an instance of [ErrorTypes].
+     * @param message the error message to log.
+     * @param throwable an optional [Throwable] associated with the error. Can be `null` if no exception is available.
+     */
+    private fun writeError(
+        errorType: ErrorTypes,
+        message: String,
+        throwable: Throwable?,
+    ) {
+        if (throwable == null) {
+            platformLogger.error(message)
+        }
+        else {
+            platformLogger.error(message, throwable)
+        }
+
+        val suffix = throwable?.let {
+            ": ${it.stackTraceToString()}"
+        }.orEmpty()
+
+        log("[ERROR] ${errorType.name}: $message$suffix")
     }
 
     companion object {
@@ -200,7 +263,18 @@ class PluginLogger(project: Project) {
          * @param throwable optional exception details.
          * @return `Unit`.
          */
-        fun error(project: Project = currentProject(), errorType: ErrorTypes, throwable: Throwable? = null) =
+        fun error(project: Project = currentProject(), errorType: ErrorTypes) =
+            getInstance(project).error(errorType)
+
+        /**
+         * Convenience static wrapper for logging an existing throwable.
+         *
+         * @param project target project.
+         * @param errorType canonical plugin error code.
+         * @param throwable existing failure whose stack trace should be preserved.
+         * @return `Unit`.
+         */
+        fun error(project: Project = currentProject(), errorType: ErrorTypes, throwable: Throwable) =
             getInstance(project).error(errorType, throwable)
     }
 }

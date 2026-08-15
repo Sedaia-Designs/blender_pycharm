@@ -287,7 +287,7 @@ internal class InstallBlender(
                   extractionPath.resolve(archiveBaseName(archive))
                 }
                 else -> {
-                  throw UnsupportedOperationException(ErrorTypes.UNSUPPORTED_OS.toString())
+                  throw ErrorTypes.UNSUPPORTED_OS.createException()
                 }
               }
 
