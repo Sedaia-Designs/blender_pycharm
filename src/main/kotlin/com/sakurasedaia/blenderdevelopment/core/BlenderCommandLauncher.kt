@@ -31,7 +31,7 @@ internal data class BlenderCommandLaunchRequest(
 
 /** Builds and starts Blender's command-line command mode. */
 @Service(Service.Level.PROJECT)
-internal class BlenderCommandLauncher(private val project: Project) {
+internal class BlenderCommandLauncher(project: Project) {
   private val projectConfig = ProjectConfig.getInstance(project)
   private val blenderLauncher = BlenderLauncher.getInstance(project)
 
