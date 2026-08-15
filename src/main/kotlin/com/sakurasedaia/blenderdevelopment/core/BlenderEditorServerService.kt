@@ -178,7 +178,7 @@ internal class BlenderEditorServerService(project: Project) : Disposable {
   /**
    * Retrieves the setup payload of the latest active Blender runtime session.
    *
-   * This method first clears any expired sessions to ensure the session state is up-to-date.
+   * This method first clears any expired sessions to ensure the session state is up to date.
    * It then attempts to locate the payload corresponding to the latest active session
    * identifier. If no active session exists or the identifier is invalid, it returns null.
    *
@@ -288,7 +288,10 @@ internal class BlenderEditorServerService(project: Project) : Disposable {
         throw RuntimePayloadException(400, ErrorTypes.RUNTIME_PAYLOAD_INVALID_SCHEMA.toString())
       }
 
-      val identifier = payloadNode.readFirstTextValue("identifier", "pycharmIdentifier")
+      val identifier = payloadNode.path("identifier")
+        .takeIf { it.isTextual }
+        ?.asText("")
+        .orEmpty()
       authenticatePayload(
         identifier,
         exchange.requestHeaders.getFirst(SIGNATURE_HEADER).orEmpty(),
@@ -469,20 +472,6 @@ internal class BlenderEditorServerService(project: Project) : Disposable {
       return -1
     }
     return intValue()
-  }
-
-  private fun JsonNode.readFirstTextValue(vararg keys: String): String {
-    keys.forEach { key ->
-      val node = path(key)
-      if (!node.isTextual) {
-        return@forEach
-      }
-      val value = node.asText("")
-      if (value.isNotBlank()) {
-        return value
-      }
-    }
-    return ""
   }
 
   companion object {
