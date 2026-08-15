@@ -25,32 +25,32 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 class BlenderManifestTest {
-  @get:Rule
-  val temporaryFolder = TemporaryFolder()
+  @get:Rule val temporaryFolder = TemporaryFolder()
 
   @Test
   fun `reads required nested and optional manifest values`() {
     val manifestFile = temporaryFolder.newFile("blender_manifest.toml")
     manifestFile.writeText(
-      """
-      schema_version = "1.0.0"
-      id = "sample_extension"
-      version = "1.2.3"
-      name = "Sample Extension"
-      tagline = "Exercises manifest parsing"
-      maintainer = "Example Maintainer"
-      type = "add-on"
-      blender_version_min = "4.2.0"
-      license = ["SPDX:GPL-3.0-or-later"]
-      tags = ["Development"]
-      unknown_future_key = "ignored"
+        """
+        schema_version = "1.0.0"
+        id = "sample_extension"
+        version = "1.2.3"
+        name = "Sample Extension"
+        tagline = "Exercises manifest parsing"
+        maintainer = "Example Maintainer"
+        type = "add-on"
+        blender_version_min = "4.2.0"
+        license = ["SPDX:GPL-3.0-or-later"]
+        tags = ["Development"]
+        unknown_future_key = "ignored"
 
-      [permissions]
-      network = "Checks for updates"
+        [permissions]
+        network = "Checks for updates"
 
-      [build]
-      paths_exclude_pattern = ["__pycache__/"]
-      """.trimIndent()
+        [build]
+        paths_exclude_pattern = ["__pycache__/"]
+        """
+            .trimIndent()
     )
 
     val manifest = BlenderManifest(manifestFile.path)

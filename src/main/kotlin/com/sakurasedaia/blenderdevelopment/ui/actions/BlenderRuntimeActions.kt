@@ -26,13 +26,15 @@ import com.sakurasedaia.blenderdevelopment.core.BlenderRuntimeCommandService
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 
 internal abstract class BaseBlenderRuntimeAction(
-  textKey: String,
-  descriptionKey: String,
-) : AnAction(
-  MessageBundle.message(textKey),
-  MessageBundle.message(descriptionKey),
-  null,
-), DumbAware {
+    textKey: String,
+    descriptionKey: String,
+) :
+    AnAction(
+        MessageBundle.message(textKey),
+        MessageBundle.message(descriptionKey),
+        null,
+    ),
+    DumbAware {
   override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
   override fun update(event: AnActionEvent) {
@@ -50,10 +52,11 @@ internal abstract class BaseBlenderRuntimeAction(
   open fun isActionApplicable(event: AnActionEvent): Boolean = true
 }
 
-internal class BlenderRuntimeRunScriptAction : BaseBlenderRuntimeAction(
-  textKey = "action.blender.runtime.script.text",
-  descriptionKey = "action.blender.runtime.script.description",
-) {
+internal class BlenderRuntimeRunScriptAction :
+    BaseBlenderRuntimeAction(
+        textKey = "action.blender.runtime.script.text",
+        descriptionKey = "action.blender.runtime.script.description",
+    ) {
   override fun actionPerformed(event: AnActionEvent) {
     val project = event.project ?: return
     BlenderRuntimeCommandService.getInstance(project).sendRunScriptCommand()
@@ -65,20 +68,22 @@ internal class BlenderRuntimeRunScriptAction : BaseBlenderRuntimeAction(
   }
 }
 
-internal class BlenderRuntimeReloadAction : BaseBlenderRuntimeAction(
-  textKey = "action.blender.runtime.reload.text",
-  descriptionKey = "action.blender.runtime.reload.description",
-) {
+internal class BlenderRuntimeReloadAction :
+    BaseBlenderRuntimeAction(
+        textKey = "action.blender.runtime.reload.text",
+        descriptionKey = "action.blender.runtime.reload.description",
+    ) {
   override fun actionPerformed(event: AnActionEvent) {
     val project = event.project ?: return
     BlenderRuntimeCommandService.getInstance(project).sendReloadCommand()
   }
 }
 
-internal class BlenderRuntimeStopAction : BaseBlenderRuntimeAction(
-  textKey = "action.blender.runtime.stop.text",
-  descriptionKey = "action.blender.runtime.stop.description",
-) {
+internal class BlenderRuntimeStopAction :
+    BaseBlenderRuntimeAction(
+        textKey = "action.blender.runtime.stop.text",
+        descriptionKey = "action.blender.runtime.stop.description",
+    ) {
   override fun actionPerformed(event: AnActionEvent) {
     val project = event.project ?: return
     BlenderRuntimeCommandService.getInstance(project).sendStopCommand()

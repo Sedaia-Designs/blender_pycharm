@@ -20,7 +20,8 @@ package com.sakurasedaia.blenderdevelopment.ui.actions
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 
-internal class BlenderRuntimeCommandGroup : DefaultActionGroup(
-  MessageBundle.message("action.blender.runtime.group.text"),
-  true,
-)
+internal class BlenderRuntimeCommandGroup :
+    DefaultActionGroup(
+        MessageBundle.message("action.blender.runtime.group.text"),
+        true,
+    )

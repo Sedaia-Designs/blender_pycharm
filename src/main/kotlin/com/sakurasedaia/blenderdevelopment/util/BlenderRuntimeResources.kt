@@ -19,9 +19,9 @@ package com.sakurasedaia.blenderdevelopment.util
 
 import com.intellij.openapi.application.PathManager
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
-import java.security.MessageDigest
 import java.nio.file.Files
 import java.nio.file.Path
+import java.security.MessageDigest
 import java.util.Properties
 import java.util.zip.ZipInputStream
 import kotlin.io.path.exists
@@ -64,13 +64,9 @@ internal object BlenderRuntimeResources {
 
   internal fun resolvePluginVersion(): String {
     val properties = Properties()
-    val resource = BlenderRuntimeResources::class.java.classLoader
-      .getResourceAsStream(PLUGIN_METADATA_RESOURCE)
-      ?: return "dev"
+    val resource = BlenderRuntimeResources::class.java.classLoader.getResourceAsStream(PLUGIN_METADATA_RESOURCE) ?: return "dev"
     resource.use(properties::load)
-    return properties.getProperty(PLUGIN_VERSION_PROPERTY)
-      ?.takeIf(String::isNotBlank)
-      ?: "dev"
+    return properties.getProperty(PLUGIN_VERSION_PROPERTY)?.takeIf(String::isNotBlank) ?: "dev"
   }
 
   private fun resolveRuntimeFingerprint(): String {
@@ -80,10 +76,11 @@ internal object BlenderRuntimeResources {
   }
 
   private fun computeRuntimeArchiveSha256(): String {
-    val archiveStream = PluginResources::class.java.classLoader.getResourceAsStream(RUNTIME_ARCHIVE_RESOURCE)
-      ?: throw IllegalStateException(
-        MessageBundle.message("run.configuration.blender.error.runtime.archive.missing", RUNTIME_ARCHIVE_RESOURCE)
-      )
+    val archiveStream =
+        PluginResources::class.java.classLoader.getResourceAsStream(RUNTIME_ARCHIVE_RESOURCE)
+            ?: throw IllegalStateException(
+                MessageBundle.message("run.configuration.blender.error.runtime.archive.missing", RUNTIME_ARCHIVE_RESOURCE)
+            )
     val digest = MessageDigest.getInstance("SHA-256")
     archiveStream.use { stream ->
       val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
@@ -110,15 +107,15 @@ internal object BlenderRuntimeResources {
       return false
     }
 
-    return runCatching { Files.readString(markerPath).trim() }
-      .getOrNull() == runtimeFingerprint
+    return runCatching { Files.readString(markerPath).trim() }.getOrNull() == runtimeFingerprint
   }
 
   private fun extractArchive(destinationDirectory: Path) {
-    val archiveStream = PluginResources::class.java.classLoader.getResourceAsStream(RUNTIME_ARCHIVE_RESOURCE)
-      ?: throw IllegalStateException(
-        MessageBundle.message("run.configuration.blender.error.runtime.archive.missing", RUNTIME_ARCHIVE_RESOURCE)
-      )
+    val archiveStream =
+        PluginResources::class.java.classLoader.getResourceAsStream(RUNTIME_ARCHIVE_RESOURCE)
+            ?: throw IllegalStateException(
+                MessageBundle.message("run.configuration.blender.error.runtime.archive.missing", RUNTIME_ARCHIVE_RESOURCE)
+            )
 
     archiveStream.use { stream ->
       ZipInputStream(stream).use { zipInput ->
@@ -145,8 +142,7 @@ internal object BlenderRuntimeResources {
 
   private fun deleteRecursively(path: Path) {
     Files.walk(path).use { stream ->
-      stream.sorted(Comparator.reverseOrder())
-        .forEach { Files.deleteIfExists(it) }
+      stream.sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) }
     }
   }
 }

@@ -21,8 +21,8 @@ import com.intellij.execution.ExecutionResult
 import com.intellij.execution.ProgramRunnerUtil
 import com.intellij.execution.RunManager
 import com.intellij.execution.configurations.ConfigurationTypeUtil
-import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.execution.executors.DefaultDebugExecutor
+import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
@@ -54,16 +54,16 @@ internal class BlenderDebugAttachService(private val project: Project) {
       val setupPayload = waitForSetupPayload(sessionIdentifier, executionResult)
       if (setupPayload == null) {
         notifications.sendError(
-          MessageBundle.message("notification.blender.debug.attach.timeout", sessionIdentifier),
-          MessageBundle.message("notification.blender.debug.attach.failed"),
+            MessageBundle.message("notification.blender.debug.attach.timeout", sessionIdentifier),
+            MessageBundle.message("notification.blender.debug.attach.failed"),
         )
         return@submit
       }
 
       if (setupPayload.debugpyPort <= 0) {
         notifications.sendError(
-          MessageBundle.message("notification.blender.debug.attach.invalid.port", setupPayload.debugpyPort.toString()),
-          MessageBundle.message("notification.blender.debug.attach.failed"),
+            MessageBundle.message("notification.blender.debug.attach.invalid.port", setupPayload.debugpyPort.toString()),
+            MessageBundle.message("notification.blender.debug.attach.failed"),
         )
         return@submit
       }
@@ -83,13 +83,14 @@ internal class BlenderDebugAttachService(private val project: Project) {
               logger.debug("Attached Python debugger with pydev protocol to Blender debug port ${setupPayload.debugpyPort}.")
             }
           }
-        }.onFailure { error ->
-          logger.warn(ErrorTypes.DEBUG_ATTACH_FAILED.format(sessionIdentifier), error)
-          notifications.sendError(
-            error.message ?: MessageBundle.message("notification.blender.debug.attach.generic.error"),
-            MessageBundle.message("notification.blender.debug.attach.failed"),
-          )
         }
+            .onFailure { error ->
+              logger.warn(ErrorTypes.DEBUG_ATTACH_FAILED.format(sessionIdentifier), error)
+              notifications.sendError(
+                  error.message ?: MessageBundle.message("notification.blender.debug.attach.generic.error"),
+                  MessageBundle.message("notification.blender.debug.attach.failed"),
+              )
+            }
       }
     }
   }
@@ -136,65 +137,67 @@ internal class BlenderDebugAttachService(private val project: Project) {
     }
 
     uniqueMappings
-      .filter { (localPath, remotePath) -> localPath.isNotBlank() && remotePath.isNotBlank() }
-      .filter { (localPath, _) -> Path.of(localPath).exists() }
-      .forEach { (localPath, remotePath) ->
-        mappingSettings.add(PathMappingSettings.PathMapping(localPath, remotePath))
-      }
+        .filter { (localPath, remotePath) -> localPath.isNotBlank() && remotePath.isNotBlank() }
+        .filter { (localPath, _) -> Path.of(localPath).exists() }
+        .forEach { (localPath, remotePath) ->
+          mappingSettings.add(PathMappingSettings.PathMapping(localPath, remotePath))
+        }
 
     return mappingSettings
   }
 
   private fun attachWithDebugpyDap(setupPayload: BlenderSetupPayload, mappingSettings: PathMappingSettings): Boolean {
-    val configurationType = ConfigurationTypeUtil.findConfigurationType(PYTHON_DAP_ATTACH_CONFIGURATION_TYPE_ID)
-      ?: run {
-        logger.debug("Python DAP attach configuration type is not registered.")
-        return false
-      }
-    val factory = configurationType.configurationFactories.firstOrNull()
-      ?: run {
-        logger.debug("Python DAP attach configuration type does not provide a configuration factory.")
-        return false
-      }
+    val configurationType =
+        ConfigurationTypeUtil.findConfigurationType(PYTHON_DAP_ATTACH_CONFIGURATION_TYPE_ID)
+            ?: run {
+              logger.debug("Python DAP attach configuration type is not registered.")
+              return false
+            }
+    val factory =
+        configurationType.configurationFactories.firstOrNull()
+            ?: run {
+              logger.debug("Python DAP attach configuration type does not provide a configuration factory.")
+              return false
+            }
 
-    val settings = RunManager.getInstance(project).createConfiguration(
-      "Blender Debug Attach (${setupPayload.debugpyPort})",
-      factory,
-    )
+    val settings =
+        RunManager.getInstance(project)
+            .createConfiguration(
+                "Blender Debug Attach (${setupPayload.debugpyPort})",
+                factory,
+            )
     val configuration = settings.configuration
     val configurationClass = configuration.javaClass
 
-    configurationClass
-      .getMethod("setRemoteAddress", String::class.java)
-      .invoke(configuration, "127.0.0.1:${setupPayload.debugpyPort}")
-    val pathMappingsSetter = configurationClass.methods.firstOrNull { method ->
-      method.name == "setPathMappingSettings" && method.parameterCount == 1
-    }
+    configurationClass.getMethod("setRemoteAddress", String::class.java).invoke(configuration, "127.0.0.1:${setupPayload.debugpyPort}")
+    val pathMappingsSetter =
+        configurationClass.methods.firstOrNull { method ->
+          method.name == "setPathMappingSettings" && method.parameterCount == 1
+        }
     if (pathMappingsSetter != null) {
       pathMappingsSetter.invoke(configuration, mappingSettings)
-    }
-    else {
+    } else {
       val firstMapping = mappingSettings.pathMappings.firstOrNull()
-      val localRootSetter = configurationClass.methods.firstOrNull { method ->
-        method.name == "setLocalRoot" && method.parameterCount == 1
-      }
-      val remoteRootSetter = configurationClass.methods.firstOrNull { method ->
-        method.name == "setRemoteRoot" && method.parameterCount == 1
-      }
+      val localRootSetter =
+          configurationClass.methods.firstOrNull { method ->
+            method.name == "setLocalRoot" && method.parameterCount == 1
+          }
+      val remoteRootSetter =
+          configurationClass.methods.firstOrNull { method ->
+            method.name == "setRemoteRoot" && method.parameterCount == 1
+          }
       if (firstMapping != null && localRootSetter != null && remoteRootSetter != null) {
         localRootSetter.invoke(configuration, firstMapping.localRoot)
         remoteRootSetter.invoke(configuration, firstMapping.remoteRoot)
-      }
-      else if (mappingSettings.pathMappings.isNotEmpty()) {
+      } else if (mappingSettings.pathMappings.isNotEmpty()) {
         logger.debug("Python DAP attach configuration does not expose a supported path-mapping setter.")
       }
     }
     configurationClass.methods
-      .firstOrNull { method ->
-        method.name == "setJustMyCode" &&
-          method.parameterTypes.contentEquals(arrayOf(Boolean::class.javaPrimitiveType))
-      }
-      ?.invoke(configuration, projectConfig.getJustMyCode())
+        .firstOrNull { method ->
+          method.name == "setJustMyCode" && method.parameterTypes.contentEquals(arrayOf(Boolean::class.javaPrimitiveType))
+        }
+        ?.invoke(configuration, projectConfig.getJustMyCode())
 
     val debugpyRegistry = Registry.get("debugpy.dap.is.enable")
     val wasDebugpyEnabled = debugpyRegistry.asBoolean()
@@ -203,8 +206,7 @@ internal class BlenderDebugAttachService(private val project: Project) {
     }
     try {
       ProgramRunnerUtil.executeConfiguration(settings, DefaultDebugExecutor.getDebugExecutorInstance())
-    }
-    finally {
+    } finally {
       if (!wasDebugpyEnabled) {
         debugpyRegistry.setValue(false)
       }
@@ -213,31 +215,29 @@ internal class BlenderDebugAttachService(private val project: Project) {
   }
 
   private fun attachWithPydevClientMode(
-    environment: ExecutionEnvironment,
-    executionResult: ExecutionResult,
-    setupPayload: BlenderSetupPayload,
-    mappingSettings: PathMappingSettings,
+      environment: ExecutionEnvironment,
+      executionResult: ExecutionResult,
+      setupPayload: BlenderSetupPayload,
+      mappingSettings: PathMappingSettings,
   ) {
-    val starter = object : XDebugProcessStarter() {
-      override fun start(session: com.intellij.xdebugger.XDebugSession): XDebugProcess {
-        val debugProcess = PyDebugProcess(
-          session,
-          executionResult.executionConsole,
-          executionResult.processHandler,
-          "localhost",
-          setupPayload.debugpyPort,
-        )
-        if (mappingSettings.pathMappings.isNotEmpty()) {
-          debugProcess.setPositionConverter(PyRemotePositionConverter(debugProcess, mappingSettings))
+    val starter =
+        object : XDebugProcessStarter() {
+          override fun start(session: com.intellij.xdebugger.XDebugSession): XDebugProcess {
+            val debugProcess =
+                PyDebugProcess(
+                    session,
+                    executionResult.executionConsole,
+                    executionResult.processHandler,
+                    "localhost",
+                    setupPayload.debugpyPort,
+                )
+            if (mappingSettings.pathMappings.isNotEmpty()) {
+              debugProcess.setPositionConverter(PyRemotePositionConverter(debugProcess, mappingSettings))
+            }
+            return debugProcess
+          }
         }
-        return debugProcess
-      }
-    }
-    @Suppress("UnstableApiUsage")
-    XDebuggerManager.getInstance(project)
-      .newSessionBuilder(starter)
-      .environment(environment)
-      .startSession()
+    @Suppress("UnstableApiUsage") XDebuggerManager.getInstance(project).newSessionBuilder(starter).environment(environment).startSession()
   }
 
   companion object {

@@ -29,177 +29,173 @@ import com.sakurasedaia.blenderdevelopment.stubs.BlenderStubInstallationService
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 
 /** Blender-specific state used by PyCharm's native Python project generator. */
-class BlenderProjectSettings(
-    initialProjectName: String = MessageBundle.message("ui.project.wizard.default.project.name"),
-) : PyV3ProjectTypeSpecificSettings {
-    private val propertyGraph = PropertyGraph("BlenderProjectSettings")
-    private var isManifestIdCustomized = false
+class BlenderProjectSettings(initialProjectName: String = MessageBundle.message("ui.project.wizard.default.project.name")) :
+    PyV3ProjectTypeSpecificSettings {
+  private val propertyGraph = PropertyGraph("BlenderProjectSettings")
+  private var isManifestIdCustomized = false
 
-    val projectNameProperty: GraphProperty<String> = propertyGraph.property(initialProjectName)
-    var projectName: String by projectNameProperty
+  val projectNameProperty: GraphProperty<String> = propertyGraph.property(initialProjectName)
+  var projectName: String by projectNameProperty
 
-    val authorNameProperty: GraphProperty<String> = propertyGraph.property(System.getProperty("user.name", ""))
-    var authorName: String by authorNameProperty
+  val authorNameProperty: GraphProperty<String> = propertyGraph.property(System.getProperty("user.name", ""))
+  var authorName: String by authorNameProperty
 
-    val descriptionProperty: GraphProperty<String> = propertyGraph.property("")
-    var description: String by descriptionProperty
+  val descriptionProperty: GraphProperty<String> = propertyGraph.property("")
+  var description: String by descriptionProperty
 
-    val extensionVersionProperty: GraphProperty<String> = propertyGraph.property("0.0.0")
-    var extensionVersion: String by extensionVersionProperty
+  val extensionVersionProperty: GraphProperty<String> = propertyGraph.property("0.0.0")
+  var extensionVersion: String by extensionVersionProperty
 
-    val blenderVersionProperty: GraphProperty<String> = propertyGraph.property(BlenderVersions.LIST.first().blMajorMinor)
-    var blenderVersion: String by blenderVersionProperty
+  val blenderVersionProperty: GraphProperty<String> = propertyGraph.property(BlenderVersions.LIST.first().blMajorMinor)
+  var blenderVersion: String by blenderVersionProperty
 
-    val recommendedPythonVersionCommentProperty: GraphProperty<String> =
-        propertyGraph.property(recommendedPythonVersionComment(blenderVersion))
+  val recommendedPythonVersionCommentProperty: GraphProperty<String> =
+      propertyGraph.property(recommendedPythonVersionComment(blenderVersion))
 
-    init {
-        recommendedPythonVersionCommentProperty.dependsOn(blenderVersionProperty) {
-            recommendedPythonVersionComment(blenderVersion)
-        }
+  init {
+    recommendedPythonVersionCommentProperty.dependsOn(blenderVersionProperty) {
+      recommendedPythonVersionComment(blenderVersion)
+    }
+  }
+
+  val addExampleCodeProperty: GraphProperty<Boolean> = propertyGraph.property(true)
+  var addExampleCode: Boolean by addExampleCodeProperty
+
+  val installBlenderApiStubsProperty: GraphProperty<Boolean> = propertyGraph.property(true)
+  var installBlenderApiStubs: Boolean by installBlenderApiStubsProperty
+
+  val manifestIdProperty: GraphProperty<String> = propertyGraph.property(normalizeModuleName(initialProjectName))
+  var manifestId: String by manifestIdProperty
+
+  val manifestExtensionTypeProperty: GraphProperty<String> = propertyGraph.property(BlenderProjectGenerator.PROJECT_TYPE_EXTENSION)
+  var manifestExtensionType: String by manifestExtensionTypeProperty
+
+  val manifestLicenseProperty: GraphProperty<String> = propertyGraph.property("SPDX:GPL-3.0-or-later")
+  var manifestLicense: String by manifestLicenseProperty
+
+  val manifestWebsiteLinkProperty: GraphProperty<String> = propertyGraph.property("")
+  var manifestWebsiteLink: String by manifestWebsiteLinkProperty
+
+  val manifestTagsProperty: GraphProperty<String> = propertyGraph.property("")
+  var manifestTags: String by manifestTagsProperty
+
+  val manifestMinBlenderVersionProperty: GraphProperty<String> = propertyGraph.property(BlenderVersions.LIST.first().blMajorMinor)
+  var manifestMinBlenderVersion: String by manifestMinBlenderVersionProperty
+
+  val manifestMaxBlenderVersionProperty: GraphProperty<String> =
+      propertyGraph.property(MessageBundle.message("ui.project.wizard.option.none"))
+  var manifestMaxBlenderVersion: String by manifestMaxBlenderVersionProperty
+
+  /** Selected maximum Blender version, or `null` when the range is open-ended. */
+  val maximumBlenderVersion: String?
+    get() = manifestMaxBlenderVersion.takeUnless {
+      it == MessageBundle.message("ui.project.wizard.option.none")
     }
 
-    val addExampleCodeProperty: GraphProperty<Boolean> = propertyGraph.property(true)
-    var addExampleCode: Boolean by addExampleCodeProperty
+  val manifestFilesPermissionProperty: GraphProperty<String> = propertyGraph.property("")
+  var manifestFilesPermission: String by manifestFilesPermissionProperty
 
-    val installBlenderApiStubsProperty: GraphProperty<Boolean> = propertyGraph.property(true)
-    var installBlenderApiStubs: Boolean by installBlenderApiStubsProperty
+  val manifestNetworkPermissionProperty: GraphProperty<String> = propertyGraph.property("")
+  var manifestNetworkPermission: String by manifestNetworkPermissionProperty
 
-    val manifestIdProperty: GraphProperty<String> = propertyGraph.property(normalizeModuleName(initialProjectName))
-    var manifestId: String by manifestIdProperty
+  val manifestClipboardPermissionProperty: GraphProperty<String> = propertyGraph.property("")
+  var manifestClipboardPermission: String by manifestClipboardPermissionProperty
 
-    val manifestExtensionTypeProperty: GraphProperty<String> =
-        propertyGraph.property(BlenderProjectGenerator.PROJECT_TYPE_EXTENSION)
-    var manifestExtensionType: String by manifestExtensionTypeProperty
+  val manifestCameraPermissionProperty: GraphProperty<String> = propertyGraph.property("")
+  var manifestCameraPermission: String by manifestCameraPermissionProperty
 
-    val manifestLicenseProperty: GraphProperty<String> = propertyGraph.property("SPDX:GPL-3.0-or-later")
-    var manifestLicense: String by manifestLicenseProperty
+  val manifestMicrophonePermissionProperty: GraphProperty<String> = propertyGraph.property("")
+  var manifestMicrophonePermission: String by manifestMicrophonePermissionProperty
 
-    val manifestWebsiteLinkProperty: GraphProperty<String> = propertyGraph.property("")
-    var manifestWebsiteLink: String by manifestWebsiteLinkProperty
+  /**
+   * Updates the generated project name and keeps the add-on ID synchronized until it is customized.
+   *
+   * @param newProjectName current project-directory name from PyCharm.
+   */
+  fun updateProjectName(newProjectName: String) {
+    projectName = newProjectName
+    if (!isManifestIdCustomized) {
+      manifestId = normalizeModuleName(newProjectName)
+    }
+  }
 
-    val manifestTagsProperty: GraphProperty<String> = propertyGraph.property("")
-    var manifestTags: String by manifestTagsProperty
+  /** Marks the add-on ID as user-controlled so later path edits do not overwrite it. */
+  fun markManifestIdCustomized() {
+    isManifestIdCustomized = true
+  }
 
-    val manifestMinBlenderVersionProperty: GraphProperty<String> =
-        propertyGraph.property(BlenderVersions.LIST.first().blMajorMinor)
-    var manifestMinBlenderVersion: String by manifestMinBlenderVersionProperty
+  /**
+   * Converts the mutable form state into the immutable scaffolding payload.
+   *
+   * @param projectPath generated project root path.
+   * @param isGitInitialized whether PyCharm initialized Git for the project.
+   * @return manifest payload consumed by [BlenderProjectGenerator].
+   */
+  fun toManifest(projectPath: String, isGitInitialized: Boolean): BlenderExtensionManifest =
+      BlenderExtensionManifest(
+          name = projectName,
+          path = projectPath,
+          description = description,
+          extensionVersion = extensionVersion,
+          blenderVersion = blenderVersion,
+          addExampleCode = addExampleCode,
+          isGitInitialized = isGitInitialized,
+          author = authorName,
+          projectType = manifestExtensionType,
+          extensionId = manifestId,
+          projectLicense = manifestLicense,
+          minBlenderVersion = manifestMinBlenderVersion,
+          maxBlenderVersion = maximumBlenderVersion.orEmpty(),
+          website = manifestWebsiteLink,
+          tags = manifestTags.split(',').map(String::trim).filter(String::isNotEmpty),
+          filesPermission = manifestFilesPermission,
+          networkPermission = manifestNetworkPermission,
+          clipboardPermission = manifestClipboardPermission,
+          cameraPermission = manifestCameraPermission,
+          microphonePermission = manifestMicrophonePermission,
+          installBlenderApiStubs = installBlenderApiStubs,
+      )
 
-    val manifestMaxBlenderVersionProperty: GraphProperty<String> =
-        propertyGraph.property(MessageBundle.message("ui.project.wizard.option.none"))
-    var manifestMaxBlenderVersion: String by manifestMaxBlenderVersionProperty
+  /**
+   * Generates Blender files after PyCharm creates and assigns the selected Python SDK.
+   *
+   * @param module module supplied by PyCharm's project generator.
+   * @param baseDir generated project root.
+   * @param sdk Python SDK selected or created by PyCharm.
+   * @return successful generation result, or the scaffolding failure reported by PyCharm.
+   */
+  override suspend fun generateProject(module: Module, baseDir: VirtualFile, sdk: Sdk): PyResult<Unit> {
+    updateProjectName(baseDir.name)
+    val isGitInitialized = baseDir.findChild(".git")?.isDirectory == true
+    val generationResult = BlenderProjectGenerator(toManifest(baseDir.path, isGitInitialized)).generateNewProject(module, baseDir, sdk)
+    if (generationResult is com.jetbrains.python.Result.Failure) return generationResult
 
-    /** Selected maximum Blender version, or `null` when the range is open-ended. */
-    val maximumBlenderVersion: String?
-        get() = manifestMaxBlenderVersion.takeUnless {
-            it == MessageBundle.message("ui.project.wizard.option.none")
-        }
+    if (installBlenderApiStubs) {
+      BlenderStubInstallationService.getInstance(module.project).installForGeneratedProject(module, sdk, blenderVersion)
+    }
+    return generationResult
+  }
 
-    val manifestFilesPermissionProperty: GraphProperty<String> = propertyGraph.property("")
-    var manifestFilesPermission: String by manifestFilesPermissionProperty
-
-    val manifestNetworkPermissionProperty: GraphProperty<String> = propertyGraph.property("")
-    var manifestNetworkPermission: String by manifestNetworkPermissionProperty
-
-    val manifestClipboardPermissionProperty: GraphProperty<String> = propertyGraph.property("")
-    var manifestClipboardPermission: String by manifestClipboardPermissionProperty
-
-    val manifestCameraPermissionProperty: GraphProperty<String> = propertyGraph.property("")
-    var manifestCameraPermission: String by manifestCameraPermissionProperty
-
-    val manifestMicrophonePermissionProperty: GraphProperty<String> = propertyGraph.property("")
-    var manifestMicrophonePermission: String by manifestMicrophonePermissionProperty
+  private companion object {
+    /**
+     * Creates the localized Python recommendation for a Blender version.
+     *
+     * @param blenderVersion selected Blender major/minor version.
+     * @return localized recommendation, or an empty value when no mapping exists.
+     */
+    fun recommendedPythonVersionComment(blenderVersion: String): String =
+        BlenderVersions.getPythonVersion(blenderVersion)
+            ?.let { pythonVersion ->
+              MessageBundle.message("ui.project.wizard.ui.group.project.python.version.recommendation", pythonVersion)
+            }
+            .orEmpty()
 
     /**
-     * Updates the generated project name and keeps the add-on ID synchronized until it is customized.
+     * Converts a project name to the Python-module-compatible default used for the add-on ID.
      *
-     * @param newProjectName current project-directory name from PyCharm.
+     * @param value project name to normalize.
+     * @return normalized add-on ID.
      */
-    fun updateProjectName(newProjectName: String) {
-        projectName = newProjectName
-        if (!isManifestIdCustomized) {
-            manifestId = normalizeModuleName(newProjectName)
-        }
-    }
-
-    /** Marks the add-on ID as user-controlled so later path edits do not overwrite it. */
-    fun markManifestIdCustomized() {
-        isManifestIdCustomized = true
-    }
-
-    /**
-     * Converts the mutable form state into the immutable scaffolding payload.
-     *
-     * @param projectPath generated project root path.
-     * @param isGitInitialized whether PyCharm initialized Git for the project.
-     * @return manifest payload consumed by [BlenderProjectGenerator].
-     */
-    fun toManifest(projectPath: String, isGitInitialized: Boolean): BlenderExtensionManifest =
-        BlenderExtensionManifest(
-            name = projectName,
-            path = projectPath,
-            description = description,
-            extensionVersion = extensionVersion,
-            blenderVersion = blenderVersion,
-            addExampleCode = addExampleCode,
-            isGitInitialized = isGitInitialized,
-            author = authorName,
-            projectType = manifestExtensionType,
-            extensionId = manifestId,
-            projectLicense = manifestLicense,
-            minBlenderVersion = manifestMinBlenderVersion,
-            maxBlenderVersion = maximumBlenderVersion.orEmpty(),
-            website = manifestWebsiteLink,
-            tags = manifestTags.split(',').map(String::trim).filter(String::isNotEmpty),
-            filesPermission = manifestFilesPermission,
-            networkPermission = manifestNetworkPermission,
-            clipboardPermission = manifestClipboardPermission,
-            cameraPermission = manifestCameraPermission,
-            microphonePermission = manifestMicrophonePermission,
-            installBlenderApiStubs = installBlenderApiStubs,
-        )
-
-    /**
-     * Generates Blender files after PyCharm creates and assigns the selected Python SDK.
-     *
-     * @param module module supplied by PyCharm's project generator.
-     * @param baseDir generated project root.
-     * @param sdk Python SDK selected or created by PyCharm.
-     * @return successful generation result, or the scaffolding failure reported by PyCharm.
-     */
-    override suspend fun generateProject(module: Module, baseDir: VirtualFile, sdk: Sdk): PyResult<Unit> {
-        updateProjectName(baseDir.name)
-        val isGitInitialized = baseDir.findChild(".git")?.isDirectory == true
-        val generationResult =
-            BlenderProjectGenerator(toManifest(baseDir.path, isGitInitialized)).generateNewProject(module, baseDir, sdk)
-        if (generationResult is com.jetbrains.python.Result.Failure) return generationResult
-
-        if (installBlenderApiStubs) {
-            BlenderStubInstallationService.getInstance(module.project)
-                .installForGeneratedProject(module, sdk, blenderVersion)
-        }
-        return generationResult
-    }
-
-    private companion object {
-        /**
-         * Creates the localized Python recommendation for a Blender version.
-         *
-         * @param blenderVersion selected Blender major/minor version.
-         * @return localized recommendation, or an empty value when no mapping exists.
-         */
-        fun recommendedPythonVersionComment(blenderVersion: String): String =
-            BlenderVersions.getPythonVersion(blenderVersion)?.let { pythonVersion ->
-                MessageBundle.message("ui.project.wizard.ui.group.project.python.version.recommendation", pythonVersion)
-            }.orEmpty()
-
-        /**
-         * Converts a project name to the Python-module-compatible default used for the add-on ID.
-         *
-         * @param value project name to normalize.
-         * @return normalized add-on ID.
-         */
-        fun normalizeModuleName(value: String): String =
-            value.replace(Regex("[\\s-]+"), "_").replace(Regex("_{2,}"), "_")
-    }
+    fun normalizeModuleName(value: String): String = value.replace(Regex("[\\s-]+"), "_").replace(Regex("_{2,}"), "_")
+  }
 }

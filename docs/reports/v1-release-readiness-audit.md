@@ -228,8 +228,8 @@ compatibility after all required fields have passed validation.
   methods were removed, eliminating the query-driven TTL refresh behavior.
 - Background executor tasks in the runtime command and debug services are not directly tied to project disposal. Prefer
   project-owned coroutine scopes or expiration conditions.
-- `PluginConfig` uses tabs and IntelliJ-style-inconsistent indentation throughout. Several Kotlin files use four-space
-  formatting even though the repository standard is two spaces.
+- ✅ Kotlin and Gradle Kotlin files are formatted consistently by Spotless with ktfmt, using two-space block indentation and
+  a 140-column limit. `spotlessCheck` provides a repeatable repository formatting gate.
 - The root Python project requires Python `>=3.14`, while Blender 4.2+ embeds older Python versions. This is acceptable for
   developer tooling only, but the distinction should be explicit so contributors do not mistake it for bundled-runtime
   compatibility.

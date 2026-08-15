@@ -21,12 +21,12 @@ class BlenderVersionCacheTest : BasePlatformTestCase() {
 
   fun testCachesLatestPatchPerConfiguredMinorVersion() {
     cache.cacheDiscoveredVersions(
-      listOf(
-        listOf(4, 2, 18),
-        listOf(4, 2, 21),
-        listOf(4, 5, 9),
-        listOf(9, 9, 9),
-      ),
+        listOf(
+            listOf(4, 2, 18),
+            listOf(4, 2, 21),
+            listOf(4, 5, 9),
+            listOf(9, 9, 9),
+        )
     )
 
     val versions = cache.getVersionTable()
@@ -39,11 +39,7 @@ class BlenderVersionCacheTest : BasePlatformTestCase() {
   }
 
   fun testMalformedPersistedVersionsFallBackToConfiguredTable() {
-    cache.loadState(
-      BlenderVersionCacheState(
-        versions = listOf("4.2.invalid", "4.5.9.extra", "5.2"),
-      ),
-    )
+    cache.loadState(BlenderVersionCacheState(versions = listOf("4.2.invalid", "4.5.9.extra", "5.2")))
 
     val versions = cache.getVersionTable()
     assertEquals("4.2.19", versions.first { it.blMajorMinor == "4.2" }.blVersion)

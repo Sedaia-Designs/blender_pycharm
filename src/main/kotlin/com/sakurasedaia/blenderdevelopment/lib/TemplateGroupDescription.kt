@@ -22,9 +22,7 @@ import com.intellij.ide.fileTemplates.FileTemplateGroupDescriptor
 import com.intellij.ide.fileTemplates.FileTemplateGroupDescriptorFactory
 import com.sakurasedaia.blenderdevelopment.ui.IconBundle
 
-/**
- * Contributes Blender Python templates to IntelliJ's "New File" template groups.
- */
+/** Contributes Blender Python templates to IntelliJ's "New File" template groups. */
 class TemplateGroupDescription : FileTemplateGroupDescriptorFactory {
   /**
    * Creates the Blender file template group descriptor shown in the "New File" dialog.
@@ -33,8 +31,8 @@ class TemplateGroupDescription : FileTemplateGroupDescriptorFactory {
    */
   override fun getFileTemplatesDescriptor(): FileTemplateGroupDescriptor {
     val group = FileTemplateGroupDescriptor("Blender", IconBundle.BlenderColor)
-        group.addTemplate(FileTemplateDescriptor("Main Script.py", IconBundle.PythonIcon))
-        group.addTemplate(FileTemplateDescriptor("Component.py", IconBundle.PythonIcon))
-        return group
-    }
+    group.addTemplate(FileTemplateDescriptor("Main Script.py", IconBundle.PythonIcon))
+    group.addTemplate(FileTemplateDescriptor("Component.py", IconBundle.PythonIcon))
+    return group
+  }
 }

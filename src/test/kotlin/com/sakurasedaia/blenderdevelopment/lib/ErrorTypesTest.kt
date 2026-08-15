@@ -17,58 +17,58 @@
 
 package com.sakurasedaia.blenderdevelopment.lib
 
+import java.security.InvalidKeyException
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.security.InvalidKeyException
 
 class ErrorTypesTest {
   @Test
   fun `format substitutes indexed parameters`() {
     assertEquals(
-      "[BL-302]: Version probe failed for `/Applications/Blender.app`",
-      ErrorTypes.INSTALL_VERSION_PROBE_FAILED.format("/Applications/Blender.app"),
+        "[BL-302]: Version probe failed for `/Applications/Blender.app`",
+        ErrorTypes.INSTALL_VERSION_PROBE_FAILED.format("/Applications/Blender.app"),
     )
   }
 
   @Test
   fun `format substitutes multiple indexed parameters`() {
     assertEquals(
-      "[BL-209]: Blender runtime command `reload` was rejected by session `session-1` with HTTP 503: unavailable",
-      ErrorTypes.RUNTIME_COMMAND_REJECTED.format("reload", "session-1", 503, "unavailable"),
+        "[BL-209]: Blender runtime command `reload` was rejected by session `session-1` with HTTP 503: unavailable",
+        ErrorTypes.RUNTIME_COMMAND_REJECTED.format("reload", "session-1", 503, "unavailable"),
     )
   }
 
   @Test
   fun `format preserves literal apostrophes`() {
     assertEquals(
-      ErrorTypes.UNSUPPORTED_OS.toString(),
-      ErrorTypes.UNSUPPORTED_OS.format("unused"),
+        ErrorTypes.UNSUPPORTED_OS.toString(),
+        ErrorTypes.UNSUPPORTED_OS.format("unused"),
     )
   }
 
   @Test
   fun `format renders null parameters explicitly`() {
     assertEquals(
-      "[BL-501]: Unexpected Blender stub operation failure: null",
-      ErrorTypes.STUB_OPERATION_FAILED.format(null),
+        "[BL-501]: Unexpected Blender stub operation failure: null",
+        ErrorTypes.STUB_OPERATION_FAILED.format(null),
     )
   }
 
   @Test
   fun `format preserves an unresolved placeholder when its parameter is missing`() {
     assertEquals(
-      ErrorTypes.INSTALL_VERSION_PROBE_FAILED.toString(),
-      ErrorTypes.INSTALL_VERSION_PROBE_FAILED.format(),
+        ErrorTypes.INSTALL_VERSION_PROBE_FAILED.toString(),
+        ErrorTypes.INSTALL_VERSION_PROBE_FAILED.format(),
     )
   }
 
   @Test
   fun `toString returns the unformatted message template`() {
     assertEquals(
-      "[BL-302]: Version probe failed for `{0}`",
-      ErrorTypes.INSTALL_VERSION_PROBE_FAILED.toString(),
+        "[BL-302]: Version probe failed for `{0}`",
+        ErrorTypes.INSTALL_VERSION_PROBE_FAILED.toString(),
     )
   }
 

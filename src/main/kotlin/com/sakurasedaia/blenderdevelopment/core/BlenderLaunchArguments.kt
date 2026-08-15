@@ -24,10 +24,10 @@ import java.nio.file.Path
 internal object BlenderLaunchArguments {
   /** Builds arguments for executing a Python script after shared Blender options. */
   fun python(
-    logLevel: BlenderLogLevel,
-    workspaceArguments: List<String>,
-    scriptPath: Path,
-    additionalArguments: List<String> = emptyList(),
+      logLevel: BlenderLogLevel,
+      workspaceArguments: List<String>,
+      scriptPath: Path,
+      additionalArguments: List<String> = emptyList(),
   ): List<String> {
     return buildLogArguments(logLevel) + workspaceArguments + listOf("--python", scriptPath.toString()) + additionalArguments
   }
@@ -42,14 +42,15 @@ internal object BlenderLaunchArguments {
   }
 
   private fun buildLogArguments(logLevel: BlenderLogLevel): List<String> {
-    val level = when (logLevel) {
-      BlenderLogLevel.FATAL -> "fatal"
-      BlenderLogLevel.ERROR -> "error"
-      BlenderLogLevel.WARNING -> "warning"
-      BlenderLogLevel.INFO -> "info"
-      BlenderLogLevel.DEBUG -> "debug"
-      BlenderLogLevel.TRACE -> "trace"
-    }
+    val level =
+        when (logLevel) {
+          BlenderLogLevel.FATAL -> "fatal"
+          BlenderLogLevel.ERROR -> "error"
+          BlenderLogLevel.WARNING -> "warning"
+          BlenderLogLevel.INFO -> "info"
+          BlenderLogLevel.DEBUG -> "debug"
+          BlenderLogLevel.TRACE -> "trace"
+        }
     return listOf("--log-level", level)
   }
 }

@@ -22,21 +22,21 @@ import junit.framework.TestCase
 class BlenderCommandValidatorTest : TestCase() {
   fun testCatalogContainsEveryDocumentedExtensionSubcommand() {
     assertEquals(
-      listOf(
-        "list",
-        "sync",
-        "update",
-        "install",
-        "install-file",
-        "remove",
-        "repo-list",
-        "repo-add",
-        "repo-remove",
-        "build",
-        "validate",
-        "server-generate",
-      ),
-      BlenderCommandCatalog.extensionSubcommands.map { it.id },
+        listOf(
+            "list",
+            "sync",
+            "update",
+            "install",
+            "install-file",
+            "remove",
+            "repo-list",
+            "repo-add",
+            "repo-remove",
+            "build",
+            "validate",
+            "server-generate",
+        ),
+        BlenderCommandCatalog.extensionSubcommands.map { it.id },
     )
   }
 
@@ -45,44 +45,38 @@ class BlenderCommandValidatorTest : TestCase() {
   }
 
   fun testBuildAcceptsDocumentedPathOptions() {
-    assertNull(
-      BlenderCommandValidator.validate(
-        listOf("extension", "build", "--source-dir", "Extension/src", "--output-dir=/tmp")
-      )
-    )
+    assertNull(BlenderCommandValidator.validate(listOf("extension", "build", "--source-dir", "Extension/src", "--output-dir=/tmp")))
   }
 
   fun testKnownOptionRequiresItsValue() {
     assertEquals(
-      BlenderCommandValidationIssue.MissingOptionValue("--source-dir"),
-      BlenderCommandValidator.validate(listOf("extension", "build", "--source-dir")),
+        BlenderCommandValidationIssue.MissingOptionValue("--source-dir"),
+        BlenderCommandValidator.validate(listOf("extension", "build", "--source-dir")),
     )
   }
 
   fun testInstallRequiresPackages() {
     assertEquals(
-      BlenderCommandValidationIssue.MissingPositional("PACKAGES"),
-      BlenderCommandValidator.validate(listOf("extension", "install", "--enable")),
+        BlenderCommandValidationIssue.MissingPositional("PACKAGES"),
+        BlenderCommandValidator.validate(listOf("extension", "install", "--enable")),
     )
   }
 
   fun testInstallFileRequiresRepositoryOption() {
     assertEquals(
-      BlenderCommandValidationIssue.MissingRequiredOption("--repo"),
-      BlenderCommandValidator.validate(listOf("extension", "install-file", "package.zip")),
+        BlenderCommandValidationIssue.MissingRequiredOption("--repo"),
+        BlenderCommandValidator.validate(listOf("extension", "install-file", "package.zip")),
     )
   }
 
   fun testInstallFileAcceptsShortRepositoryOption() {
-    assertNull(
-      BlenderCommandValidator.validate(listOf("extension", "install-file", "-r", "local", "package.zip"))
-    )
+    assertNull(BlenderCommandValidator.validate(listOf("extension", "install-file", "-r", "local", "package.zip")))
   }
 
   fun testServerGenerateRequiresRepositoryDirectory() {
     assertEquals(
-      BlenderCommandValidationIssue.MissingRequiredOption("--repo-dir"),
-      BlenderCommandValidator.validate(listOf("extension", "server-generate", "--html")),
+        BlenderCommandValidationIssue.MissingRequiredOption("--repo-dir"),
+        BlenderCommandValidator.validate(listOf("extension", "server-generate", "--html")),
     )
   }
 }

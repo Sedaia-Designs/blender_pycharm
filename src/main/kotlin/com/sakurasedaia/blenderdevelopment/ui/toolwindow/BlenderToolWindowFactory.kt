@@ -33,22 +33,27 @@ class BlenderToolWindowFactory : ToolWindowFactory {
    * @return `Unit`.
    */
   override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-    val toolWindowContent = BlenderToolWindowContent(
-      project = project,
-      onScanInstallations = { onCompleted ->
-        SettingsInstallationScanService.getInstance().scanInstallations(
-          projectOverride = project,
-          onComplete = { onCompleted() },
+    val toolWindowContent =
+        BlenderToolWindowContent(
+            project = project,
+            onScanInstallations = { onCompleted ->
+              SettingsInstallationScanService.getInstance()
+                  .scanInstallations(
+                      projectOverride = project,
+                      onComplete = { onCompleted() },
+                  )
+            },
         )
-      },
-    )
-    val content = ContentFactory.getInstance().createContent(
-      toolWindowContent.getContent(),
-      "",
-      false,
-    ).apply {
-      setDisposer(toolWindowContent)
-    }
+    val content =
+        ContentFactory.getInstance()
+            .createContent(
+                toolWindowContent.getContent(),
+                "",
+                false,
+            )
+            .apply {
+              setDisposer(toolWindowContent)
+            }
     toolWindow.contentManager.addContent(content)
   }
 }

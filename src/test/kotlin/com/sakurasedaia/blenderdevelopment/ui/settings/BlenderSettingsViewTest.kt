@@ -26,22 +26,22 @@ internal class BlenderSettingsViewTest : BasePlatformTestCase() {
     assertTrue(descendantsOf(scrollPane).contains(versionView.component()))
   }
 
-  private fun form(): BlenderSettingsForm = BlenderSettingsForm(
-    blenderInstallPath = "/blender",
-    codeCompletionPath = "/completion",
-    logPath = "/logs",
-    downloadPath = "/downloads",
-    clearDownloadsAfterInstall = false,
-    minimumBlenderVersion = "4.5",
-    globalEnvironmentVariables = mapOf("BLENDER_USER_SCRIPTS" to "/scripts"),
-  )
+  private fun form(): BlenderSettingsForm =
+      BlenderSettingsForm(
+          blenderInstallPath = "/blender",
+          codeCompletionPath = "/completion",
+          logPath = "/logs",
+          downloadPath = "/downloads",
+          clearDownloadsAfterInstall = false,
+          minimumBlenderVersion = "4.5",
+          globalEnvironmentVariables = mapOf("BLENDER_USER_SCRIPTS" to "/scripts"),
+      )
 
-  private fun createView(
-    versionView: BlenderVersionManagementView = BlenderVersionManagementView(),
-  ): BlenderSettingsView = BlenderSettingsView(versionView)
+  private fun createView(versionView: BlenderVersionManagementView = BlenderVersionManagementView()): BlenderSettingsView =
+      BlenderSettingsView(versionView)
 
   private fun descendantsOf(container: Container): List<java.awt.Component> =
-    container.components.flatMap { component ->
-      listOf(component) + if (component is Container) descendantsOf(component) else emptyList()
-    }
+      container.components.flatMap { component ->
+        listOf(component) + if (component is Container) descendantsOf(component) else emptyList()
+      }
 }

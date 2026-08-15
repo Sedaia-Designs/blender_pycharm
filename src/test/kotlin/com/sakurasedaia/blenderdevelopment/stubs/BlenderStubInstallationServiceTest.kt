@@ -43,8 +43,8 @@ class BlenderStubInstallationServiceTest : BasePlatformTestCase() {
 
     assertEquals(BlenderStubOperationStatus.UPDATED, status)
     assertEquals(
-      listOf("uninstall:fake-bpy-module-4.2", "install:fake-bpy-module-4.5"),
-      installer.operations,
+        listOf("uninstall:fake-bpy-module-4.2", "install:fake-bpy-module-4.5"),
+        installer.operations,
     )
     assertEquals("fake-bpy-module-4.5", config.getInstalledStubRequirement())
   }
@@ -57,8 +57,8 @@ class BlenderStubInstallationServiceTest : BasePlatformTestCase() {
 
     assertEquals(BlenderStubOperationStatus.UPDATED, status)
     assertEquals(
-      listOf("uninstall:fake-bpy-module-4.5", "install:fake-bpy-module-latest"),
-      installer.operations,
+        listOf("uninstall:fake-bpy-module-4.5", "install:fake-bpy-module-latest"),
+        installer.operations,
     )
     assertEquals("fake-bpy-module-latest", config.getInstalledStubRequirement())
   }
@@ -78,17 +78,17 @@ class BlenderStubInstallationServiceTest : BasePlatformTestCase() {
   fun testRepeatedInstallationIsSafe() = runBlocking {
     val sdk = testSdk()
     assertEquals(
-      BlenderStubOperationStatus.INSTALLED,
-      service.installForGeneratedProject(module, sdk, "4.2"),
+        BlenderStubOperationStatus.INSTALLED,
+        service.installForGeneratedProject(module, sdk, "4.2"),
     )
     assertEquals(
-      BlenderStubOperationStatus.INSTALLED,
-      service.installForGeneratedProject(module, sdk, "4.2.19"),
+        BlenderStubOperationStatus.INSTALLED,
+        service.installForGeneratedProject(module, sdk, "4.2.19"),
     )
 
     assertEquals(
-      listOf("install:fake-bpy-module-4.2", "install:fake-bpy-module-4.2"),
-      installer.operations,
+        listOf("install:fake-bpy-module-4.2", "install:fake-bpy-module-4.2"),
+        installer.operations,
     )
   }
 
@@ -103,8 +103,7 @@ class BlenderStubInstallationServiceTest : BasePlatformTestCase() {
   }
 
   /** Creates a lightweight Python SDK for installer-boundary tests. */
-  fun testSdk(): Sdk =
-    ProjectJdkTable.getInstance().createSdk("Blender stub test SDK", PythonSdkType.getInstance())
+  fun testSdk(): Sdk = ProjectJdkTable.getInstance().createSdk("Blender stub test SDK", PythonSdkType.getInstance())
 
   /** Records package operations while returning successful PyCharm results. */
   private class FakePackageInstaller : BlenderPythonPackageInstaller {
@@ -113,10 +112,10 @@ class BlenderStubInstallationServiceTest : BasePlatformTestCase() {
 
     /** Records an installation request. */
     override suspend fun installDevelopmentPackage(
-      project: Project,
-      module: Module,
-      sdk: Sdk,
-      requirement: String,
+        project: Project,
+        module: Module,
+        sdk: Sdk,
+        requirement: String,
     ): BlenderPackageOperationResult {
       operations += "install:$requirement"
       if (failInstallation) return BlenderPackageOperationResult.Failure("Simulated installation failure")
@@ -125,10 +124,10 @@ class BlenderStubInstallationServiceTest : BasePlatformTestCase() {
 
     /** Records an uninstallation request. */
     override suspend fun uninstallDevelopmentPackage(
-      project: Project,
-      module: Module,
-      sdk: Sdk,
-      requirement: String,
+        project: Project,
+        module: Module,
+        sdk: Sdk,
+        requirement: String,
     ): BlenderPackageOperationResult {
       operations += "uninstall:$requirement"
       return BlenderPackageOperationResult.Success

@@ -24,58 +24,58 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.ui.SimpleColoredComponent
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
-import org.jdom.Element
 import java.awt.Component
 import java.awt.Container
 import javax.swing.JLabel
 import javax.swing.JList
 import javax.swing.JTextField
+import org.jdom.Element
 
 class BlenderExtensionBuildRunConfigurationTest : BasePlatformTestCase() {
   fun testBuildArgumentsMapSourceAndOutputDirectories() {
     assertEquals(
-      listOf(
-        "extension",
-        "build",
-        "--source-dir",
-        "/project source",
-        "--output-dir",
-        "/package output",
-      ),
-      BlenderExtensionBuildCommand.arguments(
-        BlenderExtensionBuildOperation.BUILD,
-        "/project source",
-        "/package output",
-      ),
+        listOf(
+            "extension",
+            "build",
+            "--source-dir",
+            "/project source",
+            "--output-dir",
+            "/package output",
+        ),
+        BlenderExtensionBuildCommand.arguments(
+            BlenderExtensionBuildOperation.BUILD,
+            "/project source",
+            "/package output",
+        ),
     )
   }
 
   fun testValidateArgumentsUsePositionalSourcePath() {
     assertEquals(
-      listOf("extension", "validate", "/project source"),
-      BlenderExtensionBuildCommand.arguments(
-        BlenderExtensionBuildOperation.VALIDATE,
-        "/project source",
-        ignoredOutputDirectory,
-      ),
+        listOf("extension", "validate", "/project source"),
+        BlenderExtensionBuildCommand.arguments(
+            BlenderExtensionBuildOperation.VALIDATE,
+            "/project source",
+            ignoredOutputDirectory,
+        ),
     )
   }
 
   fun testBuildArgumentsPreserveRelativePaths() {
     assertEquals(
-      listOf(
-        "extension",
-        "build",
-        "--source-dir",
-        "Extension/src",
-        "--output-dir",
-        "dist",
-      ),
-      BlenderExtensionBuildCommand.arguments(
-        BlenderExtensionBuildOperation.BUILD,
-        "Extension/src",
-        "dist",
-      ),
+        listOf(
+            "extension",
+            "build",
+            "--source-dir",
+            "Extension/src",
+            "--output-dir",
+            "dist",
+        ),
+        BlenderExtensionBuildCommand.arguments(
+            BlenderExtensionBuildOperation.BUILD,
+            "Extension/src",
+            "dist",
+        ),
     )
   }
 
@@ -112,8 +112,7 @@ class BlenderExtensionBuildRunConfigurationTest : BasePlatformTestCase() {
 
     try {
       configuration.checkConfiguration()
-    }
-    catch (_: RuntimeConfigurationError) {
+    } catch (_: RuntimeConfigurationError) {
       return
     }
     fail("Expected validation without a source path to fail configuration validation")
@@ -128,8 +127,7 @@ class BlenderExtensionBuildRunConfigurationTest : BasePlatformTestCase() {
 
     try {
       configuration.checkConfiguration()
-    }
-    catch (_: RuntimeConfigurationError) {
+    } catch (_: RuntimeConfigurationError) {
       return
     }
     fail("Expected a build without an output directory to fail validation")
@@ -150,36 +148,35 @@ class BlenderExtensionBuildRunConfigurationTest : BasePlatformTestCase() {
     val operationField = operationField(editor.component)
     val operationList = JList(BlenderExtensionBuildOperation.entries.toTypedArray())
 
-    val renderedNames = BlenderExtensionBuildOperation.entries.mapIndexed { index, operation ->
-      val renderedComponent = operationField.renderer.getListCellRendererComponent(
-        operationList,
-        operation,
-        index,
-        false,
-        false,
-      )
-      renderedComponent.descendants()
-        .filterIsInstance<SimpleColoredComponent>()
-        .single()
-        .getCharSequence(false)
-        .toString()
-    }
+    val renderedNames =
+        BlenderExtensionBuildOperation.entries.mapIndexed { index, operation ->
+          val renderedComponent =
+              operationField.renderer.getListCellRendererComponent(
+                  operationList,
+                  operation,
+                  index,
+                  false,
+                  false,
+              )
+          renderedComponent.descendants().filterIsInstance<SimpleColoredComponent>().single().getCharSequence(false).toString()
+        }
 
     assertEquals(
-      listOf(
-        MessageBundle.message("run.configuration.blender.extension.build.operation.build"),
-        MessageBundle.message("run.configuration.blender.extension.build.operation.validate"),
-      ),
-      renderedNames,
+        listOf(
+            MessageBundle.message("run.configuration.blender.extension.build.operation.build"),
+            MessageBundle.message("run.configuration.blender.extension.build.operation.validate"),
+        ),
+        renderedNames,
     )
   }
 
   fun testSettingsEditorResetsFromRunConfiguration() {
-    val configuration = createConfiguration().apply {
-      operation = BlenderExtensionBuildOperation.VALIDATE
-      sourcePath = "/project source"
-      outputDirectory = "/package output"
-    }
+    val configuration =
+        createConfiguration().apply {
+          operation = BlenderExtensionBuildOperation.VALIDATE
+          sourcePath = "/project source"
+          outputDirectory = "/package output"
+        }
     val editor = configuration.configurationEditor
 
     editor.resetFrom(configuration)
@@ -208,8 +205,8 @@ class BlenderExtensionBuildRunConfigurationTest : BasePlatformTestCase() {
     val editor = createConfiguration().configurationEditor
     val component = editor.component
     val outputLabel = labeledComponent(component, "run.configuration.blender.extension.build.output.label")
-    val outputField = labeledTextField(component, "run.configuration.blender.extension.build.output.label")
-      .ancestor<TextFieldWithBrowseButton>()
+    val outputField =
+        labeledTextField(component, "run.configuration.blender.extension.build.output.label").ancestor<TextFieldWithBrowseButton>()
 
     operationField(component).selectedItem = BlenderExtensionBuildOperation.VALIDATE
 
@@ -239,15 +236,11 @@ class BlenderExtensionBuildRunConfigurationTest : BasePlatformTestCase() {
 
   private fun labeledComponent(component: Component, messageKey: String): JLabel {
     val labelText = MessageBundle.message(messageKey)
-    return component.descendants()
-      .filterIsInstance<JLabel>()
-      .single { it.text == labelText }
+    return component.descendants().filterIsInstance<JLabel>().single { it.text == labelText }
   }
 
   private inline fun <reified T : Component> Component.ancestor(): T {
-    return generateSequence(parent) { it.parent }
-      .filterIsInstance<T>()
-      .first()
+    return generateSequence(parent) { it.parent }.filterIsInstance<T>().first()
   }
 
   private fun Component.descendants(): Sequence<Component> = sequence {

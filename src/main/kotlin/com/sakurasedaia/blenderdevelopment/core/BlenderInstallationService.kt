@@ -14,13 +14,13 @@ import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.io.HttpRequests
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersion
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
+import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
+import com.sakurasedaia.blenderdevelopment.state.PluginConfig
+import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.util.ArchiveUtil
 import com.sakurasedaia.blenderdevelopment.util.SystemInfo
-import com.sakurasedaia.blenderdevelopment.state.PluginConfig
-import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
-import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.util.currentProject
 import java.io.IOException
 import java.nio.file.AtomicMoveNotSupportedException
@@ -28,8 +28,8 @@ import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
-import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CancellationException
+import java.util.concurrent.CompletableFuture
 
 /** Result of attempting to download a Blender distribution archive. */
 internal sealed interface BlenderArtifactDownloadResult {
@@ -45,10 +45,10 @@ internal sealed interface BlenderArtifactDownloadResult {
 
 internal fun interface BlenderArtifactDownloader {
   fun download(
-    project: Project,
-    downloadUrl: String,
-    targetDirectory: Path,
-    archiveName: String,
+      project: Project,
+      downloadUrl: String,
+      targetDirectory: Path,
+      archiveName: String,
   ): CompletableFuture<BlenderArtifactDownloadResult>
 }
 
@@ -65,46 +65,48 @@ private object IdeBlenderInstallErrorReporter : BlenderInstallErrorReporter {
 
 private object IdeBlenderArtifactDownloader : BlenderArtifactDownloader {
   override fun download(
-    project: Project,
-    downloadUrl: String,
-    targetDirectory: Path,
-    archiveName: String,
+      project: Project,
+      downloadUrl: String,
+      targetDirectory: Path,
+      archiveName: String,
   ): CompletableFuture<BlenderArtifactDownloadResult> {
     val result = CompletableFuture<BlenderArtifactDownloadResult>()
     val archive = targetDirectory.resolve(archiveName)
     val partialArchive = targetDirectory.resolve("$archiveName.part")
 
     @Suppress("DialogTitleCapitalization")
-    ProgressManager.getInstance().run(object : Task.Backgroundable(
-      project,
-      MessageBundle.message("notification.settings.versions.install.download.progress"),
-      true,
-    ) {
-      override fun run(indicator: ProgressIndicator) {
-        try {
-          NioFiles.createDirectories(targetDirectory)
-          Files.deleteIfExists(partialArchive)
-          HttpRequests.request(downloadUrl).saveToFile(partialArchive, indicator, true)
-          indicator.checkCanceled()
-          moveCompletedDownload(partialArchive, archive)
-          result.complete(BlenderArtifactDownloadResult.Downloaded(archive))
-        }
-        catch (e: ProcessCanceledException) {
-          deletePartialDownload(partialArchive)
-          result.complete(BlenderArtifactDownloadResult.Cancelled)
-          throw e
-        }
-        catch (exception: Exception) {
-          deletePartialDownload(partialArchive)
-          result.complete(BlenderArtifactDownloadResult.Failed(exception))
-        }
-      }
+    ProgressManager.getInstance()
+        .run(
+            object :
+                Task.Backgroundable(
+                    project,
+                    MessageBundle.message("notification.settings.versions.install.download.progress"),
+                    true,
+                ) {
+              override fun run(indicator: ProgressIndicator) {
+                try {
+                  NioFiles.createDirectories(targetDirectory)
+                  Files.deleteIfExists(partialArchive)
+                  HttpRequests.request(downloadUrl).saveToFile(partialArchive, indicator, true)
+                  indicator.checkCanceled()
+                  moveCompletedDownload(partialArchive, archive)
+                  result.complete(BlenderArtifactDownloadResult.Downloaded(archive))
+                } catch (e: ProcessCanceledException) {
+                  deletePartialDownload(partialArchive)
+                  result.complete(BlenderArtifactDownloadResult.Cancelled)
+                  throw e
+                } catch (exception: Exception) {
+                  deletePartialDownload(partialArchive)
+                  result.complete(BlenderArtifactDownloadResult.Failed(exception))
+                }
+              }
 
-      override fun onCancel() {
-        deletePartialDownload(partialArchive)
-        result.complete(BlenderArtifactDownloadResult.Cancelled)
-      }
-    })
+              override fun onCancel() {
+                deletePartialDownload(partialArchive)
+                result.complete(BlenderArtifactDownloadResult.Cancelled)
+              }
+            }
+        )
 
     return result
   }
@@ -112,13 +114,12 @@ private object IdeBlenderArtifactDownloader : BlenderArtifactDownloader {
   private fun moveCompletedDownload(partialArchive: Path, archive: Path) {
     try {
       Files.move(
-        partialArchive,
-        archive,
-        StandardCopyOption.ATOMIC_MOVE,
-        StandardCopyOption.REPLACE_EXISTING,
+          partialArchive,
+          archive,
+          StandardCopyOption.ATOMIC_MOVE,
+          StandardCopyOption.REPLACE_EXISTING,
       )
-    }
-    catch (_: AtomicMoveNotSupportedException) {
+    } catch (_: AtomicMoveNotSupportedException) {
       Files.move(partialArchive, archive, StandardCopyOption.REPLACE_EXISTING)
     }
   }
@@ -128,21 +129,19 @@ private object IdeBlenderArtifactDownloader : BlenderArtifactDownloader {
   }
 }
 
-/**
- * Utility for downloading and installing versions of Blender
- */
+/** Utility for downloading and installing versions of Blender */
 @Service
 @Suppress("UnstableApiUsage")
 internal class BlenderInstallationService(
-  private val artifactDownloader: BlenderArtifactDownloader = IdeBlenderArtifactDownloader,
-  private val downloadPathOverride: Path? = null,
-  private val installPathOverride: Path? = null,
-  private val errorReporter: BlenderInstallErrorReporter = IdeBlenderInstallErrorReporter,
-  private val tempPath: Path = Path.of(PathManager.getTempPath()),
-  private val platformName: String = SystemInfo.getSysInfo.osName,
-  private val artifactExtractor: (Path, Path, String) -> Path = ::extractDownloadedArtifact,
-  private val shouldCleanupArchive: () -> Boolean = { PluginConfig.getInstance().getClearDownloadsAfterInstall() },
-  private val archiveCleaner: (Path) -> Unit = EelFileUtils::deleteRecursively,
+    private val artifactDownloader: BlenderArtifactDownloader = IdeBlenderArtifactDownloader,
+    private val downloadPathOverride: Path? = null,
+    private val installPathOverride: Path? = null,
+    private val errorReporter: BlenderInstallErrorReporter = IdeBlenderInstallErrorReporter,
+    private val tempPath: Path = Path.of(PathManager.getTempPath()),
+    private val platformName: String = SystemInfo.getSysInfo.osName,
+    private val artifactExtractor: (Path, Path, String) -> Path = ::extractDownloadedArtifact,
+    private val shouldCleanupArchive: () -> Boolean = { PluginConfig.getInstance().getClearDownloadsAfterInstall() },
+    private val archiveCleaner: (Path) -> Unit = EelFileUtils::deleteRecursively,
 ) {
   private val logger: PluginLogger = PluginLogger.getInstance()
 
@@ -155,43 +154,45 @@ internal class BlenderInstallationService(
     return checkForArtifact(version).thenCompose { installedArtifact ->
       if (installedArtifact != null) {
         CompletableFuture.completedFuture(installedArtifact)
-      }
-      else {
+      } else {
         downloadVersion(version)
-          .thenApplyAsync({ archive ->
-            NioFiles.createDirectories(tempPath)
-            val extractionPath = Files.createTempDirectory(tempPath, "blender-extract-")
-            try {
-              val extractedArtifact = artifactExtractor(archive, extractionPath, platformName)
-              val installedArtifact = moveFromTemp(extractedArtifact, version)
+            .thenApplyAsync(
+                { archive ->
+                  NioFiles.createDirectories(tempPath)
+                  val extractionPath = Files.createTempDirectory(tempPath, "blender-extract-")
+                  try {
+                    val extractedArtifact = artifactExtractor(archive, extractionPath, platformName)
+                    val installedArtifact = moveFromTemp(extractedArtifact, version)
 
-              if (shouldCleanupArchive()) {
-                try {
-                  archiveCleaner(archive)
-                }
-                catch (_: IOException) {
-                  logger.warn(ErrorTypes.ARCHIVE_CLEANUP_FAILURE_WARNING.toString())
-                }
-              }
+                    if (shouldCleanupArchive()) {
+                      try {
+                        archiveCleaner(archive)
+                      } catch (_: IOException) {
+                        logger.warn(ErrorTypes.ARCHIVE_CLEANUP_FAILURE_WARNING.toString())
+                      }
+                    }
 
-              installedArtifact
-            }
-            finally {
-              EelFileUtils.deleteRecursively(extractionPath)
-            }
-          }, AppExecutorUtil.getAppExecutorService())
+                    installedArtifact
+                  } finally {
+                    EelFileUtils.deleteRecursively(extractionPath)
+                  }
+                },
+                AppExecutorUtil.getAppExecutorService(),
+            )
       }
     }
   }
 
   internal fun downloadVersion(
-    version: String,
-    project: Project = currentProject(),
+      version: String,
+      project: Project = currentProject(),
   ): CompletableFuture<Path> {
     val versionMeta = BlenderVersions.getVersionMeta(version)
 
     // 1. Check if a downloaded file exists. Exit and return the archive path if so
-    checkForArchive(version)?.let { return CompletableFuture.completedFuture(it) }
+    checkForArchive(version)?.let {
+      return CompletableFuture.completedFuture(it)
+    }
 
     // 2. Parse version URL, and error out if failed
     val downloadUrl = versionMeta?.getDownloadURL()
@@ -206,14 +207,14 @@ internal class BlenderInstallationService(
   }
 
   internal fun downloadBlenderService(
-    project: Project = currentProject(),
-    downloadUrl: String,
-    targetDirectory: Path = downloadPath(),
-    version: String
+      project: Project = currentProject(),
+      downloadUrl: String,
+      targetDirectory: Path = downloadPath(),
+      version: String,
   ): CompletableFuture<Path> {
-    val archiveName = BlenderVersions.getVersionMeta(version)?.getArchiveName()
-      ?.takeIf(String::isNotBlank)
-      ?: "blender-installer.${SystemInfo().bundleFileType}"
+    val archiveName =
+        BlenderVersions.getVersionMeta(version)?.getArchiveName()?.takeIf(String::isNotBlank)
+            ?: "blender-installer.${SystemInfo().bundleFileType}"
     logger.debug("Downloading Blender archive from '$downloadUrl' to '${targetDirectory.resolve(archiveName)}'")
     return artifactDownloader.download(project, downloadUrl, targetDirectory, archiveName).thenCompose { result ->
       when (result) {
@@ -237,9 +238,7 @@ internal class BlenderInstallationService(
    * @param version Blender version to check for.
    * @return completed future containing the installation directory, or `null` when it is not installed.
    */
-  internal fun checkForArtifact(
-    version: String
-  ): CompletableFuture<Path?> {
+  internal fun checkForArtifact(version: String): CompletableFuture<Path?> {
     val versionMeta = BlenderVersions.getVersionMeta(version)
     val installName = versionMeta?.let(::installedArtifactName)
 
@@ -250,9 +249,7 @@ internal class BlenderInstallationService(
     return CompletableFuture.completedFuture(null)
   }
 
-  internal fun checkForArchive(
-    version: String
-  ): Path? {
+  internal fun checkForArchive(version: String): Path? {
     val versionMeta = BlenderVersions.getVersionMeta(version)
     val archiveName = versionMeta?.getArchiveName()?.takeIf(String::isNotBlank)
 
@@ -273,9 +270,10 @@ internal class BlenderInstallationService(
   internal fun moveFromTemp(artifact: Path, version: String): Path {
     require(Files.isDirectory(artifact)) { "Extracted Blender artifact is not a directory: $artifact" }
 
-    val versionMeta = requireNotNull(BlenderVersions.getVersionMeta(version)) {
-      "Unknown Blender version: $version"
-    }
+    val versionMeta =
+        requireNotNull(BlenderVersions.getVersionMeta(version)) {
+          "Unknown Blender version: $version"
+        }
     val installPath = installPath()
     val destination = installPath.resolve(installedArtifactName(versionMeta))
     NioFiles.createDirectories(installPath)
@@ -285,68 +283,62 @@ internal class BlenderInstallationService(
 
     try {
       return Files.move(artifact, destination)
-    }
-    catch (alreadyExists: FileAlreadyExistsException) {
+    } catch (alreadyExists: FileAlreadyExistsException) {
       throw alreadyExists
-    }
-    catch (_: IOException) {
+    } catch (_: IOException) {
       try {
         NioFiles.copyRecursively(artifact, destination)
         NioFiles.deleteRecursively(artifact)
         return destination
-      }
-      catch (copyError: Exception) {
+      } catch (copyError: Exception) {
         NioFiles.deleteRecursively(destination)
         throw copyError
       }
     }
   }
 
-  /**
-   * Deletes a version and updates the appropriate data streams.
-   */
+  /** Deletes a version and updates the appropriate data streams. */
   @Suppress("UnstableApiUsage")
   fun deleteVersion(version: String): CompletableFuture<Boolean> =
-    CompletableFuture.supplyAsync({
-      val installedArtifact = checkForArtifact(version).join() ?: return@supplyAsync false
-      EelFileUtils.deleteRecursively(installedArtifact)
-      true
-    }, AppExecutorUtil.getAppExecutorService())
+      CompletableFuture.supplyAsync(
+          {
+            val installedArtifact = checkForArtifact(version).join() ?: return@supplyAsync false
+            EelFileUtils.deleteRecursively(installedArtifact)
+            true
+          },
+          AppExecutorUtil.getAppExecutorService(),
+      )
 
-  /**
-   * Used to update a Blender version via a very specific sequence and ensures a smooth update transition.
-   */
+  /** Used to update a Blender version via a very specific sequence and ensures a smooth update transition. */
   @Suppress("unused")
   fun updateVersion() {
     // TODO: This function will perform a sequenced operation with checks to update a selected MajorMinor to the latest blender version.
   }
 
   private fun installedArtifactName(version: BlenderVersion): String =
-    if (platformName == "macos") "${version.artifactName}.app" else version.artifactName
+      if (platformName == "macos") "${version.artifactName}.app" else version.artifactName
 
-  private fun downloadPath(): Path =
-    downloadPathOverride ?: Path.of(PluginConfig.getInstance().getDownloadPath())
+  private fun downloadPath(): Path = downloadPathOverride ?: Path.of(PluginConfig.getInstance().getDownloadPath())
 
-  private fun installPath(): Path =
-    installPathOverride ?: Path.of(PluginConfig.getInstance().getBlenderInstallPath())
+  private fun installPath(): Path = installPathOverride ?: Path.of(PluginConfig.getInstance().getBlenderInstallPath())
 }
 
 private fun extractDownloadedArtifact(archive: Path, extractionPath: Path, platformName: String): Path =
-  when (platformName) {
-    "windows" -> {
-      ArchiveUtil.extractZip(archive, extractionPath)
-      extractionPath.resolve(archiveBaseName(archive))
+    when (platformName) {
+      "windows" -> {
+        ArchiveUtil.extractZip(archive, extractionPath)
+        extractionPath.resolve(archiveBaseName(archive))
+      }
+      "macos" -> {
+        ArchiveUtil.extractDmg(archive, extractionPath)
+        extractionPath.resolve("Blender.app")
+      }
+      "linux" -> {
+        ArchiveUtil.extractTar(archive, extractionPath)
+        extractionPath.resolve(archiveBaseName(archive))
+      }
+      else -> throw ErrorTypes.UNSUPPORTED_OS.createException()
     }
-    "macos" -> {
-      ArchiveUtil.extractDmg(archive, extractionPath)
-      extractionPath.resolve("Blender.app")
-    }
-    "linux" -> {
-      ArchiveUtil.extractTar(archive, extractionPath)
-      extractionPath.resolve(archiveBaseName(archive))
-    }
-    else -> throw ErrorTypes.UNSUPPORTED_OS.createException()
-  }
 
 private fun archiveBaseName(archive: Path): String {
   val fileName = archive.fileName.toString()

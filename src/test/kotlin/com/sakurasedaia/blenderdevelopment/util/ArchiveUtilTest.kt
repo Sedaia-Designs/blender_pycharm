@@ -1,10 +1,10 @@
 package com.sakurasedaia.blenderdevelopment.util
 
 import com.intellij.openapi.util.io.NioFiles
-import junit.framework.TestCase
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
+import junit.framework.TestCase
 
 /** Verifies DMG application selection without mounting a real disk image. */
 class ArchiveUtilTest : TestCase() {
@@ -18,8 +18,7 @@ class ArchiveUtilTest : TestCase() {
   override fun tearDown() {
     try {
       NioFiles.deleteRecursively(testDirectory)
-    }
-    finally {
+    } finally {
       super.tearDown()
     }
   }
@@ -45,7 +44,8 @@ class ArchiveUtilTest : TestCase() {
 
     val failure = runCatching {
       ArchiveUtil.copyDmgApplication(mountPoint, destination)
-    }.exceptionOrNull()
+    }
+        .exceptionOrNull()
 
     assertTrue(failure is IOException)
     assertEquals("Mounted DMG does not contain Blender.app", failure?.message)
@@ -53,27 +53,30 @@ class ArchiveUtilTest : TestCase() {
 
   fun testDiskutilAttachArgumentsUseSeparateSupportedTokens() {
     assertEquals(
-      listOf(
-        "image",
-        "attach",
-        "--readOnly",
-        "--nobrowse",
-        "--mountPoint",
-        "/tmp/mount",
-        "/downloads/blender.dmg",
-      ),
-      ArchiveUtil.diskutilAttachArguments(
-        archive = Path.of("/downloads/blender.dmg"),
-        mountPoint = Path.of("/tmp/mount"),
-      ).toList(),
+        listOf(
+            "image",
+            "attach",
+            "--readOnly",
+            "--nobrowse",
+            "--mountPoint",
+            "/tmp/mount",
+            "/downloads/blender.dmg",
+        ),
+        ArchiveUtil.diskutilAttachArguments(
+                archive = Path.of("/downloads/blender.dmg"),
+                mountPoint = Path.of("/tmp/mount"),
+            )
+            .toList(),
     )
   }
 
   fun testFindDiskIdentifierReadsDeviceNodeFromAttachOutput() {
-    val output = """
-      /dev/disk12	GUID_partition_scheme
-      /dev/disk12s1	Apple_HFS	/tmp/mount
-    """.trimIndent()
+    val output =
+        """
+        /dev/disk12	GUID_partition_scheme
+        /dev/disk12s1	Apple_HFS	/tmp/mount
+        """
+            .trimIndent()
 
     assertEquals("/dev/disk12", ArchiveUtil.findDiskIdentifier(output))
   }

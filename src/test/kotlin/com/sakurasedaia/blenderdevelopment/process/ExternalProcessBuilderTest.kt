@@ -25,9 +25,7 @@ class ExternalProcessBuilderTest : BasePlatformTestCase() {
   override fun runInDispatchThread(): Boolean = false
 
   fun testLaunchAndCaptureOutputReturnsFailureForMissingExecutable() {
-    val result = ExternalProcessBuilder(project).launchAndCaptureOutput(
-      command = "/path/that/does/not/exist/blender-runtime",
-    )
+    val result = ExternalProcessBuilder(project).launchAndCaptureOutput(command = "/path/that/does/not/exist/blender-runtime")
 
     assertNull(result.exitCode)
     assertFalse(result.cancelled)
@@ -37,13 +35,14 @@ class ExternalProcessBuilderTest : BasePlatformTestCase() {
   }
 
   fun testFirstLineReturnsFirstLineFromOutput() {
-    val result = ExternalProcessBuilder.ProcessExecutionResult(
-      command = "blender",
-      args = listOf("--version"),
-      output = "Blender 4.5.8\nbuild hash: abc123",
-      exitCode = 0,
-      cancelled = false,
-    )
+    val result =
+        ExternalProcessBuilder.ProcessExecutionResult(
+            command = "blender",
+            args = listOf("--version"),
+            output = "Blender 4.5.8\nbuild hash: abc123",
+            exitCode = 0,
+            cancelled = false,
+        )
 
     assertEquals("Blender 4.5.8", result.firstLine)
   }
@@ -51,11 +50,13 @@ class ExternalProcessBuilderTest : BasePlatformTestCase() {
   fun testLaunchAndCaptureOutputCompletesWithoutTerminationFlags() {
     val command = successfulCommand()
 
-    val result = ExternalProcessBuilder(project).launchAndCaptureOutput(
-      command = command.executable,
-      args = command.arguments,
-      timeout = Duration.ofSeconds(5),
-    )
+    val result =
+        ExternalProcessBuilder(project)
+            .launchAndCaptureOutput(
+                command = command.executable,
+                args = command.arguments,
+                timeout = Duration.ofSeconds(5),
+            )
 
     assertEquals(0, result.exitCode)
     assertFalse(result.cancelled)
@@ -67,11 +68,13 @@ class ExternalProcessBuilderTest : BasePlatformTestCase() {
     val command = sleepingCommand()
     val startedAtNanos = System.nanoTime()
 
-    val result = ExternalProcessBuilder(project).launchAndCaptureOutput(
-      command = command.executable,
-      args = command.arguments,
-      timeout = Duration.ofMillis(250),
-    )
+    val result =
+        ExternalProcessBuilder(project)
+            .launchAndCaptureOutput(
+                command = command.executable,
+                args = command.arguments,
+                timeout = Duration.ofMillis(250),
+            )
 
     val elapsed = Duration.ofNanos(System.nanoTime() - startedAtNanos)
     assertTrue("Timed-out process should return promptly", elapsed < Duration.ofSeconds(4))
@@ -84,11 +87,13 @@ class ExternalProcessBuilderTest : BasePlatformTestCase() {
     val command = sleepingCommand()
     val startedAtNanos = System.nanoTime()
 
-    val result = ExternalProcessBuilder(project).launchAndCaptureOutput(
-      command = command.executable,
-      args = command.arguments,
-      shouldCancel = { true },
-    )
+    val result =
+        ExternalProcessBuilder(project)
+            .launchAndCaptureOutput(
+                command = command.executable,
+                args = command.arguments,
+                shouldCancel = { true },
+            )
 
     val elapsed = Duration.ofNanos(System.nanoTime() - startedAtNanos)
     assertTrue("Cancelled process should return promptly", elapsed < Duration.ofSeconds(4))
@@ -99,21 +104,24 @@ class ExternalProcessBuilderTest : BasePlatformTestCase() {
 
   fun testLaunchAndCaptureOutputRejectsNegativeTimeout() {
     assertThrows(IllegalArgumentException::class.java) {
-      ExternalProcessBuilder(project).launchAndCaptureOutput(
-        command = successfulCommand().executable,
-        timeout = Duration.ofMillis(-1),
-      )
+      ExternalProcessBuilder(project)
+          .launchAndCaptureOutput(
+              command = successfulCommand().executable,
+              timeout = Duration.ofMillis(-1),
+          )
     }
   }
 
   fun testZeroTimeoutDisablesTimeout() {
     val command = successfulCommand()
 
-    val result = ExternalProcessBuilder(project).launchAndCaptureOutput(
-      command = command.executable,
-      args = command.arguments,
-      timeout = Duration.ZERO,
-    )
+    val result =
+        ExternalProcessBuilder(project)
+            .launchAndCaptureOutput(
+                command = command.executable,
+                args = command.arguments,
+                timeout = Duration.ZERO,
+            )
 
     assertEquals(0, result.exitCode)
     assertFalse(result.cancelled)
@@ -123,11 +131,14 @@ class ExternalProcessBuilderTest : BasePlatformTestCase() {
   fun testAsyncListOverloadForwardsTimeout() {
     val command = sleepingCommand()
 
-    val result = ExternalProcessBuilder(project).launchAndCaptureOutputAsync(
-      command = command.executable,
-      args = command.arguments,
-      timeout = Duration.ofMillis(250),
-    ).get(5, TimeUnit.SECONDS)
+    val result =
+        ExternalProcessBuilder(project)
+            .launchAndCaptureOutputAsync(
+                command = command.executable,
+                args = command.arguments,
+                timeout = Duration.ofMillis(250),
+            )
+            .get(5, TimeUnit.SECONDS)
 
     assertTrue(result.timedOut)
     assertFalse(result.cancelled)
@@ -136,8 +147,7 @@ class ExternalProcessBuilderTest : BasePlatformTestCase() {
   private fun successfulCommand(): TestCommand {
     return if (isWindows()) {
       TestCommand("cmd.exe", listOf("/c", "exit", "0"))
-    }
-    else {
+    } else {
       TestCommand("/bin/sh", listOf("-c", "exit 0"))
     }
   }
@@ -145,8 +155,7 @@ class ExternalProcessBuilderTest : BasePlatformTestCase() {
   private fun sleepingCommand(): TestCommand {
     return if (isWindows()) {
       TestCommand("cmd.exe", listOf("/c", "ping", "-n", "6", "127.0.0.1"))
-    }
-    else {
+    } else {
       TestCommand("/bin/sh", listOf("-c", "sleep 5"))
     }
   }
@@ -154,7 +163,7 @@ class ExternalProcessBuilderTest : BasePlatformTestCase() {
   private fun isWindows(): Boolean = System.getProperty("os.name").startsWith("Windows", ignoreCase = true)
 
   private data class TestCommand(
-    val executable: String,
-    val arguments: List<String>,
+      val executable: String,
+      val arguments: List<String>,
   )
 }

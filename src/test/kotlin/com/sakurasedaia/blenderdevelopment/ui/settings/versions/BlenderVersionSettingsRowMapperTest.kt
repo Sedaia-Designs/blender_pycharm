@@ -7,16 +7,18 @@ import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 
 internal class BlenderVersionSettingsRowMapperTest : BasePlatformTestCase() {
   fun testRowsShowDetectedInstallAndMappedPythonVersion() {
-    val rows = BlenderVersionSettingsRowMapper.map(
-      versions = BlenderVersions.LIST,
-      installs = listOf(
-        PluginConfig.BlendInstallInfo(
-          name = "Blender 4.5.12",
-          version = "4.5.12",
-          path = "/Applications/Blender.app",
-        ),
-      ),
-    )
+    val rows =
+        BlenderVersionSettingsRowMapper.map(
+            versions = BlenderVersions.LIST,
+            installs =
+                listOf(
+                    PluginConfig.BlendInstallInfo(
+                        name = "Blender 4.5.12",
+                        version = "4.5.12",
+                        path = "/Applications/Blender.app",
+                    )
+                ),
+        )
 
     val installed = rows.first { it.version.blMajorMinor == "4.5" }
     assertEquals("3.11.9", installed.pythonVersion)
@@ -30,38 +32,43 @@ internal class BlenderVersionSettingsRowMapperTest : BasePlatformTestCase() {
   }
 
   fun testDiscoveredVersionWithoutPythonMappingShowsPlaceholder() {
-    val rows = BlenderVersionSettingsRowMapper.map(
-      versions = listOf(
-        BlenderVersion(
-          installName = "Blender 4.3.9",
-          blVersionList = listOf(4, 3, 9),
-          compatWithOs = emptyMap(),
-        ),
-      ),
-      installs = listOf(
-        PluginConfig.BlendInstallInfo(
-          name = "Blender 4.3.9",
-          version = "4.3.9",
-          path = "/Applications/Blender.app",
-        ),
-      ),
-    )
+    val rows =
+        BlenderVersionSettingsRowMapper.map(
+            versions =
+                listOf(
+                    BlenderVersion(
+                        installName = "Blender 4.3.9",
+                        blVersionList = listOf(4, 3, 9),
+                        compatWithOs = emptyMap(),
+                    )
+                ),
+            installs =
+                listOf(
+                    PluginConfig.BlendInstallInfo(
+                        name = "Blender 4.3.9",
+                        version = "4.3.9",
+                        path = "/Applications/Blender.app",
+                    )
+                ),
+        )
 
     assertEquals("—", rows.single().pythonVersion)
     assertEquals("Installed (4.3.9)", rows.single().installStatus)
   }
 
   fun testMarkInstalledRefreshesOnlyMatchingVersionRow() {
-    val rows = BlenderVersionSettingsRowMapper.map(
-      versions = BlenderVersions.LIST,
-      installs = emptyList(),
-    )
+    val rows =
+        BlenderVersionSettingsRowMapper.map(
+            versions = BlenderVersions.LIST,
+            installs = emptyList(),
+        )
     val installedVersion = BlenderVersions.LIST.first { it.blMajorMinor == "4.5" }
 
-    val refreshedRows = BlenderVersionSettingsRowMapper.markInstalled(
-      rows = rows,
-      version = installedVersion,
-    )
+    val refreshedRows =
+        BlenderVersionSettingsRowMapper.markInstalled(
+            rows = rows,
+            version = installedVersion,
+        )
 
     val refreshed = refreshedRows.first { it.version.blMajorMinor == "4.5" }
     assertTrue(refreshed.isInstalled)
@@ -70,8 +77,8 @@ internal class BlenderVersionSettingsRowMapperTest : BasePlatformTestCase() {
 
     val unchangedVersion = BlenderVersions.LIST.first { it.blMajorMinor != "4.5" }
     assertSame(
-      rows.first { it.version.blMajorMinor == unchangedVersion.blMajorMinor },
-      refreshedRows.first { it.version.blMajorMinor == unchangedVersion.blMajorMinor },
+        rows.first { it.version.blMajorMinor == unchangedVersion.blMajorMinor },
+        refreshedRows.first { it.version.blMajorMinor == unchangedVersion.blMajorMinor },
     )
   }
 }

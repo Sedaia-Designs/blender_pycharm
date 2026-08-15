@@ -27,29 +27,30 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 internal class BlenderToolWindowController(
-  scope: CoroutineScope,
-  private val view: BlenderToolWindowView,
-  private val projectConfig: ProjectConfig,
-  private val pluginConfig: PluginConfig,
-  private val scanInstallations: (onCompleted: () -> Unit) -> Unit,
-  private val installStubs: (String) -> Unit,
-  private val reloadAddon: () -> Unit,
-  private val logAutosave: (String) -> Unit,
+    scope: CoroutineScope,
+    private val view: BlenderToolWindowView,
+    private val projectConfig: ProjectConfig,
+    private val pluginConfig: PluginConfig,
+    private val scanInstallations: (onCompleted: () -> Unit) -> Unit,
+    private val installStubs: (String) -> Unit,
+    private val reloadAddon: () -> Unit,
+    private val logAutosave: (String) -> Unit,
 ) {
   init {
     bindView()
     view.render(
-      toViewState(
-        projectConfig.stateFlow.value,
-        pluginConfig.stateFlow.value
-      )
+        toViewState(
+            projectConfig.stateFlow.value,
+            pluginConfig.stateFlow.value,
+        )
     )
     scope.launch(Dispatchers.EDT) {
       combine(
-        projectConfig.stateFlow,
-        pluginConfig.stateFlow,
-        ::toViewState
-      ).collect(view::render)
+              projectConfig.stateFlow,
+              pluginConfig.stateFlow,
+              ::toViewState,
+          )
+          .collect(view::render)
     }
   }
 
@@ -74,7 +75,7 @@ internal class BlenderToolWindowController(
 
   internal fun scanForInstallations() {
     val previousInstallations = pluginConfig.stateFlow.value.detectedBlenderInstalls
-    
+
     scanInstallations {
       onInstallationScanCompleted(previousInstallations)
     }
@@ -83,15 +84,13 @@ internal class BlenderToolWindowController(
   private fun onInstallationScanCompleted(previousInstallations: List<PluginConfig.BlendInstallInfo>) {
     val updatedInstallations = pluginConfig.stateFlow.value.detectedBlenderInstalls
     val configuredPath = projectConfig.stateFlow.value.blenderPath
-    
-    val removeSelectedInstall = previousInstallations.any { it.path == configuredPath } &&
-        updatedInstallations.none { it.path == configuredPath }
-    
+
+    val removeSelectedInstall =
+        previousInstallations.any { it.path == configuredPath } && updatedInstallations.none { it.path == configuredPath }
+
     if (removeSelectedInstall) {
       save("blenderPath") {
-        projectConfig.setBlenderPath(
-          updatedInstallations.firstOrNull()?.path.orEmpty()
-        )
+        projectConfig.setBlenderPath(updatedInstallations.firstOrNull()?.path.orEmpty())
       }
     }
   }
@@ -110,20 +109,20 @@ internal class BlenderToolWindowController(
   }
 
   private fun toViewState(
-    projectState: ProjectConfig.ProjectSnapshot,
-    pluginState: PluginConfig.PluginSnapshot
+      projectState: ProjectConfig.ProjectSnapshot,
+      pluginState: PluginConfig.PluginSnapshot,
   ): BlenderToolWindowState {
     return BlenderToolWindowState(
-      blenderPath = projectState.blenderPath,
-      detectedBlenderInstalls = pluginState.detectedBlenderInstalls,
-      addonSymlinkName = projectState.addonSymlinkName,
-      sourceFolder = projectState.sourceFolder,
-      runArguments = projectState.runArguments,
-      blenderLogLevel = projectState.blenderLogLevel,
-      reloadOnSave = projectState.reloadOnSave,
-      justMyCode = projectState.justMyCode,
-      environmentVariables = projectState.environmentVariables,
-      scriptDirectories = projectState.scriptDirectories.orEmpty(),
+        blenderPath = projectState.blenderPath,
+        detectedBlenderInstalls = pluginState.detectedBlenderInstalls,
+        addonSymlinkName = projectState.addonSymlinkName,
+        sourceFolder = projectState.sourceFolder,
+        runArguments = projectState.runArguments,
+        blenderLogLevel = projectState.blenderLogLevel,
+        reloadOnSave = projectState.reloadOnSave,
+        justMyCode = projectState.justMyCode,
+        environmentVariables = projectState.environmentVariables,
+        scriptDirectories = projectState.scriptDirectories.orEmpty(),
     )
   }
 }

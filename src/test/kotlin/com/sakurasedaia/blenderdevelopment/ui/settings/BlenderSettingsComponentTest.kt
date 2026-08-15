@@ -15,14 +15,16 @@ import javax.swing.JButton
 
 internal class BlenderSettingsComponentTest : BasePlatformTestCase() {
   fun testComposesSettingsAndVersionFeaturesBehindLifecycleApi() {
-    val config = PluginConfig.getInstance().apply {
-      setBlenderInstallPath("/original/blender")
-      setDetectedBlenderInstalls(emptyList())
-    }
-    val component = BlenderSettingsComponent(
-      config = config,
-      operations = operations(),
-    )
+    val config =
+        PluginConfig.getInstance().apply {
+          setBlenderInstallPath("/original/blender")
+          setDetectedBlenderInstalls(emptyList())
+        }
+    val component =
+        BlenderSettingsComponent(
+            config = config,
+            operations = operations(),
+        )
 
     component.reset()
 
@@ -40,13 +42,17 @@ internal class BlenderSettingsComponentTest : BasePlatformTestCase() {
 
   fun testDisposalIsIdempotentAndClearsOperationCallbacks() {
     var refreshCount = 0
-    val component = BlenderSettingsComponent(
-      config = PluginConfig.getInstance(),
-      operations = operations(refreshVersionCache = {
-        refreshCount++
-        BlenderVersions.LIST
-      }),
-    )
+    val component =
+        BlenderSettingsComponent(
+            config = PluginConfig.getInstance(),
+            operations =
+                operations(
+                    refreshVersionCache = {
+                      refreshCount++
+                      BlenderVersions.LIST
+                    }
+                ),
+        )
     component.reset()
 
     component.dispose()
@@ -62,13 +68,17 @@ internal class BlenderSettingsComponentTest : BasePlatformTestCase() {
 
   fun testPendingOperationCannotRenderAfterDisposal() {
     var refreshAction: (() -> Unit)? = null
-    val component = BlenderSettingsComponent(
-      config = PluginConfig.getInstance(),
-      operations = operations(executeInBackground = { action ->
-        refreshAction = action
-        CompletableFuture<Unit>()
-      }),
-    )
+    val component =
+        BlenderSettingsComponent(
+            config = PluginConfig.getInstance(),
+            operations =
+                operations(
+                    executeInBackground = { action ->
+                      refreshAction = action
+                      CompletableFuture<Unit>()
+                    }
+                ),
+        )
     component.reset()
     val table = versionTable(component)
     val originalFirstVersion = table.getValueAt(0, 0)
@@ -84,33 +94,34 @@ internal class BlenderSettingsComponentTest : BasePlatformTestCase() {
   }
 
   private fun operations(
-    refreshVersionCache: () -> List<BlenderVersion> = { BlenderVersions.LIST },
-    executeInBackground: (() -> Unit) -> java.util.concurrent.Future<*> = {
-      it()
-      CompletableFuture.completedFuture(Unit)
-    },
-  ): BlenderSettingsOperations = BlenderSettingsOperations(
-    BlenderSettingsOperations.Dependencies(
-      refreshVersionCache = refreshVersionCache,
-      scanInstallations = { emptyList() },
-      clearVersionCache = {},
-      installVersion = { CompletableFuture.completedFuture(Path.of("/managed/blender")) },
-      deleteVersion = { CompletableFuture.completedFuture(true) },
-      markVersionUpdateChecked = {},
-      log = {},
-      sendInfo = {},
-      sendError = { _, _ -> },
-      executeInBackground = executeInBackground,
-      invokeLater = { _, action -> action() },
-      currentModalityState = ModalityState::any,
-    ),
-  )
+      refreshVersionCache: () -> List<BlenderVersion> = { BlenderVersions.LIST },
+      executeInBackground: (() -> Unit) -> java.util.concurrent.Future<*> = {
+        it()
+        CompletableFuture.completedFuture(Unit)
+      },
+  ): BlenderSettingsOperations =
+      BlenderSettingsOperations(
+          BlenderSettingsOperations.Dependencies(
+              refreshVersionCache = refreshVersionCache,
+              scanInstallations = { emptyList() },
+              clearVersionCache = {},
+              installVersion = { CompletableFuture.completedFuture(Path.of("/managed/blender")) },
+              deleteVersion = { CompletableFuture.completedFuture(true) },
+              markVersionUpdateChecked = {},
+              log = {},
+              sendInfo = {},
+              sendError = { _, _ -> },
+              executeInBackground = executeInBackground,
+              invokeLater = { _, action -> action() },
+              currentModalityState = ModalityState::any,
+          )
+      )
 
   private fun pathFields(component: BlenderSettingsComponent): List<TextFieldWithBrowseButton> =
-    descendantsOf(component.component()).filterIsInstance<TextFieldWithBrowseButton>()
+      descendantsOf(component.component()).filterIsInstance<TextFieldWithBrowseButton>()
 
   private fun versionTable(component: BlenderSettingsComponent): JBTable =
-    descendantsOf(component.component()).filterIsInstance<JBTable>().single { it.columnCount == 3 }
+      descendantsOf(component.component()).filterIsInstance<JBTable>().single { it.columnCount == 3 }
 
   private fun textButton(component: BlenderSettingsComponent, messageKey: String): JButton {
     val buttonText = MessageBundle.message(messageKey)
@@ -118,7 +129,7 @@ internal class BlenderSettingsComponentTest : BasePlatformTestCase() {
   }
 
   private fun descendantsOf(container: Container): List<java.awt.Component> =
-    container.components.flatMap { child ->
-      listOf(child) + if (child is Container) descendantsOf(child) else emptyList()
-    }
+      container.components.flatMap { child ->
+        listOf(child) + if (child is Container) descendantsOf(child) else emptyList()
+      }
 }

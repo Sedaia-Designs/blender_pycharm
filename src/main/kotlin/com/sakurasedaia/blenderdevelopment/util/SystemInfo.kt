@@ -17,105 +17,108 @@
 
 package com.sakurasedaia.blenderdevelopment.util
 
-import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
 import com.intellij.openapi.application.PathManager
+import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
 import java.nio.file.Path
 
-
-/**
- * Helpers for host OS/CPU detection and Blender version compatibility validation.
- */
+/** Helpers for host OS/CPU detection and Blender version compatibility validation. */
 object SystemInfo {
-    /**
-     * Normalized host platform information used by Blender compatibility checks.
-     *
-     * @property osName normalized operating system identifier (`windows`, `macos`, `linux`, or `unknown`).
-     * @property osVersion raw host OS version string from the JVM `os.version` property.
-     * @property osArch normalized CPU architecture (`arm64`, `x64`, or `unknown`).
-     * @property isWSL whether execution appears to be under Windows Subsystem for Linux.
-     * @property bundleFileType expected Blender distribution file suffix for the current platform.
-     * @property tempDir plugin-specific temporary directory under the IDE temp path.
-     */
-    data class Format(
-        val osName: String,
-        val osVersion: String,
-        val osArch: String,
-        val isWSL: Boolean? = null,
-        val bundleFileType: String,
-        val tempDir: Path,
-        val userHomeDir: Path
-    )
+  /**
+   * Normalized host platform information used by Blender compatibility checks.
+   *
+   * @property osName normalized operating system identifier (`windows`, `macos`, `linux`, or `unknown`).
+   * @property osVersion raw host OS version string from the JVM `os.version` property.
+   * @property osArch normalized CPU architecture (`arm64`, `x64`, or `unknown`).
+   * @property isWSL whether execution appears to be under Windows Subsystem for Linux.
+   * @property bundleFileType expected Blender distribution file suffix for the current platform.
+   * @property tempDir plugin-specific temporary directory under the IDE temp path.
+   */
+  data class Format(
+      val osName: String,
+      val osVersion: String,
+      val osArch: String,
+      val isWSL: Boolean? = null,
+      val bundleFileType: String,
+      val tempDir: Path,
+      val userHomeDir: Path,
+  )
 
-    /** Returns the cached snapshot of normalized host system information. */
-    operator fun invoke(): Format = getSysInfo
+  /** Returns the cached snapshot of normalized host system information. */
+  operator fun invoke(): Format = getSysInfo
 
-    private val sysArch = System.getProperty("os.arch").orEmpty().lowercase()
-    private val osName = System.getProperty("os.name").orEmpty().lowercase()
+  private val sysArch = System.getProperty("os.arch").orEmpty().lowercase()
+  private val osName = System.getProperty("os.name").orEmpty().lowercase()
 
-    private fun isArch(input: String): Boolean = input in sysArch
-    private fun isOS(input: String): Boolean = input in osName
+  private fun isArch(input: String): Boolean = input in sysArch
 
-    /**
-     * Checks whether the current host platform is supported for the provided Blender major/minor version.
-     *
-     * Compatibility is evaluated using [com.sakurasedaia.blenderdevelopment.lib.BlenderVersions.getCompatibleArch], matching the normalized
-     * [getSysInfo.osName] and [getSysInfo.osArch] values.
-     *
-     * @param blMajorMinor Blender version key in `major.minor` form (for example, `4.5`).
-     * @return `true` when the current platform is listed as compatible for that Blender version.
-     */
-    fun isOSCompatible(blMajorMinor: String): Boolean {
-        val systemInfo = getSysInfo
+  private fun isOS(input: String): Boolean = input in osName
 
-        if (systemInfo.osName == "unknown") {
-            return false
-        }
+  /**
+   * Checks whether the current host platform is supported for the provided Blender major/minor version.
+   *
+   * Compatibility is evaluated using [com.sakurasedaia.blenderdevelopment.lib.BlenderVersions.getCompatibleArch], matching the normalized
+   * [getSysInfo.osName] and [getSysInfo.osArch] values.
+   *
+   * @param blMajorMinor Blender version key in `major.minor` form (for example, `4.5`).
+   * @return `true` when the current platform is listed as compatible for that Blender version.
+   */
+  fun isOSCompatible(blMajorMinor: String): Boolean {
+    val systemInfo = getSysInfo
 
-        val compatWithOs: Map<String, List<String>>? = BlenderVersions.getCompatibleArch(blMajorMinor)
-
-        return compatWithOs?.get(systemInfo.osName)?.contains(systemInfo.osArch) ?: false
+    if (systemInfo.osName == "unknown") {
+      return false
     }
 
-    val normalizeOSName = when {
+    val compatWithOs: Map<String, List<String>>? = BlenderVersions.getCompatibleArch(blMajorMinor)
+
+    return compatWithOs?.get(systemInfo.osName)?.contains(systemInfo.osArch) ?: false
+  }
+
+  val normalizeOSName =
+      when {
         isOS("windows") -> "windows"
         isOS("macos") || isOS("mac os x") || isOS("darwin") -> "macos"
         isOS("linux") -> "linux"
         else -> "unknown"
-    }
+      }
 
-    val normalizeOsArch = when {
+  val normalizeOsArch =
+      when {
         isArch("aarch64") || isArch("arm64") -> "arm64"
         isArch("x86_64") || isArch("amd64") -> "x64"
         else -> "unknown"
-    }
+      }
 
-    fun normalizeBundleFileType(osName: String) = when (osName) {
+  fun normalizeBundleFileType(osName: String) =
+      when (osName) {
         "windows" -> "zip"
         "macos" -> "dmg"
         "linux" -> "tar.xz"
         else -> "unknown"
-    }
+      }
 
-    /** Returns whether Blender publishes the requested package type for the target operating system. */
-    fun isBundleFileTypeSupported(osName: String, fileExtension: String): Boolean = when (osName) {
+  /** Returns whether Blender publishes the requested package type for the target operating system. */
+  fun isBundleFileTypeSupported(osName: String, fileExtension: String): Boolean =
+      when (osName) {
         "windows" -> fileExtension in setOf("zip", "msi", "msix")
         "macos" -> fileExtension == "dmg"
         "linux" -> fileExtension == "tar.xz"
         else -> false
-    }
+      }
 
-    /**
-     * Snapshot of normalized host system information resolved at object initialization time.
-     *
-     * Values are derived from JVM system properties and environment variables.
-     */
-    val getSysInfo: Format = Format(
-        osName = normalizeOSName,
-        osVersion = System.getProperty("os.version"),
-        osArch = normalizeOsArch,
-        isWSL = System.getenv("WSL_DISTRO_NAME") != null,
-        bundleFileType = normalizeBundleFileType(normalizeOSName),
-        tempDir = PathManager.getTempDir().resolve("blender-development"),
-        userHomeDir = Path.of(System.getProperty("user.home"))
-    )
+  /**
+   * Snapshot of normalized host system information resolved at object initialization time.
+   *
+   * Values are derived from JVM system properties and environment variables.
+   */
+  val getSysInfo: Format =
+      Format(
+          osName = normalizeOSName,
+          osVersion = System.getProperty("os.version"),
+          osArch = normalizeOsArch,
+          isWSL = System.getenv("WSL_DISTRO_NAME") != null,
+          bundleFileType = normalizeBundleFileType(normalizeOSName),
+          tempDir = PathManager.getTempDir().resolve("blender-development"),
+          userHomeDir = Path.of(System.getProperty("user.home")),
+      )
 }

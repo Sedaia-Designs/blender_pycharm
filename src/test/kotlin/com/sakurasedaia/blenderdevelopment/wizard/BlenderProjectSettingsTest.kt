@@ -25,104 +25,105 @@ import org.junit.Test
 
 /** Tests the Blender form state and its immutable generation payload. */
 class BlenderProjectSettingsTest {
-    /** Verifies that automatic stub installation is enabled for new projects. */
-    @Test
-    fun `stub installation defaults to enabled`() {
-        assertTrue(BlenderProjectSettings("Sample").installBlenderApiStubs)
-    }
+  /** Verifies that automatic stub installation is enabled for new projects. */
+  @Test
+  fun `stub installation defaults to enabled`() {
+    assertTrue(BlenderProjectSettings("Sample").installBlenderApiStubs)
+  }
 
-    /** Verifies that project-name changes derive an add-on ID until the user customizes it. */
-    @Test
-    fun `project name synchronizes default manifest id until customized`() {
-        val settings = BlenderProjectSettings("Initial Project")
+  /** Verifies that project-name changes derive an add-on ID until the user customizes it. */
+  @Test
+  fun `project name synchronizes default manifest id until customized`() {
+    val settings = BlenderProjectSettings("Initial Project")
 
-        settings.updateProjectName("My  Blender-Project")
-        assertEquals("My_Blender_Project", settings.manifestId)
+    settings.updateProjectName("My  Blender-Project")
+    assertEquals("My_Blender_Project", settings.manifestId)
 
-        settings.manifestId = "custom_addon"
-        settings.markManifestIdCustomized()
-        settings.updateProjectName("Renamed Project")
+    settings.manifestId = "custom_addon"
+    settings.markManifestIdCustomized()
+    settings.updateProjectName("Renamed Project")
 
-        assertEquals("Renamed Project", settings.projectName)
-        assertEquals("custom_addon", settings.manifestId)
-    }
+    assertEquals("Renamed Project", settings.projectName)
+    assertEquals("custom_addon", settings.manifestId)
+  }
 
-    /** Verifies that the Python recommendation follows the selected target Blender version. */
-    @Test
-    fun `recommended Python version follows target Blender selection`() {
-        val settings = BlenderProjectSettings("Sample")
-        val message = "Recommended Python version:"
-        
-        assertEquals(
-            "$message 3.11.7",
-            settings.recommendedPythonVersionCommentProperty.get(),
-        )
+  /** Verifies that the Python recommendation follows the selected target Blender version. */
+  @Test
+  fun `recommended Python version follows target Blender selection`() {
+    val settings = BlenderProjectSettings("Sample")
+    val message = "Recommended Python version:"
 
-        settings.blenderVersion = "4.5"
-        assertEquals(
-            "$message 3.11.9",
-            settings.recommendedPythonVersionCommentProperty.get(),
-        )
+    assertEquals(
+        "$message 3.11.7",
+        settings.recommendedPythonVersionCommentProperty.get(),
+    )
 
-        settings.blenderVersion = "5.2"
-        assertEquals(
-            "$message 3.13.13",
-            settings.recommendedPythonVersionCommentProperty.get(),
-        )
-    }
+    settings.blenderVersion = "4.5"
+    assertEquals(
+        "$message 3.11.9",
+        settings.recommendedPythonVersionCommentProperty.get(),
+    )
 
-    /** Verifies that every editable setting is transferred to the scaffolding manifest. */
-    @Test
-    fun `settings convert to complete manifest payload`() {
-        val settings = BlenderProjectSettings("Sample Project").apply {
-            authorName = "Sakura"
-            description = "Example"
-            extensionVersion = "1.2.3"
-            blenderVersion = "4.5"
-            addExampleCode = false
-            installBlenderApiStubs = false
-            manifestId = "sample_project"
-            manifestExtensionType = BlenderProjectGenerator.PROJECT_TYPE_EXTENSION
-            manifestLicense = "SPDX:GPL-3.0-or-later"
-            manifestWebsiteLink = "https://example.com"
-            manifestTags = "Animation, Rigging, , Utilities"
-            manifestMinBlenderVersion = "4.2"
-            manifestMaxBlenderVersion = "4.5"
-            manifestFilesPermission = "Read assets"
-            manifestNetworkPermission = "Download metadata"
-            manifestClipboardPermission = "Copy values"
-            manifestCameraPermission = "Capture reference"
-            manifestMicrophonePermission = "Record reference"
+    settings.blenderVersion = "5.2"
+    assertEquals(
+        "$message 3.13.13",
+        settings.recommendedPythonVersionCommentProperty.get(),
+    )
+  }
+
+  /** Verifies that every editable setting is transferred to the scaffolding manifest. */
+  @Test
+  fun `settings convert to complete manifest payload`() {
+    val settings =
+        BlenderProjectSettings("Sample Project").apply {
+          authorName = "Sakura"
+          description = "Example"
+          extensionVersion = "1.2.3"
+          blenderVersion = "4.5"
+          addExampleCode = false
+          installBlenderApiStubs = false
+          manifestId = "sample_project"
+          manifestExtensionType = BlenderProjectGenerator.PROJECT_TYPE_EXTENSION
+          manifestLicense = "SPDX:GPL-3.0-or-later"
+          manifestWebsiteLink = "https://example.com"
+          manifestTags = "Animation, Rigging, , Utilities"
+          manifestMinBlenderVersion = "4.2"
+          manifestMaxBlenderVersion = "4.5"
+          manifestFilesPermission = "Read assets"
+          manifestNetworkPermission = "Download metadata"
+          manifestClipboardPermission = "Copy values"
+          manifestCameraPermission = "Capture reference"
+          manifestMicrophonePermission = "Record reference"
         }
 
-        val manifest = settings.toManifest("/projects/sample", isGitInitialized = true)
+    val manifest = settings.toManifest("/projects/sample", isGitInitialized = true)
 
-        assertEquals("Sample Project", manifest.name)
-        assertEquals("/projects/sample", manifest.path)
-        assertEquals("Example", manifest.description)
-        assertEquals("1.2.3", manifest.extensionVersion)
-        assertEquals("4.5", manifest.blenderVersion)
-        assertFalse(manifest.addExampleCode)
-        assertFalse(manifest.installBlenderApiStubs)
-        assertTrue(manifest.isGitInitialized)
-        assertEquals("Sakura", manifest.author)
-        assertEquals("sample_project", manifest.extensionId)
-        assertEquals("4.2", manifest.minBlenderVersion)
-        assertEquals("4.5", manifest.maxBlenderVersion)
-        assertEquals(listOf("Animation", "Rigging", "Utilities"), manifest.tags)
-        assertEquals("Read assets", manifest.filesPermission)
-        assertEquals("Download metadata", manifest.networkPermission)
-        assertEquals("Copy values", manifest.clipboardPermission)
-        assertEquals("Capture reference", manifest.cameraPermission)
-        assertEquals("Record reference", manifest.microphonePermission)
-    }
+    assertEquals("Sample Project", manifest.name)
+    assertEquals("/projects/sample", manifest.path)
+    assertEquals("Example", manifest.description)
+    assertEquals("1.2.3", manifest.extensionVersion)
+    assertEquals("4.5", manifest.blenderVersion)
+    assertFalse(manifest.addExampleCode)
+    assertFalse(manifest.installBlenderApiStubs)
+    assertTrue(manifest.isGitInitialized)
+    assertEquals("Sakura", manifest.author)
+    assertEquals("sample_project", manifest.extensionId)
+    assertEquals("4.2", manifest.minBlenderVersion)
+    assertEquals("4.5", manifest.maxBlenderVersion)
+    assertEquals(listOf("Animation", "Rigging", "Utilities"), manifest.tags)
+    assertEquals("Read assets", manifest.filesPermission)
+    assertEquals("Download metadata", manifest.networkPermission)
+    assertEquals("Copy values", manifest.clipboardPermission)
+    assertEquals("Capture reference", manifest.cameraPermission)
+    assertEquals("Record reference", manifest.microphonePermission)
+  }
 
-    /** Verifies that omitting a maximum Blender version produces an open-ended manifest range. */
-    @Test
-    fun `missing maximum version remains open ended`() {
-        val settings = BlenderProjectSettings("Sample")
+  /** Verifies that omitting a maximum Blender version produces an open-ended manifest range. */
+  @Test
+  fun `missing maximum version remains open ended`() {
+    val settings = BlenderProjectSettings("Sample")
 
-        assertNull(settings.maximumBlenderVersion)
-        assertEquals("", settings.toManifest("/projects/sample", false).maxBlenderVersion)
-    }
+    assertNull(settings.maximumBlenderVersion)
+    assertEquals("", settings.toManifest("/projects/sample", false).maxBlenderVersion)
+  }
 }

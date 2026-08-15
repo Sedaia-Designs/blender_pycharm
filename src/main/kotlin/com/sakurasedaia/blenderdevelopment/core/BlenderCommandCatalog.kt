@@ -19,10 +19,10 @@ package com.sakurasedaia.blenderdevelopment.core
 
 /** Describes one option accepted by a built-in Blender command. */
 internal data class BlenderCommandOption(
-  val longName: String,
-  val shortName: String? = null,
-  val valueKind: BlenderCommandOptionValueKind = BlenderCommandOptionValueKind.NONE,
-  val required: Boolean = false,
+    val longName: String,
+    val shortName: String? = null,
+    val valueKind: BlenderCommandOptionValueKind = BlenderCommandOptionValueKind.NONE,
+    val required: Boolean = false,
 ) {
   /** Returns every spelling accepted for this option. */
   val names: Set<String>
@@ -43,90 +43,95 @@ internal enum class BlenderCommandOptionValueKind {
 
 /** Describes one built-in `extension` subcommand. */
 internal data class BlenderExtensionSubcommand(
-  val id: String,
-  val options: List<BlenderCommandOption> = emptyList(),
-  val minimumPositionals: Int = 0,
-  val positionalName: String? = null,
+    val id: String,
+    val options: List<BlenderCommandOption> = emptyList(),
+    val minimumPositionals: Int = 0,
+    val positionalName: String? = null,
 )
 
 /** Contains the built-in Blender command metadata used for completion and validation. */
 internal object BlenderCommandCatalog {
   val commandIds: List<String> = listOf("extension", "maketx", "keyconfig_export", "sysinfo")
 
-  val extensionSubcommands: List<BlenderExtensionSubcommand> = listOf(
-    BlenderExtensionSubcommand("list", options = listOf(syncOption())),
-    BlenderExtensionSubcommand("sync"),
-    BlenderExtensionSubcommand("update", options = listOf(syncOption())),
-    BlenderExtensionSubcommand(
-      id = "install",
-      options = listOf(syncOption(), enableOption(), noPreferencesOption()),
-      minimumPositionals = 1,
-      positionalName = "PACKAGES",
-    ),
-    BlenderExtensionSubcommand(
-      id = "install-file",
-      options = listOf(
-        BlenderCommandOption("--repo", "-r", BlenderCommandOptionValueKind.TEXT, required = true),
-        enableOption(),
-        noPreferencesOption(),
-      ),
-      minimumPositionals = 1,
-      positionalName = "FILE",
-    ),
-    BlenderExtensionSubcommand(
-      id = "remove",
-      options = listOf(noPreferencesOption()),
-      minimumPositionals = 1,
-      positionalName = "PACKAGES",
-    ),
-    BlenderExtensionSubcommand("repo-list"),
-    BlenderExtensionSubcommand(
-      id = "repo-add",
-      options = listOf(
-        BlenderCommandOption("--name", valueKind = BlenderCommandOptionValueKind.TEXT),
-        BlenderCommandOption("--directory", valueKind = BlenderCommandOptionValueKind.PATH),
-        BlenderCommandOption("--url", valueKind = BlenderCommandOptionValueKind.TEXT),
-        BlenderCommandOption("--access-token", valueKind = BlenderCommandOptionValueKind.TEXT),
-        BlenderCommandOption("--source", valueKind = BlenderCommandOptionValueKind.TEXT),
-        BlenderCommandOption("--cache", valueKind = BlenderCommandOptionValueKind.BOOLEAN),
-        BlenderCommandOption("--clear-all"),
-        noPreferencesOption(),
-      ),
-      minimumPositionals = 1,
-      positionalName = "ID",
-    ),
-    BlenderExtensionSubcommand(
-      id = "repo-remove",
-      options = listOf(noPreferencesOption()),
-      minimumPositionals = 1,
-      positionalName = "ID",
-    ),
-    BlenderExtensionSubcommand(
-      id = "build",
-      options = listOf(
-        BlenderCommandOption("--source-dir", valueKind = BlenderCommandOptionValueKind.PATH),
-        BlenderCommandOption("--output-dir", valueKind = BlenderCommandOptionValueKind.PATH),
-        BlenderCommandOption("--output-filepath", valueKind = BlenderCommandOptionValueKind.PATH),
-        BlenderCommandOption("--valid-tags", valueKind = BlenderCommandOptionValueKind.PATH),
-        BlenderCommandOption("--split-platforms"),
-        BlenderCommandOption("--verbose"),
-      ),
-    ),
-    BlenderExtensionSubcommand(
-      id = "validate",
-      options = listOf(BlenderCommandOption("--valid-tags", valueKind = BlenderCommandOptionValueKind.PATH)),
-      positionalName = "SOURCE_PATH",
-    ),
-    BlenderExtensionSubcommand(
-      id = "server-generate",
-      options = listOf(
-        BlenderCommandOption("--repo-dir", valueKind = BlenderCommandOptionValueKind.PATH, required = true),
-        BlenderCommandOption("--repo-config", valueKind = BlenderCommandOptionValueKind.PATH),
-        BlenderCommandOption("--html"),
-        BlenderCommandOption("--html-template", valueKind = BlenderCommandOptionValueKind.PATH),
-      ),
-    ),
-  )
+  val extensionSubcommands: List<BlenderExtensionSubcommand> =
+      listOf(
+          BlenderExtensionSubcommand("list", options = listOf(syncOption())),
+          BlenderExtensionSubcommand("sync"),
+          BlenderExtensionSubcommand("update", options = listOf(syncOption())),
+          BlenderExtensionSubcommand(
+              id = "install",
+              options = listOf(syncOption(), enableOption(), noPreferencesOption()),
+              minimumPositionals = 1,
+              positionalName = "PACKAGES",
+          ),
+          BlenderExtensionSubcommand(
+              id = "install-file",
+              options =
+                  listOf(
+                      BlenderCommandOption("--repo", "-r", BlenderCommandOptionValueKind.TEXT, required = true),
+                      enableOption(),
+                      noPreferencesOption(),
+                  ),
+              minimumPositionals = 1,
+              positionalName = "FILE",
+          ),
+          BlenderExtensionSubcommand(
+              id = "remove",
+              options = listOf(noPreferencesOption()),
+              minimumPositionals = 1,
+              positionalName = "PACKAGES",
+          ),
+          BlenderExtensionSubcommand("repo-list"),
+          BlenderExtensionSubcommand(
+              id = "repo-add",
+              options =
+                  listOf(
+                      BlenderCommandOption("--name", valueKind = BlenderCommandOptionValueKind.TEXT),
+                      BlenderCommandOption("--directory", valueKind = BlenderCommandOptionValueKind.PATH),
+                      BlenderCommandOption("--url", valueKind = BlenderCommandOptionValueKind.TEXT),
+                      BlenderCommandOption("--access-token", valueKind = BlenderCommandOptionValueKind.TEXT),
+                      BlenderCommandOption("--source", valueKind = BlenderCommandOptionValueKind.TEXT),
+                      BlenderCommandOption("--cache", valueKind = BlenderCommandOptionValueKind.BOOLEAN),
+                      BlenderCommandOption("--clear-all"),
+                      noPreferencesOption(),
+                  ),
+              minimumPositionals = 1,
+              positionalName = "ID",
+          ),
+          BlenderExtensionSubcommand(
+              id = "repo-remove",
+              options = listOf(noPreferencesOption()),
+              minimumPositionals = 1,
+              positionalName = "ID",
+          ),
+          BlenderExtensionSubcommand(
+              id = "build",
+              options =
+                  listOf(
+                      BlenderCommandOption("--source-dir", valueKind = BlenderCommandOptionValueKind.PATH),
+                      BlenderCommandOption("--output-dir", valueKind = BlenderCommandOptionValueKind.PATH),
+                      BlenderCommandOption("--output-filepath", valueKind = BlenderCommandOptionValueKind.PATH),
+                      BlenderCommandOption("--valid-tags", valueKind = BlenderCommandOptionValueKind.PATH),
+                      BlenderCommandOption("--split-platforms"),
+                      BlenderCommandOption("--verbose"),
+                  ),
+          ),
+          BlenderExtensionSubcommand(
+              id = "validate",
+              options = listOf(BlenderCommandOption("--valid-tags", valueKind = BlenderCommandOptionValueKind.PATH)),
+              positionalName = "SOURCE_PATH",
+          ),
+          BlenderExtensionSubcommand(
+              id = "server-generate",
+              options =
+                  listOf(
+                      BlenderCommandOption("--repo-dir", valueKind = BlenderCommandOptionValueKind.PATH, required = true),
+                      BlenderCommandOption("--repo-config", valueKind = BlenderCommandOptionValueKind.PATH),
+                      BlenderCommandOption("--html"),
+                      BlenderCommandOption("--html-template", valueKind = BlenderCommandOptionValueKind.PATH),
+                  ),
+          ),
+      )
 
   /** Finds a documented `extension` subcommand by its command-line identifier. */
   fun findExtensionSubcommand(id: String): BlenderExtensionSubcommand? {
@@ -172,8 +177,8 @@ internal object BlenderCommandValidator {
   }
 
   private fun validateSubcommand(
-    subcommand: BlenderExtensionSubcommand,
-    arguments: List<String>,
+      subcommand: BlenderExtensionSubcommand,
+      arguments: List<String>,
   ): BlenderCommandValidationIssue? {
     val foundOptions = mutableSetOf<BlenderCommandOption>()
     var positionalCount = 0
@@ -201,9 +206,11 @@ internal object BlenderCommandValidator {
       index++
     }
 
-    subcommand.options.firstOrNull { it.required && it !in foundOptions }?.let {
-      return BlenderCommandValidationIssue.MissingRequiredOption(it.longName)
-    }
+    subcommand.options
+        .firstOrNull { it.required && it !in foundOptions }
+        ?.let {
+          return BlenderCommandValidationIssue.MissingRequiredOption(it.longName)
+        }
     if (positionalCount < subcommand.minimumPositionals) {
       return BlenderCommandValidationIssue.MissingPositional(requireNotNull(subcommand.positionalName))
     }

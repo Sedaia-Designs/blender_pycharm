@@ -23,8 +23,8 @@ internal class BlenderVersionManagementViewTest : BasePlatformTestCase() {
 
     assertEquals("invalid", view.readMinimumVersion())
     assertEquals(
-      MessageBundle.message("ui.settings.group.versions.minimum-version.label"),
-      minimumVersionField(view).accessibleContext.accessibleName,
+        MessageBundle.message("ui.settings.group.versions.minimum-version.label"),
+        minimumVersionField(view).accessibleContext.accessibleName,
     )
   }
 
@@ -34,17 +34,18 @@ internal class BlenderVersionManagementViewTest : BasePlatformTestCase() {
     val rows = versions.map(::row)
     var selectionIntentCount = 0
     view.setOnSelectionChanged { selectionIntentCount++ }
-    val state = state(
-      rows = rows,
-      selectedVersion = versions.last(),
-      lastRefreshedEpochMillis = 1_700_000_000_000L,
-      isTableEnabled = false,
-      isInstallEnabled = true,
-      isDeleteEnabled = false,
-      isScanEnabled = false,
-      isRefreshVersionCacheEnabled = false,
-      isClearVersionCacheEnabled = false,
-    )
+    val state =
+        state(
+            rows = rows,
+            selectedVersion = versions.last(),
+            lastRefreshedEpochMillis = 1_700_000_000_000L,
+            isTableEnabled = false,
+            isInstallEnabled = true,
+            isDeleteEnabled = false,
+            isScanEnabled = false,
+            isRefreshVersionCacheEnabled = false,
+            isClearVersionCacheEnabled = false,
+        )
 
     view.render(state)
     view.render(state)
@@ -60,24 +61,24 @@ internal class BlenderVersionManagementViewTest : BasePlatformTestCase() {
     assertFalse(textButton(view, "ui.settings.group.versions.clear-cache.button").isEnabled)
     assertEquals(0, selectionIntentCount)
     assertEquals(
-      MessageBundle.message(
-        "ui.settings.group.versions.last-refreshed.value",
-        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-          .withZone(ZoneId.systemDefault())
-          .format(Instant.ofEpochMilli(state.lastRefreshedEpochMillis)),
-      ),
-      refreshedLabel(view).text,
+        MessageBundle.message(
+            "ui.settings.group.versions.last-refreshed.value",
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+                .withZone(ZoneId.systemDefault())
+                .format(Instant.ofEpochMilli(state.lastRefreshedEpochMillis)),
+        ),
+        refreshedLabel(view).text,
     )
   }
 
   fun testRenderShowsRefreshingStateAndClearsMissingSelection() {
     val view = BlenderVersionManagementView()
     view.render(
-      state(
-        rows = listOf(row(BlenderVersions.LIST.first())),
-        selectedVersion = BlenderVersions.LIST.last(),
-        operation = BlenderVersionManagementState.Operation.REFRESHING,
-      ),
+        state(
+            rows = listOf(row(BlenderVersions.LIST.first())),
+            selectedVersion = BlenderVersions.LIST.last(),
+            operation = BlenderVersionManagementState.Operation.REFRESHING,
+        )
     )
 
     assertEquals(-1, table(view).selectedRow)
@@ -100,14 +101,14 @@ internal class BlenderVersionManagementViewTest : BasePlatformTestCase() {
     view.setOnScanRequested { scanCount++ }
     view.setOnClearCacheRequested { clearCacheCount++ }
     view.render(
-      state(
-        rows = listOf(row(version)),
-        isInstallEnabled = true,
-        isDeleteEnabled = true,
-        isScanEnabled = true,
-        isRefreshVersionCacheEnabled = true,
-        isClearVersionCacheEnabled = true,
-      ),
+        state(
+            rows = listOf(row(version)),
+            isInstallEnabled = true,
+            isDeleteEnabled = true,
+            isScanEnabled = true,
+            isRefreshVersionCacheEnabled = true,
+            isClearVersionCacheEnabled = true,
+        )
     )
 
     table(view).setRowSelectionInterval(0, 0)
@@ -147,59 +148,61 @@ internal class BlenderVersionManagementViewTest : BasePlatformTestCase() {
     assertEquals(MessageBundle.message("ui.settings.group.versions.empty"), table.emptyText.text)
 
     listOf(
-      "ui.settings.group.versions.install.button",
-      "ui.settings.group.versions.delete.button",
-    ).forEach { messageKey ->
-      val actionName = MessageBundle.message(messageKey)
-      val button = actionButton(view, messageKey)
-      assertTrue(button.text.isNullOrEmpty())
-      assertNotNull(button.icon)
-      assertEquals(actionName, button.toolTipText)
-      assertEquals(actionName, button.accessibleContext.accessibleName)
-    }
+            "ui.settings.group.versions.install.button",
+            "ui.settings.group.versions.delete.button",
+        )
+        .forEach { messageKey ->
+          val actionName = MessageBundle.message(messageKey)
+          val button = actionButton(view, messageKey)
+          assertTrue(button.text.isNullOrEmpty())
+          assertNotNull(button.icon)
+          assertEquals(actionName, button.toolTipText)
+          assertEquals(actionName, button.accessibleContext.accessibleName)
+        }
   }
 
   private fun state(
-    rows: List<BlenderVersionSettingsRow> = emptyList(),
-    selectedVersion: BlenderVersion? = null,
-    lastRefreshedEpochMillis: Long = 0,
-    operation: BlenderVersionManagementState.Operation? = null,
-    isTableEnabled: Boolean = true,
-    isInstallEnabled: Boolean = false,
-    isDeleteEnabled: Boolean = false,
-    isScanEnabled: Boolean = true,
-    isRefreshVersionCacheEnabled: Boolean = true,
-    isClearVersionCacheEnabled: Boolean = true,
-  ): BlenderVersionManagementState = BlenderVersionManagementState(
-    rows = rows,
-    selectedVersion = selectedVersion,
-    lastRefreshedEpochMillis = lastRefreshedEpochMillis,
-    operation = operation,
-    isTableEnabled = isTableEnabled,
-    isInstallEnabled = isInstallEnabled,
-    isDeleteEnabled = isDeleteEnabled,
-    isScanEnabled = isScanEnabled,
-    isRefreshVersionCacheEnabled = isRefreshVersionCacheEnabled,
-    isClearVersionCacheEnabled = isClearVersionCacheEnabled,
-  )
+      rows: List<BlenderVersionSettingsRow> = emptyList(),
+      selectedVersion: BlenderVersion? = null,
+      lastRefreshedEpochMillis: Long = 0,
+      operation: BlenderVersionManagementState.Operation? = null,
+      isTableEnabled: Boolean = true,
+      isInstallEnabled: Boolean = false,
+      isDeleteEnabled: Boolean = false,
+      isScanEnabled: Boolean = true,
+      isRefreshVersionCacheEnabled: Boolean = true,
+      isClearVersionCacheEnabled: Boolean = true,
+  ): BlenderVersionManagementState =
+      BlenderVersionManagementState(
+          rows = rows,
+          selectedVersion = selectedVersion,
+          lastRefreshedEpochMillis = lastRefreshedEpochMillis,
+          operation = operation,
+          isTableEnabled = isTableEnabled,
+          isInstallEnabled = isInstallEnabled,
+          isDeleteEnabled = isDeleteEnabled,
+          isScanEnabled = isScanEnabled,
+          isRefreshVersionCacheEnabled = isRefreshVersionCacheEnabled,
+          isClearVersionCacheEnabled = isClearVersionCacheEnabled,
+      )
 
-  private fun row(version: BlenderVersion): BlenderVersionSettingsRow = BlenderVersionSettingsRow(
-    version = version,
-    pythonVersion = version.pyVersion,
-    installStatus = MessageBundle.message("ui.settings.group.versions.status.not-detected"),
-    isInstalled = false,
-  )
+  private fun row(version: BlenderVersion): BlenderVersionSettingsRow =
+      BlenderVersionSettingsRow(
+          version = version,
+          pythonVersion = version.pyVersion,
+          installStatus = MessageBundle.message("ui.settings.group.versions.status.not-detected"),
+          isInstalled = false,
+      )
 
-  private fun table(view: BlenderVersionManagementView): JBTable =
-    descendantsOf(view.component()).filterIsInstance<JBTable>().single()
+  private fun table(view: BlenderVersionManagementView): JBTable = descendantsOf(view.component()).filterIsInstance<JBTable>().single()
 
   private fun refreshedLabel(view: BlenderVersionManagementView): JBLabel =
-    descendantsOf(view.component()).filterIsInstance<JBLabel>().single {
-      it.text.startsWith("Last refreshed:") || it.text == MessageBundle.message("ui.settings.group.versions.refreshing")
-    }
+      descendantsOf(view.component()).filterIsInstance<JBLabel>().single {
+        it.text.startsWith("Last refreshed:") || it.text == MessageBundle.message("ui.settings.group.versions.refreshing")
+      }
 
   private fun minimumVersionField(view: BlenderVersionManagementView): JBTextField =
-    descendantsOf(view.component()).filterIsInstance<JBTextField>().single()
+      descendantsOf(view.component()).filterIsInstance<JBTextField>().single()
 
   private fun actionButton(view: BlenderVersionManagementView, messageKey: String): JButton {
     val actionName = MessageBundle.message(messageKey)
@@ -207,7 +210,7 @@ internal class BlenderVersionManagementViewTest : BasePlatformTestCase() {
   }
 
   private fun scanButton(view: BlenderVersionManagementView): JButton =
-    descendantsOf(view.component()).filterIsInstance<JButton>().single { it.icon == IconBundle.Scan }
+      descendantsOf(view.component()).filterIsInstance<JButton>().single { it.icon == IconBundle.Scan }
 
   private fun textButton(view: BlenderVersionManagementView, messageKey: String): JButton {
     val buttonText = MessageBundle.message(messageKey)
@@ -215,7 +218,7 @@ internal class BlenderVersionManagementViewTest : BasePlatformTestCase() {
   }
 
   private fun descendantsOf(container: Container): List<java.awt.Component> =
-    container.components.flatMap { component ->
-      listOf(component) + if (component is Container) descendantsOf(component) else emptyList()
-    }
+      container.components.flatMap { component ->
+        listOf(component) + if (component is Container) descendantsOf(component) else emptyList()
+      }
 }

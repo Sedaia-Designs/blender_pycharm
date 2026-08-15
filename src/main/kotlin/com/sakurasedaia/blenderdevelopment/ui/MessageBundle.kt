@@ -23,20 +23,19 @@ import org.jetbrains.annotations.PropertyKey
 private const val BUNDLE = "messages.MessageBundle"
 
 /** Accessor for localized plugin messages from `messages/MessageBundle.properties`. */
-object MessageBundle : DynamicBundle(BUNDLE){
-    /**
-     * Resolves a localized message by key with optional replacement parameters.
-     *
-     * @param key message key in `messages/MessageBundle.properties`.
-     * @param params optional replacement values used by the message pattern.
-     * @return resolved localized message text.
-     */
-    @JvmStatic
-    fun message(
-        @PropertyKey(resourceBundle = BUNDLE) key: String,
-        vararg params: String?
-    ): String {
-        return getMessage(key, *params)
-    }
-    
+object MessageBundle : DynamicBundle(BUNDLE) {
+  /**
+   * Resolves a localized message by key with optional replacement parameters.
+   *
+   * @param key message key in `messages/MessageBundle.properties`.
+   * @param params optional replacement values used by the message pattern.
+   * @return resolved localized message text.
+   */
+  @JvmStatic
+  fun message(
+      @PropertyKey(resourceBundle = BUNDLE) key: String,
+      vararg params: String?,
+  ): String {
+    return getMessage(key, *params)
+  }
 }

@@ -23,23 +23,24 @@ import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import javax.swing.Icon
 
 /** Blender project generator backed by PyCharm's native Python environment workflow. */
-class BlenderProjectDirectoryGenerator : PyV3ProjectBaseGenerator<BlenderProjectSettings>(
-    typeSpecificSettings = BlenderProjectSettings(),
-    typeSpecificUI = BlenderProjectUI,
-    _newProjectName = MessageBundle.message("ui.project.wizard.default.project.name"),
-    supportsNotEmptyModuleStructure = false,
-) {
-    /**
-     * Returns the localized project type shown by PyCharm.
-     *
-     * @return Blender project type name.
-     */
-    override fun getName(): String = MessageBundle.message("ui.project.wizard.template.title")
+class BlenderProjectDirectoryGenerator :
+    PyV3ProjectBaseGenerator<BlenderProjectSettings>(
+        typeSpecificSettings = BlenderProjectSettings(),
+        typeSpecificUI = BlenderProjectUI,
+        _newProjectName = MessageBundle.message("ui.project.wizard.default.project.name"),
+        supportsNotEmptyModuleStructure = false,
+    ) {
+  /**
+   * Returns the localized project type shown by PyCharm.
+   *
+   * @return Blender project type name.
+   */
+  override fun getName(): String = MessageBundle.message("ui.project.wizard.template.title")
 
-    /**
-     * Returns the icon shown for the Blender project type.
-     *
-     * @return Blender color icon.
-     */
-    override fun getLogo(): Icon = IconBundle.BlenderColor
+  /**
+   * Returns the icon shown for the Blender project type.
+   *
+   * @return Blender color icon.
+   */
+  override fun getLogo(): Icon = IconBundle.BlenderColor
 }

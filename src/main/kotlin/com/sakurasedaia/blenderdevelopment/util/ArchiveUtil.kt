@@ -26,9 +26,7 @@ object ArchiveUtil {
   fun extractZip(archive: Path, destination: Path, project: Project = currentProject()) {
     extract(archive, destination, project) {
       NioFiles.createDirectories(destination)
-      Decompressor.Zip(archive)
-        .withZipExtensions()
-        .extract(destination)
+      Decompressor.Zip(archive).withZipExtensions().extract(destination)
     }
   }
 
@@ -62,10 +60,11 @@ object ArchiveUtil {
 
     extract(archive, destination, project) {
       NioFiles.createDirectories(SystemInfo.getSysInfo.tempDir)
-      val mountPoint = Files.createTempDirectory(
-        SystemInfo.getSysInfo.tempDir,
-        "dmg-mount-",
-      )
+      val mountPoint =
+          Files.createTempDirectory(
+              SystemInfo.getSysInfo.tempDir,
+              "dmg-mount-",
+          )
 
       var attached = false
       var deviceIdentifier: String? = null
@@ -75,29 +74,27 @@ object ArchiveUtil {
         attached = true
         deviceIdentifier = findDiskIdentifier(output.stdout)
         copyDmgApplication(mountPoint, destination)
-      }
-      catch (exception: Exception) {
+      } catch (exception: Exception) {
         extractionFailure = exception
         throw exception
-      }
-      finally {
+      } finally {
         cleanupMountedImage(attached, deviceIdentifier, mountPoint, extractionFailure)
       }
     }
   }
 
-  internal fun diskutilAttachArguments(archive: Path, mountPoint: Path): Array<String> = arrayOf(
-    "image",
-    "attach",
-    "--readOnly",
-    "--nobrowse",
-    "--mountPoint",
-    mountPoint.toString(),
-    archive.toString(),
-  )
+  internal fun diskutilAttachArguments(archive: Path, mountPoint: Path): Array<String> =
+      arrayOf(
+          "image",
+          "attach",
+          "--readOnly",
+          "--nobrowse",
+          "--mountPoint",
+          mountPoint.toString(),
+          archive.toString(),
+      )
 
-  internal fun findDiskIdentifier(output: String): String? =
-    DEVICE_IDENTIFIER_PATTERN.find(output)?.value
+  internal fun findDiskIdentifier(output: String): String? = DEVICE_IDENTIFIER_PATTERN.find(output)?.value
 
   internal fun copyDmgApplication(mountPoint: Path, destination: Path) {
     val sourceApplication = mountPoint.resolve("Blender.app")
@@ -123,54 +120,49 @@ object ArchiveUtil {
   }
 
   private fun reportFailure(project: Project, archive: Path, errorType: ErrorTypes, exception: Exception) {
-    val message = MessageBundle.message(
-      "notification.archive.extraction.failed",
-      (archive.fileName ?: archive).toString(),
-      exception.message ?: errorType.toString(),
-    )
+    val message =
+        MessageBundle.message(
+            "notification.archive.extraction.failed",
+            (archive.fileName ?: archive).toString(),
+            exception.message ?: errorType.toString(),
+        )
     PluginLogger.getInstance(project).error(errorType, exception)
     NotificationModal.getInstance(project).sendError(message)
   }
 
   private fun cleanupMountedImage(
-    attached: Boolean,
-    deviceIdentifier: String?,
-    mountPoint: Path,
-    extractionFailure: Exception?,
+      attached: Boolean,
+      deviceIdentifier: String?,
+      mountPoint: Path,
+      extractionFailure: Exception?,
   ) {
     var cleanupFailure: Exception? = null
     if (attached) {
       try {
         runDiskutil("eject", deviceIdentifier ?: mountPoint.toString())
-      }
-      catch (exception: Exception) {
+      } catch (exception: Exception) {
         cleanupFailure = exception
       }
     }
 
     try {
       NioFiles.deleteRecursively(mountPoint)
-    }
-    catch (exception: Exception) {
+    } catch (exception: Exception) {
       cleanupFailure?.addSuppressed(exception)
       if (cleanupFailure == null) cleanupFailure = exception
     }
 
     cleanupFailure?.let { failure ->
-      if (extractionFailure != null) extractionFailure.addSuppressed(failure)
-      else throw failure
+      if (extractionFailure != null) extractionFailure.addSuppressed(failure) else throw failure
     }
   }
 
   private fun runDiskutil(vararg arguments: String): ProcessOutput {
-    val commandLine = GeneralCommandLine("/usr/sbin/diskutil")
-      .withParameters(*arguments)
+    val commandLine = GeneralCommandLine("/usr/sbin/diskutil").withParameters(*arguments)
     val output = CapturingProcessHandler(commandLine).runProcess()
 
     if (output.exitCode != 0) {
-      throw IOException(
-        "diskutil failed with exit code ${output.exitCode}: ${output.stderr}",
-      )
+      throw IOException("diskutil failed with exit code ${output.exitCode}: ${output.stderr}")
     }
 
     return output

@@ -14,12 +14,12 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.projectRoots.Sdk
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
+import java.nio.file.Path
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runInterruptible
-import java.nio.file.Path
 
 internal sealed interface BlenderPackageOperationResult {
   data object Success : BlenderPackageOperationResult
@@ -28,9 +28,9 @@ internal sealed interface BlenderPackageOperationResult {
 }
 
 internal data class PythonPackageCommandResult(
-  val exitCode: Int,
-  val standardOutput: String,
-  val standardError: String,
+    val exitCode: Int,
+    val standardOutput: String,
+    val standardError: String,
 )
 
 internal fun interface PythonPackageCommandExecutor {
@@ -49,10 +49,10 @@ internal interface BlenderPythonPackageInstaller {
    * @return project-owned success or failure result.
    */
   suspend fun installDevelopmentPackage(
-    project: Project,
-    module: Module,
-    sdk: Sdk,
-    requirement: String,
+      project: Project,
+      module: Module,
+      sdk: Sdk,
+      requirement: String,
   ): BlenderPackageOperationResult
 
   /**
@@ -65,67 +65,64 @@ internal interface BlenderPythonPackageInstaller {
    * @return project-owned success or failure result.
    */
   suspend fun uninstallDevelopmentPackage(
-    project: Project,
-    module: Module,
-    sdk: Sdk,
-    requirement: String,
+      project: Project,
+      module: Module,
+      sdk: Sdk,
+      requirement: String,
   ): BlenderPackageOperationResult
 }
 
 /** Production installer backed by the selected SDK interpreter and pip. */
 internal class PlatformBlenderPythonPackageInstaller(
-  private val commandExecutor: PythonPackageCommandExecutor = PlatformPythonPackageCommandExecutor,
+    private val commandExecutor: PythonPackageCommandExecutor = PlatformPythonPackageCommandExecutor
 ) : BlenderPythonPackageInstaller {
   /** Installs the requirement without adding it to the project's runtime dependencies. */
   override suspend fun installDevelopmentPackage(
-    project: Project,
-    module: Module,
-    sdk: Sdk,
-    requirement: String,
-  ): BlenderPackageOperationResult = execute(
-    sdk = sdk,
-    arguments = listOf("-m", "pip", "--disable-pip-version-check", "install", requirement),
-  )
+      project: Project,
+      module: Module,
+      sdk: Sdk,
+      requirement: String,
+  ): BlenderPackageOperationResult =
+      execute(
+          sdk = sdk,
+          arguments = listOf("-m", "pip", "--disable-pip-version-check", "install", requirement),
+      )
 
   /** Removes the requirement from the SDK when present. */
   override suspend fun uninstallDevelopmentPackage(
-    project: Project,
-    module: Module,
-    sdk: Sdk,
-    requirement: String,
-  ): BlenderPackageOperationResult = execute(
-    sdk = sdk,
-    arguments = listOf("-m", "pip", "--disable-pip-version-check", "uninstall", "--yes", requirement),
-  )
+      project: Project,
+      module: Module,
+      sdk: Sdk,
+      requirement: String,
+  ): BlenderPackageOperationResult =
+      execute(
+          sdk = sdk,
+          arguments = listOf("-m", "pip", "--disable-pip-version-check", "uninstall", "--yes", requirement),
+      )
 
   private suspend fun execute(sdk: Sdk, arguments: List<String>): BlenderPackageOperationResult {
-    val homePath = sdk.homePath?.takeIf(String::isNotBlank)
-      ?: return BlenderPackageOperationResult.Failure(
-        MessageBundle.message("notification.blender.stubs.interpreter.missing")
-      )
+    val homePath =
+        sdk.homePath?.takeIf(String::isNotBlank)
+            ?: return BlenderPackageOperationResult.Failure(MessageBundle.message("notification.blender.stubs.interpreter.missing"))
 
     return try {
       val result = commandExecutor.execute(Path.of(homePath), arguments)
       if (result.exitCode == 0) {
         BlenderPackageOperationResult.Success
-      }
-      else {
-        val diagnostic = sequenceOf(result.standardError, result.standardOutput)
-          .map(String::trim)
-          .firstOrNull(String::isNotEmpty)
-          ?: MessageBundle.message("notification.blender.stubs.command.exit", result.exitCode.toString())
+      } else {
+        val diagnostic =
+            sequenceOf(result.standardError, result.standardOutput).map(String::trim).firstOrNull(String::isNotEmpty)
+                ?: MessageBundle.message("notification.blender.stubs.command.exit", result.exitCode.toString())
         BlenderPackageOperationResult.Failure(diagnostic.take(MAX_DIAGNOSTIC_LENGTH))
       }
-    }
-    catch (exception: CancellationException) {
+    } catch (exception: CancellationException) {
       throw exception
-    }
-    catch (exception: Exception) {
+    } catch (exception: Exception) {
       BlenderPackageOperationResult.Failure(
-        MessageBundle.message(
-          "notification.blender.stubs.command.failed",
-          exception.message ?: exception.javaClass.simpleName,
-        )
+          MessageBundle.message(
+              "notification.blender.stubs.command.failed",
+              exception.message ?: exception.javaClass.simpleName,
+          )
       )
     }
   }
@@ -137,9 +134,7 @@ internal class PlatformBlenderPythonPackageInstaller(
 
 private object PlatformPythonPackageCommandExecutor : PythonPackageCommandExecutor {
   override suspend fun execute(interpreterPath: Path, arguments: List<String>): PythonPackageCommandResult {
-    val commandLine = GeneralCommandLine(interpreterPath.toString())
-      .withParameters(arguments)
-      .withRedirectErrorStream(false)
+    val commandLine = GeneralCommandLine(interpreterPath.toString()).withParameters(arguments).withRedirectErrorStream(false)
     val process = commandLine.createProcess()
 
     return coroutineScope {
@@ -147,12 +142,11 @@ private object PlatformPythonPackageCommandExecutor : PythonPackageCommandExecut
       val standardError = async(Dispatchers.IO) { process.errorStream.bufferedReader().use { it.readText() } }
       try {
         PythonPackageCommandResult(
-          exitCode = runInterruptible(Dispatchers.IO) { process.waitFor() },
-          standardOutput = standardOutput.await(),
-          standardError = standardError.await(),
+            exitCode = runInterruptible(Dispatchers.IO) { process.waitFor() },
+            standardOutput = standardOutput.await(),
+            standardError = standardError.await(),
         )
-      }
-      catch (exception: CancellationException) {
+      } catch (exception: CancellationException) {
         process.destroyForcibly()
         throw exception
       }

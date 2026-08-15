@@ -16,13 +16,15 @@ import org.junit.Test
 class BlenderStubDependencyFileUpdaterTest {
   @Test
   fun replacesOnlyStubRequirementInExistingDevGroup() {
-    val original = """
-      [project]
-      name = "sample"
+    val original =
+        """
+        [project]
+        name = "sample"
 
-      [dependency-groups]
-      dev = ["fake-bpy-module-4.2", "pytest"]
-    """.trimIndent()
+        [dependency-groups]
+        dev = ["fake-bpy-module-4.2", "pytest"]
+        """
+            .trimIndent()
 
     val updated = BlenderStubDependencyFileUpdater.updateContent(original, "fake-bpy-module-4.5")
 
@@ -31,10 +33,11 @@ class BlenderStubDependencyFileUpdaterTest {
 
   @Test
   fun addsDevGroupWhenMissing() {
-    val updated = BlenderStubDependencyFileUpdater.updateContent(
-      "[project]\nname = \"sample\"\n",
-      "fake-bpy-module-4.2",
-    )
+    val updated =
+        BlenderStubDependencyFileUpdater.updateContent(
+            "[project]\nname = \"sample\"\n",
+            "fake-bpy-module-4.2",
+        )
 
     assertTrue(updated.contains("[dependency-groups]\ndev = [\"fake-bpy-module-4.2\"]"))
   }
@@ -49,35 +52,39 @@ class BlenderStubDependencyFileUpdaterTest {
 
   @Test
   fun replacesStubRequirementInMultilineDevGroup() {
-    val original = """
-      [dependency-groups]
-      dev = [
-          "fake-bpy-module-5.1",
-          "pytest",
-      ]
-    """.trimIndent()
+    val original =
+        """
+        [dependency-groups]
+        dev = [
+            "fake-bpy-module-5.1",
+            "pytest",
+        ]
+        """
+            .trimIndent()
 
     val updated = BlenderStubDependencyFileUpdater.updateContent(original, "fake-bpy-module-5.2")
 
     assertEquals(
-      "[dependency-groups]\ndev = [\"fake-bpy-module-5.2\", \"pytest\"]",
-      updated,
+        "[dependency-groups]\ndev = [\"fake-bpy-module-5.2\", \"pytest\"]",
+        updated,
     )
   }
 
   @Test
   fun mergesDuplicateDevGroupsCreatedByEarlierWorkflow() {
-    val original = """
-      [project]
-      dependencies = ["fake-bpy-module-5.2"]
+    val original =
+        """
+        [project]
+        dependencies = ["fake-bpy-module-5.2"]
 
-      [dependency-groups]
-      dev = ["fake-bpy-module-5.1"]
-      dev = [
-          "black[d]>=26.5.1",
-          "numpy>=2.5.1",
-      ]
-    """.trimIndent()
+        [dependency-groups]
+        dev = ["fake-bpy-module-5.1"]
+        dev = [
+            "black[d]>=26.5.1",
+            "numpy>=2.5.1",
+        ]
+        """
+            .trimIndent()
 
     val updated = BlenderStubDependencyFileUpdater.updateContent(original, "fake-bpy-module-5.2")
 

@@ -8,29 +8,30 @@ import com.sakurasedaia.blenderdevelopment.util.SystemInfo
 import java.nio.file.Path
 
 internal class BlenderVersionManagementController(
-  private val view: BlenderVersionManagementView,
-  private val refreshVersions: (((Result<List<BlenderVersion>>) -> Unit) -> Unit),
-  private val scanInstallations: (((Result<List<PluginConfig.BlendInstallInfo>>) -> Unit) -> Unit),
-  private val clearVersionCache: () -> Result<Unit>,
-  private val installVersion: (BlenderVersion, (Result<Path>) -> Unit) -> Unit,
-  private val deleteVersion: (BlenderVersion, (Result<Boolean>) -> Unit) -> Unit,
-  private val lastRefreshedEpochMillis: () -> Long,
-  private val isCompatible: (String) -> Boolean = SystemInfo::isOSCompatible,
+    private val view: BlenderVersionManagementView,
+    private val refreshVersions: (((Result<List<BlenderVersion>>) -> Unit) -> Unit),
+    private val scanInstallations: (((Result<List<PluginConfig.BlendInstallInfo>>) -> Unit) -> Unit),
+    private val clearVersionCache: () -> Result<Unit>,
+    private val installVersion: (BlenderVersion, (Result<Path>) -> Unit) -> Unit,
+    private val deleteVersion: (BlenderVersion, (Result<Boolean>) -> Unit) -> Unit,
+    private val lastRefreshedEpochMillis: () -> Long,
+    private val isCompatible: (String) -> Boolean = SystemInfo::isOSCompatible,
 ) : Disposable {
   private var versions: List<BlenderVersion> = BlenderVersions.LIST
   private var installs: List<PluginConfig.BlendInstallInfo> = emptyList()
-  private var state = BlenderVersionManagementState(
-    rows = emptyList(),
-    selectedVersion = null,
-    lastRefreshedEpochMillis = 0,
-    operation = null,
-    isTableEnabled = true,
-    isInstallEnabled = false,
-    isDeleteEnabled = false,
-    isScanEnabled = false,
-    isRefreshVersionCacheEnabled = false,
-    isClearVersionCacheEnabled = false,
-  )
+  private var state =
+      BlenderVersionManagementState(
+          rows = emptyList(),
+          selectedVersion = null,
+          lastRefreshedEpochMillis = 0,
+          operation = null,
+          isTableEnabled = true,
+          isInstallEnabled = false,
+          isDeleteEnabled = false,
+          isScanEnabled = false,
+          isRefreshVersionCacheEnabled = false,
+          isClearVersionCacheEnabled = false,
+      )
   private var generation = 0L
   private var isDisposed = false
 
@@ -45,9 +46,9 @@ internal class BlenderVersionManagementController(
   }
 
   fun reset(
-    versions: List<BlenderVersion>,
-    installs: List<PluginConfig.BlendInstallInfo>,
-    lastRefreshedEpochMillis: Long,
+      versions: List<BlenderVersion>,
+      installs: List<PluginConfig.BlendInstallInfo>,
+      lastRefreshedEpochMillis: Long,
   ) {
     if (isDisposed) return
     generation++
@@ -56,12 +57,13 @@ internal class BlenderVersionManagementController(
     val rows = BlenderVersionSettingsRowMapper.map(versions, installs)
     updateState {
       copy(
-        rows = rows,
-        selectedVersion = selectedVersion?.takeIf { selected ->
-          rows.any { it.version.blMajorMinor == selected.blMajorMinor }
-        } ?: rows.firstOrNull()?.version,
-        lastRefreshedEpochMillis = lastRefreshedEpochMillis,
-        operation = null,
+          rows = rows,
+          selectedVersion =
+              selectedVersion?.takeIf { selected ->
+                rows.any { it.version.blMajorMinor == selected.blMajorMinor }
+              } ?: rows.firstOrNull()?.version,
+          lastRefreshedEpochMillis = lastRefreshedEpochMillis,
+          operation = null,
       )
     }
   }
@@ -87,10 +89,11 @@ internal class BlenderVersionManagementController(
         updateState {
           val rows = BlenderVersionSettingsRowMapper.map(refreshedVersions, installs)
           copy(
-            rows = rows,
-            selectedVersion = selectedVersion?.takeIf { selected ->
-              rows.any { it.version.blMajorMinor == selected.blMajorMinor }
-            } ?: rows.firstOrNull()?.version,
+              rows = rows,
+              selectedVersion =
+                  selectedVersion?.takeIf { selected ->
+                    rows.any { it.version.blMajorMinor == selected.blMajorMinor }
+                  } ?: rows.firstOrNull()?.version,
           )
         }
       }
@@ -109,10 +112,11 @@ internal class BlenderVersionManagementController(
         updateState {
           val rows = BlenderVersionSettingsRowMapper.map(versions, detectedInstalls)
           copy(
-            rows = rows,
-            selectedVersion = selectedVersion?.takeIf { selected ->
-              rows.any { it.version.blMajorMinor == selected.blMajorMinor }
-            } ?: rows.firstOrNull()?.version,
+              rows = rows,
+              selectedVersion =
+                  selectedVersion?.takeIf { selected ->
+                    rows.any { it.version.blMajorMinor == selected.blMajorMinor }
+                  } ?: rows.firstOrNull()?.version,
           )
         }
       }
@@ -128,8 +132,8 @@ internal class BlenderVersionManagementController(
       versions = BlenderVersions.LIST
       updateState {
         copy(
-          rows = BlenderVersionSettingsRowMapper.map(versions, installs),
-          lastRefreshedEpochMillis = 0,
+            rows = BlenderVersionSettingsRowMapper.map(versions, installs),
+            lastRefreshedEpochMillis = 0,
         )
       }
     }
@@ -146,8 +150,7 @@ internal class BlenderVersionManagementController(
           copy(rows = BlenderVersionSettingsRowMapper.markInstalled(rows, version))
         }
         scan()
-      }
-      else {
+      } else {
         finishOperation(operationGeneration)
       }
     }
@@ -173,32 +176,32 @@ internal class BlenderVersionManagementController(
   }
 
   private fun finishOperation(
-    operationGeneration: Long,
-    transform: BlenderVersionManagementState.() -> BlenderVersionManagementState = { this },
+      operationGeneration: Long,
+      transform: BlenderVersionManagementState.() -> BlenderVersionManagementState = { this },
   ) {
     if (!accepts(operationGeneration)) return
     updateState { transform().copy(operation = null) }
   }
 
-  private fun accepts(operationGeneration: Long): Boolean =
-    !isDisposed && generation == operationGeneration
+  private fun accepts(operationGeneration: Long): Boolean = !isDisposed && generation == operationGeneration
 
   private fun updateState(transform: BlenderVersionManagementState.() -> BlenderVersionManagementState) {
     if (isDisposed) return
     val updated = state.transform()
-    val selectedRow = updated.rows.firstOrNull {
-      it.version.blMajorMinor == updated.selectedVersion?.blMajorMinor
-    }
+    val selectedRow =
+        updated.rows.firstOrNull {
+          it.version.blMajorMinor == updated.selectedVersion?.blMajorMinor
+        }
     val isIdle = updated.operation == null
-    state = updated.copy(
-      isTableEnabled = isIdle,
-      isInstallEnabled = isIdle && selectedRow != null && !selectedRow.isInstalled &&
-        isCompatible(selectedRow.version.blMajorMinor),
-      isDeleteEnabled = isIdle && selectedRow?.isInstalled == true,
-      isScanEnabled = isIdle,
-      isRefreshVersionCacheEnabled = isIdle,
-      isClearVersionCacheEnabled = isIdle,
-    )
+    state =
+        updated.copy(
+            isTableEnabled = isIdle,
+            isInstallEnabled = isIdle && selectedRow != null && !selectedRow.isInstalled && isCompatible(selectedRow.version.blMajorMinor),
+            isDeleteEnabled = isIdle && selectedRow?.isInstalled == true,
+            isScanEnabled = isIdle,
+            isRefreshVersionCacheEnabled = isIdle,
+            isClearVersionCacheEnabled = isIdle,
+        )
     view.render(state)
   }
 }

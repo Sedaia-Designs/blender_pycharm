@@ -33,14 +33,15 @@ internal object BlenderStubDependencyFileUpdater {
       val section = content.substring(sectionStart, sectionEnd)
       val existingDevGroups = devGroupPattern.findAll(section).toList()
       if (existingDevGroups.isNotEmpty()) {
-        val retainedRequirements = existingDevGroups.asSequence()
-          .flatMap { match -> quotedRequirementPattern.findAll(match.groupValues[1]) }
-          .map { it.groupValues[1] }
-          .filterNot { it.startsWith("fake-bpy-module-") }
-          .distinct()
-          .toList()
-        val requirements = (listOf(targetRequirement) + retainedRequirements)
-          .joinToString(", ") { requirement -> "\"$requirement\"" }
+        val retainedRequirements =
+            existingDevGroups
+                .asSequence()
+                .flatMap { match -> quotedRequirementPattern.findAll(match.groupValues[1]) }
+                .map { it.groupValues[1] }
+                .filterNot { it.startsWith("fake-bpy-module-") }
+                .distinct()
+                .toList()
+        val requirements = (listOf(targetRequirement) + retainedRequirements).joinToString(", ") { requirement -> "\"$requirement\"" }
         val updatedSection = StringBuilder(section)
         existingDevGroups.asReversed().forEachIndexed { reversedIndex, match ->
           val replacement = if (reversedIndex == existingDevGroups.lastIndex) "dev = [$requirements]" else ""

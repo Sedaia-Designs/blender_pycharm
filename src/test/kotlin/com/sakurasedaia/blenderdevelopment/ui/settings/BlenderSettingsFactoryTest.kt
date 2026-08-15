@@ -32,9 +32,10 @@ internal class BlenderSettingsFactoryTest : BasePlatformTestCase() {
   }
 
   fun testApplyAndResetDelegateToFeatureComponent() {
-    val config = PluginConfig.getInstance().apply {
-      setBlenderInstallPath("/original/blender")
-    }
+    val config =
+        PluginConfig.getInstance().apply {
+          setBlenderInstallPath("/original/blender")
+        }
     val factory = BlenderSettingsFactory()
     val component = factory.createComponent()
     val blenderPath = pathFields(component).first()
@@ -63,10 +64,10 @@ internal class BlenderSettingsFactoryTest : BasePlatformTestCase() {
   }
 
   private fun pathFields(component: JComponent): List<TextFieldWithBrowseButton> =
-    descendantsOf(component).filterIsInstance<TextFieldWithBrowseButton>()
+      descendantsOf(component).filterIsInstance<TextFieldWithBrowseButton>()
 
   private fun descendantsOf(container: Container): List<java.awt.Component> =
-    container.components.flatMap { child ->
-      listOf(child) + if (child is Container) descendantsOf(child) else emptyList()
-    }
+      container.components.flatMap { child ->
+        listOf(child) + if (child is Container) descendantsOf(child) else emptyList()
+      }
 }

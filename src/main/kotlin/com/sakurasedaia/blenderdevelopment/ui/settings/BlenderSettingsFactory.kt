@@ -31,9 +31,11 @@ class BlenderSettingsFactory : SearchableConfigurable, Configurable.NoScroll {
   override fun getDisplayName(): String = MessageBundle.message("ui.settings.title")
 
   override fun createComponent(): JComponent {
-    val component = settingsComponent ?: BlenderSettingsComponent().also {
-      settingsComponent = it
-    }
+    val component =
+        settingsComponent
+            ?: BlenderSettingsComponent().also {
+              settingsComponent = it
+            }
     component.reset()
     return component.component()
   }

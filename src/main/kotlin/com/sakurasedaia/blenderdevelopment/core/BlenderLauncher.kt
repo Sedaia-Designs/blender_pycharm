@@ -29,10 +29,10 @@ import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 
 /** Describes one transparent invocation of the configured Blender executable. */
 internal data class BlenderLaunchRequest(
-  val blenderPath: String = "",
-  val arguments: List<String> = emptyList(),
-  val environment: Map<String, String> = emptyMap(),
-  val workingDirectory: String? = null,
+    val blenderPath: String = "",
+    val arguments: List<String> = emptyList(),
+    val environment: Map<String, String> = emptyMap(),
+    val workingDirectory: String? = null,
 )
 
 /** Starts Blender processes without adding a Python script or another launch mode. */
@@ -44,19 +44,21 @@ internal class BlenderLauncher(private val project: Project) {
   /**
    * Launches a Blender process using the specified launch request.
    *
-   * @param request The request containing the Blender executable path, arguments, environment variables,
-   * and optionally the working directory for the process.
+   * @param request The request containing the Blender executable path, arguments, environment variables, and optionally the working
+   *   directory for the process.
    * @return The process handler managing the launched Blender process.
    */
   fun start(request: BlenderLaunchRequest): OSProcessHandler {
     val blenderPath = resolveBlenderPath(request.blenderPath)
-    val processHandler = ExternalProcessBuilder(project).startProcessHandler(
-      command = blenderPath,
-      args = request.arguments,
-      workDirectory = request.workingDirectory ?: project.basePath,
-      environment = buildEnvironment(request.environment),
-      internalBinary = resolveMacInternalBinary(blenderPath),
-    )
+    val processHandler =
+        ExternalProcessBuilder(project)
+            .startProcessHandler(
+                command = blenderPath,
+                args = request.arguments,
+                workDirectory = request.workingDirectory ?: project.basePath,
+                environment = buildEnvironment(request.environment),
+                internalBinary = resolveMacInternalBinary(blenderPath),
+            )
     ProcessTerminatedListener.attach(processHandler)
     return processHandler
   }
@@ -70,15 +72,9 @@ internal class BlenderLauncher(private val project: Project) {
   }
 
   private fun buildEnvironment(overrides: Map<String, String>): Map<String, String> {
-    val environment = pluginConfig.getGlobalEnvironmentVariables()
-      .filterKeys(String::isNotBlank)
-      .filterValues(String::isNotBlank)
-      .toMutableMap()
-    environment.putAll(
-      projectConfig.getEnvironmentVariables()
-        .filterKeys(String::isNotBlank)
-        .filterValues(String::isNotBlank)
-    )
+    val environment =
+        pluginConfig.getGlobalEnvironmentVariables().filterKeys(String::isNotBlank).filterValues(String::isNotBlank).toMutableMap()
+    environment.putAll(projectConfig.getEnvironmentVariables().filterKeys(String::isNotBlank).filterValues(String::isNotBlank))
     environment.putAll(overrides)
     return environment
   }

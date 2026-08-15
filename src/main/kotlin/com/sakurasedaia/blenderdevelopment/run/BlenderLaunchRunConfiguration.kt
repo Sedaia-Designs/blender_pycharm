@@ -17,8 +17,8 @@
 
 package com.sakurasedaia.blenderdevelopment.run
 
-import com.intellij.execution.Executor
 import com.intellij.execution.ExecutionResult
+import com.intellij.execution.Executor
 import com.intellij.execution.configurations.CommandLineState
 import com.intellij.execution.configurations.ConfigurationFactory
 import com.intellij.execution.configurations.RunConfigurationBase
@@ -26,15 +26,15 @@ import com.intellij.execution.configurations.RunProfileState
 import com.intellij.execution.configurations.RuntimeConfigurationError
 import com.intellij.execution.executors.DefaultDebugExecutor
 import com.intellij.execution.process.OSProcessHandler
-import com.intellij.execution.runners.ProgramRunner
 import com.intellij.execution.runners.ExecutionEnvironment
+import com.intellij.execution.runners.ProgramRunner
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
-import com.sakurasedaia.blenderdevelopment.core.BlenderPythonLaunchRequest
 import com.sakurasedaia.blenderdevelopment.core.BlenderDebugAttachService
+import com.sakurasedaia.blenderdevelopment.core.BlenderPythonLaunchRequest
 import com.sakurasedaia.blenderdevelopment.core.BlenderPythonLauncher
-import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
+import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import javax.swing.JComponent
 import javax.swing.JPanel
 
@@ -45,49 +45,50 @@ internal class BlenderLaunchRunConfiguration(
     name: String,
 ) : RunConfigurationBase<Any?>(project, factory, name) {
 
-    override fun getConfigurationEditor(): SettingsEditor<BlenderLaunchRunConfiguration> =
-        object : SettingsEditor<BlenderLaunchRunConfiguration>() {
-            override fun resetEditorFrom(configuration: BlenderLaunchRunConfiguration) = Unit
-            override fun applyEditorTo(configuration: BlenderLaunchRunConfiguration) = Unit
-            override fun createEditor(): JComponent = JPanel()
-        }
+  override fun getConfigurationEditor(): SettingsEditor<BlenderLaunchRunConfiguration> =
+      object : SettingsEditor<BlenderLaunchRunConfiguration>() {
+        override fun resetEditorFrom(configuration: BlenderLaunchRunConfiguration) = Unit
 
-    override fun checkConfiguration() {
-        val blenderPath = ProjectConfig.getInstance(project).getBlenderPath().trim()
-        if (blenderPath.isEmpty()) {
-            throw RuntimeConfigurationError(
-                MessageBundle.message("run.configuration.blender.error.blender.path.empty")
-            )
-        }
+        override fun applyEditorTo(configuration: BlenderLaunchRunConfiguration) = Unit
+
+        override fun createEditor(): JComponent = JPanel()
+      }
+
+  override fun checkConfiguration() {
+    val blenderPath = ProjectConfig.getInstance(project).getBlenderPath().trim()
+    if (blenderPath.isEmpty()) {
+      throw RuntimeConfigurationError(MessageBundle.message("run.configuration.blender.error.blender.path.empty"))
     }
+  }
 
-    override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState {
-        val shouldAttachDebugger = executor.id == DefaultDebugExecutor.EXECUTOR_ID
-        return object : CommandLineState(environment) {
-            override fun startProcess(): OSProcessHandler {
-                return BlenderPythonLauncher.getInstance(project).start(
-                    BlenderPythonLaunchRequest(
-                        blenderPath = ProjectConfig.getInstance(project).getBlenderPath().trim(),
-                        debugger = shouldAttachDebugger,
-                    )
+  override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState {
+    val shouldAttachDebugger = executor.id == DefaultDebugExecutor.EXECUTOR_ID
+    return object : CommandLineState(environment) {
+      override fun startProcess(): OSProcessHandler {
+        return BlenderPythonLauncher.getInstance(project)
+            .start(
+                BlenderPythonLaunchRequest(
+                    blenderPath = ProjectConfig.getInstance(project).getBlenderPath().trim(),
+                    debugger = shouldAttachDebugger,
                 )
-            }
+            )
+      }
 
-            override fun execute(executor: Executor, runner: ProgramRunner<*>): ExecutionResult {
-                val executionResult = super.execute(executor, runner)
-                if (shouldAttachDebugger) {
-                    val sessionIdentifier = executionResult.processHandler
-                        .getUserData(BlenderPythonLauncher.LAUNCH_SESSION_IDENTIFIER_KEY)
-                    if (!sessionIdentifier.isNullOrBlank()) {
-                        BlenderDebugAttachService.getInstance(project).scheduleAttach(
-                            environment = environment,
-                            executionResult = executionResult,
-                            sessionIdentifier = sessionIdentifier,
-                        )
-                    }
-                }
-                return executionResult
-            }
+      override fun execute(executor: Executor, runner: ProgramRunner<*>): ExecutionResult {
+        val executionResult = super.execute(executor, runner)
+        if (shouldAttachDebugger) {
+          val sessionIdentifier = executionResult.processHandler.getUserData(BlenderPythonLauncher.LAUNCH_SESSION_IDENTIFIER_KEY)
+          if (!sessionIdentifier.isNullOrBlank()) {
+            BlenderDebugAttachService.getInstance(project)
+                .scheduleAttach(
+                    environment = environment,
+                    executionResult = executionResult,
+                    sessionIdentifier = sessionIdentifier,
+                )
+          }
         }
+        return executionResult
+      }
     }
+  }
 }

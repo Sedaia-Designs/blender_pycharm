@@ -17,9 +17,9 @@
 
 package com.sakurasedaia.blenderdevelopment.lib.services
 
+import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
-import com.intellij.openapi.application.PathManager
 import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig
@@ -29,28 +29,30 @@ import com.sakurasedaia.blenderdevelopment.util.BlenderRuntimeResources
 
 /** Eagerly loads project workspace configuration when the IDE opens a project. */
 internal class ProjectConfigStartupLoader : ProjectActivity {
-    // TODO: Add a new step which performs a load from cache.
-    override suspend fun execute(project: Project) {
-        val pluginConfig = PluginConfig.getInstance()
-        pluginConfig.loadPluginState()
-        pluginConfig.startBlenderUpdateTimer()
-        val config = ProjectConfig.getInstance(project)
-        config.loadWorkspaceState()
-        val logger = PluginLogger.getInstance(project)
-        runCatching {
-            BlenderRuntimeResources.ensureRuntimeExtracted()
-        }.onFailure { error ->
-            logger.error(ErrorTypes.BLENDER_LAUNCH_ERROR, error)
-        }
-        runCatching {
-            BlenderBootstrapScriptCleanup.cleanupStaleScripts(
-                directory = PathManager.getScratchDir(),
-                debugLog = logger::debug,
-                warnLog = logger::warn,
-            )
-        }.onFailure { error ->
-            logger.warn(ErrorTypes.BOOTSTRAP_CLEANUP_FAILED.toString(), error)
-        }
-        logger.debug("Loaded plugin and project workspace configuration on startup.")
+  // TODO: Add a new step which performs a load from cache.
+  override suspend fun execute(project: Project) {
+    val pluginConfig = PluginConfig.getInstance()
+    pluginConfig.loadPluginState()
+    pluginConfig.startBlenderUpdateTimer()
+    val config = ProjectConfig.getInstance(project)
+    config.loadWorkspaceState()
+    val logger = PluginLogger.getInstance(project)
+    runCatching {
+      BlenderRuntimeResources.ensureRuntimeExtracted()
     }
+        .onFailure { error ->
+          logger.error(ErrorTypes.BLENDER_LAUNCH_ERROR, error)
+        }
+    runCatching {
+      BlenderBootstrapScriptCleanup.cleanupStaleScripts(
+          directory = PathManager.getScratchDir(),
+          debugLog = logger::debug,
+          warnLog = logger::warn,
+      )
+    }
+        .onFailure { error ->
+          logger.warn(ErrorTypes.BOOTSTRAP_CLEANUP_FAILED.toString(), error)
+        }
+    logger.debug("Loaded plugin and project workspace configuration on startup.")
+  }
 }

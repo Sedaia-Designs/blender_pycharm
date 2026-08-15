@@ -8,30 +8,21 @@ import javax.swing.Icon
 object IconBundle {
   private val vector: (String) -> String = { name: String -> "/images/$name.svg" }
 
-  @JvmField
-  val Blender: Icon = IconLoader.getIcon(vector("blenderGray"), IconBundle::class.java)
+  @JvmField val Blender: Icon = IconLoader.getIcon(vector("blenderGray"), IconBundle::class.java)
 
-  @JvmField
-  val BlenderColor: Icon = IconLoader.getIcon(vector("blenderColor"), IconBundle::class.java)
+  @JvmField val BlenderColor: Icon = IconLoader.getIcon(vector("blenderColor"), IconBundle::class.java)
 
-  @JvmField
-  val PythonIcon: Icon = IconLoader.getIcon(vector("pythonFile"), IconBundle::class.java)
+  @JvmField val PythonIcon: Icon = IconLoader.getIcon(vector("pythonFile"), IconBundle::class.java)
 
-  @JvmField
-  val Refresh: Icon = AllIcons.Actions.Refresh
+  @JvmField val Refresh: Icon = AllIcons.Actions.Refresh
 
-  @JvmField
-  val Install: Icon = AllIcons.Actions.Install
+  @JvmField val Install: Icon = AllIcons.Actions.Install
 
-  @JvmField
-  val Delete: Icon = AllIcons.General.Delete
+  @JvmField val Delete: Icon = AllIcons.General.Delete
 
-  @JvmField
-  val Uninstall: Icon = AllIcons.Actions.Uninstall
-  
-  @JvmField
-  val InstallStubs: Icon = AllIcons.Nodes.Library
-  
-  @JvmField
-  val Scan: Icon = AllIcons.Actions.ShortcutFilter
+  @JvmField val Uninstall: Icon = AllIcons.Actions.Uninstall
+
+  @JvmField val InstallStubs: Icon = AllIcons.Nodes.Library
+
+  @JvmField val Scan: Icon = AllIcons.Actions.ShortcutFilter
 }

@@ -24,43 +24,41 @@ import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
 import com.sakurasedaia.blenderdevelopment.stubs.BlenderStubInstallationService
+import javax.swing.JComponent
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import javax.swing.JComponent
 
 /** Creates and owns the project-lifetime boundary for Project Blender Manager. */
 class BlenderToolWindowContent(
-  project: Project,
-  onScanInstallations: (onCompleted: () -> Unit) -> Unit,
+    project: Project,
+    onScanInstallations: (onCompleted: () -> Unit) -> Unit,
 ) : Disposable {
   @Suppress("RAW_SCOPE_CREATION")
-  private val scope = CoroutineScope(
-    SupervisorJob() + Dispatchers.Default + CoroutineName("Project Blender Manager")
-  )
+  private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default + CoroutineName("Project Blender Manager"))
   private val view = BlenderToolWindowView(project)
 
   init {
     val logger = PluginLogger.getInstance(project)
     val pluginConfig = PluginConfig.getInstance()
     BlenderToolWindowController(
-      scope = scope,
-      view = view,
-      projectConfig = ProjectConfig.getInstance(project),
-      pluginConfig = pluginConfig,
-      scanInstallations = onScanInstallations,
-      installStubs = { blenderVersion ->
-        scope.launch {
-          BlenderStubInstallationService.getInstance(project).installForProject(blenderVersion)
-        }
-      },
-      reloadAddon = BlenderRuntimeCommandService.getInstance(project)::sendReloadCommand,
-      logAutosave = { fieldName ->
-        logger.debug("Autosaved `$fieldName` from Blender tool window.")
-      },
+        scope = scope,
+        view = view,
+        projectConfig = ProjectConfig.getInstance(project),
+        pluginConfig = pluginConfig,
+        scanInstallations = onScanInstallations,
+        installStubs = { blenderVersion ->
+          scope.launch {
+            BlenderStubInstallationService.getInstance(project).installForProject(blenderVersion)
+          }
+        },
+        reloadAddon = BlenderRuntimeCommandService.getInstance(project)::sendReloadCommand,
+        logAutosave = { fieldName ->
+          logger.debug("Autosaved `$fieldName` from Blender tool window.")
+        },
     )
   }
 

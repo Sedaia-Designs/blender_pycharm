@@ -30,9 +30,7 @@ import java.time.Duration
 
 internal class BlenderEditorServerServiceTest : BasePlatformTestCase() {
   private val objectMapper = ObjectMapper()
-  private val httpClient = HttpClient.newBuilder()
-    .connectTimeout(Duration.ofSeconds(2))
-    .build()
+  private val httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build()
 
   override fun runInDispatchThread(): Boolean = false
 
@@ -180,12 +178,13 @@ internal class BlenderEditorServerServiceTest : BasePlatformTestCase() {
     val session = service.prepareLaunchSession()
     val body = setupBody(session.identifier)
 
-    val response = sendSetup(
-      session,
-      body,
-      signatureFor(session, body),
-      contentType = "application/json; charset=utf-8",
-    )
+    val response =
+        sendSetup(
+            session,
+            body,
+            signatureFor(session, body),
+            contentType = "application/json; charset=utf-8",
+        )
 
     assertEquals(200, response.statusCode())
     assertNotNull(service.removeSetupPayload(session.identifier))
@@ -196,12 +195,13 @@ internal class BlenderEditorServerServiceTest : BasePlatformTestCase() {
     val session = service.prepareLaunchSession()
     val body = setupBody(session.identifier)
 
-    val response = sendSetup(
-      session,
-      body,
-      signatureFor(session, body),
-      contentType = "text/plain",
-    )
+    val response =
+        sendSetup(
+            session,
+            body,
+            signatureFor(session, body),
+            contentType = "text/plain",
+        )
 
     assertEquals(415, response.statusCode())
     assertNotNull(service.findSessionAuthKey(session.identifier))
@@ -217,11 +217,8 @@ internal class BlenderEditorServerServiceTest : BasePlatformTestCase() {
   fun testNonPostMethodIsRejectedBeforeReadingPayload() {
     val service = BlenderEditorServerService.getInstance(project)
     val session = service.prepareLaunchSession()
-    val request = HttpRequest.newBuilder()
-      .uri(URI.create("http://127.0.0.1:${session.editorPort}/"))
-      .timeout(Duration.ofSeconds(2))
-      .GET()
-      .build()
+    val request =
+        HttpRequest.newBuilder().uri(URI.create("http://127.0.0.1:${session.editorPort}/")).timeout(Duration.ofSeconds(2)).GET().build()
 
     val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
 
@@ -258,9 +255,10 @@ internal class BlenderEditorServerServiceTest : BasePlatformTestCase() {
     val service = BlenderEditorServerService.getInstance(project)
     val session = service.prepareLaunchSession()
     val body = "x".repeat(65 * 1024)
-    val publisher = HttpRequest.BodyPublishers.ofInputStream {
-      ByteArrayInputStream(body.toByteArray())
-    }
+    val publisher =
+        HttpRequest.BodyPublishers.ofInputStream {
+          ByteArrayInputStream(body.toByteArray())
+        }
 
     val response = sendSetup(session, body, signatureFor(session, body), bodyPublisher = publisher)
 
@@ -349,11 +347,12 @@ internal class BlenderEditorServerServiceTest : BasePlatformTestCase() {
   }
 
   fun testMalformedPathMappingsAreRejectedWithoutMutatingSession() {
-    val invalidMappings = listOf(
-      "not-a-list",
-      listOf(mapOf("src" to "", "load" to "/runtime")),
-      listOf(mapOf("src" to "/project")),
-    )
+    val invalidMappings =
+        listOf(
+            "not-a-list",
+            listOf(mapOf("src" to "", "load" to "/runtime")),
+            listOf(mapOf("src" to "/project")),
+        )
     invalidMappings.forEach { mappings ->
       assertRejectedSetup { session -> setupBody(session.identifier, pathMappings = mappings) }
     }
@@ -378,17 +377,18 @@ internal class BlenderEditorServerServiceTest : BasePlatformTestCase() {
   fun testCoercibleSetupFieldIsRejectedWithoutMutatingSession() {
     val service = BlenderEditorServerService.getInstance(project)
     val session = service.prepareLaunchSession()
-    val body = objectMapper.writeValueAsString(
-      mapOf(
-        "type" to "setup",
-        "identifier" to session.identifier,
-        "blenderPort" to "51234",
-        "debugpyPort" to 56_789,
-        "scriptsFolder" to "/tmp/blender/scripts",
-        "pathMappings" to emptyList<Any>(),
-        "debugProtocol" to "debugpy-dap",
-      )
-    )
+    val body =
+        objectMapper.writeValueAsString(
+            mapOf(
+                "type" to "setup",
+                "identifier" to session.identifier,
+                "blenderPort" to "51234",
+                "debugpyPort" to 56_789,
+                "scriptsFolder" to "/tmp/blender/scripts",
+                "pathMappings" to emptyList<Any>(),
+                "debugProtocol" to "debugpy-dap",
+            )
+        )
 
     val response = sendSetup(session, body, signatureFor(session, body))
 
@@ -415,14 +415,16 @@ internal class BlenderEditorServerServiceTest : BasePlatformTestCase() {
       val session = service.prepareLaunchSession()
       val body = failureBody(session.identifier, failureType, "Runtime failed: 日本語")
       val notifications = mutableListOf<Notification>()
-      project.messageBus.connect(testRootDisposable).subscribe(
-        Notifications.TOPIC,
-        object : Notifications {
-          override fun notify(notification: Notification) {
-            notifications.add(notification)
-          }
-        },
-      )
+      project.messageBus
+          .connect(testRootDisposable)
+          .subscribe(
+              Notifications.TOPIC,
+              object : Notifications {
+                override fun notify(notification: Notification) {
+                  notifications.add(notification)
+                }
+              },
+          )
 
       val response = sendSetup(session, body, signatureFor(session, body))
 
@@ -459,47 +461,46 @@ internal class BlenderEditorServerServiceTest : BasePlatformTestCase() {
   }
 
   private fun setupBody(
-    identifier: String,
-    blenderPort: Int = 51_234,
-    debugpyPort: Int = 56_789,
-    scriptsFolder: String = "/tmp/blender/scripts",
-    pathMappings: Any = listOf(mapOf("src" to "/project", "load" to "/runtime")),
-    debugProtocol: String = "debugpy-dap",
-  ): String = objectMapper.writeValueAsString(
-    setupPayload(identifier, blenderPort, debugpyPort, scriptsFolder, pathMappings, debugProtocol)
-  )
+      identifier: String,
+      blenderPort: Int = 51_234,
+      debugpyPort: Int = 56_789,
+      scriptsFolder: String = "/tmp/blender/scripts",
+      pathMappings: Any = listOf(mapOf("src" to "/project", "load" to "/runtime")),
+      debugProtocol: String = "debugpy-dap",
+  ): String =
+      objectMapper.writeValueAsString(setupPayload(identifier, blenderPort, debugpyPort, scriptsFolder, pathMappings, debugProtocol))
 
   private fun setupPayload(
-    identifier: String,
-    blenderPort: Int = 51_234,
-    debugpyPort: Int = 56_789,
-    scriptsFolder: String = "/tmp/blender/scripts",
-    pathMappings: Any = listOf(mapOf("src" to "/project", "load" to "/runtime")),
-    debugProtocol: String = "debugpy-dap",
+      identifier: String,
+      blenderPort: Int = 51_234,
+      debugpyPort: Int = 56_789,
+      scriptsFolder: String = "/tmp/blender/scripts",
+      pathMappings: Any = listOf(mapOf("src" to "/project", "load" to "/runtime")),
+      debugProtocol: String = "debugpy-dap",
   ): Map<String, Any> =
       mapOf(
-        "type" to "setup",
-        "identifier" to identifier,
-        "blenderPort" to blenderPort,
-        "debugpyPort" to debugpyPort,
-        "scriptsFolder" to scriptsFolder,
-        "pathMappings" to pathMappings,
-        "debugProtocol" to debugProtocol,
+          "type" to "setup",
+          "identifier" to identifier,
+          "blenderPort" to blenderPort,
+          "debugpyPort" to debugpyPort,
+          "scriptsFolder" to scriptsFolder,
+          "pathMappings" to pathMappings,
+          "debugProtocol" to debugProtocol,
       )
 
   private fun failureBody(
-    identifier: String,
-    type: String = "bootstrapFailure",
-    message: String = "Runtime bootstrap failed",
+      identifier: String,
+      type: String = "bootstrapFailure",
+      message: String = "Runtime bootstrap failed",
   ): String =
-    objectMapper.writeValueAsString(
-      mapOf(
-        "type" to type,
-        "identifier" to identifier,
-        "message" to message,
-        "details" to "Test failure details",
+      objectMapper.writeValueAsString(
+          mapOf(
+              "type" to type,
+              "identifier" to identifier,
+              "message" to message,
+              "details" to "Test failure details",
+          )
       )
-    )
 
   private fun setupBodyAtSize(identifier: String, targetSize: Int): String {
     val payload = setupPayload(identifier).toMutableMap()
@@ -521,8 +522,8 @@ internal class BlenderEditorServerServiceTest : BasePlatformTestCase() {
   }
 
   private fun assertRejectedSetup(
-    expectedStatus: Int,
-    request: (BlenderRuntimeLaunchSession, String) -> HttpResponse<String>,
+      expectedStatus: Int,
+      request: (BlenderRuntimeLaunchSession, String) -> HttpResponse<String>,
   ) {
     val service = BlenderEditorServerService.getInstance(project)
     val session = service.prepareLaunchSession()
@@ -557,19 +558,20 @@ internal class BlenderEditorServerServiceTest : BasePlatformTestCase() {
   }
 
   private fun signatureFor(session: BlenderRuntimeLaunchSession, body: String): String =
-    BlenderAuthentication.notarizeMessage(BlenderAuthentication.decode(session.encodedAuthKey), body)
+      BlenderAuthentication.notarizeMessage(BlenderAuthentication.decode(session.encodedAuthKey), body)
 
   private fun sendSetup(
-    session: BlenderRuntimeLaunchSession,
-    body: String,
-    signature: String?,
-    contentType: String? = "application/json",
-    bodyPublisher: HttpRequest.BodyPublisher = HttpRequest.BodyPublishers.ofString(body),
+      session: BlenderRuntimeLaunchSession,
+      body: String,
+      signature: String?,
+      contentType: String? = "application/json",
+      bodyPublisher: HttpRequest.BodyPublisher = HttpRequest.BodyPublishers.ofString(body),
   ): HttpResponse<String> {
-    val requestBuilder = HttpRequest.newBuilder()
-      .uri(URI.create("http://127.0.0.1:${session.editorPort}/"))
-      .timeout(Duration.ofSeconds(2))
-      .POST(bodyPublisher)
+    val requestBuilder =
+        HttpRequest.newBuilder()
+            .uri(URI.create("http://127.0.0.1:${session.editorPort}/"))
+            .timeout(Duration.ofSeconds(2))
+            .POST(bodyPublisher)
     if (contentType != null) {
       requestBuilder.header("Content-Type", contentType)
     }

@@ -76,16 +76,17 @@ class BlenderVersionsTest {
   @Test
   fun downloadUrlMatchesCurrentHostArtifactName() {
     val systemInfo = SystemInfo.getSysInfo
-    val compatibleVersion = BlenderVersion(
-      installName = "Blender 9.8.7",
-      blVersionList = listOf(9, 8, 7),
-      compatWithOs = mapOf(systemInfo.osName to listOf(systemInfo.osArch)),
-    )
+    val compatibleVersion =
+        BlenderVersion(
+            installName = "Blender 9.8.7",
+            blVersionList = listOf(9, 8, 7),
+            compatWithOs = mapOf(systemInfo.osName to listOf(systemInfo.osArch)),
+        )
 
     assertEquals(
-      "https://download.blender.org/release/Blender9.8/" +
-        "blender-9.8.7-${systemInfo.osName}-${systemInfo.osArch}.${systemInfo.bundleFileType}",
-      compatibleVersion.getDownloadURL(),
+        "https://download.blender.org/release/Blender9.8/" +
+            "blender-9.8.7-${systemInfo.osName}-${systemInfo.osArch}.${systemInfo.bundleFileType}",
+        compatibleVersion.getDownloadURL(),
     )
   }
 

@@ -48,9 +48,7 @@ class PluginConfigTest : BasePlatformTestCase() {
   }
 
   fun testMutableFieldsRoundTrip() {
-    val installs = listOf(
-      PluginConfig.BlendInstallInfo(name = "Blender 4.5.8", version = "4.5.8", path = "/Applications/Blender.app"),
-    )
+    val installs = listOf(PluginConfig.BlendInstallInfo(name = "Blender 4.5.8", version = "4.5.8", path = "/Applications/Blender.app"))
     val env = mapOf("BLENDER_SYSTEM_SCRIPTS" to "/tmp/scripts")
 
     config.setBlenderInstallPath("/tmp/blender")
@@ -75,18 +73,19 @@ class PluginConfigTest : BasePlatformTestCase() {
   }
 
   fun testDetectedBlenderInstallsRoundTripThroughXml() {
-    val installs = listOf(
-      PluginConfig.BlendInstallInfo(
-        name = "Blender 4.5.8 (User)",
-        version = "4.5.8",
-        path = "/Applications/Blender.app",
-      ),
-      PluginConfig.BlendInstallInfo(
-        name = "Blender 4.2.12 (Custom)",
-        version = "4.2.12",
-        path = "/opt/blender 4.2",
-      ),
-    )
+    val installs =
+        listOf(
+            PluginConfig.BlendInstallInfo(
+                name = "Blender 4.5.8 (User)",
+                version = "4.5.8",
+                path = "/Applications/Blender.app",
+            ),
+            PluginConfig.BlendInstallInfo(
+                name = "Blender 4.2.12 (Custom)",
+                version = "4.2.12",
+                path = "/opt/blender 4.2",
+            ),
+        )
     val original = PluginConfig.PluginState(detectedBlender = installs)
 
     val serialized = XmlSerializer.serialize(original)
@@ -94,18 +93,19 @@ class PluginConfigTest : BasePlatformTestCase() {
     val restored = XmlSerializer.deserialize(serialized, PluginConfig.PluginState::class.java)
 
     assertTrue(
-      "Installed Blender details must be persisted as XML attributes; got: $xml",
-      xml.contains("""<BlendInstallInfo name="Blender 4.5.8 (User)" version="4.5.8" path="/Applications/Blender.app" />"""),
+        "Installed Blender details must be persisted as XML attributes; got: $xml",
+        xml.contains("""<BlendInstallInfo name="Blender 4.5.8 (User)" version="4.5.8" path="/Applications/Blender.app" />"""),
     )
     assertEquals(installs, restored.detectedBlender)
   }
 
   fun testDetectedBlenderInstallCacheOwnsItsValues() {
-    val install = PluginConfig.BlendInstallInfo(
-      name = "Blender 4.5.8 (User)",
-      version = "4.5.8",
-      path = "/Applications/Blender.app",
-    )
+    val install =
+        PluginConfig.BlendInstallInfo(
+            name = "Blender 4.5.8 (User)",
+            version = "4.5.8",
+            path = "/Applications/Blender.app",
+        )
 
     config.setDetectedBlenderInstalls(listOf(install))
     install.path = "/changed/by/caller"
@@ -116,13 +116,14 @@ class PluginConfigTest : BasePlatformTestCase() {
   }
 
   fun testLoadStatePublishesDetectedBlenderInstalls() {
-    val installs = listOf(
-      PluginConfig.BlendInstallInfo(
-        name = "Blender 4.5.8 (User)",
-        version = "4.5.8",
-        path = "/Applications/Blender.app",
-      ),
-    )
+    val installs =
+        listOf(
+            PluginConfig.BlendInstallInfo(
+                name = "Blender 4.5.8 (User)",
+                version = "4.5.8",
+                path = "/Applications/Blender.app",
+            )
+        )
 
     config.loadState(PluginConfig.PluginState(detectedBlender = installs))
 
@@ -137,11 +138,11 @@ class PluginConfigTest : BasePlatformTestCase() {
 
   fun testBlenderUpdateCheckTiming() {
     config.setBlenderUpdateCheck(
-      PluginConfig.UpdateChecked(
-        interval = 2,
-        intervalType = PluginConfig.TimeUnits.HOUR,
-        lastCheckedEpochMillis = 1_000L,
-      ),
+        PluginConfig.UpdateChecked(
+            interval = 2,
+            intervalType = PluginConfig.TimeUnits.HOUR,
+            lastCheckedEpochMillis = 1_000L,
+        )
     )
 
     assertFalse(config.isBlenderUpdateCheckDue(1_000L + 7_199_999L))
@@ -160,11 +161,11 @@ class PluginConfigTest : BasePlatformTestCase() {
     val cache = BlenderVersionCache.getInstance()
     cache.clear()
     config.setBlenderUpdateCheck(
-      PluginConfig.UpdateChecked(
-        interval = 1,
-        intervalType = PluginConfig.TimeUnits.WEEK,
-        lastCheckedEpochMillis = 1_000L,
-      ),
+        PluginConfig.UpdateChecked(
+            interval = 1,
+            intervalType = PluginConfig.TimeUnits.WEEK,
+            lastCheckedEpochMillis = 1_000L,
+        )
     )
 
     assertEquals(0L, config.millisUntilNextBlenderVersionRefresh(2_000L))

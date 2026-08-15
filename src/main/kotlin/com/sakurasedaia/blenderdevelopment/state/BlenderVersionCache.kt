@@ -18,8 +18,8 @@
 package com.sakurasedaia.blenderdevelopment.state
 
 import com.intellij.configurationStore.Property
-import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.SerializablePersistentStateComponent
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.openapi.components.service
@@ -29,20 +29,19 @@ import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
 /** Persistent application-level cache of Blender versions discovered online. */
 @Service(Service.Level.APP)
 @State(name = "BlenderVersionCache", storages = [Storage("blender-version-cache.xml")])
-internal class BlenderVersionCache :
-  SerializablePersistentStateComponent<BlenderVersionCacheState>(BlenderVersionCacheState()) {
+internal class BlenderVersionCache : SerializablePersistentStateComponent<BlenderVersionCacheState>(BlenderVersionCacheState()) {
 
-  internal fun getVersionTable(): List<BlenderVersion> =
-    BlenderVersions.mergeDiscoveredVersions(state.versions.mapNotNull(::parseVersion))
+  internal fun getVersionTable(): List<BlenderVersion> = BlenderVersions.mergeDiscoveredVersions(state.versions.mapNotNull(::parseVersion))
 
   internal fun hasCachedVersions(): Boolean = state.versions.any { parseVersion(it) != null }
 
   internal fun cacheDiscoveredVersions(discoveredVersions: List<List<Int>>) {
-    val versions = discoveredVersions
-      .filter { it.size == 3 }
-      .groupBy { BlenderVersions.normalizeVersionFromList(it) }
-      .map { (_, patches) -> patches.maxWith(compareBy({ it[0] }, { it[1] }, { it[2] })) }
-      .map { it.joinToString(".") }
+    val versions =
+        discoveredVersions
+            .filter { it.size == 3 }
+            .groupBy { BlenderVersions.normalizeVersionFromList(it) }
+            .map { (_, patches) -> patches.maxWith(compareBy({ it[0] }, { it[1] }, { it[2] })) }
+            .map { it.joinToString(".") }
 
     updateState { it.copy(versions = versions) }
   }
@@ -62,6 +61,4 @@ internal class BlenderVersionCache :
   }
 }
 
-internal data class BlenderVersionCacheState(
-  @JvmField @Property val versions: List<String> = emptyList(),
-)
+internal data class BlenderVersionCacheState(@JvmField @Property val versions: List<String> = emptyList())

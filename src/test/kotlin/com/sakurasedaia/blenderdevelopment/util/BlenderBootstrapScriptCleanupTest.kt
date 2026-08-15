@@ -17,15 +17,15 @@
 
 package com.sakurasedaia.blenderdevelopment.util
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.FileTime
 import java.time.Instant
 import java.util.Comparator
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
 
 class BlenderBootstrapScriptCleanupTest {
   @Test
@@ -50,9 +50,9 @@ class BlenderBootstrapScriptCleanupTest {
       val debugLogs = mutableListOf<String>()
       val warnLogs = mutableListOf<String>()
       BlenderBootstrapScriptCleanup.cleanupScript(
-        path = scriptPath,
-        debugLog = { debugLogs.add(it) },
-        warnLog = { message, _ -> warnLogs.add(message) },
+          path = scriptPath,
+          debugLog = { debugLogs.add(it) },
+          warnLog = { message, _ -> warnLogs.add(message) },
       )
 
       assertFalse(Files.exists(scriptPath))
@@ -85,9 +85,9 @@ class BlenderBootstrapScriptCleanupTest {
       val debugLogs = mutableListOf<String>()
       val warnLogs = mutableListOf<String>()
       BlenderBootstrapScriptCleanup.cleanupStaleScripts(
-        directory = tempDir,
-        debugLog = { debugLogs.add(it) },
-        warnLog = { message, _ -> warnLogs.add(message) },
+          directory = tempDir,
+          debugLog = { debugLogs.add(it) },
+          warnLog = { message, _ -> warnLogs.add(message) },
       )
 
       assertFalse(Files.exists(staleManaged))

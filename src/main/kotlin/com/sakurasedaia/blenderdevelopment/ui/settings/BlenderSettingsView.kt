@@ -13,70 +13,56 @@ import com.sakurasedaia.blenderdevelopment.ui.settings.versions.BlenderVersionMa
 import javax.swing.JComponent
 import javax.swing.ScrollPaneConstants
 
-internal class BlenderSettingsView(
-  private val versionManagementView: BlenderVersionManagementView,
-) {
+internal class BlenderSettingsView(private val versionManagementView: BlenderVersionManagementView) {
   private val blenderInstallPath = folderField()
   private val codeCompletionPath = folderField()
   private val logPath = folderField()
   private val downloadPath = TextFieldWithBrowseButton()
-  private val clearDownloadsAfterInstall = JBCheckBox(
-    MessageBundle.message("ui.settings.group.download.clear-after-install"),
-  )
+  private val clearDownloadsAfterInstall = JBCheckBox(MessageBundle.message("ui.settings.group.download.clear-after-install"))
   private val globalEnvironmentVariables = EnvironmentVariablesTable()
 
   private val root = panel {
     group(MessageBundle.message("ui.settings.group.filepaths.title")) {
       row {
-        cell(blenderInstallPath)
-          .comment(MessageBundle.message("ui.settings.group.blender.comment"))
-          .align(AlignX.FILL)
+        cell(blenderInstallPath).comment(MessageBundle.message("ui.settings.group.blender.comment")).align(AlignX.FILL)
       }
       row {
-        cell(codeCompletionPath)
-          .comment(MessageBundle.message("ui.settings.group.code-completion.comment"))
-          .align(AlignX.FILL)
+        cell(codeCompletionPath).comment(MessageBundle.message("ui.settings.group.code-completion.comment")).align(AlignX.FILL)
       }
       row {
-        cell(logPath)
-          .comment(MessageBundle.message("ui.settings.group.log.comment"))
-          .align(AlignX.FILL)
+        cell(logPath).comment(MessageBundle.message("ui.settings.group.log.comment")).align(AlignX.FILL)
       }
       row {
-        cell(downloadPath)
-          .comment(MessageBundle.message("ui.settings.group.download.comment"))
-          .align(AlignX.FILL)
+        cell(downloadPath).comment(MessageBundle.message("ui.settings.group.download.comment")).align(AlignX.FILL)
       }
       row {
-        cell(clearDownloadsAfterInstall)
-          .align(AlignX.FILL)
+        cell(clearDownloadsAfterInstall).align(AlignX.FILL)
       }
     }
     group(MessageBundle.message("ui.settings.group.versions.title")) {
       row {
-        cell(versionManagementView.component())
-          .align(AlignX.FILL)
-          .resizableColumn()
+        cell(versionManagementView.component()).align(AlignX.FILL).resizableColumn()
       }
     }
     group(MessageBundle.message("ui.settings.group.environment.variables.title")) {
       row {
-        cell(globalEnvironmentVariables.component())
-          .align(AlignX.FILL)
-          .resizableColumn()
+        cell(globalEnvironmentVariables.component()).align(AlignX.FILL).resizableColumn()
         contextHelp(MessageBundle.message("ui.settings.group.environment.variables.comment"))
-      }.resizableRow()
+      }
+          .resizableRow()
     }
   }
 
-  private val scrollPane = JBScrollPane(
-    root,
-    ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
-    ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER,
-  ).apply {
-    border = null
-    verticalScrollBar.unitIncrement = 16
-  }
+  private val scrollPane =
+      JBScrollPane(
+              root,
+              ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+              ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER,
+          )
+          .apply {
+            border = null
+            verticalScrollBar.unitIncrement = 16
+          }
 
   fun component(): JComponent = scrollPane
 
@@ -90,19 +76,19 @@ internal class BlenderSettingsView(
     globalEnvironmentVariables.setVariables(form.globalEnvironmentVariables)
   }
 
-  fun readForm(): BlenderSettingsForm = BlenderSettingsForm(
-    blenderInstallPath = blenderInstallPath.text,
-    codeCompletionPath = codeCompletionPath.text,
-    logPath = logPath.text,
-    downloadPath = downloadPath.text,
-    clearDownloadsAfterInstall = clearDownloadsAfterInstall.isSelected,
-    minimumBlenderVersion = versionManagementView.readMinimumVersion(),
-    globalEnvironmentVariables = globalEnvironmentVariables.getVariables(),
-  )
+  fun readForm(): BlenderSettingsForm =
+      BlenderSettingsForm(
+          blenderInstallPath = blenderInstallPath.text,
+          codeCompletionPath = codeCompletionPath.text,
+          logPath = logPath.text,
+          downloadPath = downloadPath.text,
+          clearDownloadsAfterInstall = clearDownloadsAfterInstall.isSelected,
+          minimumBlenderVersion = versionManagementView.readMinimumVersion(),
+          globalEnvironmentVariables = globalEnvironmentVariables.getVariables(),
+      )
 
-  private fun folderField(): TextFieldWithBrowseButton = TextFieldWithBrowseButton().apply {
-    addBrowseFolderListener(
-      TextBrowseFolderListener(FileChooserDescriptorFactory.createSingleFolderDescriptor()),
-    )
-  }
+  private fun folderField(): TextFieldWithBrowseButton =
+      TextFieldWithBrowseButton().apply {
+        addBrowseFolderListener(TextBrowseFolderListener(FileChooserDescriptorFactory.createSingleFolderDescriptor()))
+      }
 }

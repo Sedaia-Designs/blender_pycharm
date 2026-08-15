@@ -71,8 +71,8 @@ class ProjectConfigTest : BasePlatformTestCase() {
     assertEquals("extensions_example", config.getExtensionsRepository())
     assertEquals(envVars, config.getEnvironmentVariables())
     assertEquals(
-      scriptDirectories.map { Path.of(project.basePath!!).resolve(it).normalize().toString() },
-      config.getScriptDirectories(),
+        scriptDirectories.map { Path.of(project.basePath!!).resolve(it).normalize().toString() },
+        config.getScriptDirectories(),
     )
   }
 
@@ -80,8 +80,8 @@ class ProjectConfigTest : BasePlatformTestCase() {
     config.setBlenderPath("tools/blender")
 
     assertEquals(
-      Path.of(project.basePath!!).resolve("tools/blender").normalize().toString(),
-      config.getBlenderPath(),
+        Path.of(project.basePath!!).resolve("tools/blender").normalize().toString(),
+        config.getBlenderPath(),
     )
   }
 
@@ -121,10 +121,10 @@ class ProjectConfigTest : BasePlatformTestCase() {
 
   fun testLoadStatePublishesPersistedSnapshot() {
     config.loadState(
-      ProjectConfig.ProjectState(
-        blenderPath = "/Applications/Blender 4.5.app",
-        addonSymlinkName = "loaded_addon",
-      ),
+        ProjectConfig.ProjectState(
+            blenderPath = "/Applications/Blender 4.5.app",
+            addonSymlinkName = "loaded_addon",
+        )
     )
 
     assertEquals("/Applications/Blender 4.5.app", config.stateFlow.value.blenderPath)

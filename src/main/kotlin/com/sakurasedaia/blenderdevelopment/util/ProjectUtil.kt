@@ -10,6 +10,5 @@ import com.intellij.openapi.project.ProjectManager
  */
 fun currentProject(): Project {
   val projectManager = ProjectManager.getInstance()
-  return projectManager.openProjects.firstOrNull { it.isOpen && !it.isDisposed }
-    ?: projectManager.defaultProject
+  return projectManager.openProjects.firstOrNull { it.isOpen && !it.isDisposed } ?: projectManager.defaultProject
 }

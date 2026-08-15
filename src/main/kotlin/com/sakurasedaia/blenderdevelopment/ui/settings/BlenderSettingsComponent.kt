@@ -8,24 +8,21 @@ import com.sakurasedaia.blenderdevelopment.ui.settings.versions.BlenderVersionMa
 import javax.swing.JComponent
 
 internal class BlenderSettingsComponent(
-  private val config: PluginConfig = PluginConfig.getInstance(),
-  private val operations: BlenderSettingsOperations = BlenderSettingsOperations(),
+    private val config: PluginConfig = PluginConfig.getInstance(),
+    private val operations: BlenderSettingsOperations = BlenderSettingsOperations(),
 ) : Disposable {
-  private val versionView = BlenderVersionManagementView(
-    isValidMinorVersion = PluginConfig::isValidMinorVersion,
-  )
-  private val versionController = BlenderVersionManagementController(
-    view = versionView,
-    refreshVersions = operations::refreshVersions,
-    scanInstallations = operations::scanInstallations,
-    clearVersionCache = operations::clearVersionCache,
-    installVersion = operations::installVersion,
-    deleteVersion = operations::deleteVersion,
-    lastRefreshedEpochMillis = { config.getBlenderUpdateCheck().lastCheckedEpochMillis },
-  )
-  private val view = BlenderSettingsView(
-    versionManagementView = versionView,
-  )
+  private val versionView = BlenderVersionManagementView(isValidMinorVersion = PluginConfig::isValidMinorVersion)
+  private val versionController =
+      BlenderVersionManagementController(
+          view = versionView,
+          refreshVersions = operations::refreshVersions,
+          scanInstallations = operations::scanInstallations,
+          clearVersionCache = operations::clearVersionCache,
+          installVersion = operations::installVersion,
+          deleteVersion = operations::deleteVersion,
+          lastRefreshedEpochMillis = { config.getBlenderUpdateCheck().lastCheckedEpochMillis },
+      )
+  private val view = BlenderSettingsView(versionManagementView = versionView)
   private val controller = BlenderSettingsController(view, config)
   private var isDisposed = false
 
@@ -35,9 +32,9 @@ internal class BlenderSettingsComponent(
     if (isDisposed) return
     controller.reset()
     versionController.reset(
-      versions = BlenderVersions.LIST,
-      installs = config.getDetectedBlenderInstalls(),
-      lastRefreshedEpochMillis = config.getBlenderUpdateCheck().lastCheckedEpochMillis,
+        versions = BlenderVersions.LIST,
+        installs = config.getDetectedBlenderInstalls(),
+        lastRefreshedEpochMillis = config.getBlenderUpdateCheck().lastCheckedEpochMillis,
     )
   }
 

@@ -24,14 +24,14 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.concurrency.AppExecutorUtil
+import com.sakurasedaia.blenderdevelopment.lib.BlenderManifest
 import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
-import com.sakurasedaia.blenderdevelopment.lib.BlenderManifest
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
-import java.net.URI
 import java.net.ConnectException
+import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
@@ -46,8 +46,7 @@ internal enum class BlenderRuntimeMessageType(val wireValue: String) {
   RELOAD("reload"),
   SETUP("setup"),
   DEPENDENCY_FAILURE("dependencyFailure"),
-  BOOTSTRAP_FAILURE("bootstrapFailure"),
-  ;
+  BOOTSTRAP_FAILURE("bootstrapFailure");
 
   val wireValueByteSize: Int
     get() = wireValue.toByteArray(StandardCharsets.UTF_8).size
@@ -62,16 +61,15 @@ internal enum class BlenderRuntimeMessageType(val wireValue: String) {
 /**
  * Service responsible for managing and dispatching runtime commands to the Blender application.
  *
- * This service provides functionality to interact with the Blender runtime environment, allowing
- * commands to reload addons, execute Python scripts, or stop the runtime session. It ensures
- * proper notification handling, session validation, and error reporting during the execution
- * of commands.
+ * This service provides functionality to interact with the Blender runtime environment, allowing commands to reload addons, execute Python
+ * scripts, or stop the runtime session. It ensures proper notification handling, session validation, and error reporting during the
+ * execution of commands.
  *
- * The commands dispatched by this service are typically targeted at a locally hosted Blender
- * runtime, as configured by the project settings.
+ * The commands dispatched by this service are typically targeted at a locally hosted Blender runtime, as configured by the project
+ * settings.
  *
- * @constructor Initializes the service with the associated project instance.
  * @param project The IntelliJ project instance associated with the service.
+ * @constructor Initializes the service with the associated project instance.
  */
 @Service(Service.Level.PROJECT)
 internal class BlenderRuntimeCommandService(private val project: Project) {
@@ -81,14 +79,12 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
   private val notifications = NotificationModal.getInstance(project)
   private val projectConfig = ProjectConfig.getInstance(project)
   private val editorServerService = BlenderEditorServerService.getInstance(project)
-  private val httpClient = HttpClient.newBuilder()
-    .connectTimeout(Duration.ofSeconds(4))
-    .build()
+  private val httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(4)).build()
   private val objectMapper = ObjectMapper()
 
   /**
-   * Sends a reload command to the configured addon targets for the Blender runtime.
-   * If no addon targets are found, a warning is logged and a user notification is displayed.
+   * Sends a reload command to the configured addon targets for the Blender runtime. If no addon targets are found, a warning is logged and
+   * a user notification is displayed.
    *
    * @param showSuccessNotification indicates whether to show a notification upon successful command execution. Defaults to `true`.
    */
@@ -99,82 +95,79 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
       notifications.sendWarning(MessageBundle.message("notification.blender.runtime.command.reload.source.missing"))
       return
     }
-    val payload = mapOf(
-      "names" to addonTargets.map { it.moduleName },
-      "dirs" to addonTargets.map { it.directory.toString() },
-    )
+    val payload =
+        mapOf(
+            "names" to addonTargets.map { it.moduleName },
+            "dirs" to addonTargets.map { it.directory.toString() },
+        )
     sendCommand(
-      type = BlenderRuntimeMessageType.RELOAD,
-      payload = payload,
-      onSuccessMessage = MessageBundle.message("notification.blender.runtime.command.reload.sent"),
-      showSuccessNotification = showSuccessNotification,
+        type = BlenderRuntimeMessageType.RELOAD,
+        payload = payload,
+        onSuccessMessage = MessageBundle.message("notification.blender.runtime.command.reload.sent"),
+        showSuccessNotification = showSuccessNotification,
     )
   }
 
   /**
    * Sends a command to execute a Python script in the Blender runtime.
    *
-   * This method attempts to retrieve the currently selected Python script file. If no suitable file
-   * is selected, a warning notification is displayed to the user indicating the missing script file.
+   * This method attempts to retrieve the currently selected Python script file. If no suitable file is selected, a warning notification is
+   * displayed to the user indicating the missing script file.
    *
-   * Upon locating a valid Python script, a command payload is constructed, containing the script's type
-   * and path. This payload is then dispatched to the Blender runtime for execution. A success notification
-   * is displayed if the command is sent successfully.
+   * Upon locating a valid Python script, a command payload is constructed, containing the script's type and path. This payload is then
+   * dispatched to the Blender runtime for execution. A success notification is displayed if the command is sent successfully.
    *
    * Notifications for errors or warnings are also managed internally:
    * - A warning is displayed when no Python script file is selected.
-   * - Any issues during the command's sending process, such as session or connection problems,
-   *   are logged and notified appropriately.
+   * - Any issues during the command's sending process, such as session or connection problems, are logged and notified appropriately.
    */
   fun sendRunScriptCommand() {
-    val scriptFile = selectedPythonFile() ?: run {
-      notifications.sendWarning(MessageBundle.message("notification.blender.runtime.command.script.file.missing"))
-      return
-    }
-    val payload = mapOf(
-      "path" to scriptFile.path,
-    )
+    val scriptFile =
+        selectedPythonFile()
+            ?: run {
+              notifications.sendWarning(MessageBundle.message("notification.blender.runtime.command.script.file.missing"))
+              return
+            }
+    val payload = mapOf("path" to scriptFile.path)
     sendCommand(
-      type = BlenderRuntimeMessageType.SCRIPT,
-      payload = payload,
-      onSuccessMessage = MessageBundle.message("notification.blender.runtime.command.script.sent", scriptFile.name),
+        type = BlenderRuntimeMessageType.SCRIPT,
+        payload = payload,
+        onSuccessMessage = MessageBundle.message("notification.blender.runtime.command.script.sent", scriptFile.name),
     )
   }
 
   /**
    * Sends a "stop" command to the configured Blender runtime session.
    *
-   * This method constructs a payload with the command type set to "stop" and dispatches it to the
-   * Blender runtime. The command notifies the user upon successful delivery using a localized
-   * success message.
+   * This method constructs a payload with the command type set to "stop" and dispatches it to the Blender runtime. The command notifies the
+   * user upon successful delivery using a localized success message.
    *
-   * If there are issues with the session, such as an inactive session or an invalid endpoint,
-   * the appropriate warning or error notifications are sent to the user. The command execution
-   * process is logged for debugging purposes, and any failures during the sending process
-   * are handled gracefully, including session termination if the Blender runtime becomes unreachable.
+   * If there are issues with the session, such as an inactive session or an invalid endpoint, the appropriate warning or error
+   * notifications are sent to the user. The command execution process is logged for debugging purposes, and any failures during the sending
+   * process are handled gracefully, including session termination if the Blender runtime becomes unreachable.
    */
   fun sendStopCommand() {
     sendCommand(
-      type = BlenderRuntimeMessageType.STOP,
-      onSuccessMessage = MessageBundle.message("notification.blender.runtime.command.stop.sent"),
+        type = BlenderRuntimeMessageType.STOP,
+        onSuccessMessage = MessageBundle.message("notification.blender.runtime.command.stop.sent"),
     )
   }
 
   /**
    * Checks if there is an active Blender runtime session.
    *
-   * This method verifies the existence of an active session by inspecting
-   * the latest session payload retrieved from the editor server service.
+   * This method verifies the existence of an active session by inspecting the latest session payload retrieved from the editor server
+   * service.
    *
    * @return `true` if an active session payload exists, `false` otherwise.
    */
   fun hasActiveSession(): Boolean = editorServerService.findLatestActiveSessionPayload() != null
 
   private fun sendCommand(
-    type: BlenderRuntimeMessageType,
-    payload: Map<String, Any> = emptyMap(),
-    onSuccessMessage: String,
-    showSuccessNotification: Boolean = true,
+      type: BlenderRuntimeMessageType,
+      payload: Map<String, Any> = emptyMap(),
+      onSuccessMessage: String,
+      showSuccessNotification: Boolean = true,
   ) {
     val activeSession = editorServerService.findLatestActiveSessionPayload()
     if (activeSession == null) {
@@ -184,17 +177,17 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
     }
     if (activeSession.blenderPort <= 0) {
       logger.warn(
-        ErrorTypes.RUNTIME_COMMAND_INVALID_PORT.format(
-          type.wireValue,
-          activeSession.identifier,
-          activeSession.blenderPort
-        )
+          ErrorTypes.RUNTIME_COMMAND_INVALID_PORT.format(
+              type.wireValue,
+              activeSession.identifier,
+              activeSession.blenderPort,
+          )
       )
       notifications.sendError(
-        MessageBundle.message(
-          "notification.blender.runtime.command.port.invalid",
-          activeSession.blenderPort.toString(),
-        ),
+          MessageBundle.message(
+              "notification.blender.runtime.command.port.invalid",
+              activeSession.blenderPort.toString(),
+          )
       )
       return
     }
@@ -215,57 +208,59 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
         val requestBody = objectMapper.writeValueAsString(processedRequest)
         val signature = BlenderAuthentication.notarizeMessage(authKey, requestBody)
 
-        val request = HttpRequest.newBuilder()
-          .uri(URI.create(endpoint))
-          .header("Content-Type", "application/json")
-          .header("X-Blender-PyCharm-Signature", signature)
-          .timeout(Duration.ofSeconds(8))
-          .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-          .build()
+        val request =
+            HttpRequest.newBuilder()
+                .uri(URI.create(endpoint))
+                .header("Content-Type", "application/json")
+                .header("X-Blender-PyCharm-Signature", signature)
+                .timeout(Duration.ofSeconds(8))
+                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                .build()
         httpClient.send(request, HttpResponse.BodyHandlers.ofString())
-      }.also {
-        authKey.fill(0)
-      }.onSuccess { response ->
-        if (response.statusCode() in 200 .. 299) {
-          editorServerService.markSessionActivity(activeSession.identifier)
-          if (showSuccessNotification) {
-            notifications.sendInfo(onSuccessMessage)
-          }
-          logger.debug("Sent Blender runtime command `${type.wireValue}` to session `${activeSession.identifier}`.")
-        } else {
-          logger.warn(
-            ErrorTypes.RUNTIME_COMMAND_REJECTED.format(
-              type.wireValue,
-              activeSession.identifier,
-              response.statusCode(),
-              response.body(),
-            ),
-          )
-          notifications.sendError(
-            MessageBundle.message(
-              "notification.blender.runtime.command.failed",
-              type.wireValue,
-              response.statusCode().toString(),
-            ),
-          )
-        }
-      }.onFailure { error ->
-        logger.warn(ErrorTypes.RUNTIME_COMMAND_SEND_FAILED.format(type.wireValue), error)
-        if (error is ConnectException) {
-          editorServerService.unregisterSession(activeSession.identifier)
-          notifications.sendWarning(
-            MessageBundle.message("notification.blender.runtime.command.session.unreachable"),
-          )
-          return@onFailure
-        }
-        notifications.sendError(
-          MessageBundle.message(
-            "notification.blender.runtime.command.failed.exception",
-            type.wireValue,
-            error.message ?: "",
-          ),
-        )
       }
+          .also {
+            authKey.fill(0)
+          }
+          .onSuccess { response ->
+            if (response.statusCode() in 200..299) {
+              editorServerService.markSessionActivity(activeSession.identifier)
+              if (showSuccessNotification) {
+                notifications.sendInfo(onSuccessMessage)
+              }
+              logger.debug("Sent Blender runtime command `${type.wireValue}` to session `${activeSession.identifier}`.")
+            } else {
+              logger.warn(
+                  ErrorTypes.RUNTIME_COMMAND_REJECTED.format(
+                      type.wireValue,
+                      activeSession.identifier,
+                      response.statusCode(),
+                      response.body(),
+                  )
+              )
+              notifications.sendError(
+                  MessageBundle.message(
+                      "notification.blender.runtime.command.failed",
+                      type.wireValue,
+                      response.statusCode().toString(),
+                  )
+              )
+            }
+          }
+          .onFailure { error ->
+            logger.warn(ErrorTypes.RUNTIME_COMMAND_SEND_FAILED.format(type.wireValue), error)
+            if (error is ConnectException) {
+              editorServerService.unregisterSession(activeSession.identifier)
+              notifications.sendWarning(MessageBundle.message("notification.blender.runtime.command.session.unreachable"))
+              return@onFailure
+            }
+            notifications.sendError(
+                MessageBundle.message(
+                    "notification.blender.runtime.command.failed.exception",
+                    type.wireValue,
+                    error.message ?: "",
+                )
+            )
+          }
     }
   }
 
@@ -299,18 +294,20 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
       }
     }
 
-    projectConfig.getScriptDirectories().orEmpty()
-      .asSequence()
-      .mapNotNull { resolveConfiguredPath(it) }
-      .forEach { scriptPath ->
-        val normalizedPath = scriptPath.normalize()
-        if (!targets.containsKey(normalizedPath)) {
-          val moduleName = resolveModuleNameForPath(normalizedPath, preferredName = null)
-          if (moduleName.isNotBlank()) {
-            targets[normalizedPath] = AddonTarget(normalizedPath, moduleName)
+    projectConfig
+        .getScriptDirectories()
+        .orEmpty()
+        .asSequence()
+        .mapNotNull { resolveConfiguredPath(it) }
+        .forEach { scriptPath ->
+          val normalizedPath = scriptPath.normalize()
+          if (!targets.containsKey(normalizedPath)) {
+            val moduleName = resolveModuleNameForPath(normalizedPath, preferredName = null)
+            if (moduleName.isNotBlank()) {
+              targets[normalizedPath] = AddonTarget(normalizedPath, moduleName)
+            }
           }
         }
-      }
 
     return targets.values.filter { it.directory.toFile().isDirectory }
   }
@@ -334,7 +331,9 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
   }
 
   private fun resolveModuleNameForPath(path: Path, preferredName: String?): String {
-    resolveExtensionManifestId(path)?.let { return it }
+    resolveExtensionManifestId(path)?.let {
+      return it
+    }
     if (!preferredName.isNullOrBlank()) {
       return preferredName
     }
@@ -346,9 +345,7 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
     if (!Files.isRegularFile(manifestPath)) {
       return null
     }
-    return runCatching { BlenderManifest(manifestPath.toString()).id.trim() }
-      .getOrNull()
-      ?.ifBlank { null }
+    return runCatching { BlenderManifest(manifestPath.toString()).id.trim() }.getOrNull()?.ifBlank { null }
   }
 
   companion object {

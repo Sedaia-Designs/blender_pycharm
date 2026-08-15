@@ -44,20 +44,20 @@ internal object BlenderBootstrapScriptCleanup {
     }
 
     runCatching { Files.deleteIfExists(path) }
-      .onFailure { error ->
-        warnLog(ErrorTypes.BOOTSTRAP_SCRIPT_DELETE_FAILED.format(path.toAbsolutePath()), error)
-      }
-      .onSuccess { deleted ->
-        if (deleted) {
-          debugLog("Deleted bootstrap script `${path.toAbsolutePath()}`.")
+        .onFailure { error ->
+          warnLog(ErrorTypes.BOOTSTRAP_SCRIPT_DELETE_FAILED.format(path.toAbsolutePath()), error)
         }
-      }
+        .onSuccess { deleted ->
+          if (deleted) {
+            debugLog("Deleted bootstrap script `${path.toAbsolutePath()}`.")
+          }
+        }
   }
 
   fun cleanupStaleScripts(
-    directory: Path,
-    debugLog: (String) -> Unit,
-    warnLog: (String, Throwable) -> Unit,
+      directory: Path,
+      debugLog: (String) -> Unit,
+      warnLog: (String, Throwable) -> Unit,
   ) {
     if (directory.notExists()) {
       return
@@ -66,19 +66,16 @@ internal object BlenderBootstrapScriptCleanup {
     val staleBefore = Instant.now().minus(STALE_SCRIPT_MAX_AGE)
     runCatching {
       Files.list(directory).use { entries ->
-        entries.filter { isManagedBootstrapScript(it) && isStale(it, staleBefore) }
-          .forEach { cleanupScript(it, debugLog, warnLog) }
+        entries.filter { isManagedBootstrapScript(it) && isStale(it, staleBefore) }.forEach { cleanupScript(it, debugLog, warnLog) }
       }
-    }.onFailure { error ->
-      warnLog(ErrorTypes.BOOTSTRAP_SCRIPT_SCAN_FAILED.format(directory.toAbsolutePath()), error)
     }
+        .onFailure { error ->
+          warnLog(ErrorTypes.BOOTSTRAP_SCRIPT_SCAN_FAILED.format(directory.toAbsolutePath()), error)
+        }
   }
 
   private fun isManagedBootstrapScript(path: Path): Boolean {
-    return path.isRegularFile()
-      && path.extension == SCRIPT_EXTENSION
-      && path.name.startsWith(SCRIPT_PREFIX)
-      && path.fileSize() > 0L
+    return path.isRegularFile() && path.extension == SCRIPT_EXTENSION && path.name.startsWith(SCRIPT_PREFIX) && path.fileSize() > 0L
   }
 
   private fun isStale(path: Path, staleBefore: Instant): Boolean {

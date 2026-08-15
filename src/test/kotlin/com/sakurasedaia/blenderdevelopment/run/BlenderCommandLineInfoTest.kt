@@ -23,10 +23,11 @@ import kotlinx.coroutines.runBlocking
 
 class BlenderCommandLineInfoTest : TestCase() {
   fun testExtensionCompletionReadsSelectedCommandWithoutRecursion() = runBlocking {
-    val commandLineInfo = BlenderCommandLineInfo(
-      selectedCommand = { "extension" },
-      modificationTracker = ModificationTracker.NEVER_CHANGED,
-    )
+    val commandLineInfo =
+        BlenderCommandLineInfo(
+            selectedCommand = { "extension" },
+            modificationTracker = ModificationTracker.NEVER_CHANGED,
+        )
 
     val completions = commandLineInfo.tablesInfo.flatMap { it.collectCompletionInfo() }
 
@@ -35,10 +36,11 @@ class BlenderCommandLineInfoTest : TestCase() {
   }
 
   fun testNonExtensionCommandDoesNotOfferExtensionArguments() = runBlocking {
-    val commandLineInfo = BlenderCommandLineInfo(
-      selectedCommand = { "sysinfo" },
-      modificationTracker = ModificationTracker.NEVER_CHANGED,
-    )
+    val commandLineInfo =
+        BlenderCommandLineInfo(
+            selectedCommand = { "sysinfo" },
+            modificationTracker = ModificationTracker.NEVER_CHANGED,
+        )
 
     val completions = commandLineInfo.tablesInfo.flatMap { it.collectCompletionInfo() }
 

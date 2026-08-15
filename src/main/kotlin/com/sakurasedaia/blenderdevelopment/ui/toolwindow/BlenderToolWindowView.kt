@@ -37,10 +37,10 @@ import com.sakurasedaia.blenderdevelopment.ui.components.EnvironmentVariablesTab
 import com.sakurasedaia.blenderdevelopment.ui.components.ScriptDirectoriesTable
 import com.sakurasedaia.blenderdevelopment.util.PythonModuleNameValidator
 import javax.swing.DefaultComboBoxModel
+import javax.swing.JButton
 import javax.swing.JCheckBox
 import javax.swing.JComboBox
 import javax.swing.JComponent
-import javax.swing.JButton
 import javax.swing.JScrollPane
 import javax.swing.JTextField
 import javax.swing.event.DocumentEvent
@@ -89,12 +89,13 @@ internal class BlenderToolWindowView(project: Project) {
     get() = blenderPathField.text
 
   init {
-    component = JBScrollPane(createContentPanel()).apply {
-      horizontalScrollBarPolicy = JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
-      verticalScrollBarPolicy = JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED
-      border = JBUI.Borders.empty()
-      viewportBorder = JBUI.Borders.empty()
-    }
+    component =
+        JBScrollPane(createContentPanel()).apply {
+          horizontalScrollBarPolicy = JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
+          verticalScrollBarPolicy = JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED
+          border = JBUI.Borders.empty()
+          viewportBorder = JBUI.Borders.empty()
+        }
     environmentVariablesTable.setOnChangeListener { variables ->
       emit { onEnvironmentVariablesChanged(variables) }
     }
@@ -125,106 +126,101 @@ internal class BlenderToolWindowView(project: Project) {
   private fun createContentPanel(): JComponent = panel {
     group(MessageBundle.message("ui.toolwindow.group.executable.title")) {
       row {
-        comboBox(detectedBlenderInstalls.map { it.name }.toList())
-          .align(AlignX.FILL)
-          .resizableColumn()
-          .applyToComponent {
-            availableBlenderInstalls = this
-            addActionListener {
-              syncBlenderPathFromInstallSelection()
-              updateInstallControlState()
-              emitBlenderPath()
-            }
-          }.gap(RightGap.SMALL)
-        button("") {
-          onScanInstallationsRequested()
-        }.applyToComponent {
-          icon = IconBundle.Refresh
-          toolTipText = MessageBundle.message("ui.toolwindow.group.executable.scan-for-install")
-          accessibleContext.accessibleName =
-            MessageBundle.message("ui.toolwindow.group.executable.scan-for-install")
-        }
-        button("") {
-          selectedBlenderVersion()?.let(onInstallStubsRequested)
-        }.applyToComponent {
-          installStubsButton = this
-          icon = IconBundle.InstallStubs
-          toolTipText = MessageBundle.message("ui.toolwindow.group.executable.install-stubs")
-          accessibleContext.accessibleName =
-            MessageBundle.message("ui.toolwindow.group.executable.install-stubs")
-        }
-      }.visibleIf(useCustomBlenderInstallProperty.equalsTo(false))
-      row {
-        @Suppress("UnstableApiUsage")
-        textFieldWithBrowseButton(fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileOrFolderDescriptor())
-          .align(AlignX.FILL)
-          .applyToComponent {
-            blenderPathField = this
-            addDocumentListener(textField, ::emitBlenderPath)
+            comboBox(detectedBlenderInstalls.map { it.name }.toList())
+                .align(AlignX.FILL)
+                .resizableColumn()
+                .applyToComponent {
+                  availableBlenderInstalls = this
+                  addActionListener {
+                    syncBlenderPathFromInstallSelection()
+                    updateInstallControlState()
+                    emitBlenderPath()
+                  }
+                }
+                .gap(RightGap.SMALL)
+            button("") {
+                  onScanInstallationsRequested()
+                }
+                .applyToComponent {
+                  icon = IconBundle.Refresh
+                  toolTipText = MessageBundle.message("ui.toolwindow.group.executable.scan-for-install")
+                  accessibleContext.accessibleName = MessageBundle.message("ui.toolwindow.group.executable.scan-for-install")
+                }
+            button("") {
+                  selectedBlenderVersion()?.let(onInstallStubsRequested)
+                }
+                .applyToComponent {
+                  installStubsButton = this
+                  icon = IconBundle.InstallStubs
+                  toolTipText = MessageBundle.message("ui.toolwindow.group.executable.install-stubs")
+                  accessibleContext.accessibleName = MessageBundle.message("ui.toolwindow.group.executable.install-stubs")
+                }
           }
-      }.visibleIf(useCustomBlenderInstallProperty.equalsTo(true))
+          .visibleIf(useCustomBlenderInstallProperty.equalsTo(false))
+      row {
+            @Suppress("UnstableApiUsage")
+            textFieldWithBrowseButton(fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileOrFolderDescriptor())
+                .align(AlignX.FILL)
+                .applyToComponent {
+                  blenderPathField = this
+                  addDocumentListener(textField, ::emitBlenderPath)
+                }
+          }
+          .visibleIf(useCustomBlenderInstallProperty.equalsTo(true))
       row {
         checkBox(MessageBundle.message("ui.toolwindow.group.blender.path-use-custom"))
-          .bindSelected(useCustomBlenderInstallProperty)
-          .applyToComponent {
-            useCustomBlenderInstall = this
-            addActionListener {
-              updateInstallControlState()
-              emitBlenderPath()
+            .bindSelected(useCustomBlenderInstallProperty)
+            .applyToComponent {
+              useCustomBlenderInstall = this
+              addActionListener {
+                updateInstallControlState()
+                emitBlenderPath()
+              }
             }
-          }
       }
     }
 
     group(MessageBundle.message("ui.toolwindow.group.run-and-debug.title")) {
       row(MessageBundle.message("ui.toolwindow.group.environment.addon-symlink-name")) {
         textField()
-          .align(AlignX.FILL)
-          .validationOnInput {
-            if (PythonModuleNameValidator.isValid(it.text.trim())) null
-            else error(MessageBundle.message("ui.common.python.module.name.validation"))
-          }
-          .applyToComponent {
-            addonSymlinkField = this
-            installRealtimeSymlinkNormalization(this)
-            addDocumentListener(this) { emit { onAddonSymlinkNameChanged(text) } }
-          }
+            .align(AlignX.FILL)
+            .validationOnInput {
+              if (PythonModuleNameValidator.isValid(it.text.trim())) null
+              else error(MessageBundle.message("ui.common.python.module.name.validation"))
+            }
+            .applyToComponent {
+              addonSymlinkField = this
+              installRealtimeSymlinkNormalization(this)
+              addDocumentListener(this) { emit { onAddonSymlinkNameChanged(text) } }
+            }
       }
       row(MessageBundle.message("ui.toolwindow.group.environment.source-folder")) {
-        textField()
-          .align(AlignX.FILL)
-          .applyToComponent {
-            sourceFolderField = this
-            addDocumentListener(this) { emit { onSourceFolderChanged(text) } }
-          }
+        textField().align(AlignX.FILL).applyToComponent {
+          sourceFolderField = this
+          addDocumentListener(this) { emit { onSourceFolderChanged(text) } }
+        }
       }
       row(MessageBundle.message("ui.toolwindow.group.environment.run-arguments")) {
-        textField()
-          .align(AlignX.FILL)
-          .applyToComponent {
-            runArgumentsField = this
-            addDocumentListener(this) { emit { onRunArgumentsChanged(text) } }
-          }
+        textField().align(AlignX.FILL).applyToComponent {
+          runArgumentsField = this
+          addDocumentListener(this) { emit { onRunArgumentsChanged(text) } }
+        }
       }
       row(MessageBundle.message("ui.toolwindow.group.environment.log-level")) {
-        comboBox(blenderLogLevels.map(::logLevelLabel))
-          .align(AlignX.FILL)
-          .applyToComponent {
-            blenderLogLevelCombo = this
-            addActionListener { emit { onBlenderLogLevelChanged(selectedBlenderLogLevel()) } }
-          }
+        comboBox(blenderLogLevels.map(::logLevelLabel)).align(AlignX.FILL).applyToComponent {
+          blenderLogLevelCombo = this
+          addActionListener { emit { onBlenderLogLevelChanged(selectedBlenderLogLevel()) } }
+        }
       }
       row {
-        checkBox(MessageBundle.message("ui.toolwindow.group.debugger.reload-on-save"))
-          .applyToComponent {
-            reloadOnSaveCheckBox = this
-            addActionListener { emit { onReloadOnSaveChanged(isSelected) } }
-          }
-        checkBox(MessageBundle.message("ui.toolwindow.group.debugger.just-my-code"))
-          .applyToComponent {
-            justMyCodeCheckBox = this
-            addActionListener { emit { onJustMyCodeChanged(isSelected) } }
-          }
+        checkBox(MessageBundle.message("ui.toolwindow.group.debugger.reload-on-save")).applyToComponent {
+          reloadOnSaveCheckBox = this
+          addActionListener { emit { onReloadOnSaveChanged(isSelected) } }
+        }
+        checkBox(MessageBundle.message("ui.toolwindow.group.debugger.just-my-code")).applyToComponent {
+          justMyCodeCheckBox = this
+          addActionListener { emit { onJustMyCodeChanged(isSelected) } }
+        }
       }
       row {
         button(MessageBundle.message("ui.toolwindow.group.debugger.reload")) {
@@ -238,23 +234,20 @@ internal class BlenderToolWindowView(project: Project) {
         label(MessageBundle.message("ui.toolwindow.group.environment.script-directories"))
       }
       row {
-        cell(scriptDirectoriesTable.component())
-          .align(AlignX.FILL)
-          .resizableColumn()
+        cell(scriptDirectoriesTable.component()).align(AlignX.FILL).resizableColumn()
       }
       row {
         label(MessageBundle.message("ui.toolwindow.group.environment.title"))
         contextHelp(MessageBundle.message("ui.toolwindow.group.environment.variables.comment"))
       }
       row {
-        cell(environmentVariablesTable.component())
-          .align(AlignX.FILL)
-          .resizableColumn()
+        cell(environmentVariablesTable.component()).align(AlignX.FILL).resizableColumn()
       }
     }
-  }.apply {
-    border = JBUI.Borders.empty(8, 10)
   }
+      .apply {
+        border = JBUI.Borders.empty(8, 10)
+      }
 
   private fun applyBlenderInstallSelection(configuredPath: String) {
     val selectedIndex = detectedBlenderInstalls.indexOfFirst { it.path == configuredPath.trim() }
@@ -278,9 +271,12 @@ internal class BlenderToolWindowView(project: Project) {
   }
 
   private fun updateInstallModel() {
-    val displayValues = detectedBlenderInstalls.map { install ->
-      install.name.trim().ifBlank { install.path }
-    }.toTypedArray()
+    val displayValues =
+        detectedBlenderInstalls
+            .map { install ->
+              install.name.trim().ifBlank { install.path }
+            }
+            .toTypedArray()
     availableBlenderInstalls.model = DefaultComboBoxModel(displayValues)
   }
 
@@ -327,31 +323,36 @@ internal class BlenderToolWindowView(project: Project) {
   }
 
   private fun addDocumentListener(textComponent: JTextComponent, onChange: () -> Unit) {
-    textComponent.document.addDocumentListener(object : DocumentListener {
-      override fun insertUpdate(event: DocumentEvent?) = onChange()
-      override fun removeUpdate(event: DocumentEvent?) = onChange()
-      override fun changedUpdate(event: DocumentEvent?) = onChange()
-    })
+    textComponent.document.addDocumentListener(
+        object : DocumentListener {
+          override fun insertUpdate(event: DocumentEvent?) = onChange()
+
+          override fun removeUpdate(event: DocumentEvent?) = onChange()
+
+          override fun changedUpdate(event: DocumentEvent?) = onChange()
+        }
+    )
   }
 
   private fun installRealtimeSymlinkNormalization(field: JTextField) {
     val document = field.document as? AbstractDocument ?: return
-    document.documentFilter = object : DocumentFilter() {
-      override fun insertString(filterBypass: FilterBypass, offset: Int, string: String?, attributes: AttributeSet?) {
-        super.insertString(filterBypass, offset, normalize(string), attributes)
-      }
+    document.documentFilter =
+        object : DocumentFilter() {
+          override fun insertString(filterBypass: FilterBypass, offset: Int, string: String?, attributes: AttributeSet?) {
+            super.insertString(filterBypass, offset, normalize(string), attributes)
+          }
 
-      override fun replace(
-        filterBypass: FilterBypass,
-        offset: Int,
-        length: Int,
-        text: String?,
-        attributes: AttributeSet?,
-      ) {
-        super.replace(filterBypass, offset, length, normalize(text), attributes)
-      }
+          override fun replace(
+              filterBypass: FilterBypass,
+              offset: Int,
+              length: Int,
+              text: String?,
+              attributes: AttributeSet?,
+          ) {
+            super.replace(filterBypass, offset, length, normalize(text), attributes)
+          }
 
-      private fun normalize(value: String?): String? = value?.replace(' ', '_')?.replace('-', '_')
-    }
+          private fun normalize(value: String?): String? = value?.replace(' ', '_')?.replace('-', '_')
+        }
   }
 }

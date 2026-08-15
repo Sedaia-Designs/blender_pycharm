@@ -33,10 +33,10 @@ class BlenderToolWindowViewTest : BasePlatformTestCase() {
     view.render(state(blenderPath = "/Applications/Blender.app"))
 
     view.render(
-      state(
-        blenderPath = "/Applications/Blender 4.2.app",
-        installs = listOf(install(name = "Blender 4.2", path = "/Applications/Blender 4.2.app")),
-      ),
+        state(
+            blenderPath = "/Applications/Blender 4.2.app",
+            installs = listOf(install(name = "Blender 4.2", path = "/Applications/Blender 4.2.app")),
+        )
     )
 
     assertEquals("/Applications/Blender 4.2.app", view.blenderPath)
@@ -56,9 +56,7 @@ class BlenderToolWindowViewTest : BasePlatformTestCase() {
     view.onInstallStubsRequested = { requestedVersion = it }
     view.render(state(blenderPath = "/Applications/Blender.app"))
 
-    val button = descendantsOf(view.component)
-      .filterIsInstance<JButton>()
-      .single { it.toolTipText == "Install Stubs" }
+    val button = descendantsOf(view.component).filterIsInstance<JButton>().single { it.toolTipText == "Install Stubs" }
     button.doClick()
 
     assertEquals("4.5.0", requestedVersion)
@@ -67,22 +65,20 @@ class BlenderToolWindowViewTest : BasePlatformTestCase() {
   }
 
   private fun state(
-    blenderPath: String,
-    installs: List<PluginConfig.BlendInstallInfo> = listOf(
-      install(name = "Blender 4.5", path = "/Applications/Blender.app"),
-    ),
+      blenderPath: String,
+      installs: List<PluginConfig.BlendInstallInfo> = listOf(install(name = "Blender 4.5", path = "/Applications/Blender.app")),
   ): BlenderToolWindowState {
     return BlenderToolWindowState(
-      blenderPath = blenderPath,
-      detectedBlenderInstalls = installs,
-      addonSymlinkName = "example_addon",
-      sourceFolder = "src",
-      runArguments = "--background",
-      blenderLogLevel = BlenderLogLevel.DEBUG,
-      reloadOnSave = true,
-      justMyCode = true,
-      environmentVariables = mapOf("EXAMPLE" to "value"),
-      scriptDirectories = listOf("/project/scripts"),
+        blenderPath = blenderPath,
+        detectedBlenderInstalls = installs,
+        addonSymlinkName = "example_addon",
+        sourceFolder = "src",
+        runArguments = "--background",
+        blenderLogLevel = BlenderLogLevel.DEBUG,
+        reloadOnSave = true,
+        justMyCode = true,
+        environmentVariables = mapOf("EXAMPLE" to "value"),
+        scriptDirectories = listOf("/project/scripts"),
     )
   }
 
@@ -91,7 +87,7 @@ class BlenderToolWindowViewTest : BasePlatformTestCase() {
   }
 
   private fun descendantsOf(container: Container): List<java.awt.Component> =
-    container.components.flatMap { component ->
-      listOf(component) + if (component is Container) descendantsOf(component) else emptyList()
-    }
+      container.components.flatMap { component ->
+        listOf(component) + if (component is Container) descendantsOf(component) else emptyList()
+      }
 }

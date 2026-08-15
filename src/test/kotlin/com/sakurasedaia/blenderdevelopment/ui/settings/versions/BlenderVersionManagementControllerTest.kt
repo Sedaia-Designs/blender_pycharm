@@ -19,9 +19,9 @@ internal class BlenderVersionManagementControllerTest : BasePlatformTestCase() {
     val installed = BlenderVersions.LIST[2]
     val controller = controller(view, isCompatible = { it == installable.blMajorMinor })
     controller.reset(
-      versions = listOf(installable, incompatible, installed),
-      installs = listOf(installInfo(installed)),
-      lastRefreshedEpochMillis = 0,
+        versions = listOf(installable, incompatible, installed),
+        installs = listOf(installInfo(installed)),
+        lastRefreshedEpochMillis = 0,
     )
     val table = table(view)
 
@@ -42,12 +42,13 @@ internal class BlenderVersionManagementControllerTest : BasePlatformTestCase() {
     val version = BlenderVersions.LIST.first()
     var installCompletion: ((Result<Path>) -> Unit)? = null
     var refreshCount = 0
-    val controller = controller(
-      view = view,
-      refreshVersions = { refreshCount++ },
-      installVersion = { _, completion -> installCompletion = completion },
-      isCompatible = { true },
-    )
+    val controller =
+        controller(
+            view = view,
+            refreshVersions = { refreshCount++ },
+            installVersion = { _, completion -> installCompletion = completion },
+            isCompatible = { true },
+        )
     controller.reset(listOf(version), emptyList(), 0)
 
     installButton(view).doClick()
@@ -74,12 +75,13 @@ internal class BlenderVersionManagementControllerTest : BasePlatformTestCase() {
     val version = BlenderVersions.LIST.first()
     var installCompletion: ((Result<Path>) -> Unit)? = null
     var scanCompletion: ((Result<List<PluginConfig.BlendInstallInfo>>) -> Unit)? = null
-    val controller = controller(
-      view = view,
-      scanInstallations = { completion -> scanCompletion = completion },
-      installVersion = { _, completion -> installCompletion = completion },
-      isCompatible = { true },
-    )
+    val controller =
+        controller(
+            view = view,
+            scanInstallations = { completion -> scanCompletion = completion },
+            installVersion = { _, completion -> installCompletion = completion },
+            isCompatible = { true },
+        )
     controller.reset(listOf(version), emptyList(), 0)
 
     installButton(view).doClick()
@@ -87,8 +89,8 @@ internal class BlenderVersionManagementControllerTest : BasePlatformTestCase() {
 
     assertNotNull(scanCompletion)
     assertEquals(
-      MessageBundle.message("ui.settings.group.versions.status.installed", version.blVersion),
-      table(view).getValueAt(0, 2),
+        MessageBundle.message("ui.settings.group.versions.status.installed", version.blVersion),
+        table(view).getValueAt(0, 2),
     )
     assertFalse(table(view).isEnabled)
 
@@ -103,11 +105,12 @@ internal class BlenderVersionManagementControllerTest : BasePlatformTestCase() {
     val version = BlenderVersions.LIST.first()
     var deleteCompletion: ((Result<Boolean>) -> Unit)? = null
     var scanCount = 0
-    val controller = controller(
-      view = view,
-      scanInstallations = { scanCount++ },
-      deleteVersion = { _, completion -> deleteCompletion = completion },
-    )
+    val controller =
+        controller(
+            view = view,
+            scanInstallations = { scanCount++ },
+            deleteVersion = { _, completion -> deleteCompletion = completion },
+        )
     controller.reset(listOf(version), listOf(installInfo(version)), 0)
 
     deleteButton(view).doClick()
@@ -127,13 +130,14 @@ internal class BlenderVersionManagementControllerTest : BasePlatformTestCase() {
     val replacement = BlenderVersions.LIST.last()
     var refreshCompletion: ((Result<List<BlenderVersion>>) -> Unit)? = null
     var refreshCount = 0
-    val controller = controller(
-      view = view,
-      refreshVersions = { completion ->
-        refreshCount++
-        refreshCompletion = completion
-      },
-    )
+    val controller =
+        controller(
+            view = view,
+            refreshVersions = { completion ->
+              refreshCount++
+              refreshCompletion = completion
+            },
+        )
     controller.reset(listOf(original), emptyList(), 0)
 
     textButton(view, "ui.settings.group.versions.refresh.button").doClick()
@@ -158,16 +162,17 @@ internal class BlenderVersionManagementControllerTest : BasePlatformTestCase() {
     var refreshCompletion: ((Result<List<BlenderVersion>>) -> Unit)? = null
     var scanCompletion: ((Result<List<PluginConfig.BlendInstallInfo>>) -> Unit)? = null
     var clearCount = 0
-    val controller = controller(
-      view = view,
-      refreshVersions = { refreshCompletion = it },
-      scanInstallations = { scanCompletion = it },
-      clearVersionCache = {
-        clearCount++
-        Result.success(Unit)
-      },
-      lastRefreshedEpochMillis = { 1_700_000_000_000L },
-    )
+    val controller =
+        controller(
+            view = view,
+            refreshVersions = { refreshCompletion = it },
+            scanInstallations = { scanCompletion = it },
+            clearVersionCache = {
+              clearCount++
+              Result.success(Unit)
+            },
+            lastRefreshedEpochMillis = { 1_700_000_000_000L },
+        )
     controller.reset(listOf(cachedVersion), emptyList(), 0)
 
     textButton(view, "ui.settings.group.versions.refresh.button").doClick()
@@ -177,8 +182,8 @@ internal class BlenderVersionManagementControllerTest : BasePlatformTestCase() {
     scanButton(view).doClick()
     scanCompletion!!(Result.success(listOf(installInfo(builtInVersion))))
     assertEquals(
-      MessageBundle.message("ui.settings.group.versions.status.installed", builtInVersion.blVersion),
-      table(view).getValueAt(0, 2),
+        MessageBundle.message("ui.settings.group.versions.status.installed", builtInVersion.blVersion),
+        table(view).getValueAt(0, 2),
     )
 
     textButton(view, "ui.settings.group.versions.clear-cache.button").doClick()
@@ -192,13 +197,14 @@ internal class BlenderVersionManagementControllerTest : BasePlatformTestCase() {
     var refreshCompletion: ((Result<List<BlenderVersion>>) -> Unit)? = null
     var scanCompletion: ((Result<List<PluginConfig.BlendInstallInfo>>) -> Unit)? = null
     var clearResult: Result<Unit> = Result.failure(IllegalStateException("clear failed"))
-    val controller = controller(
-      view = view,
-      refreshVersions = { refreshCompletion = it },
-      scanInstallations = { scanCompletion = it },
-      clearVersionCache = { clearResult },
-      isCompatible = { true },
-    )
+    val controller =
+        controller(
+            view = view,
+            refreshVersions = { refreshCompletion = it },
+            scanInstallations = { scanCompletion = it },
+            clearVersionCache = { clearResult },
+            isCompatible = { true },
+        )
     controller.reset(listOf(version), emptyList(), 0)
 
     textButton(view, "ui.settings.group.versions.refresh.button").doClick()
@@ -224,36 +230,34 @@ internal class BlenderVersionManagementControllerTest : BasePlatformTestCase() {
   }
 
   private fun controller(
-    view: BlenderVersionManagementView,
-    refreshVersions: (((Result<List<BlenderVersion>>) -> Unit) -> Unit) = {},
-    scanInstallations: (((Result<List<PluginConfig.BlendInstallInfo>>) -> Unit) -> Unit) = {},
-    clearVersionCache: () -> Result<Unit> = { Result.success(Unit) },
-    installVersion: (BlenderVersion, (Result<Path>) -> Unit) -> Unit = { _, _ -> },
-    deleteVersion: (BlenderVersion, (Result<Boolean>) -> Unit) -> Unit = { _, _ -> },
-    lastRefreshedEpochMillis: () -> Long = { 0 },
-    isCompatible: (String) -> Boolean = { true },
-  ): BlenderVersionManagementController = BlenderVersionManagementController(
-    view = view,
-    refreshVersions = refreshVersions,
-    scanInstallations = scanInstallations,
-    clearVersionCache = clearVersionCache,
-    installVersion = installVersion,
-    deleteVersion = deleteVersion,
-    lastRefreshedEpochMillis = lastRefreshedEpochMillis,
-    isCompatible = isCompatible,
-  )
+      view: BlenderVersionManagementView,
+      refreshVersions: (((Result<List<BlenderVersion>>) -> Unit) -> Unit) = {},
+      scanInstallations: (((Result<List<PluginConfig.BlendInstallInfo>>) -> Unit) -> Unit) = {},
+      clearVersionCache: () -> Result<Unit> = { Result.success(Unit) },
+      installVersion: (BlenderVersion, (Result<Path>) -> Unit) -> Unit = { _, _ -> },
+      deleteVersion: (BlenderVersion, (Result<Boolean>) -> Unit) -> Unit = { _, _ -> },
+      lastRefreshedEpochMillis: () -> Long = { 0 },
+      isCompatible: (String) -> Boolean = { true },
+  ): BlenderVersionManagementController =
+      BlenderVersionManagementController(
+          view = view,
+          refreshVersions = refreshVersions,
+          scanInstallations = scanInstallations,
+          clearVersionCache = clearVersionCache,
+          installVersion = installVersion,
+          deleteVersion = deleteVersion,
+          lastRefreshedEpochMillis = lastRefreshedEpochMillis,
+          isCompatible = isCompatible,
+      )
 
   private fun installInfo(version: BlenderVersion): PluginConfig.BlendInstallInfo =
-    PluginConfig.BlendInstallInfo(version = version.blVersion)
+      PluginConfig.BlendInstallInfo(version = version.blVersion)
 
-  private fun table(view: BlenderVersionManagementView): JBTable =
-    descendantsOf(view.component()).filterIsInstance<JBTable>().single()
+  private fun table(view: BlenderVersionManagementView): JBTable = descendantsOf(view.component()).filterIsInstance<JBTable>().single()
 
-  private fun installButton(view: BlenderVersionManagementView): JButton =
-    actionButton(view, "ui.settings.group.versions.install.button")
+  private fun installButton(view: BlenderVersionManagementView): JButton = actionButton(view, "ui.settings.group.versions.install.button")
 
-  private fun deleteButton(view: BlenderVersionManagementView): JButton =
-    actionButton(view, "ui.settings.group.versions.delete.button")
+  private fun deleteButton(view: BlenderVersionManagementView): JButton = actionButton(view, "ui.settings.group.versions.delete.button")
 
   private fun actionButton(view: BlenderVersionManagementView, messageKey: String): JButton {
     val actionName = MessageBundle.message(messageKey)
@@ -261,7 +265,7 @@ internal class BlenderVersionManagementControllerTest : BasePlatformTestCase() {
   }
 
   private fun scanButton(view: BlenderVersionManagementView): JButton =
-    descendantsOf(view.component()).filterIsInstance<JButton>().single { it.icon == IconBundle.Scan }
+      descendantsOf(view.component()).filterIsInstance<JButton>().single { it.icon == IconBundle.Scan }
 
   private fun textButton(view: BlenderVersionManagementView, messageKey: String): JButton {
     val buttonText = MessageBundle.message(messageKey)
@@ -269,7 +273,7 @@ internal class BlenderVersionManagementControllerTest : BasePlatformTestCase() {
   }
 
   private fun descendantsOf(container: Container): List<java.awt.Component> =
-    container.components.flatMap { component ->
-      listOf(component) + if (component is Container) descendantsOf(component) else emptyList()
-    }
+      container.components.flatMap { component ->
+        listOf(component) + if (component is Container) descendantsOf(component) else emptyList()
+      }
 }

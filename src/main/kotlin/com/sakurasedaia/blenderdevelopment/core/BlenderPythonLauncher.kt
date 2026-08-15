@@ -41,10 +41,10 @@ import java.nio.file.Path
 
 /** Describes a Blender launch that executes either a provided or generated Python script. */
 internal data class BlenderPythonLaunchRequest(
-  val blenderPath: String = "",
-  val scriptPath: Path? = null,
-  val additionalArguments: List<String> = emptyList(),
-  val debugger: Boolean = false,
+    val blenderPath: String = "",
+    val scriptPath: Path? = null,
+    val additionalArguments: List<String> = emptyList(),
+    val debugger: Boolean = false,
 )
 
 /** Orchestrates Blender Python bootstrap generation, runtime sessions, and cleanup. */
@@ -54,56 +54,61 @@ internal class BlenderPythonLauncher(private val project: Project) {
   private val notificationModal = NotificationModal.getInstance(project)
   private val projectConfig = ProjectConfig.getInstance(project)
   private val blenderLauncher = BlenderLauncher.getInstance(project)
-  
-  
+
   /** Starts Blender with an explicit `--python` launch surface. */
   fun start(request: BlenderPythonLaunchRequest): OSProcessHandler {
-    
-    val launchSession = if (request.debugger) {
-      BlenderEditorServerService.getInstance(project).prepareLaunchSession()
-    } else {
-      null
-    }
-    
-    val generatedScriptPath = when {
-      request.scriptPath != null -> null
-      request.debugger -> createScratchDebugLaunchScript()
-      else -> createScratchRuntimeSyncLaunchScript()
-    }
-    
+
+    val launchSession =
+        if (request.debugger) {
+          BlenderEditorServerService.getInstance(project).prepareLaunchSession()
+        } else {
+          null
+        }
+
+    val generatedScriptPath =
+        when {
+          request.scriptPath != null -> null
+          request.debugger -> createScratchDebugLaunchScript()
+          else -> createScratchRuntimeSyncLaunchScript()
+        }
+
     val scriptPath = request.scriptPath ?: checkNotNull(generatedScriptPath)
     val workspaceArguments = ParametersListUtil.parse(projectConfig.getRunArguments().trim())
-    val arguments = BlenderLaunchArguments.python(
-      logLevel = projectConfig.getBlenderLogLevel(),
-      workspaceArguments = workspaceArguments,
-      scriptPath = scriptPath,
-      additionalArguments = request.additionalArguments,
-    )
-    
-    val processHandler = blenderLauncher.start(
-      BlenderLaunchRequest(
-        blenderPath = request.blenderPath,
-        arguments = arguments,
-        environment = buildRuntimeEnvironment(launchSession),
-      ),
-    )
+    val arguments =
+        BlenderLaunchArguments.python(
+            logLevel = projectConfig.getBlenderLogLevel(),
+            workspaceArguments = workspaceArguments,
+            scriptPath = scriptPath,
+            additionalArguments = request.additionalArguments,
+        )
+
+    val processHandler =
+        blenderLauncher.start(
+            BlenderLaunchRequest(
+                blenderPath = request.blenderPath,
+                arguments = arguments,
+                environment = buildRuntimeEnvironment(launchSession),
+            )
+        )
 
     if (generatedScriptPath != null || launchSession != null) {
       processHandler.putUserData(LAUNCH_SESSION_IDENTIFIER_KEY, launchSession?.identifier)
-      processHandler.addProcessListener(object : ProcessListener {
-        override fun processTerminated(event: ProcessEvent) {
-          if (generatedScriptPath != null) {
-            BlenderBootstrapScriptCleanup.cleanupScript(
-              path = generatedScriptPath,
-              debugLog = logger::debug,
-              warnLog = logger::warn,
-            )
+      processHandler.addProcessListener(
+          object : ProcessListener {
+            override fun processTerminated(event: ProcessEvent) {
+              if (generatedScriptPath != null) {
+                BlenderBootstrapScriptCleanup.cleanupScript(
+                    path = generatedScriptPath,
+                    debugLog = logger::debug,
+                    warnLog = logger::warn,
+                )
+              }
+              if (launchSession != null) {
+                BlenderEditorServerService.getInstance(project).unregisterSession(launchSession.identifier)
+              }
+            }
           }
-          if (launchSession != null) {
-            BlenderEditorServerService.getInstance(project).unregisterSession(launchSession.identifier)
-          }
-        }
-      })
+      )
     }
     return processHandler
   }
@@ -120,8 +125,7 @@ internal class BlenderPythonLauncher(private val project: Project) {
 
     val configuredScriptDirectories = resolveConfiguredScriptDirectories()
     if (configuredScriptDirectories.isNotEmpty()) {
-      environment["BLENDER_PYCHARM_SCRIPT_DIRECTORIES"] = configuredScriptDirectories
-        .joinToString(separator = java.io.File.pathSeparator)
+      environment["BLENDER_PYCHARM_SCRIPT_DIRECTORIES"] = configuredScriptDirectories.joinToString(separator = java.io.File.pathSeparator)
     }
 
     if (launchSession != null) {
@@ -139,15 +143,15 @@ internal class BlenderPythonLauncher(private val project: Project) {
 
     WriteAction.run<Throwable> {
       PluginResources.createFromTemplate(
-        project = project,
-        name = scriptFileName,
-        template = "BlenderRuntimeLaunch",
-        destination = scratchDirectory,
-        internal = true,
-        "includeDirLiteral" to toPythonStringLiteral(includeDirectoryPath.toString()),
-        "projectPathLiteral" to toPythonStringLiteral(project.basePath ?: ""),
-        "sourceFolderLiteral" to toPythonStringLiteral(projectConfig.getSourceFolder()),
-        "addonSymlinkNameLiteral" to toPythonStringLiteral(projectConfig.getAddonSymlinkName()),
+          project = project,
+          name = scriptFileName,
+          template = "BlenderRuntimeLaunch",
+          destination = scratchDirectory,
+          internal = true,
+          "includeDirLiteral" to toPythonStringLiteral(includeDirectoryPath.toString()),
+          "projectPathLiteral" to toPythonStringLiteral(project.basePath ?: ""),
+          "sourceFolderLiteral" to toPythonStringLiteral(projectConfig.getSourceFolder()),
+          "addonSymlinkNameLiteral" to toPythonStringLiteral(projectConfig.getAddonSymlinkName()),
       )
     }
     return Path.of(scratchDirectory.path, scriptFileName)
@@ -160,16 +164,16 @@ internal class BlenderPythonLauncher(private val project: Project) {
 
     WriteAction.run<Throwable> {
       PluginResources.createFromTemplate(
-        project = project,
-        name = scriptFileName,
-        template = "BlenderRuntimeRepoSyncLaunch",
-        destination = scratchDirectory,
-        internal = true,
-        "includeDirLiteral" to toPythonStringLiteral(includeDirectoryPath.toString()),
-        "projectPathLiteral" to toPythonStringLiteral(project.basePath ?: ""),
-        "sourceFolderLiteral" to toPythonStringLiteral(projectConfig.getSourceFolder()),
-        "addonSymlinkNameLiteral" to toPythonStringLiteral(projectConfig.getAddonSymlinkName()),
-        "extensionsRepositoryLiteral" to toPythonStringLiteral(projectConfig.getExtensionsRepository()),
+          project = project,
+          name = scriptFileName,
+          template = "BlenderRuntimeRepoSyncLaunch",
+          destination = scratchDirectory,
+          internal = true,
+          "includeDirLiteral" to toPythonStringLiteral(includeDirectoryPath.toString()),
+          "projectPathLiteral" to toPythonStringLiteral(project.basePath ?: ""),
+          "sourceFolderLiteral" to toPythonStringLiteral(projectConfig.getSourceFolder()),
+          "addonSymlinkNameLiteral" to toPythonStringLiteral(projectConfig.getAddonSymlinkName()),
+          "extensionsRepositoryLiteral" to toPythonStringLiteral(projectConfig.getExtensionsRepository()),
       )
     }
     return Path.of(scratchDirectory.path, scriptFileName)
@@ -182,12 +186,12 @@ internal class BlenderPythonLauncher(private val project: Project) {
     }
     Files.createDirectories(scratchDirectoryPath)
     return LocalFileSystem.getInstance().refreshAndFindFileByNioFile(scratchDirectoryPath)
-      ?: throw IllegalStateException(
-        MessageBundle.message(
-          "run.configuration.blender.error.scratch.directory.missing",
-          scratchDirectoryPath.toString(),
+        ?: throw IllegalStateException(
+            MessageBundle.message(
+                "run.configuration.blender.error.scratch.directory.missing",
+                scratchDirectoryPath.toString(),
+            )
         )
-      )
   }
 
   private fun toPythonStringLiteral(value: String): String {
@@ -218,27 +222,28 @@ internal class BlenderPythonLauncher(private val project: Project) {
 
   private fun resolveConfiguredScriptDirectories(): List<String> {
     val basePath = project.basePath
-    return projectConfig.getScriptDirectories().orEmpty()
-      .asSequence()
-      .map(String::trim)
-      .filter(String::isNotBlank)
-      .mapNotNull { configuredPath ->
-        val path = Path.of(configuredPath)
-        when {
-          path.isAbsolute -> path.normalize()
-          basePath != null -> Path.of(basePath).resolve(path).normalize()
-          else -> null
+    return projectConfig
+        .getScriptDirectories()
+        .orEmpty()
+        .asSequence()
+        .map(String::trim)
+        .filter(String::isNotBlank)
+        .mapNotNull { configuredPath ->
+          val path = Path.of(configuredPath)
+          when {
+            path.isAbsolute -> path.normalize()
+            basePath != null -> Path.of(basePath).resolve(path).normalize()
+            else -> null
+          }
         }
-      }
-      .map(Path::toString)
-      .distinct()
-      .toList()
+        .map(Path::toString)
+        .distinct()
+        .toList()
   }
 
   companion object {
     /** Process-handler key containing the editor-server launch session identifier. */
-    val LAUNCH_SESSION_IDENTIFIER_KEY: Key<String> =
-      Key.create("com.sakurasedaia.blenderdevelopment.runtime.launchSessionIdentifier")
+    val LAUNCH_SESSION_IDENTIFIER_KEY: Key<String> = Key.create("com.sakurasedaia.blenderdevelopment.runtime.launchSessionIdentifier")
 
     /** Returns the project-scoped Blender Python launcher. */
     fun getInstance(project: Project): BlenderPythonLauncher = project.service()

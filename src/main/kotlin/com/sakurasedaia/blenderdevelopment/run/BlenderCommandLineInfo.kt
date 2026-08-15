@@ -27,8 +27,8 @@ import javax.swing.Icon
 
 /** Supplies arguments accepted by the selected Blender command to the command-line editor. */
 internal class BlenderCommandLineInfo(
-  selectedCommand: () -> String,
-  modificationTracker: ModificationTracker,
+    selectedCommand: () -> String,
+    modificationTracker: ModificationTracker,
 ) : CommandLineInfo {
   override val settingsId: String = "blender.command.line.fragment"
   override val settingsName: String = MessageBundle.message("run.configuration.blender.command.line.name")
@@ -36,20 +36,22 @@ internal class BlenderCommandLineInfo(
   override val dialogTitle: String = MessageBundle.message("run.configuration.blender.command.line.dialog.title")
   override val dialogTooltip: String = MessageBundle.message("run.configuration.blender.command.line.dialog.tooltip")
   override val fieldEmptyState: String = MessageBundle.message("run.configuration.blender.command.line.empty")
-  override val tablesInfo: List<CompletionTableInfo> = listOf(
-    ExtensionSubcommandsCompletionTable(selectedCommand, modificationTracker),
-    OptionsCompletionTable(selectedCommand, modificationTracker),
-  )
+  override val tablesInfo: List<CompletionTableInfo> =
+      listOf(
+          ExtensionSubcommandsCompletionTable(selectedCommand, modificationTracker),
+          OptionsCompletionTable(selectedCommand, modificationTracker),
+      )
 
   private class ExtensionSubcommandsCompletionTable(
-    selectedCommand: () -> String,
-    modificationTracker: ModificationTracker,
-  ) : BlenderCompletionTable(
-    emptyStateKey = "run.configuration.blender.command.completion.subcommands.empty",
-    columnNameKey = "run.configuration.blender.command.completion.subcommand.column",
-    selectedCommandProvider = selectedCommand,
-    modificationTracker = modificationTracker,
-  ) {
+      selectedCommand: () -> String,
+      modificationTracker: ModificationTracker,
+  ) :
+      BlenderCompletionTable(
+          emptyStateKey = "run.configuration.blender.command.completion.subcommands.empty",
+          columnNameKey = "run.configuration.blender.command.completion.subcommand.column",
+          selectedCommandProvider = selectedCommand,
+          modificationTracker = modificationTracker,
+      ) {
     override fun entries(): List<TextCompletionInfo> {
       if (selectedCommand() != "extension") return emptyList()
       return BlenderCommandCatalog.extensionSubcommands.map { subcommand ->
@@ -59,38 +61,38 @@ internal class BlenderCommandLineInfo(
   }
 
   private class OptionsCompletionTable(
-    selectedCommand: () -> String,
-    modificationTracker: ModificationTracker,
-  ) : BlenderCompletionTable(
-    emptyStateKey = "run.configuration.blender.command.completion.options.empty",
-    columnNameKey = "run.configuration.blender.command.completion.option.column",
-    selectedCommandProvider = selectedCommand,
-    modificationTracker = modificationTracker,
-  ) {
+      selectedCommand: () -> String,
+      modificationTracker: ModificationTracker,
+  ) :
+      BlenderCompletionTable(
+          emptyStateKey = "run.configuration.blender.command.completion.options.empty",
+          columnNameKey = "run.configuration.blender.command.completion.option.column",
+          selectedCommandProvider = selectedCommand,
+          modificationTracker = modificationTracker,
+      ) {
     override fun entries(): List<TextCompletionInfo> {
       if (selectedCommand() != "extension") return emptyList()
       return BlenderCommandCatalog.extensionSubcommands
-        .flatMap { it.options }
-        .flatMap { option -> option.names }
-        .distinct()
-        .sorted()
-        .map { option -> TextCompletionInfo(option, optionDescription(option)) }
+          .flatMap { it.options }
+          .flatMap { option -> option.names }
+          .distinct()
+          .sorted()
+          .map { option -> TextCompletionInfo(option, optionDescription(option)) }
     }
   }
 }
 
 private abstract class BlenderCompletionTable(
-  emptyStateKey: String,
-  columnNameKey: String,
-  private val selectedCommandProvider: () -> String,
-  modificationTracker: ModificationTracker,
+    emptyStateKey: String,
+    columnNameKey: String,
+    private val selectedCommandProvider: () -> String,
+    modificationTracker: ModificationTracker,
 ) : CompletionTableInfo {
   override val emptyState: String = MessageBundle.message(emptyStateKey)
   override val dataColumnIcon: Icon? = null
   override val dataColumnName: String = MessageBundle.message(columnNameKey)
   override val descriptionColumnIcon: Icon? = null
-  override val descriptionColumnName: String =
-    MessageBundle.message("run.configuration.blender.command.completion.description.column")
+  override val descriptionColumnName: String = MessageBundle.message("run.configuration.blender.command.completion.description.column")
   override val completionModificationTracker: ModificationTracker = modificationTracker
 
   final override suspend fun collectCompletionInfo(): List<TextCompletionInfo> = entries()
@@ -108,7 +110,7 @@ private fun subcommandDescription(subcommand: String): String {
 
 private fun optionDescription(option: String): String {
   return MessageBundle.message(
-    "run.configuration.blender.command.completion.option",
-    option,
+      "run.configuration.blender.command.completion.option",
+      option,
   )
 }

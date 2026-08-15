@@ -55,10 +55,11 @@ class BlenderToolWindowControllerTest : BasePlatformTestCase() {
     val replacementInstall = install("Blender 4.2", "/Applications/Blender 4.2.app")
     var detectedInstallations = listOf(originalInstall)
     projectConfig.setBlenderPath(originalInstall.path)
-    val controller = createController(
-      initialInstallations = detectedInstallations,
-      detectedInstallations = { detectedInstallations },
-    )
+    val controller =
+        createController(
+            initialInstallations = detectedInstallations,
+            detectedInstallations = { detectedInstallations },
+        )
 
     detectedInstallations = listOf(replacementInstall)
     controller.scanForInstallations()
@@ -71,10 +72,11 @@ class BlenderToolWindowControllerTest : BasePlatformTestCase() {
   fun testScanPreservesCustomProjectPath() {
     val customPath = "/opt/blender-custom"
     projectConfig.setBlenderPath(customPath)
-    val controller = createController(
-      initialInstallations = listOf(install("Blender 4.5", "/Applications/Blender 4.5.app")),
-      detectedInstallations = { emptyList() },
-    )
+    val controller =
+        createController(
+            initialInstallations = listOf(install("Blender 4.5", "/Applications/Blender 4.5.app")),
+            detectedInstallations = { emptyList() },
+        )
 
     controller.scanForInstallations()
     PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
@@ -84,22 +86,22 @@ class BlenderToolWindowControllerTest : BasePlatformTestCase() {
   }
 
   private fun createController(
-    initialInstallations: List<PluginConfig.BlendInstallInfo> = pluginConfig.stateFlow.value.detectedBlenderInstalls,
-    detectedInstallations: () -> List<PluginConfig.BlendInstallInfo> = { initialInstallations },
+      initialInstallations: List<PluginConfig.BlendInstallInfo> = pluginConfig.stateFlow.value.detectedBlenderInstalls,
+      detectedInstallations: () -> List<PluginConfig.BlendInstallInfo> = { initialInstallations },
   ): BlenderToolWindowController {
     pluginConfig.setDetectedBlenderInstalls(initialInstallations)
     return BlenderToolWindowController(
-      scope = scope,
-      view = view,
-      projectConfig = projectConfig,
-      pluginConfig = pluginConfig,
-      scanInstallations = { onCompleted ->
-        pluginConfig.setDetectedBlenderInstalls(detectedInstallations())
-        onCompleted()
-      },
-      installStubs = {},
-      reloadAddon = {},
-      logAutosave = {},
+        scope = scope,
+        view = view,
+        projectConfig = projectConfig,
+        pluginConfig = pluginConfig,
+        scanInstallations = { onCompleted ->
+          pluginConfig.setDetectedBlenderInstalls(detectedInstallations())
+          onCompleted()
+        },
+        installStubs = {},
+        reloadAddon = {},
+        logAutosave = {},
     )
   }
 

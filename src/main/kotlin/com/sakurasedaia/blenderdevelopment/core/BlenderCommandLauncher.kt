@@ -25,8 +25,8 @@ import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
 
 /** Describes a Blender `--command` invocation without including the mode option itself. */
 internal data class BlenderCommandLaunchRequest(
-  val commandArguments: List<String>,
-  val blenderPath: String = "",
+    val commandArguments: List<String>,
+    val blenderPath: String = "",
 )
 
 /** Builds and starts Blender's command-line command mode. */
@@ -37,15 +37,16 @@ internal class BlenderCommandLauncher(project: Project) {
 
   /** Starts Blender with `--command` followed by the supplied command arguments. */
   fun start(request: BlenderCommandLaunchRequest): OSProcessHandler {
-    val arguments = BlenderLaunchArguments.command(
-      logLevel = projectConfig.getBlenderLogLevel(),
-      commandArguments = request.commandArguments,
-    )
+    val arguments =
+        BlenderLaunchArguments.command(
+            logLevel = projectConfig.getBlenderLogLevel(),
+            commandArguments = request.commandArguments,
+        )
     return blenderLauncher.start(
-      BlenderLaunchRequest(
-        blenderPath = request.blenderPath,
-        arguments = arguments,
-      )
+        BlenderLaunchRequest(
+            blenderPath = request.blenderPath,
+            arguments = arguments,
+        )
     )
   }
 

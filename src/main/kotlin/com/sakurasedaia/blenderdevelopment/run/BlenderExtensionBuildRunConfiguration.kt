@@ -49,33 +49,31 @@ internal enum class BlenderExtensionBuildOperation {
 
 /** Persists one Blender extension build or validation workflow. */
 internal class BlenderExtensionBuildRunConfigurationOptions : RunConfigurationOptions() {
-  @get:OptionTag("operation")
-  var operation: String? by string(BlenderExtensionBuildOperation.BUILD.name)
+  @get:OptionTag("operation") var operation: String? by string(BlenderExtensionBuildOperation.BUILD.name)
 
-  @get:OptionTag("sourcePath")
-  var sourcePath: String? by string()
+  @get:OptionTag("sourcePath") var sourcePath: String? by string()
 
-  @get:OptionTag("outputDirectory")
-  var outputDirectory: String? by string()
+  @get:OptionTag("outputDirectory") var outputDirectory: String? by string()
 }
 
 /** Converts typed extension build settings into Blender `extension` command arguments. */
 internal object BlenderExtensionBuildCommand {
   /** Builds the arguments following Blender's automatically supplied `--command` option. */
   fun arguments(
-    operation: BlenderExtensionBuildOperation,
-    sourcePath: String,
-    outputDirectory: String,
+      operation: BlenderExtensionBuildOperation,
+      sourcePath: String,
+      outputDirectory: String,
   ): List<String> {
     return when (operation) {
-      BlenderExtensionBuildOperation.BUILD -> listOf(
-        "extension",
-        "build",
-        "--source-dir",
-        sourcePath,
-        "--output-dir",
-        outputDirectory,
-      )
+      BlenderExtensionBuildOperation.BUILD ->
+          listOf(
+              "extension",
+              "build",
+              "--source-dir",
+              sourcePath,
+              "--output-dir",
+              outputDirectory,
+          )
       BlenderExtensionBuildOperation.VALIDATE -> listOf("extension", "validate", sourcePath)
     }
   }
@@ -83,15 +81,14 @@ internal object BlenderExtensionBuildCommand {
 
 /** Runs Blender extension build and validation commands from typed path settings. */
 internal class BlenderExtensionBuildRunConfiguration(
-  project: Project,
-  factory: ConfigurationFactory,
-  name: String,
+    project: Project,
+    factory: ConfigurationFactory,
+    name: String,
 ) : RunConfigurationBase<BlenderExtensionBuildRunConfigurationOptions>(project, factory, name) {
   internal var operation: BlenderExtensionBuildOperation
     get() {
       val persistedName = (options as BlenderExtensionBuildRunConfigurationOptions).operation
-      return BlenderExtensionBuildOperation.entries.firstOrNull { it.name == persistedName }
-        ?: BlenderExtensionBuildOperation.BUILD
+      return BlenderExtensionBuildOperation.entries.firstOrNull { it.name == persistedName } ?: BlenderExtensionBuildOperation.BUILD
     }
     set(value) {
       (options as BlenderExtensionBuildRunConfigurationOptions).operation = value.name
@@ -115,73 +112,69 @@ internal class BlenderExtensionBuildRunConfiguration(
 
   override fun checkConfiguration() {
     if (ProjectConfig.getInstance(project).getBlenderPath().isBlank()) {
-      throw RuntimeConfigurationError(
-        MessageBundle.message("run.configuration.blender.error.blender.path.empty")
-      )
+      throw RuntimeConfigurationError(MessageBundle.message("run.configuration.blender.error.blender.path.empty"))
     }
     if (sourcePath.isBlank()) {
-      throw RuntimeConfigurationError(
-        MessageBundle.message("run.configuration.blender.extension.build.error.source.empty")
-      )
+      throw RuntimeConfigurationError(MessageBundle.message("run.configuration.blender.extension.build.error.source.empty"))
     }
     if (operation == BlenderExtensionBuildOperation.BUILD && outputDirectory.isBlank()) {
-      throw RuntimeConfigurationError(
-        MessageBundle.message("run.configuration.blender.extension.build.error.output.empty")
-      )
+      throw RuntimeConfigurationError(MessageBundle.message("run.configuration.blender.extension.build.error.output.empty"))
     }
   }
 
   override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState {
     return object : CommandLineState(environment) {
       override fun startProcess(): OSProcessHandler {
-        return BlenderCommandLauncher.getInstance(project).start(
-          BlenderCommandLaunchRequest(
-            blenderPath = ProjectConfig.getInstance(project).getBlenderPath().trim(),
-            commandArguments = BlenderExtensionBuildCommand.arguments(
-              operation = operation,
-              sourcePath = sourcePath.trim(),
-              outputDirectory = outputDirectory.trim(),
-            ),
-          )
-        )
+        return BlenderCommandLauncher.getInstance(project)
+            .start(
+                BlenderCommandLaunchRequest(
+                    blenderPath = ProjectConfig.getInstance(project).getBlenderPath().trim(),
+                    commandArguments =
+                        BlenderExtensionBuildCommand.arguments(
+                            operation = operation,
+                            sourcePath = sourcePath.trim(),
+                            outputDirectory = outputDirectory.trim(),
+                        ),
+                )
+            )
       }
     }
   }
 }
 
 /** Edits the operation and paths for an extension build run configuration. */
-private class BlenderExtensionBuildSettingsEditor(project: Project) :
-  SettingsEditor<BlenderExtensionBuildRunConfiguration>() {
-  private val operationField = ComboBox(BlenderExtensionBuildOperation.entries.toTypedArray()).apply {
-    renderer = textListCellRenderer { operation -> operation.presentableName() }
-  }
-  private val operationLabel = JBLabel(
-    MessageBundle.message("run.configuration.blender.extension.build.operation.label")
-  ).apply {
-    labelFor = operationField
-  }
-  private val sourcePathField = TextFieldWithBrowseButton().apply {
-    addBrowseFolderListener(project, FileChooserDescriptorFactory.createSingleFileOrFolderDescriptor())
-  }
-  private val sourcePathLabel = JBLabel(
-    MessageBundle.message("run.configuration.blender.extension.build.source.label")
-  ).apply {
-    labelFor = sourcePathField.textField
-  }
-  private val outputDirectoryField = TextFieldWithBrowseButton().apply {
-    addBrowseFolderListener(project, FileChooserDescriptorFactory.createSingleFolderDescriptor())
-  }
-  private val outputDirectoryLabel = JBLabel(
-    MessageBundle.message("run.configuration.blender.extension.build.output.label")
-  ).apply {
-    labelFor = outputDirectoryField.textField
-  }
-  private val component = FormBuilder.createFormBuilder()
-    .addLabeledComponent(operationLabel, operationField, 1, false)
-    .addLabeledComponent(sourcePathLabel, sourcePathField, 1, false)
-    .addLabeledComponent(outputDirectoryLabel, outputDirectoryField, 1, false)
-    .addComponentFillVertically(javax.swing.JPanel(), 0)
-    .panel
+private class BlenderExtensionBuildSettingsEditor(project: Project) : SettingsEditor<BlenderExtensionBuildRunConfiguration>() {
+  private val operationField =
+      ComboBox(BlenderExtensionBuildOperation.entries.toTypedArray()).apply {
+        renderer = textListCellRenderer { operation -> operation.presentableName() }
+      }
+  private val operationLabel =
+      JBLabel(MessageBundle.message("run.configuration.blender.extension.build.operation.label")).apply {
+        labelFor = operationField
+      }
+  private val sourcePathField =
+      TextFieldWithBrowseButton().apply {
+        addBrowseFolderListener(project, FileChooserDescriptorFactory.createSingleFileOrFolderDescriptor())
+      }
+  private val sourcePathLabel =
+      JBLabel(MessageBundle.message("run.configuration.blender.extension.build.source.label")).apply {
+        labelFor = sourcePathField.textField
+      }
+  private val outputDirectoryField =
+      TextFieldWithBrowseButton().apply {
+        addBrowseFolderListener(project, FileChooserDescriptorFactory.createSingleFolderDescriptor())
+      }
+  private val outputDirectoryLabel =
+      JBLabel(MessageBundle.message("run.configuration.blender.extension.build.output.label")).apply {
+        labelFor = outputDirectoryField.textField
+      }
+  private val component =
+      FormBuilder.createFormBuilder()
+          .addLabeledComponent(operationLabel, operationField, 1, false)
+          .addLabeledComponent(sourcePathLabel, sourcePathField, 1, false)
+          .addLabeledComponent(outputDirectoryLabel, outputDirectoryField, 1, false)
+          .addComponentFillVertically(javax.swing.JPanel(), 0)
+          .panel
 
   init {
     operationField.addActionListener { updateOutputVisibility() }
@@ -215,9 +208,7 @@ private class BlenderExtensionBuildSettingsEditor(project: Project) :
 
 private fun BlenderExtensionBuildOperation.presentableName(): String {
   return when (this) {
-    BlenderExtensionBuildOperation.BUILD ->
-      MessageBundle.message("run.configuration.blender.extension.build.operation.build")
-    BlenderExtensionBuildOperation.VALIDATE ->
-      MessageBundle.message("run.configuration.blender.extension.build.operation.validate")
+    BlenderExtensionBuildOperation.BUILD -> MessageBundle.message("run.configuration.blender.extension.build.operation.build")
+    BlenderExtensionBuildOperation.VALIDATE -> MessageBundle.message("run.configuration.blender.extension.build.operation.validate")
   }
 }

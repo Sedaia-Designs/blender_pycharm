@@ -21,14 +21,14 @@ import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig.BlenderLogLevel
 
 internal data class BlenderToolWindowState(
-  val blenderPath: String,
-  val detectedBlenderInstalls: List<PluginConfig.BlendInstallInfo>,
-  val addonSymlinkName: String,
-  val sourceFolder: String,
-  val runArguments: String,
-  val blenderLogLevel: BlenderLogLevel,
-  val reloadOnSave: Boolean,
-  val justMyCode: Boolean,
-  val environmentVariables: Map<String, String>,
-  val scriptDirectories: List<String>,
+    val blenderPath: String,
+    val detectedBlenderInstalls: List<PluginConfig.BlendInstallInfo>,
+    val addonSymlinkName: String,
+    val sourceFolder: String,
+    val runArguments: String,
+    val blenderLogLevel: BlenderLogLevel,
+    val reloadOnSave: Boolean,
+    val justMyCode: Boolean,
+    val environmentVariables: Map<String, String>,
+    val scriptDirectories: List<String>,
 )

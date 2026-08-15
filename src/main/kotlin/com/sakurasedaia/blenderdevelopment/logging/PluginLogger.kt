@@ -38,243 +38,233 @@ import kotlin.io.path.exists
 
 /**
  * Project-level logger that mirrors messages to:
- *  - the IntelliJ platform logger (`idea.log`), respecting its level configuration, and
- *  - a plugin-specific daily file under the configured plugin log path
- *    (`PluginConfig.logPath`) using `blender_plugin_<yyyy-MM-dd>.log`.
+ * - the IntelliJ platform logger (`idea.log`), respecting its level configuration, and
+ * - a plugin-specific daily file under the configured plugin log path (`PluginConfig.logPath`) using `blender_plugin_<yyyy-MM-dd>.log`.
  *
  * File I/O is dispatched to a pooled thread and serialized to avoid interleaving and to keep the EDT responsive.
  */
 @Service(Service.Level.PROJECT)
 class PluginLogger(project: Project) {
-    private val platformLogger = Logger.getInstance(PluginLogger::class.java)
-    private val defaultLogDir: Path = Path.of(PathManager.getLogPath()).resolve("BlenderExtensions")
-    private val writeLock = Any()
+  private val platformLogger = Logger.getInstance(PluginLogger::class.java)
+  private val defaultLogDir: Path = Path.of(PathManager.getLogPath()).resolve("BlenderExtensions")
+  private val writeLock = Any()
 
-    private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-    private val timestampFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+  private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+  private val timestampFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
-    
+  /**
+   * Appends a raw line to the plugin's daily log file. Safe to call from any thread.
+   *
+   * @param message log message text.
+   * @return `Unit`.
+   */
+  fun log(message: String) {
+    val now = LocalDateTime.now()
+    val timestamp = now.format(timestampFormatter)
+    val date = now.format(dateFormatter)
+    val line = "[$timestamp] $message${System.lineSeparator()}"
+
+    // Dispatch I/O to a background thread to keep the IDE responsive.
+    ApplicationManager.getApplication().executeOnPooledThread {
+      synchronized(writeLock) {
+        val logDir = resolveLogDir()
+        try {
+          if (!logDir.exists()) logDir.createDirectories()
+          val logFile = logDir.resolve("blender_plugin_$date.log")
+          Files.write(
+              logFile,
+              line.toByteArray(StandardCharsets.UTF_8),
+              StandardOpenOption.CREATE,
+              StandardOpenOption.APPEND,
+          )
+        } catch (e: Exception) {
+          // Surface the failure via the platform logger so it is still discoverable.
+          platformLogger.warn("Failed to write to plugin log file at $logDir", e)
+        }
+      }
+    }
+  }
+
+  private fun resolveLogDir(): Path {
+    val configuredPath = PluginConfig.getInstance().state.logPath.trim()
+    if (configuredPath.isBlank()) return defaultLogDir
+
+    return try {
+      Path.of(configuredPath)
+    } catch (_: InvalidPathException) {
+      platformLogger.warn("Configured plugin log path is invalid: '$configuredPath'. Falling back to $defaultLogDir")
+      defaultLogDir
+    }
+  }
+
+  /**
+   * Writes a debug entry to both IntelliJ logs and plugin logs.
+   *
+   * @param message debug message text.
+   * @return `Unit`.
+   */
+  fun debug(message: String) {
+    platformLogger.debug(message)
+    // Always persist debug entries to the plugin's own log file; the platform logger
+    // filters its own output independently based on the IDE's debug categories.
+    log("[DEBUG] $message")
+  }
+
+  /**
+   * Writes a warning entry to both IntelliJ logs and plugin logs.
+   *
+   * @param message warning message text.
+   * @return `Unit`.
+   */
+  fun warn(message: String) {
+    platformLogger.warn(message)
+    log("[WARN] $message")
+  }
+
+  /**
+   * Writes a warning entry with stack trace details.
+   *
+   * @param message warning message text.
+   * @param throwable associated exception.
+   * @return `Unit`.
+   */
+  fun warn(message: String, throwable: Throwable) {
+    platformLogger.warn(message, throwable)
+    log("[WARN] $message: ${throwable.stackTraceToString()}")
+  }
+
+  /**
+   * Logs an error of a specified type to both IntelliJ and plugin-specific logs.
+   *
+   * @param errorType an instance of [ErrorTypes] representing the specific error to log.
+   */
+  fun error(errorType: ErrorTypes) {
+    writeError(
+        errorType = errorType,
+        message = errorType.toString(),
+        throwable = errorType.createExceptionOrNull(),
+    )
+  }
+
+  /**
+   * Logs an error of a specific type, optionally including a corresponding exception.
+   *
+   * @param errorType the type of the error, represented by an instance of [ErrorTypes].
+   * @param throwable an optional [Throwable] associated with the error. Can be `null` if no exception is available.
+   */
+  fun error(errorType: ErrorTypes, throwable: Throwable?) {
+    writeError(
+        errorType = errorType,
+        message = errorType.toString(),
+        throwable = throwable,
+    )
+  }
+
+  /**
+   * Logs an error of a specific type, optionally including additional parameters that can be used for message formatting or exception
+   * creation.
+   *
+   * @param errorType the type of the error, represented by an instance of [ErrorTypes].
+   * @param firstParameter the primary parameter for message formatting or exception creation.
+   * @param additionalParameters optional additional parameters for message formatting or exception creation.
+   */
+  fun error(
+      errorType: ErrorTypes,
+      firstParameter: Any?,
+      vararg additionalParameters: Any?,
+  ) {
+    val parameters = arrayOf(firstParameter, *additionalParameters)
+
+    writeError(
+        errorType = errorType,
+        message = errorType.format(*parameters),
+        throwable = errorType.createExceptionOrNull(*parameters),
+    )
+  }
+
+  /**
+   * Writes an error entry to both the platform logger and plugin-specific logs. Includes stack trace details if a throwable is provided.
+   *
+   * @param errorType the type of the error, represented by an instance of [ErrorTypes].
+   * @param message the error message to log.
+   * @param throwable an optional [Throwable] associated with the error. Can be `null` if no exception is available.
+   */
+  private fun writeError(
+      errorType: ErrorTypes,
+      message: String,
+      throwable: Throwable?,
+  ) {
+    if (throwable == null) {
+      platformLogger.error(message)
+    } else {
+      platformLogger.error(message, throwable)
+    }
+
+    val suffix =
+        throwable
+            ?.let {
+              ": ${it.stackTraceToString()}"
+            }
+            .orEmpty()
+
+    log("[ERROR] ${errorType.name}: $message$suffix")
+  }
+
+  companion object {
     /**
-     * Appends a raw line to the plugin's daily log file. Safe to call from any thread.
+     * Returns the logger service for the given project.
      *
+     * @param project target project.
+     * @return project-level [PluginLogger] service.
+     */
+    fun getInstance(project: Project = currentProject()): PluginLogger = project.service()
+
+    /**
+     * Convenience static wrapper for [log].
+     *
+     * @param project target project.
      * @param message log message text.
      * @return `Unit`.
      */
-    fun log(message: String) {
-        val now = LocalDateTime.now()
-        val timestamp = now.format(timestampFormatter)
-        val date = now.format(dateFormatter)
-        val line = "[$timestamp] $message${System.lineSeparator()}"
+    fun log(project: Project = currentProject(), message: String) = getInstance(project).log(message)
 
-        // Dispatch I/O to a background thread to keep the IDE responsive.
-        ApplicationManager.getApplication().executeOnPooledThread {
-            synchronized(writeLock) {
-                val logDir = resolveLogDir()
-                try {
-                    if (!logDir.exists()) logDir.createDirectories()
-                    val logFile = logDir.resolve("blender_plugin_$date.log")
-                    Files.write(
-                        logFile,
-                        line.toByteArray(StandardCharsets.UTF_8),
-                        StandardOpenOption.CREATE,
-                        StandardOpenOption.APPEND,
-                    )
-                } catch (e: Exception) {
-                    // Surface the failure via the platform logger so it is still discoverable.
-                    platformLogger.warn("Failed to write to plugin log file at $logDir", e)
-                }
-            }
-        }
-    }
-
-    private fun resolveLogDir(): Path {
-        val configuredPath = PluginConfig.getInstance().state.logPath.trim()
-        if (configuredPath.isBlank()) return defaultLogDir
-
-        return try {
-            Path.of(configuredPath)
-        } catch (_: InvalidPathException) {
-            platformLogger.warn("Configured plugin log path is invalid: '$configuredPath'. Falling back to $defaultLogDir")
-            defaultLogDir
-        }
-    }
-
-    
     /**
-     * Writes a debug entry to both IntelliJ logs and plugin logs.
+     * Convenience static wrapper for [debug].
      *
+     * @param project target project.
      * @param message debug message text.
      * @return `Unit`.
      */
-    fun debug(message: String) {
-        platformLogger.debug(message)
-        // Always persist debug entries to the plugin's own log file; the platform logger
-        // filters its own output independently based on the IDE's debug categories.
-        log("[DEBUG] $message")
-    }
+    fun debug(project: Project = currentProject(), message: String) = getInstance(project).debug(message)
 
-    
     /**
-     * Writes a warning entry to both IntelliJ logs and plugin logs.
+     * Convenience static wrapper for [warn].
      *
+     * @param project target project.
      * @param message warning message text.
      * @return `Unit`.
      */
-    fun warn(message: String) {
-        platformLogger.warn(message)
-        log("[WARN] $message")
-    }
+    fun warn(project: Project = currentProject(), message: String) = getInstance(project).warn(message)
 
-    
     /**
-     * Writes a warning entry with stack trace details.
+     * Convenience static wrapper for [error].
      *
-     * @param message warning message text.
-     * @param throwable associated exception.
+     * @param project target project.
+     * @param errorType canonical plugin error code.
+     * @param throwable optional exception details.
      * @return `Unit`.
      */
-    fun warn(message: String, throwable: Throwable) {
-        platformLogger.warn(message, throwable)
-        log("[WARN] $message: ${throwable.stackTraceToString()}")
-    }
-
+    fun error(project: Project = currentProject(), errorType: ErrorTypes) = getInstance(project).error(errorType)
 
     /**
-     * Logs an error of a specified type to both IntelliJ and plugin-specific logs.
+     * Convenience static wrapper for logging an existing throwable.
      *
-     * @param errorType an instance of [ErrorTypes] representing the specific error to log.
+     * @param project target project.
+     * @param errorType canonical plugin error code.
+     * @param throwable existing failure whose stack trace should be preserved.
+     * @return `Unit`.
      */
-    fun error(errorType: ErrorTypes) {
-        writeError(
-            errorType = errorType,
-            message = errorType.toString(),
-            throwable = errorType.createExceptionOrNull(),
-        )
-    }
-
-    /**
-     * Logs an error of a specific type, optionally including a corresponding exception.
-     *
-     * @param errorType the type of the error, represented by an instance of [ErrorTypes].
-     * @param throwable an optional [Throwable] associated with the error. Can be `null` if no exception is available.
-     */
-    fun error(errorType: ErrorTypes, throwable: Throwable?) {
-        writeError(
-            errorType = errorType,
-            message = errorType.toString(),
-            throwable = throwable,
-        )
-    }
-
-    /**
-     * Logs an error of a specific type, optionally including additional parameters that can be used
-     * for message formatting or exception creation.
-     *
-     * @param errorType the type of the error, represented by an instance of [ErrorTypes].
-     * @param firstParameter the primary parameter for message formatting or exception creation.
-     * @param additionalParameters optional additional parameters for message formatting or exception creation.
-     */
-    fun error(
-        errorType: ErrorTypes,
-        firstParameter: Any?,
-        vararg additionalParameters: Any?,
-    ) {
-        val parameters = arrayOf(firstParameter, *additionalParameters)
-
-        writeError(
-            errorType = errorType,
-            message = errorType.format(*parameters),
-            throwable = errorType.createExceptionOrNull(*parameters),
-        )
-    }
-
-    /**
-     * Writes an error entry to both the platform logger and plugin-specific logs. Includes stack trace details
-     * if a throwable is provided.
-     *
-     * @param errorType the type of the error, represented by an instance of [ErrorTypes].
-     * @param message the error message to log.
-     * @param throwable an optional [Throwable] associated with the error. Can be `null` if no exception is available.
-     */
-    private fun writeError(
-        errorType: ErrorTypes,
-        message: String,
-        throwable: Throwable?,
-    ) {
-        if (throwable == null) {
-            platformLogger.error(message)
-        }
-        else {
-            platformLogger.error(message, throwable)
-        }
-
-        val suffix = throwable?.let {
-            ": ${it.stackTraceToString()}"
-        }.orEmpty()
-
-        log("[ERROR] ${errorType.name}: $message$suffix")
-    }
-
-    companion object {
-        /**
-         * Returns the logger service for the given project.
-         *
-         * @param project target project.
-         * @return project-level [PluginLogger] service.
-         */
-        fun getInstance(project: Project = currentProject()): PluginLogger = project.service()
-
-        
-        /**
-         * Convenience static wrapper for [log].
-         *
-         * @param project target project.
-         * @param message log message text.
-         * @return `Unit`.
-         */
-        fun log(project: Project = currentProject(), message: String) = getInstance(project).log(message)
-
-        
-        /**
-         * Convenience static wrapper for [debug].
-         *
-         * @param project target project.
-         * @param message debug message text.
-         * @return `Unit`.
-         */
-        fun debug(project: Project = currentProject(), message: String) = getInstance(project).debug(message)
-
-        
-        /**
-         * Convenience static wrapper for [warn].
-         *
-         * @param project target project.
-         * @param message warning message text.
-         * @return `Unit`.
-         */
-        fun warn(project: Project = currentProject(), message: String) = getInstance(project).warn(message)
-
-
-        /**
-         * Convenience static wrapper for [error].
-         *
-         * @param project target project.
-         * @param errorType canonical plugin error code.
-         * @param throwable optional exception details.
-         * @return `Unit`.
-         */
-        fun error(project: Project = currentProject(), errorType: ErrorTypes) =
-            getInstance(project).error(errorType)
-
-        /**
-         * Convenience static wrapper for logging an existing throwable.
-         *
-         * @param project target project.
-         * @param errorType canonical plugin error code.
-         * @param throwable existing failure whose stack trace should be preserved.
-         * @return `Unit`.
-         */
-        fun error(project: Project = currentProject(), errorType: ErrorTypes, throwable: Throwable) =
-            getInstance(project).error(errorType, throwable)
-    }
+    fun error(project: Project = currentProject(), errorType: ErrorTypes, throwable: Throwable) =
+        getInstance(project).error(errorType, throwable)
+  }
 }

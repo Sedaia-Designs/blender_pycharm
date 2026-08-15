@@ -22,8 +22,8 @@ import com.intellij.openapi.projectRoots.ProjectJdkTable
 import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.jetbrains.python.sdk.PythonSdkType
-import kotlinx.coroutines.runBlocking
 import java.nio.file.Path
+import kotlinx.coroutines.runBlocking
 
 internal class BlenderPythonPackageInstallerTest : BasePlatformTestCase() {
   override fun runInDispatchThread(): Boolean = false
@@ -37,8 +37,8 @@ internal class BlenderPythonPackageInstallerTest : BasePlatformTestCase() {
     assertSame(BlenderPackageOperationResult.Success, result)
     assertEquals(Path.of("/test/python"), executor.interpreterPath)
     assertEquals(
-      listOf("-m", "pip", "--disable-pip-version-check", "install", "fake-bpy-module-4.5"),
-      executor.arguments,
+        listOf("-m", "pip", "--disable-pip-version-check", "install", "fake-bpy-module-4.5"),
+        executor.arguments,
     )
   }
 
@@ -50,26 +50,28 @@ internal class BlenderPythonPackageInstallerTest : BasePlatformTestCase() {
 
     assertSame(BlenderPackageOperationResult.Success, result)
     assertEquals(
-      listOf("-m", "pip", "--disable-pip-version-check", "uninstall", "--yes", "fake-bpy-module-4.2"),
-      executor.arguments,
+        listOf("-m", "pip", "--disable-pip-version-check", "uninstall", "--yes", "fake-bpy-module-4.2"),
+        executor.arguments,
     )
   }
 
   fun testNonZeroExitUsesStandardErrorAsFailureDiagnostic() = runBlocking {
-    val executor = RecordingCommandExecutor(
-      result = PythonPackageCommandResult(
-        exitCode = 1,
-        standardOutput = "ignored output",
-        standardError = "package installation failed",
-      )
-    )
+    val executor =
+        RecordingCommandExecutor(
+            result =
+                PythonPackageCommandResult(
+                    exitCode = 1,
+                    standardOutput = "ignored output",
+                    standardError = "package installation failed",
+                )
+        )
     val installer = PlatformBlenderPythonPackageInstaller(executor)
 
     val result = installer.installDevelopmentPackage(project, module, testSdk(), "fake-bpy-module-4.5")
 
     assertEquals(
-      BlenderPackageOperationResult.Failure("package installation failed"),
-      result,
+        BlenderPackageOperationResult.Failure("package installation failed"),
+        result,
     )
   }
 
@@ -95,9 +97,8 @@ internal class BlenderPythonPackageInstallerTest : BasePlatformTestCase() {
     return sdk
   }
 
-  private class RecordingCommandExecutor(
-    private val result: PythonPackageCommandResult = PythonPackageCommandResult(0, "", ""),
-  ) : PythonPackageCommandExecutor {
+  private class RecordingCommandExecutor(private val result: PythonPackageCommandResult = PythonPackageCommandResult(0, "", "")) :
+      PythonPackageCommandExecutor {
     var interpreterPath: Path? = null
     var arguments: List<String> = emptyList()
 

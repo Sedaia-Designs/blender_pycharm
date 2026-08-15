@@ -9,9 +9,9 @@
 
 package com.sakurasedaia.blenderdevelopment.stubs
 
+import com.intellij.openapi.application.edtWriteAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
-import com.intellij.openapi.application.edtWriteAction
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
@@ -44,9 +44,10 @@ class BlenderStubInstallationService(private val project: Project) {
    * @return operation status for UI feedback.
    */
   suspend fun installForProject(blenderVersion: String): BlenderStubOperationStatus {
-    val moduleAndSdk = ModuleManager.getInstance(project).modules.firstNotNullOfOrNull { module ->
-      PythonSdkUtil.findPythonSdk(module)?.let { sdk -> module to sdk }
-    }
+    val moduleAndSdk =
+        ModuleManager.getInstance(project).modules.firstNotNullOfOrNull { module ->
+          PythonSdkUtil.findPythonSdk(module)?.let { sdk -> module to sdk }
+        }
     if (moduleAndSdk == null) {
       val message = MessageBundle.message("notification.blender.stubs.interpreter.missing")
       PluginLogger.getInstance(project).warn(ErrorTypes.STUB_INTERPRETER_MISSING.toString())
@@ -65,31 +66,33 @@ class BlenderStubInstallationService(private val project: Project) {
    * @return operation status for diagnostics and tests.
    */
   suspend fun installForGeneratedProject(
-    module: Module,
-    sdk: Sdk,
-    blenderVersion: String,
-  ): BlenderStubOperationStatus = try {
-    installOrReplace(module, sdk, blenderVersion, replaceExisting = false)
-  } catch (exception: CancellationException) {
-    throw exception
-  } catch (exception: Exception) {
-    val message = MessageBundle.message(
-      "notification.blender.stubs.unexpected.failure",
-      exception.message ?: exception.javaClass.simpleName,
-    )
-    PluginLogger.getInstance(project).warn(
-      ErrorTypes.STUB_OPERATION_FAILED.format(exception.message ?: exception.javaClass.simpleName),
-      exception,
-    )
-    NotificationModal.getInstance(project).sendError(message)
-    BlenderStubOperationStatus.FAILED
-  }
+      module: Module,
+      sdk: Sdk,
+      blenderVersion: String,
+  ): BlenderStubOperationStatus =
+      try {
+        installOrReplace(module, sdk, blenderVersion, replaceExisting = false)
+      } catch (exception: CancellationException) {
+        throw exception
+      } catch (exception: Exception) {
+        val message =
+            MessageBundle.message(
+                "notification.blender.stubs.unexpected.failure",
+                exception.message ?: exception.javaClass.simpleName,
+            )
+        PluginLogger.getInstance(project)
+            .warn(
+                ErrorTypes.STUB_OPERATION_FAILED.format(exception.message ?: exception.javaClass.simpleName),
+                exception,
+            )
+        NotificationModal.getInstance(project).sendError(message)
+        BlenderStubOperationStatus.FAILED
+      }
 
   /**
    * Replaces the recorded stub package after the target Blender version changes.
    *
-   * The target requirement is resolved before removal so unsupported versions cannot remove
-   * a working package.
+   * The target requirement is resolved before removal so unsupported versions cannot remove a working package.
    *
    * @param module project Python module.
    * @param sdk Python SDK assigned to the module.
@@ -97,9 +100,9 @@ class BlenderStubInstallationService(private val project: Project) {
    * @return operation status for UI refresh.
    */
   suspend fun replaceForChangedVersion(
-    module: Module,
-    sdk: Sdk,
-    blenderVersion: String,
+      module: Module,
+      sdk: Sdk,
+      blenderVersion: String,
   ): BlenderStubOperationStatus = installOrReplace(module, sdk, blenderVersion, replaceExisting = true)
 
   /**
@@ -123,10 +126,10 @@ class BlenderStubInstallationService(private val project: Project) {
    * @return final operation status.
    */
   private suspend fun installOrReplace(
-    module: Module,
-    sdk: Sdk,
-    blenderVersion: String,
-    replaceExisting: Boolean,
+      module: Module,
+      sdk: Sdk,
+      blenderVersion: String,
+      replaceExisting: Boolean,
   ): BlenderStubOperationStatus {
     val config = ProjectConfig.getInstance(project)
     val logger = PluginLogger.getInstance(project)
@@ -142,19 +145,23 @@ class BlenderStubInstallationService(private val project: Project) {
     val previousRequirement = config.getInstalledStubRequirement().takeIf(String::isNotBlank)
     val shouldRemovePrevious = replaceExisting && previousRequirement != null && previousRequirement != requirement
     if (shouldRemovePrevious) {
-      when (val uninstallResult = packageInstaller.uninstallDevelopmentPackage(
-        project,
-        module,
-        sdk,
-        previousRequirement,
-      )) {
+      when (
+          val uninstallResult =
+              packageInstaller.uninstallDevelopmentPackage(
+                  project,
+                  module,
+                  sdk,
+                  previousRequirement,
+              )
+      ) {
         BlenderPackageOperationResult.Success -> config.setInstalledStubRequirement("")
         is BlenderPackageOperationResult.Failure -> {
-          val message = MessageBundle.message(
-            "notification.blender.stubs.uninstall.failed",
-            previousRequirement,
-            uninstallResult.message,
-          )
+          val message =
+              MessageBundle.message(
+                  "notification.blender.stubs.uninstall.failed",
+                  previousRequirement,
+                  uninstallResult.message,
+              )
           logger.warn(ErrorTypes.STUB_UNINSTALL_FAILED.format(previousRequirement, uninstallResult.message))
           notifications.sendError(message)
           return BlenderStubOperationStatus.FAILED
@@ -172,14 +179,15 @@ class BlenderStubInstallationService(private val project: Project) {
         } catch (exception: CancellationException) {
           throw exception
         } catch (exception: Exception) {
-          val message = MessageBundle.message(
-            "notification.blender.stubs.metadata.failed",
-            requirement,
-            exception.message ?: exception.javaClass.simpleName,
-          )
+          val message =
+              MessageBundle.message(
+                  "notification.blender.stubs.metadata.failed",
+                  requirement,
+                  exception.message ?: exception.javaClass.simpleName,
+              )
           logger.warn(
-            ErrorTypes.STUB_METADATA_FAILED.format(requirement, exception.message ?: exception.javaClass.simpleName),
-            exception,
+              ErrorTypes.STUB_METADATA_FAILED.format(requirement, exception.message ?: exception.javaClass.simpleName),
+              exception,
           )
           notifications.sendWarning(message)
         }
@@ -190,11 +198,12 @@ class BlenderStubInstallationService(private val project: Project) {
         status
       }
       is BlenderPackageOperationResult.Failure -> {
-        val message = MessageBundle.message(
-          "notification.blender.stubs.install.failed",
-          requirement,
-          installResult.message,
-        )
+        val message =
+            MessageBundle.message(
+                "notification.blender.stubs.install.failed",
+                requirement,
+                installResult.message,
+            )
         logger.warn(ErrorTypes.STUB_INSTALL_FAILED.format(requirement, installResult.message))
         notifications.sendError(message)
         BlenderStubOperationStatus.FAILED

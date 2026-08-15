@@ -3,8 +3,8 @@ package com.sakurasedaia.blenderdevelopment.ui.settings
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 
 internal class BlenderSettingsController(
-  private val view: BlenderSettingsView,
-  private val config: PluginConfig,
+    private val view: BlenderSettingsView,
+    private val config: PluginConfig,
 ) {
   fun reset() {
     view.renderForm(readConfig())
@@ -23,13 +23,14 @@ internal class BlenderSettingsController(
     config.setGlobalEnvironmentVariables(form.globalEnvironmentVariables)
   }
 
-  private fun readConfig(): BlenderSettingsForm = BlenderSettingsForm(
-    blenderInstallPath = config.getBlenderInstallPath(),
-    codeCompletionPath = config.getCodeCompletionPath(),
-    logPath = config.getLogPath(),
-    downloadPath = config.getDownloadPath(),
-    clearDownloadsAfterInstall = config.getClearDownloadsAfterInstall(),
-    minimumBlenderVersion = config.getMinimumBlenderVersion(),
-    globalEnvironmentVariables = config.getGlobalEnvironmentVariables(),
-  )
+  private fun readConfig(): BlenderSettingsForm =
+      BlenderSettingsForm(
+          blenderInstallPath = config.getBlenderInstallPath(),
+          codeCompletionPath = config.getCodeCompletionPath(),
+          logPath = config.getLogPath(),
+          downloadPath = config.getDownloadPath(),
+          clearDownloadsAfterInstall = config.getClearDownloadsAfterInstall(),
+          minimumBlenderVersion = config.getMinimumBlenderVersion(),
+          globalEnvironmentVariables = config.getGlobalEnvironmentVariables(),
+      )
 }

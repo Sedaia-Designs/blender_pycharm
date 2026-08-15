@@ -53,9 +53,10 @@ class SystemHelperTest {
       return
     }
 
-    val compatibleVersion = BlenderVersions.LIST.firstOrNull { entry ->
-      entry.compatWithOs[hostInfo.osName]?.contains(hostInfo.osArch) == true
-    }
+    val compatibleVersion =
+        BlenderVersions.LIST.firstOrNull { entry ->
+          entry.compatWithOs[hostInfo.osName]?.contains(hostInfo.osArch) == true
+        }
 
     if (compatibleVersion != null) {
       assertTrue(SystemInfo.isOSCompatible(compatibleVersion.blMajorMinor))

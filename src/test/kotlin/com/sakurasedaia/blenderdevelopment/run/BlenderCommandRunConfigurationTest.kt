@@ -50,8 +50,7 @@ class BlenderCommandRunConfigurationTest : BasePlatformTestCase() {
 
     try {
       configuration.checkConfiguration()
-    }
-    catch (_: RuntimeConfigurationError) {
+    } catch (_: RuntimeConfigurationError) {
       return
     }
     fail("Expected a blank Blender command to fail validation")
@@ -64,8 +63,7 @@ class BlenderCommandRunConfigurationTest : BasePlatformTestCase() {
 
     try {
       configuration.checkConfiguration()
-    }
-    catch (_: RuntimeConfigurationError) {
+    } catch (_: RuntimeConfigurationError) {
       return
     }
     fail("Expected a duplicate --command option to fail validation")
@@ -78,8 +76,7 @@ class BlenderCommandRunConfigurationTest : BasePlatformTestCase() {
 
     try {
       configuration.checkConfiguration()
-    }
-    catch (_: RuntimeConfigurationError) {
+    } catch (_: RuntimeConfigurationError) {
       return
     }
     fail("Expected a known option without its value to fail validation")
@@ -95,13 +92,11 @@ class BlenderCommandRunConfigurationTest : BasePlatformTestCase() {
 
   fun testCommandEditorStateSeparatesCommandFromArguments() {
     assertEquals(
-      BlenderCommandEditorState(
-        command = "extension",
-        arguments = "build --source-dir \"Extension Source\"",
-      ),
-      BlenderCommandEditorState.fromCommandLine(
-        "extension build --source-dir \"Extension Source\""
-      ),
+        BlenderCommandEditorState(
+            command = "extension",
+            arguments = "build --source-dir \"Extension Source\"",
+        ),
+        BlenderCommandEditorState.fromCommandLine("extension build --source-dir \"Extension Source\""),
     )
   }
 
