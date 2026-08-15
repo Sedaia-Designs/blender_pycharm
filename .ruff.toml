@@ -1,0 +1,11 @@
+# Ruff configuration: https://docs.astral.sh/ruff/configuration/
+target-version = "py312"
+line-length = 120
+fix = true
+extend-exclude = ["src/main/python/external/get-pip.py"]
+
+[lint]
+select = ["E", "F", "I", "W"]
+
+[format]
+quote-style = "double"

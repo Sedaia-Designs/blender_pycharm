@@ -47,7 +47,7 @@ def setup_addon_links(addons_to_load: List[AddonInfo]) -> List[Dict]:
             load_path = _link_addon_or_extension(addon_info)
         except PermissionError as e:
             LOG.error(
-                f"""ERROR: {e} 
+                f"""ERROR: {e}
 Path "{e.filename}" can not be removed. **Please remove it manually!** Most likely causes:
     - Path requires admin permissions to remove
     - Windows only: You upgraded Blender version and imported old setting. Now links became real directories.
