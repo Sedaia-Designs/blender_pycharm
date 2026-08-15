@@ -71,8 +71,9 @@ internal class ScriptDirectoriesTable(private val project: Project) {
         init {
             button.addActionListener(::onBrowseClicked)
         }
-
-        private fun onBrowseClicked(@Suppress("UNUSED_PARAMETER") event: ActionEvent) {
+        
+        
+        private fun onBrowseClicked(event: ActionEvent) {
             val selected = FileChooser.chooseFile(
                 FileChooserDescriptorFactory.createSingleFolderDescriptor(),
                 project,
