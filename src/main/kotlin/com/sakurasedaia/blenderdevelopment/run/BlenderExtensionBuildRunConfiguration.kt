@@ -116,7 +116,7 @@ internal class BlenderExtensionBuildRunConfiguration(
   override fun checkConfiguration() {
     if (ProjectConfig.getInstance(project).getBlenderPath().isBlank()) {
       throw RuntimeConfigurationError(
-        MessageBundle.message("run.configuration.blender.launch.error.blender.path.empty")
+        MessageBundle.message("run.configuration.blender.error.blender.path.empty")
       )
     }
     if (sourcePath.isBlank()) {

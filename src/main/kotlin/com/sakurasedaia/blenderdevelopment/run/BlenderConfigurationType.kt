@@ -78,13 +78,13 @@ private class BlenderCommandConfigurationFactory(type: BlenderConfigurationType)
 private class BlenderLaunchConfigurationFactory(type: BlenderConfigurationType) : ConfigurationFactory(type) {
     override fun getId(): String = "BlenderLaunchConfigurationFactory"
 
-    override fun getName(): String = MessageBundle.message("run.configuration.blender.launch.basic.factory.name")
+    override fun getName(): String = MessageBundle.message("run.configuration.blender.live-run.name")
 
     override fun createTemplateConfiguration(project: Project): RunConfiguration {
         return BlenderLaunchRunConfiguration(
             project,
             this,
-            MessageBundle.message("run.configuration.blender.launch.default.name")
+            MessageBundle.message("run.configuration.blender.live-run.name")
         )
     }
 }

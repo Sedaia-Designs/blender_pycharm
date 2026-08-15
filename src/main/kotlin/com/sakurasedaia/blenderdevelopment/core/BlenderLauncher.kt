@@ -64,7 +64,7 @@ internal class BlenderLauncher(private val project: Project) {
   private fun resolveBlenderPath(requestedPath: String): String {
     val blenderPath = requestedPath.ifBlank { projectConfig.getBlenderPath().trim() }
     require(blenderPath.isNotEmpty()) {
-      MessageBundle.message("run.configuration.blender.launch.error.blender.path.empty")
+      MessageBundle.message("run.configuration.blender.error.blender.path.empty")
     }
     return blenderPath
   }

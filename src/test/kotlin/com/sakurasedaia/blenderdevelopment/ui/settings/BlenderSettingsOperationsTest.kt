@@ -48,7 +48,7 @@ internal class BlenderSettingsOperationsTest : BasePlatformTestCase() {
     assertTrue(events.contains("checked"))
     assertTrue(
       events.contains(
-        "info:${MessageBundle.message("notification.settings.versions.refresh.succeeded", versions.size.toString())}",
+        "info:${MessageBundle.message("notification.settings.versions.refresh.success", versions.size.toString())}",
       ),
     )
   }
@@ -169,7 +169,7 @@ internal class BlenderSettingsOperationsTest : BasePlatformTestCase() {
 
     assertTrue(operations.clearVersionCache().isSuccess)
     assertEquals(
-      MessageBundle.message("notification.settings.versions.cache.cleared"),
+      MessageBundle.message("notification.settings.versions.cache.clear.success"),
       notifications.single(),
     )
 

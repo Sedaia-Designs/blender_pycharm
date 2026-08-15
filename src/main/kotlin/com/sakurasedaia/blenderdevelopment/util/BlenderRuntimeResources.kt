@@ -57,7 +57,7 @@ internal object BlenderRuntimeResources {
   private fun resolveDebugRunnerDirectory(): Path {
     val optionsPath = PathManager.getOptionsPath()
     require(optionsPath.isNotBlank()) {
-      MessageBundle.message("run.configuration.blender.launch.error.options.path.empty")
+      MessageBundle.message("run.configuration.blender.error.options.path.empty")
     }
     return Path.of(optionsPath).resolve(SETTINGS_RUNTIME_DIRECTORY)
   }
@@ -82,7 +82,7 @@ internal object BlenderRuntimeResources {
   private fun computeRuntimeArchiveSha256(): String {
     val archiveStream = PluginResources::class.java.classLoader.getResourceAsStream(RUNTIME_ARCHIVE_RESOURCE)
       ?: throw IllegalStateException(
-        MessageBundle.message("run.configuration.blender.launch.error.runtime.archive.missing", RUNTIME_ARCHIVE_RESOURCE)
+        MessageBundle.message("run.configuration.blender.error.runtime.archive.missing", RUNTIME_ARCHIVE_RESOURCE)
       )
     val digest = MessageDigest.getInstance("SHA-256")
     archiveStream.use { stream ->
@@ -117,7 +117,7 @@ internal object BlenderRuntimeResources {
   private fun extractArchive(destinationDirectory: Path) {
     val archiveStream = PluginResources::class.java.classLoader.getResourceAsStream(RUNTIME_ARCHIVE_RESOURCE)
       ?: throw IllegalStateException(
-        MessageBundle.message("run.configuration.blender.launch.error.runtime.archive.missing", RUNTIME_ARCHIVE_RESOURCE)
+        MessageBundle.message("run.configuration.blender.error.runtime.archive.missing", RUNTIME_ARCHIVE_RESOURCE)
       )
 
     archiveStream.use { stream ->
@@ -126,7 +126,7 @@ internal object BlenderRuntimeResources {
         while (entry != null) {
           val destinationPath = destinationDirectory.resolve(entry.name).normalize()
           require(destinationPath.startsWith(destinationDirectory)) {
-            MessageBundle.message("run.configuration.blender.launch.error.runtime.archive.invalid.entry", entry.name)
+            MessageBundle.message("run.configuration.blender.error.runtime.archive.invalid.entry", entry.name)
           }
 
           if (entry.isDirectory || entry.name.endsWith("/")) {

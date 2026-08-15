@@ -39,7 +39,7 @@ internal class BlenderSettingsOperations(
         dependencies.markVersionUpdateChecked()
         dependencies.log("Blender version refresh completed with ${versions.size} release(s).")
         dependencies.sendInfo(
-          MessageBundle.message("notification.settings.versions.refresh.succeeded", versions.size.toString()),
+          MessageBundle.message("notification.settings.versions.refresh.success", versions.size.toString()),
         )
       }.onFailure { error ->
         notifyFailureUnlessCancelled(
@@ -74,7 +74,7 @@ internal class BlenderSettingsOperations(
   fun clearVersionCache(): Result<Unit> = runCatching {
     dependencies.clearVersionCache()
     dependencies.log("Cleared the online Blender version cache from settings.")
-    dependencies.sendInfo(MessageBundle.message("notification.settings.versions.cache.cleared"))
+    dependencies.sendInfo(MessageBundle.message("notification.settings.versions.cache.clear.success"))
   }.onFailure { error ->
     if (error !is CancellationException) {
       dependencies.sendError(MessageBundle.message("notification.settings.versions.cache.clear.failed"), error)
@@ -88,7 +88,7 @@ internal class BlenderSettingsOperations(
         val result = completionResult(installedPath, completionError)
         result.onSuccess {
           dependencies.sendInfo(
-            MessageBundle.message("notification.settings.versions.install.succeeded", version.blVersion),
+            MessageBundle.message("notification.settings.versions.install.success", version.blVersion),
           )
         }.onFailure { error ->
           notifyFailureUnlessCancelled(
@@ -108,7 +108,7 @@ internal class BlenderSettingsOperations(
         val result = completionResult(deleted == true, completionError)
         result.onSuccess { wasDeleted ->
           val messageKey = if (wasDeleted) {
-            "notification.settings.versions.delete.succeeded"
+            "notification.settings.versions.delete.success"
           }
           else {
             "notification.settings.versions.delete.not-found"

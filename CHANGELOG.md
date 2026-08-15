@@ -22,6 +22,7 @@ authenticated protocol with bounded, validated request handling.
 - Moved Ruff configuration to [.ruff.toml](.ruff.toml) with explicit Python-version, formatting, linting, and vendored-file
   exclusions.
 - Restricted generated Marketplace change notes to the current release section.
+- Standardize [MessageBundle.properties](src/main/resources/messages/MessageBundle.properties) keys for improved consistency across notifications, run configurations, and UI labels
 
 ### Fixed
 

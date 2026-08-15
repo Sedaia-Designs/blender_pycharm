@@ -28,8 +28,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.util.execution.ParametersListUtil
-import com.jetbrains.rd.util.UsedImplicitly
-import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
@@ -180,13 +178,13 @@ internal class BlenderPythonLauncher(private val project: Project) {
   private fun resolveScratchDirectory(): com.intellij.openapi.vfs.VirtualFile {
     val scratchDirectoryPath = PathManager.getScratchDir()
     require(scratchDirectoryPath.toString().isNotBlank()) {
-      MessageBundle.message("run.configuration.blender.launch.error.scratch.path.empty")
+      MessageBundle.message("run.configuration.blender.error.scratch.path.empty")
     }
     Files.createDirectories(scratchDirectoryPath)
     return LocalFileSystem.getInstance().refreshAndFindFileByNioFile(scratchDirectoryPath)
       ?: throw IllegalStateException(
         MessageBundle.message(
-          "run.configuration.blender.launch.error.scratch.directory.missing",
+          "run.configuration.blender.error.scratch.directory.missing",
           scratchDirectoryPath.toString(),
         )
       )

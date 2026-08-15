@@ -75,7 +75,7 @@ private object IdeBlenderArtifactDownloader : BlenderArtifactDownloader {
 
     ProgressManager.getInstance().run(object : Task.Backgroundable(
       project,
-      MessageBundle.message("progress.blender.download"),
+      MessageBundle.message("notification.settings.versions.install.download.progress"),
       true,
     ) {
       override fun run(indicator: ProgressIndicator) {

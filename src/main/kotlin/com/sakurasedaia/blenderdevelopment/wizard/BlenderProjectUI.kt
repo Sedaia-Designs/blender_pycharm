@@ -53,8 +53,8 @@ object BlenderProjectUI : PyV3ProjectTypeSpecificUI<BlenderProjectSettings> {
     with(belowCheckBoxes) {
       row(MessageBundle.message("ui.project.wizard.section.project.basics")) {}
       separator()
-
-      row(MessageBundle.message("ui.project.wizard.row.label.extension.type")) {
+      
+      row(MessageBundle.message("ui.project.wizard.ui.group.project.extension.type")) {
         segmentedButton(
           listOf(
             BlenderProjectGenerator.PROJECT_TYPE_EXTENSION,
