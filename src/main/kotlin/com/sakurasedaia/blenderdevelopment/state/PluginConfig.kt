@@ -76,9 +76,11 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
       // Temporary example setting will be filled out later with proper settings
       var blenderInstallPath: String =
           "${PathManager.getSystemPath()}/BlenderExtensions/Applications/", // Portable Blender application bundles
+      // TODO(V1): Connect this legacy stub path to installation behavior or remove it from persisted state.
       var bpyApiInstallPath: String = "${PathManager.getSystemPath()}/BlenderExtensions/CodeCompletion/", // Installs for Fake-Bpy-Module
       var downloadPath: String = "${PathManager.getSystemPath()}/BlenderExtensions/Downloads/",
       var clearDownloadsAfterInstall: Boolean = true,
+      // TODO(V1): Enforce this cache limit after downloads or remove the unsupported setting.
       var downloadCacheMaxSize: Int = 2,
       var logPath: String =
           "${PathManager.getLogPath()}/BlenderExtensions/", // TODO: Change the default to the same path as the Intellij `idea.log` file,
@@ -137,6 +139,7 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
 
   val stateFlow: StateFlow<PluginSnapshot> = mutableStateFlow.asStateFlow()
 
+  // TODO(V1): Serialize state mutations from UI and background jobs so concurrent updates cannot overwrite one another.
   private inline fun updateState(update: PluginState.() -> Unit) {
     state.update()
     publishState()
@@ -256,6 +259,7 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
   fun getGlobalEnvironmentVariables(): Map<String, String> = state.globalEnvironmentVariables
 
   /** Returns the persisted Blender release refresh schedule. */
+  // TODO(V1): Return a defensive copy so callers cannot mutate persisted state without validation or publication.
   fun getBlenderUpdateCheck(): UpdateChecked = state.blenderUpdateCheck
 
   /**

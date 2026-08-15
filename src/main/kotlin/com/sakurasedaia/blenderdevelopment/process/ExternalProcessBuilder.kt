@@ -95,6 +95,7 @@ class ExternalProcessBuilder(val project: Project) {
               killProcess(process)
             }
 
+            // TODO(V1): Bound or cancel output collection after termination so inherited stdout cannot block this worker indefinitely.
             val output = outputFuture.get()
             val exitCode = runCatching { process.exitValue() }.getOrNull()
 
@@ -298,6 +299,7 @@ class ExternalProcessBuilder(val project: Project) {
   }
 
   private fun buildCommandString(command: String, args: List<String>): String {
+    // TODO(V1): Redact secret-bearing arguments such as --access-token before writing command diagnostics.
     return listOf(command).plus(args).joinToString(" ")
   }
 

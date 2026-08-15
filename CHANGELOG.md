@@ -4,14 +4,20 @@
 
 ## [1.0.0-beta.3]
 
-Beta 3 hardens communication between PyCharm and Blender, restores compatibility verification across the declared PyCharm
-targets, and expands release validation. Runtime commands, setup messages, and early failure reports now share an
+Beta 3 completes the V1 runtime-authentication gate and strengthens release readiness across managed installations, IDE
+compatibility, and contributor validation. Runtime commands, setup messages, and early failure reports now share an
 authenticated protocol with bounded, validated request handling.
+
+Managed installations now honor post-install archive cleanup, Plugin Verifier covers both declared PyCharm targets, and the
+project's Python requirement matches Blender 4.2's bundled runtime. Repeatable Kotlin formatting and expanded release
+validation make the remaining V1 risks explicit and reproducible.
 
 ### Added
 
 - Added Plugin Verifier coverage for the declared PyCharm 2026.1 and 2026.2 targets.
 - Added a V1 release-readiness audit covering release blockers, security risks, stability issues, and validation results.
+- Added repeatable Kotlin and Gradle Kotlin formatting through Spotless and ktfmt, with a two-space block indent, 140-column
+  limit, and `spotlessCheck` validation task.
 
 ### Changed
 
@@ -20,7 +26,8 @@ authenticated protocol with bounded, validated request handling.
 - Moved Ruff configuration to [.ruff.toml](.ruff.toml) with explicit Python-version, formatting, linting, and vendored-file
   exclusions.
 - Restricted generated Marketplace change notes to the current release section.
-- Standardize [MessageBundle.properties](src/main/resources/messages/MessageBundle.properties) keys for improved consistency across notifications, run configurations, and UI labels
+- Standardized [MessageBundle.properties](src/main/resources/messages/MessageBundle.properties) keys across notifications, run
+  configurations, and UI labels.
 
 ### Fixed
 
@@ -32,6 +39,7 @@ authenticated protocol with bounded, validated request handling.
   resolve the Python APIs used by the plugin on every declared target.
 - Isolated JVM platform tests from unrelated bundled IDE plugins, eliminating environment-dependent fixture shutdown failures.
 - Replaced deprecated IntelliJ renderer and Kotlin JVM-default compatibility paths used by the plugin.
+- Aligned the root Python requirement with Blender 4.2's bundled Python baseline by lowering it from 3.14 to 3.11.7.
 
 ### Security
 

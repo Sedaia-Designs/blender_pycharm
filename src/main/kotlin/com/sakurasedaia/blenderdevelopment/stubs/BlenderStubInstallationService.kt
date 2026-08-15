@@ -144,6 +144,7 @@ class BlenderStubInstallationService(private val project: Project) {
 
     val previousRequirement = config.getInstalledStubRequirement().takeIf(String::isNotBlank)
     val shouldRemovePrevious = replaceExisting && previousRequirement != null && previousRequirement != requirement
+    // TODO(V1): Make replacement transactional so a failed install preserves or restores the previously working requirement.
     if (shouldRemovePrevious) {
       when (
           val uninstallResult =

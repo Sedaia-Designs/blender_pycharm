@@ -34,6 +34,7 @@ import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.resolvedPromise
 
 internal class BlenderDebugProgramRunner : AsyncProgramRunner<RunnerSettings>() {
+  // TODO(V1): Add Windows, macOS, and Linux smoke coverage for complete Run and Debug launch lifecycles.
   override fun getRunnerId(): String = "BlenderDebugProgramRunner"
 
   override fun canRun(executorId: String, profile: RunProfile): Boolean {

@@ -50,6 +50,7 @@ internal class BlenderDebugAttachService(private val project: Project) {
   private val projectConfig = ProjectConfig.getInstance(project)
 
   fun scheduleAttach(environment: ExecutionEnvironment, executionResult: ExecutionResult, sessionIdentifier: String) {
+    // TODO(V1): Tie debugger polling to project and execution disposal instead of the application-wide executor.
     AppExecutorUtil.getAppExecutorService().submit {
       val setupPayload = waitForSetupPayload(sessionIdentifier, executionResult)
       if (setupPayload == null) {

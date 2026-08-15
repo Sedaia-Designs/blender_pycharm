@@ -169,6 +169,7 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
       onSuccessMessage: String,
       showSuccessNotification: Boolean = true,
   ) {
+    // TODO(V1): Route commands to the execution-owned session instead of whichever session registered most recently.
     val activeSession = editorServerService.findLatestActiveSessionPayload()
     if (activeSession == null) {
       logger.warn(ErrorTypes.RUNTIME_COMMAND_MISSING_SESSION.format(type.wireValue))
@@ -203,6 +204,7 @@ internal class BlenderRuntimeCommandService(private val project: Project) {
 
     val processedRequest = payload + ("type" to type.wireValue)
 
+    // TODO(V1): Tie this request task to project disposal so it cannot outlive the owning project.
     AppExecutorUtil.getAppExecutorService().submit {
       runCatching {
         val requestBody = objectMapper.writeValueAsString(processedRequest)

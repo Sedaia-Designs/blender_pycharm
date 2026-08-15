@@ -158,6 +158,7 @@ internal class BlenderInstallationService(
         downloadVersion(version)
             .thenApplyAsync(
                 { archive ->
+                  // TODO(V1): Verify Blender's published checksum before extraction and reject archives from unexpected origins.
                   NioFiles.createDirectories(tempPath)
                   val extractionPath = Files.createTempDirectory(tempPath, "blender-extract-")
                   try {

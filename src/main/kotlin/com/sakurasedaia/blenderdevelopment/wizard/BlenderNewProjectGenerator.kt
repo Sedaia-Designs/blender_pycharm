@@ -202,7 +202,7 @@ class BlenderProjectGenerator(private val data: BlenderExtensionManifest) {
     // Helper to ensure empty strings are passed instead of nulls for Velocity logic.
     fun String?.valOrEmpty(): String = if (this.isNullOrBlank()) "" else this
 
-    // Format the list of strings into a TOML array: ["tag1", "tag2"]
+    // TODO(V1): Serialize tags with TOML-aware escaping instead of manually quoting user-provided values.
     val formattedTags = data.tags.joinToString(prefix = "[", postfix = "]") { "\"$it\"" }
 
     // Convert Extension to 'add-on', since the type key in the blender_manifest expects "add-on" or "theme", not extension.

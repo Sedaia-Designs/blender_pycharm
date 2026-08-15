@@ -10,6 +10,7 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionException
 
 class InstallBlenderTest : BasePlatformTestCase() {
+  // TODO(V1): Add live and platform-specific ZIP, TAR, and DMG installation coverage on supported operating systems.
   private lateinit var downloadDirectory: Path
   private lateinit var installDirectory: Path
   private lateinit var tempDirectory: Path

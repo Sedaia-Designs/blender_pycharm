@@ -44,6 +44,7 @@ object PluginResources {
 
     val templateProps = Properties(templateManager.defaultProperties)
 
+    // TODO(V1): Escape each value for its destination format instead of passing raw TOML or Python template content.
     args.forEach { (arg, value) ->
       if (value != null) {
         templateProps.setProperty(arg, value)
