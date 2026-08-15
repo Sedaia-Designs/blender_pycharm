@@ -44,19 +44,10 @@ enum class ErrorTypes(private val message: String, private val exceptionFactory:
     // Blender Runtime Failures [BL-200]
     RUNTIME_PAYLOAD_HANDLING_FAILED("[BL-200]: Failed to handle Blender runtime payload.", ::IllegalStateException),
     SETUP_PAYLOAD_MISSING_IDENTIFIER("[BL-201]: Blender setup payload is missing identifier: {0}", ::IllegalArgumentException),
-    SETUP_PAYLOAD_UNKNOWN_SESSION(
-        "[BL-202]: Blender setup payload received for unknown session identifier `{0}`.",
-        ::NoSuchElementException,
-    ),
+    SETUP_PAYLOAD_UNKNOWN_SESSION("[BL-202]: Blender setup payload received for unknown session identifier `{0}`.", ::NoSuchElementException,),
     RUNTIME_BOOTSTRAP_FAILED("[BL-203]: Blender runtime bootstrap reported failure: {0}", ::IllegalStateException),
-    RUNTIME_BOOTSTRAP_FAILED_WITH_DETAILS(
-        "[BL-204]: Blender runtime bootstrap reported failure: {0} ({1})",
-        ::IllegalStateException,
-    ),
-    DEBUG_ATTACH_FAILED(
-        "[BL-205]: Failed to attach Python debugger to Blender runtime session `{0}`.",
-        ::IllegalStateException,
-    ),
+    RUNTIME_BOOTSTRAP_FAILED_WITH_DETAILS("[BL-204]: Blender runtime bootstrap reported failure: {0} ({1})", ::IllegalStateException,),
+    DEBUG_ATTACH_FAILED("[BL-205]: Failed to attach Python debugger to Blender runtime session `{0}`.", ::IllegalStateException,),
     RUNTIME_RELOAD_MISSING_ADDON_DIRECTORIES(
         "[BL-206]: Skipped Blender runtime reload command because no configured add-on directories are available.",
     ),
@@ -112,23 +103,23 @@ enum class ErrorTypes(private val message: String, private val exceptionFactory:
     STUB_METADATA_FAILED("[BL-504]: Failed to retrieve metadata for Blender stub package {0}: {1}", ::IllegalStateException),
     STUB_INSTALL_FAILED("[BL-505]: Failed to install Blender stub package {0}: {1}", ::IllegalStateException),
 
-    // Notification Failures [BL-600]
-    NOTIFICATION_ERROR("[BL-600]: Error notification displayed: {0}"),
-
-    // Auth Failures [BL-700]
-    RETRIEVE_AUTH_FAILURE("[BL-700]: Could not retrieve a valid authentication signature", ::AuthenticationException),
+    // Auth Failures [BL-600]
+    RETRIEVE_AUTH_FAILURE("[BL-600]: Could not retrieve a valid authentication signature", ::AuthenticationException),
     KEY_SIZE_MISMATCH(
-        "[BL-701]: Client attempted to use malformed key signature, expected length ({0}), actual ({1})",
+        "[BL-601]: Client attempted to use malformed key signature, expected length ({0}), actual ({1})",
         ::InvalidKeyException,
     ),
     MISSING_AUTH_SIGNATURE(
-        "[BL-702]: Transmitted Payload is missing signature key",
+        "[BL-602]: Transmitted Payload is missing signature key",
         ::IllegalArgumentException
     ),
     INVALID_AUTH_RECEIVED(
-        "[BL-703]: Received Payload is inauthentic, cancelling request.",
+        "[BL-603]: Received Payload is inauthentic, cancelling request.",
         ::AuthenticationException
     ),
+
+    // Notification Failures [BL-700]
+    NOTIFICATION_ERROR("[BL-700]: Error notification displayed: {0}"),
     ;
     /**
      * Substitutes indexed placeholders such as `{0}` and `{1}` with the supplied parameters.
