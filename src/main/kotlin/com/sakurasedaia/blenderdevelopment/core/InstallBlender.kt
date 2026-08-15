@@ -72,7 +72,8 @@ private object IdeBlenderArtifactDownloader : BlenderArtifactDownloader {
     val result = CompletableFuture<BlenderArtifactDownloadResult>()
     val archive = targetDirectory.resolve(archiveName)
     val partialArchive = targetDirectory.resolve("$archiveName.part")
-
+    
+    @Suppress("DialogTitleCapitalization")
     ProgressManager.getInstance().run(object : Task.Backgroundable(
       project,
       MessageBundle.message("notification.settings.versions.install.download.progress"),

@@ -233,6 +233,7 @@ internal class BlenderDebugAttachService(private val project: Project) {
         return debugProcess
       }
     }
+    @Suppress("UnstableApiUsage")
     XDebuggerManager.getInstance(project)
       .newSessionBuilder(starter)
       .environment(environment)

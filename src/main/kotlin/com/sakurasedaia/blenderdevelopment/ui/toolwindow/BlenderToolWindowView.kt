@@ -155,6 +155,7 @@ internal class BlenderToolWindowView(project: Project) {
         }
       }.visibleIf(useCustomBlenderInstallProperty.equalsTo(false))
       row {
+        @Suppress("UnstableApiUsage")
         textFieldWithBrowseButton(fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileOrFolderDescriptor())
           .align(AlignX.FILL)
           .applyToComponent {

@@ -126,6 +126,8 @@ class BlenderProjectGenerator(private val data: BlenderExtensionManifest) {
             throw exception
         } catch (exception: Exception) {
             logger.warn(ErrorTypes.PROJECT_GENERATION_FAILED.format(data.name, baseDir.path), exception)
+            
+            @Suppress("UnstableApiUsage")
             PyResult.failure(
                 MessageError(
                     MessageBundle.message(
