@@ -2,6 +2,8 @@
 
 # Blender Development for PyCharm Changelog
 
+## [Unreleased]
+
 ## [1.0.0-beta.3]
 
 Beta 3 hardens communication between PyCharm and Blender, restores compatibility verification across the declared PyCharm
@@ -32,13 +34,10 @@ authenticated protocol with bounded, validated request handling.
 
 ### Security
 
-- Added a unique 32-byte authentication key to each Blender launch and HMAC-SHA-256 signatures over the exact request body for
-  runtime commands, setup messages, and bootstrap or dependency failure reports.
-- Rejected missing, invalid, cross-session, and unknown-session credentials, along with replayed setup messages, without
-  mutating the intended runtime session.
-- Added JSON content-type enforcement, bounded request bodies, message allowlists, setup-schema validation, and distinct HTTP
-  responses for authentication, media-type, size, and payload failures.
-- Cleared discarded authentication-key material when runtime sessions or command requests complete.
+- Finalized per-launch HMAC-SHA-256 authentication for runtime commands, setup messages, and early bootstrap or dependency
+  failures, with exact-body signing, bounded JSON requests, schema validation, replay and cross-session rejection, distinct
+  HTTP failure responses, and authentication-key cleanup. Localhost traffic remains unencrypted; HMAC provides authenticity
+  and integrity, not confidentiality.
 
 ### Known Issues
 

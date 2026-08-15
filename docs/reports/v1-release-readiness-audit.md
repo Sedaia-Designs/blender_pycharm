@@ -16,32 +16,37 @@ Status markers used throughout this audit:
 - ⚠️ **Partial** — meaningful remediation exists, but release requirements or validation remain incomplete.
 - ❌ **Open** — no verified remediation closes the finding.
 
-## Reverification — 2026-08-14
+## Reverification — 2026-08-15
 
-The release outcome remains unchanged. The current working implementation partially remediates the localhost authentication
-blocker:
+The release outcome remains unchanged because other V1 blockers are still open. The local-runtime authentication gate is now
+complete for its stated scope:
 
 - ✅ Each launch receives a random 32-byte key through the Blender process environment.
-- ✅ Blender setup requests and regular IDE-to-Blender runtime commands use HMAC-SHA-256 signatures over the exact request body.
-- ✅ Unknown sessions, missing signatures, invalid signatures, cross-session credentials, and replayed setup requests are rejected.
-- ✅ Kotlin HTTP integration tests and Python protocol tests cover the authenticated request path.
-- ⚠️ Bootstrap and dependency failure reports remain unsigned.
-- ❌ Content-type enforcement, request-size limits, and complete setup-schema validation are not implemented.
+- ✅ Runtime commands, setup messages, and bootstrap or dependency failure reports use HMAC-SHA-256 signatures over the exact
+  request body.
+- ✅ Unknown sessions, missing or invalid signatures, cross-session credentials, expired credentials, and replayed setup
+  requests are rejected without mutating the intended session.
+- ✅ The IDE boundary enforces POST requests, JSON content types, a 64 KiB body limit, supported message types, and validated
+  setup and failure schemas before state mutation.
+- ✅ Removed authentication-key byte arrays are overwritten when sessions and command requests complete.
+- ✅ Focused Kotlin HTTP tests, the Python protocol suite, compilation, the full JVM suite, Plugin Verifier, and a manual
+  startup/failure smoke test pass.
 
-The authentication gate is not complete. Bootstrap and dependency failure reports are still unsigned, and the IDE server does
-not yet enforce content type, request-size limits, or the complete setup schema. The remaining release blockers and
-high-priority issues below are also still open. The generated starter Python indentation defect is fixed and covered for both
-minimal and example-code template branches.
+HMAC authenticates possession of the per-launch key and detects request-body modification, but localhost HTTP remains
+unencrypted. It does not provide confidentiality against another local process that can observe loopback traffic or inspect
+the Blender process environment. The gate also does not resolve the separate multi-session targeting limitation. The
+remaining release blockers and high-priority issues below are still open.
 
 Current verification results:
 
-| Check                                         | Result                       |
-|-----------------------------------------------|------------------------------|
-| Kotlin compilation                            | Passed                       |
-| Authenticated editor-server integration tests | Passed: 10 of 10             |
-| Python tests                                  | Passed: 18 of 18             |
-| Full JVM tests                                | Passed: 195 of 195           |
-| Plugin Verifier                               | Compatible: 2 of 2 targets   |
+| Check                                         | Result                                                |
+|-----------------------------------------------|-------------------------------------------------------|
+| Kotlin compilation                            | Passed                                                |
+| Authenticated editor-server integration tests | Passed: 36 of 36                                      |
+| Python tests                                  | Passed: 24 plus 2 subtests                            |
+| Full JVM tests                                | Passed: 222 of 222                                    |
+| Plugin Verifier                               | Compatible: 2 of 2 targets                            |
+| Manual authentication smoke                   | Passed: startup and induced dependency failure report |
 
 The `BlenderProjectGeneratorTest` failures are resolved by restricting Gradle test workers to the plugin under test and its
 non-optional dependencies. The IntelliJ Platform then excludes unrelated bundled plugins such as Vue.js from the test
@@ -49,19 +54,19 @@ environment. The full suite passes without the previous stale `Stubs` index shut
 
 ### New implementation assessment
 
-| Implementation | Status | Verified behavior | Remaining shortcomings |
-| --- | --- | --- | --- |
-| Runtime HMAC authentication | ⚠️ Partial | Per-launch keys, exact-body HMAC-SHA-256, constant-time verification, replay rejection, key cleanup, and bidirectional regular-command tests | Bootstrap/dependency failure posts bypass HMAC; authentication failures return generic HTTP 400 instead of 401/403; no request-size, content-type, or full schema enforcement |
-| Starter Python template | ✅ Complete for syntax defect | Minimal and example-code branches compile in Python regression tests | Template values are still substituted without Python-aware escaping |
-| Ruff configuration | ⚠️ Partial | Ruff discovers `.ruff.toml`; Python 3.12, 120-character lines, selected lint rules, formatting style, and vendored `get-pip.py` exclusion are explicit | Only focused Ruff validation is clean; the complete first-party Python tree still requires lint and format cleanup; `fix = true` means ordinary `ruff check` mutates fixable files unless `--no-fix` is used |
-| Consolidated `BlenderLauncher.start` | ⚠️ Partial | Explicit and configured fallback paths share one launch path; macOS `.app` resolution uses the final path; environment precedence remains global → project → request | Covered indirectly by process and argument tests, but there is no direct service-level test for fallback path resolution, macOS bundle selection, or environment precedence |
+| Implementation                       | Status                                 | Verified behavior                                                                                                                                                                                                                  | Remaining shortcomings                                                                                                                                                                                       |
+|--------------------------------------|----------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Runtime HMAC authentication          | ✅ Complete for the local-runtime gate | Per-launch keys, exact-body HMAC-SHA-256 for every message type, authentication-specific responses, replay and cross-session rejection, key cleanup, bounded request handling, schema validation, and bidirectional protocol tests | Localhost HTTP remains unencrypted, so HMAC provides authenticity and integrity but not confidentiality; runtime actions still target the latest active session                                              |
+| Starter Python template              | ✅ Complete for syntax defect          | Minimal and example-code branches compile in Python regression tests                                                                                                                                                               | Template values are still substituted without Python-aware escaping                                                                                                                                          |
+| Ruff configuration                   | ⚠️ Partial                             | Ruff discovers `.ruff.toml`; Python 3.12, 120-character lines, selected lint rules, formatting style, and vendored `get-pip.py` exclusion are explicit                                                                             | Only focused Ruff validation is clean; the complete first-party Python tree still requires lint and format cleanup; `fix = true` means ordinary `ruff check` mutates fixable files unless `--no-fix` is used |
+| Consolidated `BlenderLauncher.start` | ⚠️ Partial                             | Explicit and configured fallback paths share one launch path; macOS `.app` resolution uses the final path; environment precedence remains global → project → request                                                               | Covered indirectly by process and argument tests, but there is no direct service-level test for fallback path resolution, macOS bundle selection, or environment precedence                                  |
 
-## Release Blockers
+## Release Blockers — ✅ Complete
 
-### 1. Local runtime authentication — ⚠️ Partial
+### 1. Local runtime authentication — ✅ Complete
 
-The original unauthenticated regular-command path is remediated. Supported commands can execute Python files, reload add-ons,
-or quit Blender, so the remaining unsigned request paths still prevent this gate from being complete.
+All supported localhost message types now use the same authenticated request pipeline. This closes the V1 authentication gate
+for command execution, setup, and early failure reporting.
 
 Remediation status:
 
@@ -71,17 +76,16 @@ Remediation status:
 - [x] Sign Blender-to-IDE setup requests.
 - [x] Reject unknown identifiers, missing or invalid signatures, cross-session credentials, and setup replays.
 - [x] Add negative tests for missing, wrong, expired, replayed, and cross-session credentials.
-- [ ] Sign bootstrap and dependency failure reports.
-- [ ] Return authentication-specific HTTP 401 or 403 responses from the IDE server.
-- [ ] Validate request content type and command/setup schemas.
-- [ ] Add request-size limits before reading complete request bodies.
+- [x] Sign bootstrap and dependency failure reports.
+- [x] Return authentication-specific HTTP 401 responses from the IDE server.
+- [x] Validate request content type and command/setup schemas.
+- [x] Add request-size limits before reading complete request bodies.
 
-Current shortcomings:
+Remaining limitations:
 
-- `src/main/python/__init__.py` still posts bootstrap failures without an HMAC header.
-- `BlenderEditorServerService.handlePost` authenticates only the `setup` branch; failure payloads bypass verification.
-- Authentication exceptions are caught by the generic payload handler and returned as HTTP 400.
-- HMAC provides integrity and peer possession of the launch key, but does not replace schema validation or resource limits.
+- HMAC provides authentication and integrity, not confidentiality. Requests still travel over unencrypted localhost HTTP.
+- A sufficiently privileged local process may inspect process environment values or observe loopback traffic.
+- Runtime actions still target the most recently registered session when multiple Blender sessions are active.
 
 ### 2. Generated starter Python syntax — ✅ Complete
 
@@ -126,7 +130,7 @@ Gradle `Test` workers now set `idea.load.plugins.id` to this plugin's ID. Intell
 Python and PyCharm dependencies while leaving unrelated bundled plugins disabled. Both focused generator tests and the full
 JVM suite pass, and shutdown no longer reports stale generated-project index entries.
 
-## High-Priority Issues
+## High-Priority Issues — ❌ Open
 
 ### Downloaded Blender executables are not authenticated — ❌ Open
 
@@ -178,21 +182,6 @@ configured path.
 This creates false expectations around disk cleanup, cache limits, stub locations, and logging. Either implement each setting
 before V1 or remove or hide it until supported.
 
-### Runtime server accepts malformed session setup — ⚠️ Partial
-
-`src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderEditorServerService.kt:212` accepts:
-
-- Invalid or out-of-range ports.
-- Empty scripts folders.
-- Arbitrary path mappings.
-- Unknown message types, which still receive `200 OK`.
-- Unbounded request bodies.
-
-Validate the complete setup payload before storing it and return an error for unknown payload types.
-
-Authentication now rejects unknown sessions and unauthenticated or replayed setup messages. Port ranges, required paths,
-mapping structure, known message types, content type, and body size are still not comprehensively validated.
-
 ### Runtime command actions use the latest session implicitly — ❌ Open
 
 `src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderRuntimeCommandService.kt:103` sends commands to whichever
@@ -208,6 +197,19 @@ package before installing the new one. If the new installation fails, the workin
 
 Prefer installing the new requirement first when pip semantics allow it, or restore the previous requirement after a failed
 replacement.
+
+### Runtime server payload validation — ✅ Complete
+
+The server now rejects:
+
+- Invalid or out-of-range ports.
+- Empty scripts folders.
+- Arbitrary path mappings.
+- Unknown message types.
+- Bodies larger than 64 KiB, including chunked requests.
+
+Validation occurs before setup or failure payloads can mutate session state. Unknown setup fields remain accepted for forward
+compatibility after all required fields have passed validation.
 
 ## Medium-Priority Stability and Maintainability Issues
 
@@ -278,18 +280,19 @@ success, test-suite success, and artifact verification should be mandatory.
 
 ## Code-Quality Validation
 
-| Check | Status | Current result |
-| --- | --- | --- |
-| Kotlin compilation | ✅ | Passed |
-| Gradle project configuration verification | ✅ | Passed |
-| Focused launcher/process tests | ✅ | Passed |
-| Authenticated editor-server integration tests | ✅ | Passed: 10 of 10 |
-| Python tests | ✅ | Passed: 18 of 18 |
-| JVM tests | ✅ | Passed: 195 of 195 |
-| Plugin Verifier | ✅ | Compatible with both declared PyCharm targets; experimental API warnings remain |
-| Dependency lock validation | ✅ | Passed in the original audit; not rerun during 2026-08-14 reverification |
-| Ruff configuration discovery | ✅ | `.ruff.toml` is discovered with the intended settings and vendored-file exclusion |
-| Full first-party Ruff lint/format | ⚠️ | Configuration is corrected, but repository-wide cleanup and a clean full run remain outstanding |
+| Check                                         | Status | Current result                                                                                  |
+|-----------------------------------------------|--------|-------------------------------------------------------------------------------------------------|
+| Kotlin compilation                            | ✅     | Passed                                                                                          |
+| Gradle project configuration verification     | ✅     | Passed                                                                                          |
+| Focused launcher/process tests                | ✅     | Passed                                                                                          |
+| Authenticated editor-server integration tests | ✅     | Passed: 36 of 36                                                                                |
+| Python tests                                  | ✅     | Passed: 24 plus 2 subtests                                                                      |
+| JVM tests                                     | ✅     | Passed: 222 of 222 across 37 suites                                                             |
+| Plugin Verifier                               | ✅     | Compatible with both declared PyCharm targets; experimental API warnings remain                 |
+| Manual authentication smoke                   | ✅     | Phase-one startup and an intentionally induced, authenticated dependency-failure report passed  |
+| Dependency lock validation                    | ✅     | Passed in the original audit; not rerun during this authentication-focused reverification       |
+| Ruff configuration discovery                  | ✅     | `.ruff.toml` is discovered with the intended settings and vendored-file exclusion               |
+| Full first-party Ruff lint/format             | ⚠️     | Configuration is corrected, but repository-wide cleanup and a clean full run remain outstanding |
 
 The Ruff configuration now excludes vendored `src/main/python/external/get-pip.py`. Remaining first-party findings should be
 fixed before release. Because `.ruff.toml` enables `fix = true`, release validation should use `ruff check --no-fix` when the
@@ -297,8 +300,8 @@ goal is a read-only audit and should run `ruff format --check` separately.
 
 ## Recommended V1 Gate Order
 
-1. ⚠️ Authenticate both localhost protocols and strictly reject unknown sessions — regular commands and setup are complete;
-   failure reports and HTTP boundary validation remain open.
+1. ✅ Authenticate both localhost protocols and strictly reject unknown sessions — commands, setup, early failure reports,
+   HTTP boundary validation, and session-state invariants are complete.
 2. ⚠️ Fix and compile-test every generated Python and TOML artifact — starter Python syntax is covered; escaping and other
    generated artifacts remain open.
 3. ❌ Add checksum verification for downloaded Blender distributions.

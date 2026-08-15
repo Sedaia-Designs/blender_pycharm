@@ -18,7 +18,10 @@
 package com.sakurasedaia.blenderdevelopment.core
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.intellij.notification.Notification
+import com.intellij.notification.Notifications
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import java.io.ByteArrayInputStream
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -158,6 +161,20 @@ internal class BlenderEditorServerServiceTest : BasePlatformTestCase() {
     assertNull(service.removeSetupPayload(session.identifier))
   }
 
+  fun testExpiredSessionCredentialsAreRejected() {
+    val service = BlenderEditorServerService.getInstance(project)
+    val session = service.prepareLaunchSession()
+    val body = setupBody(session.identifier)
+    val signature = signatureFor(session, body)
+    expirePendingSession(service, session.identifier)
+
+    val response = sendSetup(session, body, signature)
+
+    assertEquals(401, response.statusCode())
+    assertNull(service.findSessionAuthKey(session.identifier))
+    assertNull(service.removeSetupPayload(session.identifier))
+  }
+
   fun testJsonContentTypeWithCharsetIsAccepted() {
     val service = BlenderEditorServerService.getInstance(project)
     val session = service.prepareLaunchSession()
@@ -191,12 +208,61 @@ internal class BlenderEditorServerServiceTest : BasePlatformTestCase() {
     assertNull(service.removeSetupPayload(session.identifier))
   }
 
+  fun testMissingContentTypeIsRejectedWithoutMutatingSession() {
+    assertRejectedSetup(415) { session, body ->
+      sendSetup(session, body, signatureFor(session, body), contentType = null)
+    }
+  }
+
+  fun testNonPostMethodIsRejectedBeforeReadingPayload() {
+    val service = BlenderEditorServerService.getInstance(project)
+    val session = service.prepareLaunchSession()
+    val request = HttpRequest.newBuilder()
+      .uri(URI.create("http://127.0.0.1:${session.editorPort}/"))
+      .timeout(Duration.ofSeconds(2))
+      .GET()
+      .build()
+
+    val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
+
+    assertEquals(405, response.statusCode())
+    assertNotNull(service.findSessionAuthKey(session.identifier))
+    assertNull(service.removeSetupPayload(session.identifier))
+  }
+
   fun testOversizedPayloadIsRejectedBeforeAuthentication() {
     val service = BlenderEditorServerService.getInstance(project)
     val session = service.prepareLaunchSession()
     val body = "x".repeat(65 * 1024)
 
     val response = sendSetup(session, body, signatureFor(session, body))
+
+    assertEquals(413, response.statusCode())
+    assertNotNull(service.findSessionAuthKey(session.identifier))
+    assertNull(service.removeSetupPayload(session.identifier))
+  }
+
+  fun testExactBoundarySizePayloadIsAccepted() {
+    val service = BlenderEditorServerService.getInstance(project)
+    val session = service.prepareLaunchSession()
+    val body = setupBodyAtSize(session.identifier, 64 * 1024)
+
+    val response = sendSetup(session, body, signatureFor(session, body))
+
+    assertEquals(64 * 1024, body.toByteArray().size)
+    assertEquals(200, response.statusCode())
+    assertNotNull(service.removeSetupPayload(session.identifier))
+  }
+
+  fun testOversizedChunkedPayloadIsRejectedWithoutMutatingSession() {
+    val service = BlenderEditorServerService.getInstance(project)
+    val session = service.prepareLaunchSession()
+    val body = "x".repeat(65 * 1024)
+    val publisher = HttpRequest.BodyPublishers.ofInputStream {
+      ByteArrayInputStream(body.toByteArray())
+    }
+
+    val response = sendSetup(session, body, signatureFor(session, body), bodyPublisher = publisher)
 
     assertEquals(413, response.statusCode())
     assertNotNull(service.findSessionAuthKey(session.identifier))
@@ -251,6 +317,64 @@ internal class BlenderEditorServerServiceTest : BasePlatformTestCase() {
     assertNull(service.removeSetupPayload(session.identifier))
   }
 
+  fun testAbsentTypeIsRejectedWithoutMutatingSession() {
+    assertRejectedPayload(mapOf("identifier" to "SESSION"))
+  }
+
+  fun testBlankTypeIsRejectedWithoutMutatingSession() {
+    assertRejectedPayload(mapOf("type" to " ", "identifier" to "SESSION"))
+  }
+
+  fun testUnknownTypeIsRejectedWithoutMutatingSession() {
+    assertRejectedPayload(mapOf("type" to "futureMessage", "identifier" to "SESSION"))
+  }
+
+  fun testPortsOutsideValidRangeAreRejectedWithoutMutatingSession() {
+    listOf(0, 65_536).forEach { invalidPort ->
+      assertRejectedSetup { session -> setupBody(session.identifier, blenderPort = invalidPort) }
+      assertRejectedSetup { session -> setupBody(session.identifier, debugpyPort = invalidPort) }
+    }
+  }
+
+  fun testAbsentRequiredSetupFieldsAreRejectedWithoutMutatingSession() {
+    listOf("blenderPort", "debugpyPort", "scriptsFolder", "pathMappings", "debugProtocol").forEach { field ->
+      assertRejectedSetup { session ->
+        objectMapper.writeValueAsString(setupPayload(session.identifier).toMutableMap().apply { remove(field) })
+      }
+    }
+  }
+
+  fun testBlankScriptsFolderIsRejectedWithoutMutatingSession() {
+    assertRejectedSetup { session -> setupBody(session.identifier, scriptsFolder = " ") }
+  }
+
+  fun testMalformedPathMappingsAreRejectedWithoutMutatingSession() {
+    val invalidMappings = listOf(
+      "not-a-list",
+      listOf(mapOf("src" to "", "load" to "/runtime")),
+      listOf(mapOf("src" to "/project")),
+    )
+    invalidMappings.forEach { mappings ->
+      assertRejectedSetup { session -> setupBody(session.identifier, pathMappings = mappings) }
+    }
+  }
+
+  fun testUnsupportedDebugProtocolIsRejectedWithoutMutatingSession() {
+    assertRejectedSetup { session -> setupBody(session.identifier, debugProtocol = "gdb") }
+  }
+
+  fun testUnknownSetupFieldsRemainForwardCompatible() {
+    val service = BlenderEditorServerService.getInstance(project)
+    val session = service.prepareLaunchSession()
+    val payload = setupPayload(session.identifier).toMutableMap().apply { put("futureField", true) }
+    val body = objectMapper.writeValueAsString(payload)
+
+    val response = sendSetup(session, body, signatureFor(session, body))
+
+    assertEquals(200, response.statusCode())
+    assertNotNull(service.removeSetupPayload(session.identifier))
+  }
+
   fun testCoercibleSetupFieldIsRejectedWithoutMutatingSession() {
     val service = BlenderEditorServerService.getInstance(project)
     val session = service.prepareLaunchSession()
@@ -285,6 +409,44 @@ internal class BlenderEditorServerServiceTest : BasePlatformTestCase() {
     assertNull(service.removeSetupPayload(session.identifier))
   }
 
+  fun testBothSignedFailureReportsClearPendingSessionAndNotifyUser() {
+    listOf("bootstrapFailure", "dependencyFailure").forEach { failureType ->
+      val service = BlenderEditorServerService.getInstance(project)
+      val session = service.prepareLaunchSession()
+      val body = failureBody(session.identifier, failureType, "Runtime failed: 日本語")
+      val notifications = mutableListOf<Notification>()
+      project.messageBus.connect(testRootDisposable).subscribe(
+        Notifications.TOPIC,
+        object : Notifications {
+          override fun notify(notification: Notification) {
+            notifications.add(notification)
+          }
+        },
+      )
+
+      val response = sendSetup(session, body, signatureFor(session, body))
+
+      assertEquals(200, response.statusCode())
+      assertNull(service.findSessionAuthKey(session.identifier))
+      assertNull(service.removeSetupPayload(session.identifier))
+      assertTrue(notifications.any { it.content == "Runtime failed: 日本語" })
+    }
+  }
+
+  fun testInvalidFailureSchemaCannotClearPendingSession() {
+    listOf("", " ").forEach { message ->
+      val service = BlenderEditorServerService.getInstance(project)
+      val session = service.prepareLaunchSession()
+      val body = failureBody(session.identifier, message = message)
+
+      val response = sendSetup(session, body, signatureFor(session, body))
+
+      assertEquals(400, response.statusCode())
+      assertNotNull(service.findSessionAuthKey(session.identifier))
+      assertNull(service.removeSetupPayload(session.identifier))
+    }
+  }
+
   fun testUnsignedFailureReportCannotClearPendingSession() {
     val service = BlenderEditorServerService.getInstance(project)
     val session = service.prepareLaunchSession()
@@ -296,28 +458,103 @@ internal class BlenderEditorServerServiceTest : BasePlatformTestCase() {
     assertNull(service.removeSetupPayload(session.identifier))
   }
 
-  private fun setupBody(identifier: String, blenderPort: Int = 51_234): String =
-    objectMapper.writeValueAsString(
+  private fun setupBody(
+    identifier: String,
+    blenderPort: Int = 51_234,
+    debugpyPort: Int = 56_789,
+    scriptsFolder: String = "/tmp/blender/scripts",
+    pathMappings: Any = listOf(mapOf("src" to "/project", "load" to "/runtime")),
+    debugProtocol: String = "debugpy-dap",
+  ): String = objectMapper.writeValueAsString(
+    setupPayload(identifier, blenderPort, debugpyPort, scriptsFolder, pathMappings, debugProtocol)
+  )
+
+  private fun setupPayload(
+    identifier: String,
+    blenderPort: Int = 51_234,
+    debugpyPort: Int = 56_789,
+    scriptsFolder: String = "/tmp/blender/scripts",
+    pathMappings: Any = listOf(mapOf("src" to "/project", "load" to "/runtime")),
+    debugProtocol: String = "debugpy-dap",
+  ): Map<String, Any> =
       mapOf(
         "type" to "setup",
         "identifier" to identifier,
         "blenderPort" to blenderPort,
-        "debugpyPort" to 56_789,
-        "scriptsFolder" to "/tmp/blender/scripts",
-        "pathMappings" to listOf(mapOf("src" to "/project", "load" to "/runtime")),
-        "debugProtocol" to "debugpy-dap",
+        "debugpyPort" to debugpyPort,
+        "scriptsFolder" to scriptsFolder,
+        "pathMappings" to pathMappings,
+        "debugProtocol" to debugProtocol,
       )
-    )
 
-  private fun failureBody(identifier: String): String =
+  private fun failureBody(
+    identifier: String,
+    type: String = "bootstrapFailure",
+    message: String = "Runtime bootstrap failed",
+  ): String =
     objectMapper.writeValueAsString(
       mapOf(
-        "type" to "bootstrapFailure",
+        "type" to type,
         "identifier" to identifier,
-        "message" to "Runtime bootstrap failed",
+        "message" to message,
         "details" to "Test failure details",
       )
     )
+
+  private fun setupBodyAtSize(identifier: String, targetSize: Int): String {
+    val payload = setupPayload(identifier).toMutableMap()
+    payload["padding"] = ""
+    val emptyPaddingBody = objectMapper.writeValueAsString(payload)
+    payload["padding"] = "x".repeat(targetSize - emptyPaddingBody.toByteArray().size)
+    return objectMapper.writeValueAsString(payload)
+  }
+
+  private fun assertRejectedSetup(bodyFactory: (BlenderRuntimeLaunchSession) -> String) {
+    val service = BlenderEditorServerService.getInstance(project)
+    val session = service.prepareLaunchSession()
+    val body = bodyFactory(session)
+    val response = sendSetup(session, body, signatureFor(session, body))
+
+    assertEquals(400, response.statusCode())
+    assertNotNull(service.findSessionAuthKey(session.identifier))
+    assertNull(service.removeSetupPayload(session.identifier))
+  }
+
+  private fun assertRejectedSetup(
+    expectedStatus: Int,
+    request: (BlenderRuntimeLaunchSession, String) -> HttpResponse<String>,
+  ) {
+    val service = BlenderEditorServerService.getInstance(project)
+    val session = service.prepareLaunchSession()
+    val body = setupBody(session.identifier)
+    val response = request(session, body)
+
+    assertEquals(expectedStatus, response.statusCode())
+    assertNotNull(service.findSessionAuthKey(session.identifier))
+    assertNull(service.removeSetupPayload(session.identifier))
+  }
+
+  private fun assertRejectedPayload(payloadTemplate: Map<String, String>) {
+    val service = BlenderEditorServerService.getInstance(project)
+    val session = service.prepareLaunchSession()
+    val payload = payloadTemplate.mapValues { (_, value) ->
+      if (value == "SESSION") session.identifier else value
+    }
+    val body = objectMapper.writeValueAsString(payload)
+    val response = sendSetup(session, body, signatureFor(session, body))
+
+    assertEquals(400, response.statusCode())
+    assertNotNull(service.findSessionAuthKey(session.identifier))
+    assertNull(service.removeSetupPayload(session.identifier))
+  }
+
+  @Suppress("UNCHECKED_CAST")
+  private fun expirePendingSession(service: BlenderEditorServerService, identifier: String) {
+    val field = BlenderEditorServerService::class.java.getDeclaredField("pendingSessionCreatedAtMs")
+    field.isAccessible = true
+    val createdAtByIdentifier = field.get(service) as MutableMap<String, Long>
+    createdAtByIdentifier[identifier] = 0L
+  }
 
   private fun signatureFor(session: BlenderRuntimeLaunchSession, body: String): String =
     BlenderAuthentication.notarizeMessage(BlenderAuthentication.decode(session.encodedAuthKey), body)
@@ -327,11 +564,12 @@ internal class BlenderEditorServerServiceTest : BasePlatformTestCase() {
     body: String,
     signature: String?,
     contentType: String? = "application/json",
+    bodyPublisher: HttpRequest.BodyPublisher = HttpRequest.BodyPublishers.ofString(body),
   ): HttpResponse<String> {
     val requestBuilder = HttpRequest.newBuilder()
       .uri(URI.create("http://127.0.0.1:${session.editorPort}/"))
       .timeout(Duration.ofSeconds(2))
-      .POST(HttpRequest.BodyPublishers.ofString(body))
+      .POST(bodyPublisher)
     if (contentType != null) {
       requestBuilder.header("Content-Type", contentType)
     }

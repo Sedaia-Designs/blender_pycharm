@@ -30,25 +30,25 @@ Scope: close only the remaining local-runtime authentication and HTTP-boundary f
   - Validate setup ports, scripts folder, path mappings, and debug protocol before creating `BlenderSetupPayload`.
   - Validate failure-payload identifiers, type, message, and optional details before notifying the user.
   - Ensure rejected setup and failure reports cannot register, refresh, or invalidate a session.
-- [ ] Expand Kotlin HTTP integration tests.
+- [x] Expand Kotlin HTTP integration tests.
   - Update existing authentication expectations from `400` to the selected `401` or `403` contract.
   - Cover signed bootstrap and dependency failures, plus missing, invalid, cross-session, expired, and replayed credentials where applicable.
   - Cover wrong or missing content type, malformed JSON, unknown type, absent fields, invalid ports, blank paths, malformed mappings, unsupported protocols, boundary-size bodies, and oversized or chunked requests.
   - Assert rejected requests leave authentication and runtime-session state unchanged.
   - Assert a valid authenticated failure report clears the intended pending session and triggers the expected notification behavior.
-- [ ] Expand Python protocol tests.
+- [x] Expand Python protocol tests.
   - Verify early failure reports sign the exact transmitted bytes.
   - Cover both failure types and payloads containing Unicode.
   - Verify missing or malformed keys fail safely.
   - Add a compatibility test proving setup, failure reporting, and regular commands use the same header and signing contract.
-- [ ] Validate the completed authentication gate.
+- [x] Validate the completed authentication gate.
   - Run focused Kotlin server integration tests.
   - Run the Python protocol suite.
   - Run `./gradlew compileKotlin --no-daemon`.
   - Run the full JVM test suite.
   - Run Plugin Verifier because the work is part of V1 release closure.
   - Perform a manual smoke test for successful startup and an intentionally induced dependency or bootstrap failure.
-- [ ] Update release evidence and documentation.
+- [x] Update release evidence and documentation.
   - Mark the local-runtime authentication gate complete in `docs/reports/v1-release-readiness-audit.md` only after every check passes.
   - Record exact test totals and remaining limitations, especially that localhost HMAC does not provide confidentiality.
   - Add an Unreleased changelog entry describing the final security behavior.
