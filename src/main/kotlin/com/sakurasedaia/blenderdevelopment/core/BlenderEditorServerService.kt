@@ -376,6 +376,7 @@ internal class BlenderEditorServerService(project: Project) : Disposable {
   }
 
   private fun authenticatePayload(identifier: String, signature: String, payloadBytes: ByteArray) {
+    cleanupExpiredSessions()
     if (identifier.isBlank()) {
       throw RuntimePayloadException(400, ErrorTypes.SETUP_PAYLOAD_MISSING_IDENTIFIER.format("<missing>"))
     }
