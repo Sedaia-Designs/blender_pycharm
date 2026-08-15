@@ -3,6 +3,7 @@ import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.changelog.Changelog
 import org.gradle.api.tasks.WriteProperties
 import org.gradle.api.tasks.bundling.Zip
+import org.gradle.api.tasks.testing.Test
 import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
 
 plugins {
@@ -27,7 +28,6 @@ dependencies {
 
         // Add plugin dependencies for compilation here:
         bundledPlugin("PythonCore")
-        bundledPlugin("Pythonid")
     }
 
     // Toml KT Dependencies
@@ -76,7 +76,14 @@ intellijPlatform {
 }
 
 tasks {
+    withType<Test> {
+        // Keep platform tests isolated from unrelated bundled IDE plugins such as Vue.js.
+        // The platform automatically loads this plugin's non-optional dependencies.
+        systemProperty("idea.load.plugins.id", "com.sakurasedaia.BlenderDevelopment")
+    }
+
     val generatePluginMetadata by registering(WriteProperties::class) {
+        description = ""
         destinationFile = layout.buildDirectory
             .file("generated/plugin-metadata/blender-development.properties")
             .get()

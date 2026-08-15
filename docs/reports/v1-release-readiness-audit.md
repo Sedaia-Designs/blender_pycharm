@@ -10,15 +10,23 @@ The audit found four release blockers, several high-priority correctness and sec
 persisted but never honored, and incomplete validation. The project compiles and most tests pass, but the full release
 validation currently fails.
 
+Status markers used throughout this audit:
+
+- ✅ **Complete** — implemented and verified for the stated scope.
+- ⚠️ **Partial** — meaningful remediation exists, but release requirements or validation remain incomplete.
+- ❌ **Open** — no verified remediation closes the finding.
+
 ## Reverification — 2026-08-14
 
 The release outcome remains unchanged. The current working implementation partially remediates the localhost authentication
 blocker:
 
-- Each launch receives a random 32-byte key through the Blender process environment.
-- Blender setup requests and regular IDE-to-Blender runtime commands use HMAC-SHA-256 signatures over the exact request body.
-- Unknown sessions, missing signatures, invalid signatures, cross-session credentials, and replayed setup requests are rejected.
-- Kotlin HTTP integration tests and Python protocol tests cover the authenticated request path.
+- ✅ Each launch receives a random 32-byte key through the Blender process environment.
+- ✅ Blender setup requests and regular IDE-to-Blender runtime commands use HMAC-SHA-256 signatures over the exact request body.
+- ✅ Unknown sessions, missing signatures, invalid signatures, cross-session credentials, and replayed setup requests are rejected.
+- ✅ Kotlin HTTP integration tests and Python protocol tests cover the authenticated request path.
+- ⚠️ Bootstrap and dependency failure reports remain unsigned.
+- ❌ Content-type enforcement, request-size limits, and complete setup-schema validation are not implemented.
 
 The authentication gate is not complete. Bootstrap and dependency failure reports are still unsigned, and the IDE server does
 not yet enforce content type, request-size limits, or the complete setup schema. The remaining release blockers and
@@ -32,82 +40,95 @@ Current verification results:
 | Kotlin compilation                            | Passed                       |
 | Authenticated editor-server integration tests | Passed: 10 of 10             |
 | Python tests                                  | Passed: 18 of 18             |
-| Full JVM tests                                | Failed: 193 passed, 2 failed |
+| Full JVM tests                                | Passed: 195 of 195           |
+| Plugin Verifier                               | Compatible: 2 of 2 targets   |
 
-The two JVM failures remain the `BlenderProjectGeneratorTest` Vue LSP/plugin-layout failures described below.
+The `BlenderProjectGeneratorTest` failures are resolved by restricting Gradle test workers to the plugin under test and its
+non-optional dependencies. The IntelliJ Platform then excludes unrelated bundled plugins such as Vue.js from the test
+environment. The full suite passes without the previous stale `Stubs` index shutdown report.
+
+### New implementation assessment
+
+| Implementation | Status | Verified behavior | Remaining shortcomings |
+| --- | --- | --- | --- |
+| Runtime HMAC authentication | ⚠️ Partial | Per-launch keys, exact-body HMAC-SHA-256, constant-time verification, replay rejection, key cleanup, and bidirectional regular-command tests | Bootstrap/dependency failure posts bypass HMAC; authentication failures return generic HTTP 400 instead of 401/403; no request-size, content-type, or full schema enforcement |
+| Starter Python template | ✅ Complete for syntax defect | Minimal and example-code branches compile in Python regression tests | Template values are still substituted without Python-aware escaping |
+| Ruff configuration | ⚠️ Partial | Ruff discovers `.ruff.toml`; Python 3.12, 120-character lines, selected lint rules, formatting style, and vendored `get-pip.py` exclusion are explicit | Only focused Ruff validation is clean; the complete first-party Python tree still requires lint and format cleanup; `fix = true` means ordinary `ruff check` mutates fixable files unless `--no-fix` is used |
+| Consolidated `BlenderLauncher.start` | ⚠️ Partial | Explicit and configured fallback paths share one launch path; macOS `.app` resolution uses the final path; environment precedence remains global → project → request | Covered indirectly by process and argument tests, but there is no direct service-level test for fallback path resolution, macOS bundle selection, or environment precedence |
 
 ## Release Blockers
 
-### 1. Local runtime command server is unauthenticated
+### 1. Local runtime authentication — ⚠️ Partial
 
-`src/main/python/communication.py:114` accepts arbitrary POST requests from any local process. Supported commands can:
+The original unauthenticated regular-command path is remediated. Supported commands can execute Python files, reload add-ons,
+or quit Blender, so the remaining unsigned request paths still prevent this gate from being complete.
 
-- Execute an arbitrary Python file through `src/main/python/operators/script_runner.py:23`.
-- Reload add-ons.
-- Quit Blender through `src/main/python/operators/stop_blender.py:9`.
+Remediation status:
 
-Binding to `127.0.0.1` prevents direct network access, but it does not authenticate the IDE. Malware, another local
-application, or a browser-originated localhost request could target the server.
+- [x] Generate a cryptographically random secret per launch.
+- [x] Pass it to Blender through the process environment.
+- [x] Sign regular IDE-to-Blender commands.
+- [x] Sign Blender-to-IDE setup requests.
+- [x] Reject unknown identifiers, missing or invalid signatures, cross-session credentials, and setup replays.
+- [x] Add negative tests for missing, wrong, expired, replayed, and cross-session credentials.
+- [ ] Sign bootstrap and dependency failure reports.
+- [ ] Return authentication-specific HTTP 401 or 403 responses from the IDE server.
+- [ ] Validate request content type and command/setup schemas.
+- [ ] Add request-size limits before reading complete request bodies.
 
-The IDE-side server has the corresponding weakness: `BlenderEditorServerService.kt:208` warns about an unknown session
-identifier but registers it anyway.
+Current shortcomings:
 
-Required remediation:
+- `src/main/python/__init__.py` still posts bootstrap failures without an HMAC header.
+- `BlenderEditorServerService.handlePost` authenticates only the `setup` branch; failure payloads bypass verification.
+- Authentication exceptions are caught by the generic payload handler and returned as HTTP 400.
+- HMAC provides integrity and peer possession of the launch key, but does not replace schema validation or resource limits.
 
-- Generate a cryptographically random secret per launch.
-- Pass it to Blender through the process environment.
-- Require it on every IDE-to-Blender and Blender-to-IDE request.
-- Reject unknown identifiers and invalid credentials with `401` or `403`.
-- Validate request content type and command schema.
-- Add request-size limits.
-- Add negative tests for missing, wrong, expired, and cross-session credentials.
+### 2. Generated starter Python syntax — ✅ Complete
 
-### 2. Generated starter Python file has invalid syntax
-
-`src/main/resources/fileTemplates/internal/NewProjectMainScript.ft:64` renders:
+`src/main/resources/fileTemplates/internal/NewProjectMainScript.ft` now renders an indented registration call:
 
 ```python
 if __name__ == "__main__":
-register()
+    register()
 ```
 
-`register()` is not indented, so every generated project using this template receives a `SyntaxError`.
+Regression tests compile both the minimal and example-code template branches. This closes the indentation defect only; the
+separate format-specific escaping issue remains open.
 
-Existing wizard tests verify file presence but never compile the generated Python source. Add a regression test equivalent
-to the template compilation test already used for the runtime repository-sync template.
+### 3. Plugin Verifier fails for every declared target IDE — ✅ Complete
 
-### 3. Plugin Verifier fails for every declared target IDE
-
-`verifyPlugin` reports unresolved `com.jetbrains.python` classes against both:
+`verifyPlugin` reports both declared targets as compatible:
 
 - PyCharm `261.27258.30`
 - PyCharm `262.9437.71`
 
-Affected functionality includes the new-project wizard and Python project APIs. A verifier failure means runtime
-`NoClassDefFoundError` remains possible.
+The failure was caused by declaring the legacy `com.intellij.modules.python` compatibility module. Plugin Verifier could not
+reliably resolve that nested module alias from the transformed PyCharm distribution, so the owning Python plugin and its
+`com.jetbrains.python` classes were absent from verification.
 
-The likely immediate problem is verifier dependency resolution rather than all referenced APIs actually being absent, but
-this must be resolved before release. Confirm the correct bundled Python plugin dependency and verifier configuration, then
-rerun both targets.
+The plugin now declares `PythonCore` directly in `plugin.xml`, matching the bundled plugin that owns every Python API used by
+the implementation. The Gradle build classpath likewise uses only `bundledPlugin("PythonCore")`; the unused Professional
+`Pythonid` dependency was removed. Verification completes successfully without missing dependencies or unresolved classes.
 
-PyCharm 2026.1 also reports three experimental `XDebugSessionBuilder` usages in
-`src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderDebugAttachService.kt:215`. Those usages are narrowly
-isolated, but require explicit compatibility acceptance and runtime testing.
+Residual warnings do not fail verification: PyCharm 2026.1 reports three experimental `XDebugSessionBuilder` usages and two
+experimental `MessageError` usages, while PyCharm 2026.2 reports only the two `MessageError` usages. These narrowly isolated
+APIs still require compatibility acceptance and runtime smoke testing, but both configured targets are verifier-compatible.
 
-### 4. JVM test suite is red
+### 4. JVM test suite is red — ✅ Complete
 
-Result: **183 tests, 2 failures**.
+Current result: **195 tests passed**.
 
-Both failures are in `BlenderProjectGeneratorTest` and originate from a Vue LSP/plugin-layout initialization error. Shutdown
-also reports a stale `Stubs` index entry associated with the generated project.
+The two failures in `BlenderProjectGeneratorTest` originated from an unrelated Vue LSP service loaded from the Gradle test
+sandbox. Vue's bundled-package lookup rejected the transformed PyCharm plugin-cache layout while the fixture deleted its VFS
+content during teardown. That exception interrupted normal cleanup and produced the secondary stale `Stubs` index report.
 
-This may be test-environment configuration rather than product behavior, but a stable V1 should not ship with a consistently
-red test task. The tests need isolation from unrelated JavaScript/Vue plugin initialization, and their generated VFS/index
-state needs proper cleanup.
+Gradle `Test` workers now set `idea.load.plugins.id` to this plugin's ID. IntelliJ automatically enables its non-optional
+Python and PyCharm dependencies while leaving unrelated bundled plugins disabled. Both focused generator tests and the full
+JVM suite pass, and shutdown no longer reports stale generated-project index entries.
 
 ## High-Priority Issues
 
-### Downloaded Blender executables are not authenticated
+### Downloaded Blender executables are not authenticated — ❌ Open
 
 `src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/InstallBlender.kt:205` downloads and extracts executable
 distributions without checking an official checksum or signature.
@@ -123,7 +144,7 @@ Before V1:
 - Store verification metadata alongside cached artifacts.
 - Test mismatch, missing-checksum, redirect, truncated-download, and stale-cache cases.
 
-### Template variables are inserted without format-specific escaping
+### Template variables are inserted without format-specific escaping — ❌ Open
 
 `src/main/kotlin/com/sakurasedaia/blenderdevelopment/util/PluginResources.kt:43` inserts wizard values directly into TOML and
 Python templates.
@@ -141,7 +162,7 @@ manually quoted without escaping at
 
 Use TOML/Python-aware escaping or structured serialization and test hostile-but-valid user input.
 
-### Several visible settings do nothing
+### Several visible settings do nothing — ❌ Open
 
 These settings are persisted and exposed in Settings but have no production consumer:
 
@@ -157,7 +178,7 @@ configured path.
 This creates false expectations around disk cleanup, cache limits, stub locations, and logging. Either implement each setting
 before V1 or remove or hide it until supported.
 
-### Runtime server accepts malformed session setup
+### Runtime server accepts malformed session setup — ⚠️ Partial
 
 `src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderEditorServerService.kt:212` accepts:
 
@@ -169,7 +190,10 @@ before V1 or remove or hide it until supported.
 
 Validate the complete setup payload before storing it and return an error for unknown payload types.
 
-### Runtime command actions use the latest session implicitly
+Authentication now rejects unknown sessions and unauthenticated or replayed setup messages. Port ranges, required paths,
+mapping structure, known message types, content type, and body size are still not comprehensively validated.
+
+### Runtime command actions use the latest session implicitly — ❌ Open
 
 `src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderRuntimeCommandService.kt:103` sends commands to whichever
 active session was registered last.
@@ -177,7 +201,7 @@ active session was registered last.
 With multiple Blender runs or projects, reload, run, or stop may affect the wrong process. V1 should associate commands with
 the relevant execution session or present a session chooser.
 
-### Stub replacement is not transactional
+### Stub replacement is not transactional — ❌ Open
 
 `src/main/kotlin/com/sakurasedaia/blenderdevelopment/stubs/BlenderStubInstallationService.kt:142` uninstalls the old stub
 package before installing the new one. If the new installation fails, the working old package is gone.
@@ -198,8 +222,8 @@ replacement.
   variables.
 - The Python runtime logs full outbound payloads at `communication.py:178`, including paths and future authentication data
   unless redacted.
-- `BlenderEditorServerService.getActiveSessionPayloads()` refreshes every session's TTL merely by listing sessions. Querying
-  state should not change session lifetime.
+- ✅ The unused `BlenderEditorServerService.findSetupPayload`, `findActiveSessionPayload`, and `getActiveSessionPayloads`
+  methods were removed, eliminating the query-driven TTL refresh behavior.
 - Background executor tasks in the runtime command and debug services are not directly tied to project disposal. Prefer
   project-owned coroutine scopes or expiration conditions.
 - `PluginConfig` uses tabs and IntelliJ-style-inconsistent indentation throughout. Several Kotlin files use four-space
@@ -213,9 +237,9 @@ replacement.
 Confirmed unused or placeholder declarations include:
 
 - Both asynchronous `ExternalProcessBuilder.launchAndCaptureOutputAsync` overloads.
-- `BlenderEditorServerService.findSetupPayload`.
-- `BlenderEditorServerService.findActiveSessionPayload`.
-- `BlenderEditorServerService.getActiveSessionPayloads`.
+- ✅ ~~`BlenderEditorServerService.findSetupPayload`.~~ Removed.
+- ✅ ~~`BlenderEditorServerService.findActiveSessionPayload`.~~ Removed.
+- ✅ ~~`BlenderEditorServerService.getActiveSessionPayloads`.~~ Removed.
 - `BlenderInstallationScanner.logNoInstallsSummary`.
 - `ScrapeBlenderVersionLists.getAvailableVersions`.
 - `ScriptDirectoriesTable.getDirectories`.
@@ -254,32 +278,38 @@ success, test-suite success, and artifact verification should be mandatory.
 
 ## Code-Quality Validation
 
-| Check | Result |
-| --- | --- |
-| Kotlin compilation | Passed |
-| Gradle project configuration verification | Passed |
-| JVM tests | Failed: 181 passed, 2 failed |
-| Plugin Verifier | Failed for both target IDEs |
-| Python tests | Passed: 8 of 8 |
-| Dependency lock validation | Passed |
-| Ruff | Failed: 34 findings |
+| Check | Status | Current result |
+| --- | --- | --- |
+| Kotlin compilation | ✅ | Passed |
+| Gradle project configuration verification | ✅ | Passed |
+| Focused launcher/process tests | ✅ | Passed |
+| Authenticated editor-server integration tests | ✅ | Passed: 10 of 10 |
+| Python tests | ✅ | Passed: 18 of 18 |
+| JVM tests | ✅ | Passed: 195 of 195 |
+| Plugin Verifier | ✅ | Compatible with both declared PyCharm targets; experimental API warnings remain |
+| Dependency lock validation | ✅ | Passed in the original audit; not rerun during 2026-08-14 reverification |
+| Ruff configuration discovery | ✅ | `.ruff.toml` is discovered with the intended settings and vendored-file exclusion |
+| Full first-party Ruff lint/format | ⚠️ | Configuration is corrected, but repository-wide cleanup and a clean full run remain outstanding |
 
-Ruff findings include unsorted imports, wildcard imports, unused imports, excessive line length, trailing whitespace, and
-redundant f-strings. Vendored `src/main/python/external/get-pip.py` should be excluded from linting rather than modified; the
-remaining first-party findings should be fixed before release.
+The Ruff configuration now excludes vendored `src/main/python/external/get-pip.py`. Remaining first-party findings should be
+fixed before release. Because `.ruff.toml` enables `fix = true`, release validation should use `ruff check --no-fix` when the
+goal is a read-only audit and should run `ruff format --check` separately.
 
 ## Recommended V1 Gate Order
 
-1. Authenticate both localhost protocols and strictly reject unknown sessions.
-2. Fix and compile-test every generated Python and TOML artifact.
-3. Add checksum verification for downloaded Blender distributions.
-4. Resolve Plugin Verifier dependency configuration.
-5. Fix or isolate the two failing JVM tests.
-6. Implement or remove nonfunctional settings.
-7. Add real Run and Debug smoke tests on Windows, macOS, and Linux.
-8. Clean first-party Ruff and Kotlin formatting findings.
-9. Remove or formally defer dead and TODO-only production code.
-10. Run `clean test verifyPlugin buildPlugin` from an uncontaminated release environment.
+1. ⚠️ Authenticate both localhost protocols and strictly reject unknown sessions — regular commands and setup are complete;
+   failure reports and HTTP boundary validation remain open.
+2. ⚠️ Fix and compile-test every generated Python and TOML artifact — starter Python syntax is covered; escaping and other
+   generated artifacts remain open.
+3. ❌ Add checksum verification for downloaded Blender distributions.
+4. ✅ Resolve Plugin Verifier dependency configuration and verify both target IDEs.
+5. ✅ Isolate JVM tests from unrelated bundled plugins and verify the full suite.
+6. ❌ Implement or remove nonfunctional settings.
+7. ❌ Add real Run and Debug smoke tests on Windows, macOS, and Linux.
+8. ⚠️ Clean first-party Ruff and Kotlin formatting findings — Ruff configuration is complete; full cleanup is not.
+9. ⚠️ Remove or formally defer dead and TODO-only production code — three editor-server query methods were removed; the
+   remaining inventory is open.
+10. ❌ Run `clean test verifyPlugin buildPlugin` from an uncontaminated release environment.
 
 ## Audit Scope
 
