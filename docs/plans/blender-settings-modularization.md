@@ -128,7 +128,7 @@ not reach into private Swing widgets.
 - `ERROR` was removed from the operation enum because failures are completion results rather than persistent work states.
 - [x] Extract settings-specific backend workflow from `BlenderSettingsFactory`.
   - [x] Add a concrete `BlenderSettingsOperations` boundary unless an existing service already cleanly owns the behavior.
-  - [x] Delegate domain work to `InstallBlender`, `ScrapeBlenderVersionLists`, `SettingsInstallationScanService`, and
+  - [x] Delegate domain work to `BlenderInstallationService`, `ScrapeBlenderVersionLists`, `SettingsInstallationScanService`, and
     `BlenderVersionCache` rather than duplicating it.
   - [x] Centralize notification, logging, completion-error unwrapping, and execution-context transitions.
   - [x] Choose one consistent suspend-function or explicitly documented callback API across the new boundary.

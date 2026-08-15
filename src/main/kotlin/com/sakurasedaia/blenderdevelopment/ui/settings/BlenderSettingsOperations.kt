@@ -4,7 +4,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
-import com.sakurasedaia.blenderdevelopment.core.InstallBlender
+import com.sakurasedaia.blenderdevelopment.core.BlenderInstallationService
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersion
 import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
 import com.sakurasedaia.blenderdevelopment.lib.services.ScrapeBlenderVersionLists
@@ -186,7 +186,7 @@ internal class BlenderSettingsOperations(
       fun production(project: Project = currentProject()): Dependencies {
         val application = ApplicationManager.getApplication()
         val config = PluginConfig.getInstance()
-        val installer = InstallBlender.getInstance()
+        val installer = BlenderInstallationService.getInstance()
         val logger = PluginLogger.getInstance(project)
         val notifications = NotificationModal.getInstance(project)
         return Dependencies(

@@ -132,7 +132,8 @@ private object IdeBlenderArtifactDownloader : BlenderArtifactDownloader {
  * Utility for downloading and installing versions of Blender
  */
 @Service
-internal class InstallBlender(
+@Suppress("UnstableApiUsage")
+internal class BlenderInstallationService(
   private val artifactDownloader: BlenderArtifactDownloader = IdeBlenderArtifactDownloader,
   private val downloadPathOverride: Path? = null,
   private val installPathOverride: Path? = null,
@@ -146,7 +147,7 @@ internal class InstallBlender(
   private val logger: PluginLogger = PluginLogger.getInstance()
 
   companion object {
-    fun getInstance(): InstallBlender = service()
+    fun getInstance(): BlenderInstallationService = service()
   }
 
   internal fun extractBlender(version: String): CompletableFuture<Path> {
