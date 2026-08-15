@@ -119,7 +119,7 @@ def _report_bootstrap_failure(
     }
     body = json.dumps(payload).encode("utf-8")
     auth_key = environment.DECODED_PYCHARM_AUTHKEY
-    if auth_key is None:
+    if not isinstance(auth_key, bytes):
         LOG.error("Cannot authenticate runtime bootstrap failure report because the launch key is unavailable.")
         return
     signature = hmac.new(auth_key, body, hashlib.sha256).hexdigest()
