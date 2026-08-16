@@ -51,7 +51,6 @@ internal data class BlenderPythonLaunchRequest(
 @Service(Service.Level.PROJECT)
 internal class BlenderPythonLauncher(private val project: Project) {
   private val logger = PluginLogger.getInstance(project)
-  private val notificationModal = NotificationModal.getInstance(project)
   private val projectConfig = ProjectConfig.getInstance(project)
   private val blenderLauncher = BlenderLauncher.getInstance(project)
 

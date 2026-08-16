@@ -180,14 +180,6 @@ internal class ScriptDirectoriesTable(private val project: Project) {
     isApplyingState = false
   }
 
-  fun getDirectories(): List<String> {
-    if (table.isEditing) {
-      table.cellEditor?.stopCellEditing()
-    }
-
-    return readDirectories()
-  }
-
   private fun readDirectories(): List<String> {
     return (0 until model.rowCount)
         .map { row -> model.getValueAt(row, PATH_COLUMN_INDEX)?.toString()?.trim().orEmpty() }

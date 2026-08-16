@@ -48,9 +48,6 @@ internal enum class BlenderRuntimeMessageType(val wireValue: String) {
   DEPENDENCY_FAILURE("dependencyFailure"),
   BOOTSTRAP_FAILURE("bootstrapFailure");
 
-  val wireValueByteSize: Int
-    get() = wireValue.toByteArray(StandardCharsets.UTF_8).size
-
   companion object {
     private val byWireValue = entries.associateBy(BlenderRuntimeMessageType::wireValue)
 

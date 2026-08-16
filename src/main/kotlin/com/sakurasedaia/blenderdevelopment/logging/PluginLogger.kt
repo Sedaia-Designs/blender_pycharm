@@ -251,7 +251,6 @@ class PluginLogger(project: Project) {
      *
      * @param project target project.
      * @param errorType canonical plugin error code.
-     * @param throwable optional exception details.
      * @return `Unit`.
      */
     fun error(project: Project = currentProject(), errorType: ErrorTypes) = getInstance(project).error(errorType)

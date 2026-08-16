@@ -16,7 +16,7 @@ import kotlinx.coroutines.withContext
 
 @Service
 internal class ScrapeBlenderVersionLists {
-  val BLENDER_VERSION_SITE: String = "https://download.blender.org/release/"
+  val blenderVersionSite: String = "https://download.blender.org/release/"
 
   companion object {
     private val VERSION_DIRECTORY_PATTERN =
@@ -33,24 +33,16 @@ internal class ScrapeBlenderVersionLists {
     fun getInstance(): ScrapeBlenderVersionLists = service()
   }
 
-  suspend fun getAvailableVersions(url: String = BLENDER_VERSION_SITE): List<String> =
-      withContext(Dispatchers.IO) {
-        filterMinorVersions(
-            parseAvailableVersions(getHTML(url)),
-            PluginConfig.getInstance().getMinimumBlenderVersion(),
-        )
-      }
-
   internal suspend fun refreshVersionCache(): List<BlenderVersion> =
       withContext(Dispatchers.IO) {
         val availableMinorVersions =
             filterMinorVersions(
-                    parseAvailableVersions(getHTML(BLENDER_VERSION_SITE)),
+                    parseAvailableVersions(getHTML(blenderVersionSite)),
                     PluginConfig.getInstance().getMinimumBlenderVersion(),
                 )
                 .toSet()
         val discoveredPatchVersions = availableMinorVersions.mapNotNull { minorVersion ->
-          val releaseUrl = "${BLENDER_VERSION_SITE}Blender$minorVersion/"
+          val releaseUrl = "${blenderVersionSite}Blender$minorVersion/"
           parsePatchVersions(getHTML(releaseUrl), minorVersion)
         }
 

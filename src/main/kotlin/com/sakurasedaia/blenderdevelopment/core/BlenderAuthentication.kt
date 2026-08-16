@@ -52,17 +52,14 @@ internal object BlenderAuthentication {
   }
 
   /**
-   * Verifies if a given post's signature is authentic by comparing it to a computed HMAC signature.
+   * Verifies the authenticity of a message by comparing the provided signature with the expected signature derived from the message body
+   * and a secret key.
    *
-   * @param signature The HMAC-SHA-256 hexadecimal string representing the signed data to verify.
-   * @param body The content of the post to be authenticated.
-   * @param key The secret key used for HMAC signing, provided as a byte array.
-   * @return `true` if the provided signature matches the computed signature; `false` otherwise.
+   * @param signature The hexadecimal string representing the signature to be verified.
+   * @param body The byte array representing the message body for which the signature was generated.
+   * @param key The secret key used to generate the expected signature.
+   * @return `true` when the provided signature matches the expected signature.
    */
-  fun isPostAuthentic(signature: String, body: String, key: ByteArray): Boolean {
-    return isPostAuthentic(signature, body.toByteArray(Charsets.UTF_8), key)
-  }
-
   fun isPostAuthentic(signature: String, body: ByteArray, key: ByteArray): Boolean {
     val receivedSignature =
         try {
@@ -107,16 +104,5 @@ internal object BlenderAuthentication {
     }
 
     return key
-  }
-
-  fun requireValid(encodedKey: String): String {
-    val decodedKey = Base64.getUrlDecoder().decode(encodedKey)
-
-    try {
-      requireValid(decodedKey)
-    } catch (e: InvalidKeyException) {
-      throw e
-    }
-    return encodedKey
   }
 }
