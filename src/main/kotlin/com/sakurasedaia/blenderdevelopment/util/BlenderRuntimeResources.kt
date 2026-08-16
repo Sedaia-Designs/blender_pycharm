@@ -103,11 +103,7 @@ internal object BlenderRuntimeResources {
     }
 
     val markerPath = runtimeDirectory.resolve(RUNTIME_VERSION_MARKER)
-    if (!markerPath.exists()) {
-      return false
-    }
-
-    return runCatching { Files.readString(markerPath).trim() }.getOrNull() == runtimeFingerprint
+    return markerPath.exists() && runCatching { Files.readString(markerPath).trim() }.getOrNull() == runtimeFingerprint
   }
 
   private fun extractArchive(destinationDirectory: Path) {

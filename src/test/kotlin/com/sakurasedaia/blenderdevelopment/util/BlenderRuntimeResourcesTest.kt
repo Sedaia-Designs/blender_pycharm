@@ -27,6 +27,6 @@ class BlenderRuntimeResourcesTest {
     val pluginVersion = BlenderRuntimeResources.resolvePluginVersion()
 
     assertNotEquals("dev", pluginVersion)
-    assertFalse(pluginVersion.contains("${'$'}{"))
+    assertFalse(pluginVersion.contains($$"${"))
   }
 }
