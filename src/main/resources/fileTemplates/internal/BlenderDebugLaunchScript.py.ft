@@ -1,6 +1,7 @@
 import bpy
 
-class SEDAIA_PT_TestPanel(bpy.types.Panel):
+
+class TestPanel(bpy.types.Panel):
     """A simple test panel to ensure the script is working"""
     bl_idname = "SEDAIA_PT_test_panel"
     bl_label = "Item"
@@ -14,11 +15,11 @@ class SEDAIA_PT_TestPanel(bpy.types.Panel):
 
 def register():
     """Registers the associated classes from Blender"""
-    bpy.utils.register_class(SEDAIA_PT_TestPanel)
+    bpy.utils.register_class(TestPanel)
 
 def unregister():
     """Unregisters the associated classes from Blender"""
-    bpy.utils.unregister_class(SEDAIA_PT_TestPanel)
+    bpy.utils.unregister_class(TestPanel)
 
 if __name__ == "__main__":
     register()
