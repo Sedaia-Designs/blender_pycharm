@@ -230,11 +230,15 @@ class ExternalProcessBuilder(val project: Project) {
   }
 
   private fun killProcess(process: Process) {
+    val descendants = process.descendants().use { stream -> stream.toList().asReversed() }
+
+    descendants.forEach { it.destroy() }
     process.destroy()
     if (!process.waitFor(PROCESS_DESTROY_GRACE_PERIOD_MS, TimeUnit.MILLISECONDS)) {
       process.destroyForcibly()
       process.waitFor()
     }
+    descendants.filter { it.isAlive }.forEach { it.destroyForcibly() }
   }
 
   private fun buildCommandString(command: String, args: List<String>): String {
