@@ -118,7 +118,7 @@ Blender version is maintained internally, and every remaining managed-download c
 - Priority: High
 - Area: Managed Blender installation
 - Related files:
-  - [InstallBlender.kt](src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/InstallBlender.kt)
+  - [InstallBlender.kt](src/main/kotlin/com/sakurasedaia/blenderdevelopment/core/BlenderInstallationService.kt)
   - [ArchiveUtil.kt](src/main/kotlin/com/sakurasedaia/blenderdevelopment/util/ArchiveUtil.kt)
   - [InstallBlenderTest.kt](src/test/kotlin/com/sakurasedaia/blenderdevelopment/core/InstallBlenderTest.kt)
 - Related issue: Archive verification, staging isolation, cleanup, and extraction coverage

@@ -65,7 +65,7 @@ not reach into private Swing widgets.
 - [x] Establish behavior-preserving tests before completing the migration.
   - [x] Cover reset, apply, and modified detection for every `BlenderSettingsForm` field.
   - [x] Cover version selection and install/delete enablement, including OS compatibility.
-  - [x] Cover refresh, scan, cache clear, install, delete, failures, and recovery from in-progress state.
+  - [x] Cover refresh, scan, cache clear, install, delete, failures, and recovery from the in-progress state.
   - [x] Preserve vertical-only scrolling and accessible names for icon-only action buttons.
 
 ### Phase 2 test baseline
