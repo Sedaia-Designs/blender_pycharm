@@ -20,7 +20,7 @@ prepare_release:
   manual_confirmation: "Build, test, and prepare this commit for a GitLab release?"
   script:
     - ./gradlew compileKotlin test buildPlugin --no-daemon
-    - scripts/prepare-gitlab-release.sh .release
+    - bash scripts/prepare-gitlab-release.sh .release
   artifacts:
     name: "release-$CI_COMMIT_SHORT_SHA"
     paths:
@@ -76,6 +76,6 @@ publish_marketplace:
     - test -n "$PUBLISH_TOKEN"
     - test -n "$PRIVATE_KEY"
     - test -n "$CERTIFICATE_CHAIN"
-    - scripts/release-marketplace.sh --skip-build --yes
+    - bash scripts/release-marketplace.sh --skip-build --yes
   environment:
     name: jetbrains-marketplace/dev

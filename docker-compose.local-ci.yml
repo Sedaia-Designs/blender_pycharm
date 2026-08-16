@@ -1,0 +1,16 @@
+services:
+  local-ci:
+    build:
+      context: .
+      dockerfile: docker/local-ci/Dockerfile
+    environment:
+      CI: "true"
+      GRADLE_USER_HOME: /root/.gradle
+      GRADLE_OPTS: -Dorg.gradle.vfs.watch=false
+    image: blender-python-development-local-ci
+    platform: ${LOCAL_CI_PLATFORM:-linux/amd64}
+    volumes:
+      - local-ci-gradle-cache:/root/.gradle
+
+volumes:
+  local-ci-gradle-cache:

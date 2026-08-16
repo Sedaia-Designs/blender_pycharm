@@ -1,0 +1,12 @@
+.env/
+.git/
+.gradle/
+.idea/
+.intellijPlatform/
+.kotlin/
+.local-ci-artifacts/
+build/
+out/
+**/__pycache__/
+**/*.pyc
+
