@@ -37,6 +37,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
+/** Identifies whether a Blender installation is externally or plugin managed. */
+enum class InstallType {
+  /** Represents an installation found outside the plugin-managed artifact directory. */
+  USER,
+
+  /** Represents an installation found in the plugin-managed artifact directory. */
+  PYCHARM,
+}
+
 /** Application-level persisted configuration for global Blender plugin settings. */
 @Service(Service.Level.APP)
 @State(name = "PluginConfig", storages = [Storage("blender_pycharm.config.xml")])
@@ -46,6 +55,7 @@ class PluginConfig(private val coroutineScope: CoroutineScope) : PersistentState
       @Attribute var name: String = "",
       @Attribute var version: String = "",
       @Attribute var path: String = "",
+      @Attribute var installType: InstallType = InstallType.USER,
   )
 
   /** Time units supported by the automatic Blender version refresh interval. */

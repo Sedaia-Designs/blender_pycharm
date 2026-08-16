@@ -20,19 +20,12 @@ package com.sakurasedaia.blenderdevelopment.lib
 import com.intellij.openapi.application.ApplicationManager
 import com.sakurasedaia.blenderdevelopment.state.BlenderVersionCache
 import com.sakurasedaia.blenderdevelopment.util.SystemInfo
-import java.nio.file.Path
-
-enum class InstallType {
-  USER, // Installs on the User's system
-  PYCHARM, // Installs made by Pycharm
-}
 
 /**
  * Version mapping row between a Blender release and its bundled Python runtime.
  *
  * @property compatWithOs compatibility matrix keyed by OS name (`windows`, `macos`, `linux`) with supported architecture values (for
  *   example, `x64`, `arm64`).
- * @property installLocation A list of paths where Blender is installed for that specific version.
  */
 data class BlenderVersion(
     private val installName: String,
@@ -40,7 +33,6 @@ data class BlenderVersion(
     val pyVersionList: List<Int> = emptyList(),
     private val fakeBpy: String? = null,
     val compatWithOs: Map<String, List<String>>,
-    val installLocation: Map<InstallType, Path> = emptyMap(),
 ) {
   /** Full Blender version in `major.minor.patch` format. */
   val blVersion: String

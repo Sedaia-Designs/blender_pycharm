@@ -23,6 +23,7 @@ import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.process.ExternalProcessBuilder
+import com.sakurasedaia.blenderdevelopment.state.InstallType
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig.BlendInstallInfo
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
@@ -120,13 +121,19 @@ class BlenderInstallationScanner(val project: Project) {
       diagnostics: ScanDiagnostics,
       shouldCancel: () -> Boolean,
       internalBinary: String? = null,
-      whereIsInstall: String = "User",
+      installType: InstallType = InstallType.USER,
   ): BlendInstallInfo? {
     val detectedVersion = getBlenderVersion(binary, diagnostics, shouldCancel, internalBinary) ?: return null
+    val installTypeLabel =
+        when (installType) {
+          InstallType.USER -> "User"
+          InstallType.PYCHARM -> "Custom"
+        }
     return BlendInstallInfo(
-        name = "$detectedVersion ($whereIsInstall)",
+        name = "$detectedVersion ($installTypeLabel)",
         version = formSemanticVersion(detectedVersion),
         path = installPath,
+        installType = installType,
     )
   }
 
@@ -145,22 +152,11 @@ class BlenderInstallationScanner(val project: Project) {
     }
   }
 
-  private fun logNoInstallsSummary(osName: String, installsFound: Int, skippedInaccessibleRoots: Int) {
-    if (installsFound > 0) return
-    if (skippedInaccessibleRoots > 0) {
-      logger.warn(ErrorTypes.INSTALL_SCAN_NO_INSTALLS_WITH_SKIPPED_ROOTS.format(osName, skippedInaccessibleRoots))
-    } else {
-      logger.warn(ErrorTypes.INSTALL_SCAN_NO_INSTALLS.format(osName))
-    }
-  }
-
   /**
    * Scans default installation directories for Blender on Windows OS and attempts to locate installed versions.
    *
    * @param diagnostics Tracks diagnostic information during the scanning process, including inaccessible paths and version probe failures.
    * @param shouldCancel A callback function that, when invoked, checks if the scanning process should be cancelled.
-   * @param timeout An optional timeout duration for the scanning process. If set, the timeout must be non-negative. If null or zero, no
-   *   timeout is applied.
    * @return A list of discovered Blender installations, where each installation is represented by a `BlendInstallInfo` object containing
    *   details like name, version, and path. Returns an empty list if no installations are found.
    */
@@ -368,7 +364,7 @@ class BlenderInstallationScanner(val project: Project) {
             diagnostics,
             shouldCancel,
             internalBinary = "Blender",
-            whereIsInstall = "Custom",
+            installType = InstallType.PYCHARM,
         )
       }
     }
@@ -386,7 +382,13 @@ class BlenderInstallationScanner(val project: Project) {
     directBinaries
         .firstOrNull { isExecutableFile(it) }
         ?.let { binary ->
-          return buildInstallInfo(binary, candidateDir.absolutePath, diagnostics, shouldCancel, whereIsInstall = "Custom")
+          return buildInstallInfo(
+              binary,
+              candidateDir.absolutePath,
+              diagnostics,
+              shouldCancel,
+              installType = InstallType.PYCHARM,
+          )
         }
 
     return null

@@ -84,6 +84,7 @@ class PluginConfigTest : BasePlatformTestCase() {
                 name = "Blender 4.2.12 (Custom)",
                 version = "4.2.12",
                 path = "/opt/blender 4.2",
+                installType = InstallType.PYCHARM,
             ),
         )
     val original = PluginConfig.PluginState(detectedBlender = installs)
@@ -94,9 +95,29 @@ class PluginConfigTest : BasePlatformTestCase() {
 
     assertTrue(
         "Installed Blender details must be persisted as XML attributes; got: $xml",
-        xml.contains("""<BlendInstallInfo name="Blender 4.5.8 (User)" version="4.5.8" path="/Applications/Blender.app" />"""),
+        xml.contains("""name="Blender 4.5.8 (User)"""),
     )
+    assertTrue("Managed install type must be persisted; got: $xml", xml.contains("""installType="PYCHARM"""))
     assertEquals(installs, restored.detectedBlender)
+  }
+
+  fun testLegacyDetectedBlenderInstallDefaultsToUserType() {
+    val legacyState =
+        PluginConfig.PluginState(
+            detectedBlender =
+                listOf(
+                    PluginConfig.BlendInstallInfo(
+                        name = "Blender 4.5.8",
+                        version = "4.5.8",
+                        path = "/Applications/Blender.app",
+                    )
+                )
+        )
+    val serialized = JDOMUtil.load(JDOMUtil.writeElement(XmlSerializer.serialize(legacyState)).replace(" installType=\"USER\"", ""))
+
+    val restored = XmlSerializer.deserialize(serialized, PluginConfig.PluginState::class.java)
+
+    assertEquals(InstallType.USER, restored.detectedBlender.single().installType)
   }
 
   fun testDetectedBlenderInstallCacheOwnsItsValues() {
