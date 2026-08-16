@@ -5,8 +5,8 @@
 .intellijPlatform/
 .kotlin/
 .local-ci-artifacts/
+.release/
 build/
 out/
 **/__pycache__/
 **/*.pyc
-

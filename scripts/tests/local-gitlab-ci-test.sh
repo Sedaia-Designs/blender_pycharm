@@ -9,6 +9,11 @@ if ! grep -qxF '.env/' "$project_root/.dockerignore"; then
   exit 1
 fi
 
+if ! git -C "$project_root" check-ignore --quiet .release/release-notes.md; then
+  printf 'FAIL: Git does not ignore generated release artifacts.\n' >&2
+  exit 1
+fi
+
 if ! grep -qF 'platform: ${LOCAL_CI_PLATFORM:-linux/amd64}' "$project_root/docker-compose.local-ci.yml"; then
   printf 'FAIL: Local CI does not default to the GitLab runner architecture.\n' >&2
   exit 1
