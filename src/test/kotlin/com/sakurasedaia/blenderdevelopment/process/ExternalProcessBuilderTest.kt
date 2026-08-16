@@ -19,7 +19,6 @@ package com.sakurasedaia.blenderdevelopment.process
 
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import java.time.Duration
-import java.util.concurrent.TimeUnit
 
 class ExternalProcessBuilderTest : BasePlatformTestCase() {
   override fun runInDispatchThread(): Boolean = false
@@ -126,22 +125,6 @@ class ExternalProcessBuilderTest : BasePlatformTestCase() {
     assertEquals(0, result.exitCode)
     assertFalse(result.cancelled)
     assertFalse(result.timedOut)
-  }
-
-  fun testAsyncListOverloadForwardsTimeout() {
-    val command = sleepingCommand()
-
-    val result =
-        ExternalProcessBuilder(project)
-            .launchAndCaptureOutputAsync(
-                command = command.executable,
-                args = command.arguments,
-                timeout = Duration.ofMillis(250),
-            )
-            .get(5, TimeUnit.SECONDS)
-
-    assertTrue(result.timedOut)
-    assertFalse(result.cancelled)
   }
 
   private fun successfulCommand(): TestCommand {

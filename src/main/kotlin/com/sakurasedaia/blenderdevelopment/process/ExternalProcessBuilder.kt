@@ -27,7 +27,6 @@ import com.sakurasedaia.blenderdevelopment.util.SystemInfo
 import java.io.IOException
 import java.time.Duration
 import java.util.concurrent.ExecutionException
-import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 
 class ExternalProcessBuilder(val project: Project) {
@@ -147,37 +146,6 @@ class ExternalProcessBuilder(val project: Project) {
   }
 
   /**
-   * Launches a process on the application executor and returns a [Future] for its captured result.
-   *
-   * This method applies the same command preprocessing and cancellation semantics as [launchAndCaptureOutput].
-   *
-   * @param command executable path or command name to run.
-   * @param args command arguments.
-   * @param shouldCancel optional callback polled during execution to request cancellation.
-   * @param internalBinary optional macOS app bundle binary name used when [command] points to an app bundle.
-   * @param timeout optional maximum process runtime; `null` or [Duration.ZERO] disables the timeout.
-   * @return a future that completes with the process execution result.
-   */
-  fun launchAndCaptureOutputAsync(
-      command: String,
-      vararg args: String,
-      shouldCancel: (() -> Boolean)? = null,
-      internalBinary: String? = null,
-      timeout: Duration? = null,
-  ): Future<ProcessExecutionResult> {
-    val argumentList = args.toMutableList()
-    return AppExecutorUtil.getAppExecutorService().submit<ProcessExecutionResult> {
-      launchAndCaptureOutput(
-          command,
-          args = argumentList,
-          shouldCancel = shouldCancel,
-          internalBinary = internalBinary,
-          timeout = timeout,
-      )
-    }
-  }
-
-  /**
    * Convenience overload of [launchAndCaptureOutput] that accepts a list of arguments.
    *
    * @param command executable path or command name to run.
@@ -201,35 +169,6 @@ class ExternalProcessBuilder(val project: Project) {
         internalBinary = internalBinary,
         timeout = timeout,
     )
-  }
-
-  /**
-   * Convenience overload of [launchAndCaptureOutputAsync] that accepts a list of arguments.
-   *
-   * @param command executable path or command name to run.
-   * @param args command arguments.
-   * @param shouldCancel optional callback polled during execution to request cancellation.
-   * @param internalBinary optional macOS app bundle binary name used when [command] points to an app bundle.
-   * @param timeout optional maximum process runtime; `null` or [Duration.ZERO] disables the timeout.
-   * @return a future that completes with the process execution result.
-   */
-  fun launchAndCaptureOutputAsync(
-      command: String,
-      args: List<String>,
-      shouldCancel: (() -> Boolean)? = null,
-      internalBinary: String? = null,
-      timeout: Duration? = null,
-  ): Future<ProcessExecutionResult> {
-    val argumentList = args.toMutableList()
-    return AppExecutorUtil.getAppExecutorService().submit<ProcessExecutionResult> {
-      launchAndCaptureOutput(
-          command,
-          argumentList,
-          internalBinary = internalBinary,
-          timeout = timeout,
-          shouldCancel = shouldCancel,
-      )
-    }
   }
 
   /**
