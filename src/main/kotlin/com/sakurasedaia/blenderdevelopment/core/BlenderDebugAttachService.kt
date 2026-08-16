@@ -15,6 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+@file:Suppress("UsePropertyAccessSyntax")
+
 package com.sakurasedaia.blenderdevelopment.core
 
 import com.intellij.execution.ExecutionResult
@@ -233,7 +235,7 @@ internal class BlenderDebugAttachService(private val project: Project) {
                     setupPayload.debugpyPort,
                 )
             if (mappingSettings.pathMappings.isNotEmpty()) {
-              debugProcess.setPositionConverter(PyRemotePositionConverter(debugProcess, mappingSettings))
+              debugProcess.positionConverter = PyRemotePositionConverter(debugProcess, mappingSettings)
             }
             return debugProcess
           }

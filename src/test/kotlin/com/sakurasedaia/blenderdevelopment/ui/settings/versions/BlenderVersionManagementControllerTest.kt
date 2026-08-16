@@ -118,7 +118,7 @@ internal class BlenderVersionManagementControllerTest : BasePlatformTestCase() {
     assertTrue(deleteButton(view).isEnabled)
 
     deleteButton(view).doClick()
-    deleteCompletion!!(Result.success(true))
+    deleteCompletion(Result.success(true))
 
     assertEquals(1, scanCount)
     assertFalse(table(view).isEnabled)
@@ -148,7 +148,7 @@ internal class BlenderVersionManagementControllerTest : BasePlatformTestCase() {
 
     textButton(view, "ui.settings.group.versions.refresh.button").doClick()
     controller.dispose()
-    refreshCompletion!!(Result.success(listOf(original)))
+    refreshCompletion(Result.success(listOf(original)))
     textButton(view, "ui.settings.group.versions.refresh.button").doClick()
 
     assertEquals(replacement.blVersion, table(view).getValueAt(0, 0))

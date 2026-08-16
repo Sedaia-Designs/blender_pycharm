@@ -54,13 +54,10 @@ object SystemInfo {
   private fun isOS(input: String): Boolean = input in osName
 
   /**
-   * Checks whether the current host platform is supported for the provided Blender major/minor version.
+   * Determines whether the operating system and architecture are compatible with the specified Blender version.
    *
-   * Compatibility is evaluated using [com.sakurasedaia.blenderdevelopment.lib.BlenderVersions.getCompatibleArch], matching the normalized
-   * [getSysInfo.osName] and [getSysInfo.osArch] values.
-   *
-   * @param blMajorMinor Blender version key in `major.minor` form (for example, `4.5`).
-   * @return `true` when the current platform is listed as compatible for that Blender version.
+   * @param blMajorMinor The Blender version in `major.minor` form, used to query the compatibility matrix.
+   * @return `true` if the operating system and architecture are compatible with the specified Blender version; `false` otherwise.
    */
   fun isOSCompatible(blMajorMinor: String): Boolean {
     val systemInfo = getSysInfo

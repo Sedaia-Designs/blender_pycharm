@@ -145,7 +145,7 @@ internal class BlenderSettingsOperationsTest : BasePlatformTestCase() {
     val notifications = mutableListOf<String>()
     val operations =
         operations(
-            deleteVersion = { CompletableFuture.completedFuture(false) },
+            deleteVersion = { completedFuture(false) },
             sendInfo = { notifications += it },
         )
     var completion: Result<Boolean>? = null
@@ -188,9 +188,9 @@ internal class BlenderSettingsOperationsTest : BasePlatformTestCase() {
       scanInstallations: ((() -> Boolean) -> List<PluginConfig.BlendInstallInfo>) = { emptyList() },
       clearVersionCache: () -> Unit = {},
       installVersion: (String) -> CompletableFuture<Path> = {
-        CompletableFuture.completedFuture(Path.of("/managed/blender"))
+        completedFuture(Path.of("/managed/blender"))
       },
-      deleteVersion: (String) -> CompletableFuture<Boolean> = { CompletableFuture.completedFuture(true) },
+      deleteVersion: (String) -> CompletableFuture<Boolean> = { completedFuture(true) },
       markVersionUpdateChecked: () -> Unit = {},
       log: (String) -> Unit = {},
       sendInfo: (String) -> Unit = {},

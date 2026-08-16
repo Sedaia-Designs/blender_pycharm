@@ -17,15 +17,16 @@ data class Permissions(
 )
 
 /** Build configuration declared by a Blender extension manifest. */
-@Serializable data class Build(val paths_exclude_pattern: List<String> = emptyList())
+@Suppress("PropertyName") // Preserve Blender's TOML manifest field names.
+@Serializable
+data class Build(val paths_exclude_pattern: List<String> = emptyList())
 
 /**
  * Read and parse Blender Manifest keys using the standard Blender Manifest, currently only supporting all official keys in the Blender
  * Manifest schema.
- *
- * @param filePath Path to the Blender Manifest to edit.
  */
 @Serializable
+@Suppress("PropertyName") // Preserve Blender's TOML manifest field names.
 data class BlenderManifest(
     // Required base variables
     val schema_version: String,
@@ -55,7 +56,12 @@ data class BlenderManifest(
       ignoreUnknownKeys = true
     }
 
-    /** Reads and parses the Blender manifest at [filePath]. */
+    /**
+     * Parses a Blender Manifest file from the specified file path into a BlenderManifest object.
+     *
+     * @param filePath the path of the Blender Manifest file to be read and parsed.
+     * @return a BlenderManifest object representing the data from the provided file.
+     */
     operator fun invoke(filePath: String): BlenderManifest = toml.decodeFromString(string = Paths.get(filePath).readText())
   }
 }

@@ -37,11 +37,10 @@ class InstallBlenderTest : BasePlatformTestCase() {
     var request: DownloadRequest? = null
     val installer =
         BlenderInstallationService(
-            artifactDownloader =
-                BlenderArtifactDownloader { actualProject, url, target, archiveName ->
-                  request = DownloadRequest(actualProject === project, url, target, archiveName)
-                  completedDownload(expectedDownload)
-                },
+            artifactDownloader = { actualProject, url, target, archiveName ->
+              request = DownloadRequest(actualProject === project, url, target, archiveName)
+              completedDownload(expectedDownload)
+            },
             downloadPathOverride = downloadDirectory,
         )
 
@@ -77,11 +76,10 @@ class InstallBlenderTest : BasePlatformTestCase() {
     var downloadInvoked = false
     val installer =
         BlenderInstallationService(
-            artifactDownloader =
-                BlenderArtifactDownloader { _, _, _, _ ->
-                  downloadInvoked = true
-                  failedDownload(AssertionError("Downloader should not be invoked"))
-                },
+            artifactDownloader = { _, _, _, _ ->
+              downloadInvoked = true
+              failedDownload(AssertionError("Downloader should not be invoked"))
+            },
             downloadPathOverride = downloadDirectory,
         )
 
@@ -118,11 +116,10 @@ class InstallBlenderTest : BasePlatformTestCase() {
     val expectedFailure = IOException("No route to host")
     val installer =
         BlenderInstallationService(
-            artifactDownloader =
-                BlenderArtifactDownloader { _, _, _, _ ->
-                  downloadInvoked = true
-                  failedDownload(expectedFailure)
-                },
+            artifactDownloader = { _, _, _, _ ->
+              downloadInvoked = true
+              failedDownload(expectedFailure)
+            },
             downloadPathOverride = downloadDirectory,
         )
 
@@ -136,10 +133,9 @@ class InstallBlenderTest : BasePlatformTestCase() {
   fun testDownloadVersionPropagatesCancellation() {
     val installer =
         BlenderInstallationService(
-            artifactDownloader =
-                BlenderArtifactDownloader { _, _, _, _ ->
-                  CompletableFuture.completedFuture(BlenderArtifactDownloadResult.Cancelled)
-                },
+            artifactDownloader = { _, _, _, _ ->
+              CompletableFuture.completedFuture(BlenderArtifactDownloadResult.Cancelled)
+            },
             downloadPathOverride = downloadDirectory,
         )
 
@@ -155,11 +151,10 @@ class InstallBlenderTest : BasePlatformTestCase() {
     var downloadInvoked = false
     val installer =
         BlenderInstallationService(
-            artifactDownloader =
-                BlenderArtifactDownloader { _, _, _, _ ->
-                  downloadInvoked = true
-                  completedDownload(downloadDirectory.resolve("unexpected"))
-                },
+            artifactDownloader = { _, _, _, _ ->
+              downloadInvoked = true
+              completedDownload(downloadDirectory.resolve("unexpected"))
+            },
             downloadPathOverride = downloadDirectory,
             installPathOverride = installDirectory,
             platformName = "linux",
@@ -216,7 +211,7 @@ class InstallBlenderTest : BasePlatformTestCase() {
     var cleanupInvoked = false
     val installer =
         BlenderInstallationService(
-            artifactDownloader = BlenderArtifactDownloader { _, _, _, _ -> completedDownload(archive) },
+            artifactDownloader = { _, _, _, _ -> completedDownload(archive) },
             downloadPathOverride = downloadDirectory,
             installPathOverride = installDirectory,
             tempPath = tempDirectory,
@@ -374,7 +369,7 @@ class InstallBlenderTest : BasePlatformTestCase() {
     val archive = Files.createFile(downloadDirectory.resolve("blender-test.archive"))
     val installer =
         BlenderInstallationService(
-            artifactDownloader = BlenderArtifactDownloader { _, _, _, _ -> completedDownload(archive) },
+            artifactDownloader = { _, _, _, _ -> completedDownload(archive) },
             downloadPathOverride = downloadDirectory,
             installPathOverride = installDirectory,
             platformName = "unsupported",
@@ -394,7 +389,7 @@ class InstallBlenderTest : BasePlatformTestCase() {
       archiveCleaner: (Path) -> Unit,
   ): BlenderInstallationService =
       BlenderInstallationService(
-          artifactDownloader = BlenderArtifactDownloader { _, _, _, _ -> completedDownload(archive) },
+          artifactDownloader = { _, _, _, _ -> completedDownload(archive) },
           downloadPathOverride = downloadDirectory,
           installPathOverride = installDirectory,
           tempPath = tempDirectory,

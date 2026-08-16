@@ -1,3 +1,5 @@
+@file:Suppress("SameParameterValue")
+
 package com.sakurasedaia.blenderdevelopment.ui.settings
 
 import com.intellij.openapi.application.ModalityState

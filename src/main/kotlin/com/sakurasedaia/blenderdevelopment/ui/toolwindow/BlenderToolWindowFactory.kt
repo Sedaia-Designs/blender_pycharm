@@ -32,6 +32,7 @@ class BlenderToolWindowFactory : ToolWindowFactory {
    * @param toolWindow target tool window container.
    * @return `Unit`.
    */
+  @Suppress("UsePropertyAccessSyntax")
   override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
     val toolWindowContent =
         BlenderToolWindowContent(

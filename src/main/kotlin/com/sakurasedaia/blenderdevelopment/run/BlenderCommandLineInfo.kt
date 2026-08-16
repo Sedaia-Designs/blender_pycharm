@@ -73,11 +73,13 @@ internal class BlenderCommandLineInfo(
     override fun entries(): List<TextCompletionInfo> {
       if (selectedCommand() != "extension") return emptyList()
       return BlenderCommandCatalog.extensionSubcommands
+          .asSequence()
           .flatMap { it.options }
           .flatMap { option -> option.names }
           .distinct()
           .sorted()
           .map { option -> TextCompletionInfo(option, optionDescription(option)) }
+          .toList()
     }
   }
 }
