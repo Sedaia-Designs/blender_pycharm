@@ -2,7 +2,9 @@
 
 # Blender Development for PyCharm Changelog
 
-## [1.0.0-beta.3]
+## [Unreleased]
+
+## [1.0.0-beta.3] - 2026-08-16
 
 Beta 3 completes the V1 runtime-authentication gate and strengthens release readiness across managed installations, IDE
 compatibility, and contributor validation. Runtime commands, setup messages, and early failure reports now share an
@@ -14,6 +16,8 @@ validation make the remaining V1 risks explicit and reproducible.
 
 ### Added
 
+- Added persisted ownership metadata that distinguishes user-managed Blender installations from installations managed by the
+  plugin, while treating installations saved by earlier versions as user-managed.
 - Added Plugin Verifier coverage for the declared PyCharm 2026.1 and 2026.2 targets.
 - Added a V1 release-readiness audit covering release blockers, security risks, stability issues, and validation results.
 - Added repeatable Kotlin and Gradle Kotlin formatting through Spotless and ktfmt, with a two-space block indent, 140-column

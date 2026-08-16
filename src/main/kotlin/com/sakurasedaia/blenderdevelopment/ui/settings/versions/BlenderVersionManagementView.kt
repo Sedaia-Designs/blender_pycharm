@@ -142,6 +142,9 @@ internal class BlenderVersionManagementView(isValidMinorVersion: (String) -> Boo
     row {
       cell(lastRefreshedLabel)
     }
+    row {
+      label(MessageBundle.message("ui.settings.group.versions.management.indev.warning"))
+    }
   }
 
   init {
