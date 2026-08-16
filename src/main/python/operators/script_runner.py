@@ -9,7 +9,7 @@ from .. import log
 from ..communication import register_post_action
 from ..utils import redraw_all
 
-LOG = log.getLogger()
+LOG = log.get_logger()
 
 
 class RunScriptOperator(bpy.types.Operator):

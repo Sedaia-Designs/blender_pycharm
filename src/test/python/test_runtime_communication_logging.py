@@ -30,7 +30,7 @@ class RuntimeCommunicationLoggingTest(unittest.TestCase):
         environment.scripts_folder = Path("/scripts")
 
         runtime_log = types.ModuleType("blender_pycharm.log")
-        runtime_log.getLogger = lambda: self.logger
+        runtime_log.get_logger = lambda: self.logger
 
         utils = types.ModuleType("blender_pycharm.utils")
         utils.run_in_main_thread = self.queued_actions.append

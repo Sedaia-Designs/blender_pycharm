@@ -12,7 +12,7 @@ from .communication import send_dict_as_json
 from .environment import EXTENSIONS_REPOSITORY, addon_directories
 from .utils import addon_has_bl_info, extension_manifest_id, is_addon_legacy
 
-LOG = log.getLogger()
+LOG = log.get_logger()
 
 if bpy.app.version >= (4, 2, 0):
     _EXTENSIONS_DEFAULT_DIR = Path(bpy.utils.user_resource("EXTENSIONS", path=EXTENSIONS_REPOSITORY))
@@ -105,6 +105,7 @@ def _remove_duplicate_extension_links(addon_info: AddonInfo):
         existing_extension_with_the_same_target = does_extension_link_exist(addon_info.load_dir)
 
 
+# noinspection inconsistent-returns
 def _resolve_link_windows_cmd(path: Path) -> Optional[str]:
     IO_REPARSE_TAG_MOUNT_POINT = "0xa0000003"
     JUNCTION_INDICATOR = f"Reparse Tag Value : {IO_REPARSE_TAG_MOUNT_POINT}"

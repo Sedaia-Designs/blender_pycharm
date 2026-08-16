@@ -14,10 +14,11 @@ import bpy
 
 from . import environment, log
 
-LOG = log.getLogger()
+LOG = log.get_logger()
 SIGNATURE_HEADER = "X-Blender-PyCharm-Signature"
 
 
+# noinspection class-has-no-init
 @dataclass
 class AddonInfo:
     load_dir: Path

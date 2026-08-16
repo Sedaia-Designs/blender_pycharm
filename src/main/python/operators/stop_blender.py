@@ -3,7 +3,7 @@ import bpy
 from .. import log
 from ..communication import register_post_action
 
-LOG = log.getLogger()
+LOG = log.get_logger()
 
 
 def stop_action(data):

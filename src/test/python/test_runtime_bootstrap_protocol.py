@@ -21,7 +21,7 @@ class RuntimeBootstrapProtocolTest(unittest.TestCase):
         environment = types.ModuleType("blender_pycharm.environment")
         environment.DECODED_PYCHARM_AUTHKEY = b"a" * 32
         runtime_log = types.ModuleType("blender_pycharm.log")
-        runtime_log.getLogger = lambda: self.logger
+        runtime_log.get_logger = lambda: self.logger
         bpy = types.ModuleType("bpy")
         bpy.app = types.SimpleNamespace(version=(4, 5, 0))
 
@@ -111,6 +111,7 @@ class RuntimeBootstrapProtocolTest(unittest.TestCase):
         self.assertIn("hmac.new(DECODED_PYCHARM_AUTHKEY, message, hashlib.sha256).hexdigest()", communication_source)
 
 
+# noinspection class-has-no-init
 class _ResponseContext:
     def __enter__(self):
         return self

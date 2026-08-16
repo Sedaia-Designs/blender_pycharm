@@ -19,7 +19,7 @@ class BlenderFormatter(logging.Formatter):
         return super().format(record)
 
 
-def getLogger(name: str = "blender_vs"):
+def get_logger(name: str = "blender_vs"):
     logging.getLogger().setLevel(LOG_LEVEL)
 
     log = logging.getLogger(name)

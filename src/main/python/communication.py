@@ -23,7 +23,7 @@ from .environment import (
 )
 from .utils import run_in_main_thread
 
-LOG = log.getLogger()
+LOG = log.get_logger()
 
 EDITOR_ADDRESS = None
 OWN_SERVER_PORT = None

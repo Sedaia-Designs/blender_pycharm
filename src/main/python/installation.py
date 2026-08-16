@@ -7,7 +7,7 @@ import bpy
 from . import log
 from .environment import python_path
 
-LOG = log.getLogger()
+LOG = log.get_logger()
 _CWD_FOR_SUBPROCESSES = python_path.parent
 
 

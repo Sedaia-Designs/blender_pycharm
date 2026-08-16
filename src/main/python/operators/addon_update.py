@@ -11,7 +11,7 @@ from ..environment import EXTENSIONS_REPOSITORY
 from ..load_addons import is_in_any_addon_directory
 from ..utils import addon_has_bl_info, extension_manifest_id, is_addon_legacy, redraw_all
 
-LOG = log.getLogger()
+LOG = log.get_logger()
 
 
 class UpdateAddonOperator(bpy.types.Operator):
