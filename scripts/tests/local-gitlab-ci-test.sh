@@ -24,4 +24,14 @@ if ! grep -qF 'bash scripts/prepare-gitlab-release.sh .release' "$project_root/s
   exit 1
 fi
 
+if ! grep -qF 'apk add --no-cache curl' "$project_root/.gitlab-ci.yml"; then
+  printf 'FAIL: GitLab publish_release does not install curl.\n' >&2
+  exit 1
+fi
+
+if ! grep -qF 'publish-release-check' "$project_root/docker-compose.local-ci.yml"; then
+  printf 'FAIL: Local CI does not validate the publish-release image.\n' >&2
+  exit 1
+fi
+
 printf 'All local GitLab CI harness tests passed.\n'

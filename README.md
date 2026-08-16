@@ -60,10 +60,11 @@ environment. Docker Desktop with Docker Compose is required.
 
 ```shell
 bash scripts/local-gitlab-ci.sh prepare_release
+bash scripts/local-gitlab-ci.sh publish_release_check
 bash scripts/local-gitlab-ci.sh marketplace_check
 ```
 
-Use `all` to run both checks. The harness never publishes, reads signing credentials, or includes `.env/` in its Docker build
+Use `all` to run all checks. The harness never publishes, reads signing credentials, or includes `.env/` in its Docker build
 context. Set `LOCAL_CI_PLATFORM` only when intentionally testing a different container architecture.
 
 ## License

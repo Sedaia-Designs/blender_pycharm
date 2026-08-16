@@ -16,6 +16,19 @@ if ! docker info >/dev/null 2>&1; then
 fi
 
 cd "$project_root"
-docker compose -f docker-compose.local-ci.yml build local-ci
-docker compose -f docker-compose.local-ci.yml run --rm local-ci "$job"
-
+case "$job" in
+  publish_release_check)
+    docker compose -f docker-compose.local-ci.yml pull publish-release-check
+    docker compose -f docker-compose.local-ci.yml run --rm publish-release-check
+    ;;
+  all)
+    docker compose -f docker-compose.local-ci.yml build local-ci
+    docker compose -f docker-compose.local-ci.yml run --rm local-ci all
+    docker compose -f docker-compose.local-ci.yml pull publish-release-check
+    docker compose -f docker-compose.local-ci.yml run --rm publish-release-check
+    ;;
+  *)
+    docker compose -f docker-compose.local-ci.yml build local-ci
+    docker compose -f docker-compose.local-ci.yml run --rm local-ci "$job"
+    ;;
+esac

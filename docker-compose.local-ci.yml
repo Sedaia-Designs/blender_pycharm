@@ -12,5 +12,13 @@ services:
     volumes:
       - local-ci-gradle-cache:/root/.gradle
 
+  publish-release-check:
+    command:
+      - /bin/sh
+      - -ec
+      - apk add --no-cache curl && command -v curl && command -v glab
+    image: registry.gitlab.com/gitlab-org/cli:latest
+    platform: ${LOCAL_CI_PLATFORM:-linux/amd64}
+
 volumes:
   local-ci-gradle-cache:
