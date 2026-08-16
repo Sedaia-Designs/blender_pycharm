@@ -85,10 +85,17 @@ intellijPlatform {
   }
 
   signing {
-    privateKey.set(providers.environmentVariable("PRIVATE_KEY"))
-    certificateChain.set(providers.environmentVariable("CERTIFICATE_CHAIN"))
-    privateKeyFile.set(layout.projectDirectory.file(".env/private.pem"))
-    certificateChainFile.set(layout.projectDirectory.file(".env/chain.crt"))
+    val privateKeyEnvironment = providers.environmentVariable("PRIVATE_KEY")
+    val certificateChainEnvironment = providers.environmentVariable("CERTIFICATE_CHAIN")
+
+    privateKey.set(privateKeyEnvironment)
+    certificateChain.set(certificateChainEnvironment)
+    if (!privateKeyEnvironment.isPresent) {
+      privateKeyFile.set(layout.projectDirectory.file(".env/private.pem"))
+    }
+    if (!certificateChainEnvironment.isPresent) {
+      certificateChainFile.set(layout.projectDirectory.file(".env/chain.crt"))
+    }
   }
 
   publishing {

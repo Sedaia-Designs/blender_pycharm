@@ -64,6 +64,9 @@ publish_release:
 publish_marketplace:
   stage: marketplace
   image: eclipse-temurin:21-jdk-jammy
+  before_script:
+    - apt-get update
+    - apt-get install --yes --no-install-recommends git
   resource_group: jetbrains-marketplace-dev
   needs:
     - job: prepare_release

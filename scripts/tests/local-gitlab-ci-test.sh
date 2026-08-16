@@ -34,4 +34,14 @@ if ! grep -qF 'publish-release-check' "$project_root/docker-compose.local-ci.yml
   exit 1
 fi
 
+if ! grep -qF 'apt-get install --yes --no-install-recommends git' "$project_root/.gitlab-ci.yml"; then
+  printf 'FAIL: GitLab publish_marketplace does not install git.\n' >&2
+  exit 1
+fi
+
+if ! grep -qF 'PRIVATE_KEY=local-ci-placeholder CERTIFICATE_CHAIN=local-ci-placeholder' "$project_root/scripts/local-gitlab-ci-job.sh"; then
+  printf 'FAIL: Local CI does not validate environment-backed signing configuration.\n' >&2
+  exit 1
+fi
+
 printf 'All local GitLab CI harness tests passed.\n'

@@ -11,9 +11,11 @@ run_prepare_release() {
 }
 
 run_marketplace_check() {
+  command -v git
   ./gradlew compileKotlin test buildPlugin verifyPluginProjectConfiguration --no-daemon
   bash scripts/prepare-gitlab-release.sh .release
   test -s .release/release-notes.md
+  PRIVATE_KEY=local-ci-placeholder CERTIFICATE_CHAIN=local-ci-placeholder ./gradlew signPlugin --dry-run --no-daemon
 }
 
 case "$job" in
@@ -33,4 +35,3 @@ case "$job" in
     exit 2
     ;;
 esac
-
