@@ -42,7 +42,6 @@ spotless {
 }
 
 group = "com.sakurasedaia"
-
 version = "1.0.0-beta.4"
 
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html
@@ -80,8 +79,10 @@ intellijPlatform {
     ideaVersion {
       sinceBuild = "261"
     }
-
-    changeNotes = changelog.renderItem(changelog.get(project.version.toString()), Changelog.OutputType.HTML)
+    
+    val changelogItem = changelog.getOrNull(project.version.toString()) ?: changelog.getUnreleased()
+    
+    changeNotes = changelog.renderItem(changelogItem, Changelog.OutputType.HTML)
   }
 
   signing {
