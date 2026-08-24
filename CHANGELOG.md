@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added optional `blender-workspace.toml` configuration for sharing portable project settings. Project Blender Manager can
+  create the file and automatically keeps it synchronized while machine-specific paths and environment values remain local.
+
 ## [1.0.0-beta.3] - 2026-08-16
 
 Beta 3 completes the V1 runtime-authentication gate and strengthens release readiness across managed installations, IDE

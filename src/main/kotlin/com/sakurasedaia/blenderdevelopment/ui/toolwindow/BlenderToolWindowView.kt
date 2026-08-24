@@ -58,6 +58,7 @@ internal class BlenderToolWindowView(project: Project) {
   var onBlenderLogLevelChanged: (BlenderLogLevel) -> Unit = {}
   var onReloadOnSaveChanged: (Boolean) -> Unit = {}
   var onJustMyCodeChanged: (Boolean) -> Unit = {}
+  var onSaveWorkspaceConfigRequested: () -> Unit = {}
   var onEnvironmentVariablesChanged: (Map<String, String>) -> Unit = {}
   var onScriptDirectoriesChanged: (List<String>) -> Unit = {}
   var onReloadRequested: () -> Unit = {}
@@ -80,6 +81,7 @@ internal class BlenderToolWindowView(project: Project) {
   private lateinit var useCustomBlenderInstall: JCheckBox
   private lateinit var availableBlenderInstalls: JComboBox<String>
   private lateinit var installStubsButton: JButton
+  private lateinit var saveWorkspaceConfigButton: JButton
 
   private var detectedBlenderInstalls: List<PluginConfig.BlendInstallInfo> = emptyList()
   private var isRendering = false
@@ -113,6 +115,8 @@ internal class BlenderToolWindowView(project: Project) {
       selectBlenderLogLevel(state.blenderLogLevel)
       reloadOnSaveCheckBox.isSelected = state.reloadOnSave
       justMyCodeCheckBox.isSelected = state.justMyCode
+      saveWorkspaceConfigButton.text =
+          MessageBundle.message(if (state.workspaceConfigEnabled) "ui.toolwindow.workspace.update" else "ui.toolwindow.workspace.save")
       environmentVariablesTable.setVariables(state.environmentVariables)
       scriptDirectoriesTable.setDirectories(state.scriptDirectories)
       detectedBlenderInstalls = state.detectedBlenderInstalls
@@ -226,6 +230,13 @@ internal class BlenderToolWindowView(project: Project) {
         button(MessageBundle.message("ui.toolwindow.group.debugger.reload")) {
           onReloadRequested()
         }
+        button(MessageBundle.message("ui.toolwindow.workspace.save")) {
+              onSaveWorkspaceConfigRequested()
+            }
+            .applyToComponent {
+              saveWorkspaceConfigButton = this
+              toolTipText = MessageBundle.message("ui.toolwindow.workspace.comment")
+            }
       }
     }
 

@@ -20,6 +20,12 @@ package com.sakurasedaia.blenderdevelopment.state
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig.BlenderLogLevel
 import java.nio.file.Path
+import kotlin.io.path.createDirectories
+import kotlin.io.path.readText
+import kotlin.io.path.writeText
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 
 class ProjectConfigTest : BasePlatformTestCase() {
   override fun runInDispatchThread(): Boolean = false
@@ -28,6 +34,7 @@ class ProjectConfigTest : BasePlatformTestCase() {
 
   override fun setUp() {
     super.setUp()
+    Path.of(project.basePath!!).createDirectories()
     config = ProjectConfig.getInstance(project)
     config.loadState(ProjectConfig.ProjectState())
   }
@@ -129,5 +136,93 @@ class ProjectConfigTest : BasePlatformTestCase() {
 
     assertEquals("/Applications/Blender 4.5.app", config.stateFlow.value.blenderPath)
     assertEquals("loaded_addon", config.stateFlow.value.addonSymlinkName)
+  }
+
+  fun testWorkspaceFileOverridesOnlyPortableSettings() = runBlocking {
+    val projectPath = Path.of(project.basePath!!)
+    val workspacePath = projectPath.resolve("blender-workspace.toml")
+    val localBlenderPath = projectPath.resolve("Local Blender").toAbsolutePath().normalize().toString()
+    config.loadState(
+        ProjectConfig.ProjectState(
+            blenderPath = localBlenderPath,
+            sourceFolder = "local-src",
+            runArguments = "--local",
+            environmentVariables = mapOf("LOCAL_ONLY" to "true"),
+        )
+    )
+    workspacePath.writeText(
+        """
+        source_folder = "Extension"
+        run_arguments = "--factory-startup"
+        unknown_future_setting = true
+        """
+            .trimIndent()
+    )
+
+    config.loadWorkspaceState()
+
+    assertEquals("Extension", config.getSourceFolder())
+    assertEquals("--factory-startup", config.getRunArguments())
+    assertEquals(localBlenderPath, config.getBlenderPath())
+    assertEquals(mapOf("LOCAL_ONLY" to "true"), config.getEnvironmentVariables())
+    assertEquals("local-src", config.state.sourceFolder)
+    assertTrue(config.stateFlow.value.workspaceConfigEnabled)
+  }
+
+  fun testSaveWorkspaceStateWritesPortableSettingsOnly() = runBlocking {
+    val localBlenderPath = Path.of(project.basePath!!).resolve("Local Blender").toAbsolutePath().normalize()
+    config.setBlenderPath(localBlenderPath.toString())
+    config.setInstalledStubRequirement("fake-bpy-module-4.5")
+    config.setAddonSymlinkName("portable_addon")
+    config.setSourceFolder("Extension")
+    config.setRunArguments("--factory-startup")
+    config.setEnvironmentVariables(mapOf("TOKEN" to "local-value"))
+    config.setScriptDirectories(listOf("local-scripts"))
+
+    val workspacePath = config.saveWorkspaceState()
+    val contents = workspacePath.readText()
+
+    assertTrue(contents.contains("addon_symlink_name = \"portable_addon\""))
+    assertTrue(contents.contains("source_folder = \"Extension\""))
+    assertTrue(contents.contains("run_arguments = \"--factory-startup\""))
+    assertFalse(contents.contains("blenderPath"))
+    assertFalse(contents.contains("installedStubRequirement"))
+    assertFalse(contents.contains("environmentVariables"))
+    assertFalse(contents.contains("scriptDirectories"))
+    assertTrue(config.stateFlow.value.workspaceConfigEnabled)
+  }
+
+  fun testMalformedWorkspaceFileKeepsLocalSettings() = runBlocking {
+    val workspacePath = Path.of(project.basePath!!).resolve("blender-workspace.toml")
+    config.loadState(ProjectConfig.ProjectState(sourceFolder = "local-src"))
+    workspacePath.writeText("source_folder = [not valid TOML")
+
+    config.loadWorkspaceState()
+
+    assertEquals("local-src", config.getSourceFolder())
+    assertFalse(config.stateFlow.value.workspaceConfigEnabled)
+  }
+
+  fun testPortableChangesAutosaveAfterWorkspaceFileIsEnabled() = runBlocking {
+    val workspacePath = config.saveWorkspaceState()
+
+    config.setSourceFolder("updated-extension")
+
+    withTimeout(5_000) {
+      while (!workspacePath.readText().contains("source_folder = \"updated-extension\"")) {
+        delay(20)
+      }
+    }
+  }
+
+  fun testWorkspaceTomlRoundTripPreservesWindowsStylePathSeparatorsAndSpaces() = runBlocking {
+    val windowsStyleSourceFolder = "Extension Source\\nested package"
+    config.setSourceFolder(windowsStyleSourceFolder)
+    config.saveWorkspaceState()
+    config.loadState(ProjectConfig.ProjectState())
+
+    config.loadWorkspaceState()
+
+    assertEquals(windowsStyleSourceFolder, config.getSourceFolder())
   }
 }

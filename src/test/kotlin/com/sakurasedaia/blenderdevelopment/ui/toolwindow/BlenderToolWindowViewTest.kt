@@ -19,6 +19,7 @@ class BlenderToolWindowViewTest : BasePlatformTestCase() {
     view.onBlenderLogLevelChanged = { changeCount++ }
     view.onReloadOnSaveChanged = { changeCount++ }
     view.onJustMyCodeChanged = { changeCount++ }
+    view.onSaveWorkspaceConfigRequested = { changeCount++ }
     view.onEnvironmentVariablesChanged = { changeCount++ }
     view.onScriptDirectoriesChanged = { changeCount++ }
 
@@ -64,9 +65,25 @@ class BlenderToolWindowViewTest : BasePlatformTestCase() {
     assertEquals("Install Stubs", button.accessibleContext.accessibleName)
   }
 
+  fun testWorkspaceButtonEmitsSaveIntentAndReflectsEnabledState() {
+    val view = BlenderToolWindowView(project)
+    var saveRequested = false
+    view.onSaveWorkspaceConfigRequested = { saveRequested = true }
+    view.render(state(blenderPath = "/Applications/Blender.app"))
+
+    val saveButton = descendantsOf(view.component).filterIsInstance<JButton>().single { it.text == "Save Workspace Configuration" }
+    saveButton.doClick()
+    view.render(state(blenderPath = "/Applications/Blender.app", workspaceConfigEnabled = true))
+
+    assertTrue(saveRequested)
+    assertEquals("Update Workspace Configuration", saveButton.text)
+    assertNotNull(saveButton.toolTipText)
+  }
+
   private fun state(
       blenderPath: String,
       installs: List<PluginConfig.BlendInstallInfo> = listOf(install(name = "Blender 4.5", path = "/Applications/Blender.app")),
+      workspaceConfigEnabled: Boolean = false,
   ): BlenderToolWindowState {
     return BlenderToolWindowState(
         blenderPath = blenderPath,
@@ -77,6 +94,7 @@ class BlenderToolWindowViewTest : BasePlatformTestCase() {
         blenderLogLevel = BlenderLogLevel.DEBUG,
         reloadOnSave = true,
         justMyCode = true,
+        workspaceConfigEnabled = workspaceConfigEnabled,
         environmentVariables = mapOf("EXAMPLE" to "value"),
         scriptDirectories = listOf("/project/scripts"),
     )

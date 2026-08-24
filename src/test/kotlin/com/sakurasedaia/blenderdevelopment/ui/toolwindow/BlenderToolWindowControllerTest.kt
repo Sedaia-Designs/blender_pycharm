@@ -101,6 +101,7 @@ class BlenderToolWindowControllerTest : BasePlatformTestCase() {
         },
         installStubs = {},
         reloadAddon = {},
+        saveWorkspaceConfig = {},
         logAutosave = {},
     )
   }

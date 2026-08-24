@@ -20,10 +20,13 @@ package com.sakurasedaia.blenderdevelopment.ui.toolwindow
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.sakurasedaia.blenderdevelopment.core.BlenderRuntimeCommandService
+import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
+import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
 import com.sakurasedaia.blenderdevelopment.stubs.BlenderStubInstallationService
+import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import javax.swing.JComponent
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
@@ -43,11 +46,13 @@ class BlenderToolWindowContent(
 
   init {
     val logger = PluginLogger.getInstance(project)
+    val notifications = NotificationModal.getInstance(project)
     val pluginConfig = PluginConfig.getInstance()
+    val projectConfig = ProjectConfig.getInstance(project)
     BlenderToolWindowController(
         scope = scope,
         view = view,
-        projectConfig = ProjectConfig.getInstance(project),
+        projectConfig = projectConfig,
         pluginConfig = pluginConfig,
         scanInstallations = onScanInstallations,
         installStubs = { blenderVersion ->
@@ -56,6 +61,18 @@ class BlenderToolWindowContent(
           }
         },
         reloadAddon = BlenderRuntimeCommandService.getInstance(project)::sendReloadCommand,
+        saveWorkspaceConfig = {
+          scope.launch {
+            runCatching { projectConfig.saveWorkspaceState() }
+                .onSuccess { path ->
+                  notifications.sendInfo(MessageBundle.message("notification.workspace.config.saved", path.fileName.toString()))
+                }
+                .onFailure { error ->
+                  logger.warn(ErrorTypes.WORKSPACE_CONFIG_SAVE_FAILED.format(project.basePath), error)
+                  notifications.sendError(MessageBundle.message("notification.workspace.config.save.failed"))
+                }
+          }
+        },
         logAutosave = { fieldName ->
           logger.debug("Autosaved `$fieldName` from Blender tool window.")
         },

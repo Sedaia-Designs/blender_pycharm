@@ -88,6 +88,9 @@ enum class ErrorTypes(private val message: String, private val exceptionFactory:
   BOOTSTRAP_SCRIPT_DELETE_FAILED("[BL-402]: Failed to delete bootstrap script at `{0}`.", ::IOException),
   BOOTSTRAP_SCRIPT_SCAN_FAILED("[BL-403]: Failed while scanning stale bootstrap scripts in `{0}`.", ::IOException),
   PROJECT_GENERATION_FAILED("[BL-404]: Project generation failed for {0} at {1}", ::IOException),
+  WORKSPACE_CONFIG_LOAD_FAILED("[BL-405]: Failed to load workspace configuration from `{0}`.", ::IOException),
+  WORKSPACE_CONFIG_SAVE_FAILED("[BL-406]: Failed to save workspace configuration to `{0}`.", ::IOException),
+  WORKSPACE_CONFIG_PROJECT_PATH_MISSING("[BL-407]: Cannot save workspace configuration because the project path is unavailable."),
 
   // Stub Management Failures [BL-500]
   STUB_INTERPRETER_MISSING(

@@ -34,6 +34,7 @@ internal class BlenderToolWindowController(
     private val scanInstallations: (onCompleted: () -> Unit) -> Unit,
     private val installStubs: (String) -> Unit,
     private val reloadAddon: () -> Unit,
+    private val saveWorkspaceConfig: () -> Unit,
     private val logAutosave: (String) -> Unit,
 ) {
   init {
@@ -69,6 +70,7 @@ internal class BlenderToolWindowController(
       save("scriptDirectories") { projectConfig.setScriptDirectories(it.ifEmpty { null }) }
     }
     view.onReloadRequested = reloadAddon
+    view.onSaveWorkspaceConfigRequested = saveWorkspaceConfig
     view.onScanInstallationsRequested = ::scanForInstallations
     view.onInstallStubsRequested = installStubs
   }
@@ -121,6 +123,7 @@ internal class BlenderToolWindowController(
         blenderLogLevel = projectState.blenderLogLevel,
         reloadOnSave = projectState.reloadOnSave,
         justMyCode = projectState.justMyCode,
+        workspaceConfigEnabled = projectState.workspaceConfigEnabled,
         environmentVariables = projectState.environmentVariables,
         scriptDirectories = projectState.scriptDirectories.orEmpty(),
     )
