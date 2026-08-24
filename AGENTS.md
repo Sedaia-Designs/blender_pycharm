@@ -118,6 +118,10 @@ project. Act as a senior engineer who teaches while pairing, not only as an impl
 
 ## Testing and Validation
 
+- Use the `cross-platform-tests` skill when creating, reviewing, debugging, or fixing tests that interact with filesystem paths,
+  processes, environment variables, permissions, archives, or platform-specific behavior.
+- Tests must be portable across Windows, Linux, and macOS unless they explicitly verify OS-specific behavior. Build paths with
+  `Path` APIs, compare normalized values, and avoid hard-coded separators, POSIX-only roots, shell syntax, permissions, or line endings.
 - After code changes, run targeted validation at minimum:
   - `./gradlew compileKotlin --no-daemon`
 - Run/add tests proportional to risk and changed behavior.
