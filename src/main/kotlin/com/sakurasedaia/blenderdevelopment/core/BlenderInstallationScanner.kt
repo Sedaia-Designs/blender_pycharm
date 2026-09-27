@@ -198,49 +198,107 @@ class BlenderInstallationScanner(val project: Project) {
     }
 
     /**
-     * Simple discovery logic for Blender Installs on macOS, does not attempt to locate portable installations due to increased complexity,
-     * and user can set their own paths.
+     * Scans standard macOS application directories, additional search roots, and Homebrew locations for Blender installations.
+     *
+     * Directory traversal is bounded by [MAX_SEARCH_DEPTH]. Any `.app` bundle containing an executable Blender binary is accepted,
+     * regardless of the bundle name.
+     *
+     * @param diagnostics tracks inaccessible directories and failed version probes.
+     * @param shouldCancel callback checked during directory traversal and version probing.
+     * @param addSearchRoots additional directories whose children should be searched for Blender app bundles.
+     * @return discovered Blender installations or an empty list when none are found.
      */
-    private fun getMacBlenderInstalls(diagnostics: ScanDiagnostics, shouldCancel: () -> Boolean): List<BlendInstallInfo> {
+    private fun getMacBlenderInstalls(
+        diagnostics: ScanDiagnostics,
+        shouldCancel: () -> Boolean,
+        addSearchRoots: List<Path> = emptyList(),
+    ): List<BlendInstallInfo> {
         val blenderInstalls = mutableListOf<BlendInstallInfo>()
-
-        val blenderBinaryRelative = "Contents/MacOS/Blender"
-
-        // Default Install location of all Blender Apps, checks system level first since that's what Blender links in their DMG installer
-        val applicationDirectories: List<Path> =
-            listOf(
-                    Path.of("/Applications"),
-                    Path.of(System.getProperty("user.home"), "Applications"),
-                )
-                .distinct()
-        applicationDirectories.forEach { appDir ->
-            ensureActive(shouldCancel)
-            if (!appDir.toFile().isDirectory) return@forEach
-
-            listDirectoryEntriesSafely(appDir, shouldCancel, onFailure = { diagnostics.inaccessibleRoots += 1 }) { appBundlePath ->
-                val appBundle = appBundlePath.toFile()
-                if (!appBundle.isDirectory) return@listDirectoryEntriesSafely
-                if (!appBundle.name.startsWith("Blender", ignoreCase = true) || !appBundle.name.endsWith(".app", ignoreCase = true)) {
-                    return@listDirectoryEntriesSafely
-                }
-
-                val blenderBinary = appBundlePath.resolve(blenderBinaryRelative).toFile()
-                if (!isExecutableFile(blenderBinary)) return@listDirectoryEntriesSafely
-
-                buildInstallInfo(appBundle, appBundle.absolutePath, diagnostics, shouldCancel, internalBinary = "Blender")?.let { install ->
-                    blenderInstalls.add(install)
-                }
-            }
+        val searchRoots = buildList {
+            add(Path.of("/Applications"))
+            add(Path.of(System.getProperty("user.home"), "Applications"))
+            addAll(addSearchRoots)
         }
+        findMacBlenderBundles(
+                searchRoots = searchRoots,
+                maxSearchDepth = MAX_SEARCH_DEPTH,
+                shouldCancel = shouldCancel,
+                onFailure = { diagnostics.inaccessibleRoots += 1 },
+            )
+            .forEach { appBundlePath ->
+                val appBundle = appBundlePath.toFile()
+                buildInstallInfo(
+                        appBundle,
+                        appBundle.absolutePath,
+                        diagnostics,
+                        shouldCancel,
+                        internalBinary = "Blender",
+                    )
+                    ?.let(blenderInstalls::add)
+            }
+
+        blenderInstalls.addAll(checkHomebrew(diagnostics, shouldCancel))
 
         return blenderInstalls.distinct()
     }
 
     /**
-     * Blender discovery logic for Blender Installs on Linux, does not attempt to locate portable installations due to increased complexity,
-     * and user can set their own paths.
+     * Finds macOS app bundles containing an executable Blender binary beneath the supplied search roots.
      *
-     * Scans common Linux package managers and Linux Homebrew installations.
+     * @param searchRoots directories whose children should be inspected.
+     * @param maxSearchDepth maximum number of non-bundle directory levels traversed beneath each root.
+     * @param shouldCancel callback checked throughout traversal.
+     * @param onFailure callback invoked when a directory cannot be listed.
+     * @param isExecutable predicate used to validate a bundle's internal Blender binary.
+     * @return normalized absolute paths of discovered Blender app bundles.
+     */
+    internal fun findMacBlenderBundles(
+        searchRoots: List<Path>,
+        maxSearchDepth: Int,
+        shouldCancel: () -> Boolean = { false },
+        onFailure: () -> Unit = {},
+        isExecutable: (Path) -> Boolean = { isExecutableFile(it.toFile()) },
+    ): List<Path> {
+        val pendingDirectories = ArrayDeque(searchRoots.map { it.toAbsolutePath().normalize() }.distinct().map { it to 0 })
+        val checkedDirectories = mutableSetOf<Path>()
+        val checkedBundles = mutableSetOf<Path>()
+        val discoveredBundles = linkedSetOf<Path>()
+
+        while (pendingDirectories.isNotEmpty()) {
+            val (directory, depth) = pendingDirectories.removeFirst()
+            ensureActive(shouldCancel)
+
+            if (!checkedDirectories.add(directory)) continue
+            if (!directory.toFile().isDirectory) continue
+
+            listDirectoryEntriesSafely(directory, shouldCancel, onFailure) { entry ->
+                val candidate = entry.toAbsolutePath().normalize()
+                if (!candidate.toFile().isDirectory) return@listDirectoryEntriesSafely
+
+                if (!candidate.fileName.toString().endsWith(".app", ignoreCase = true)) {
+                    if (depth < maxSearchDepth) {
+                        pendingDirectories.addLast(candidate to depth + 1)
+                    }
+                    return@listDirectoryEntriesSafely
+                }
+
+                if (!checkedBundles.add(candidate)) return@listDirectoryEntriesSafely
+                val blenderBinary = candidate.resolve("Contents").resolve("MacOS").resolve("Blender")
+                if (isExecutable(blenderBinary)) {
+                    discoveredBundles.add(candidate)
+                }
+            }
+        }
+
+        return discoveredBundles.toList()
+    }
+
+    /**
+     * Scans common Linux executable and Homebrew locations for Blender installations.
+     *
+     * @param diagnostics tracks inaccessible directories and failed version probes.
+     * @param shouldCancel callback checked during discovery and version probing.
+     * @return discovered Blender installations, or an empty list when none are found.
      */
     private fun getLinuxBlenderInstalls(diagnostics: ScanDiagnostics, shouldCancel: () -> Boolean): List<BlendInstallInfo> {
         val blenderInstalls = linkedSetOf<BlendInstallInfo>()
@@ -256,7 +314,6 @@ class BlenderInstallationScanner(val project: Project) {
         val explicitBinaryPaths =
             listOf(
                 Path.of("/usr/bin/blender"),
-                Path.of("/usr/local/bin/blender"),
                 Path.of("/usr/lib/blender/blender"),
                 Path.of("/usr/lib64/blender/blender"),
             )
@@ -270,38 +327,84 @@ class BlenderInstallationScanner(val project: Project) {
             }
         }
 
+        blenderInstalls.addAll(checkHomebrew(diagnostics, shouldCancel))
+
+        return blenderInstalls.toList()
+    }
+
+    /**
+     * Scans conventional macOS and Linux Homebrew prefixes for linked and Cellar-managed Blender executables.
+     *
+     * @param diagnostics tracks inaccessible Cellar directories and failed version probes.
+     * @param shouldCancel callback checked while scanning prefixes and probing Blender versions.
+     * @return Blender installations discovered through Homebrew, or an empty list when none are found.
+     */
+    private fun checkHomebrew(diagnostics: ScanDiagnostics, shouldCancel: () -> Boolean): List<BlendInstallInfo> {
+        val blenderInstalls = linkedSetOf<BlendInstallInfo>()
         val brewPrefixes =
             listOfNotNull(
-                    System.getenv("HOMEBREW_PREFIX")?.takeIf { it.isNotBlank() }?.let { Path.of(it) },
-                    Path.of("/home/linuxbrew/.linuxbrew"),
-                    Path.of("/linuxbrew/.linuxbrew"),
-                )
-                .distinct()
-
-        brewPrefixes.forEach { prefix ->
-            ensureActive(shouldCancel)
-            val linkedBinary = prefix.resolve("bin").resolve("blender-runtime").toFile()
-            if (isExecutableFile(linkedBinary)) {
-                buildInstallInfo(linkedBinary, linkedBinary.absolutePath, diagnostics, shouldCancel)?.let { install ->
-                    blenderInstalls.add(install)
-                }
+                System.getenv("HOMEBREW_PREFIX")?.takeIf { it.isNotBlank() }?.let(Path::of),
+                Path.of("/opt/homebrew"),
+                Path.of("/usr/local"),
+                Path.of("/home/linuxbrew/.linuxbrew"),
+                Path.of("/linuxbrew/.linuxbrew"),
+            )
+        findHomebrewBlenderBinaries(
+                brewPrefixes = brewPrefixes,
+                shouldCancel = shouldCancel,
+                onFailure = { diagnostics.inaccessibleRoots += 1 },
+            )
+            .forEach { binary ->
+                val binaryFile = binary.toFile()
+                buildInstallInfo(binaryFile, binaryFile.absolutePath, diagnostics, shouldCancel)?.let(blenderInstalls::add)
             }
 
-            val blenderCellar = prefix.resolve("Cellar").resolve("blender-runtime")
-            if (blenderCellar.toFile().isDirectory) {
-                listDirectoryEntriesSafely(blenderCellar, shouldCancel, onFailure = { diagnostics.inaccessibleRoots += 1 }) { versionPath ->
-                    if (!versionPath.toFile().isDirectory) return@listDirectoryEntriesSafely
-                    val cellarBinary = versionPath.resolve("bin").resolve("blender-runtime").toFile()
-                    if (!isExecutableFile(cellarBinary)) return@listDirectoryEntriesSafely
+        return blenderInstalls.toList()
+    }
 
-                    buildInstallInfo(cellarBinary, cellarBinary.absolutePath, diagnostics, shouldCancel)?.let { install ->
-                        blenderInstalls.add(install)
+    /**
+     * Finds linked and Cellar-managed Blender executables beneath the supplied Homebrew prefixes.
+     *
+     * @param brewPrefixes Homebrew installation prefixes to inspect.
+     * @param shouldCancel callback checked throughout discovery.
+     * @param onFailure callback invoked when a Cellar directory cannot be listed.
+     * @param isExecutable predicate used to validate candidate Blender binaries.
+     * @return normalized absolute paths of discovered Homebrew Blender executables.
+     */
+    internal fun findHomebrewBlenderBinaries(
+        brewPrefixes: List<Path>,
+        shouldCancel: () -> Boolean = { false },
+        onFailure: () -> Unit = {},
+        isExecutable: (Path) -> Boolean = { isExecutableFile(it.toFile()) },
+    ): List<Path> {
+        val discoveredBinaries = linkedSetOf<Path>()
+        val binaryNames = listOf("blender", "blender-runtime")
+
+        brewPrefixes
+            .map { it.toAbsolutePath().normalize() }
+            .distinct()
+            .forEach { prefix ->
+                ensureActive(shouldCancel)
+                binaryNames.forEach binaryNameLoop@{ binaryName ->
+                    val linkedBinary = prefix.resolve("bin").resolve(binaryName).normalize()
+                    if (isExecutable(linkedBinary)) {
+                        discoveredBinaries.add(linkedBinary)
+                    }
+
+                    val cellar = prefix.resolve("Cellar").resolve(binaryName).normalize()
+                    if (!cellar.toFile().isDirectory) return@binaryNameLoop
+
+                    listDirectoryEntriesSafely(cellar, shouldCancel, onFailure) { versionDirectory ->
+                        if (!versionDirectory.toFile().isDirectory) return@listDirectoryEntriesSafely
+                        val cellarBinary = versionDirectory.resolve("bin").resolve(binaryName).toAbsolutePath().normalize()
+                        if (isExecutable(cellarBinary)) {
+                            discoveredBinaries.add(cellarBinary)
+                        }
                     }
                 }
             }
-        }
 
-        return blenderInstalls.toList()
+        return discoveredBinaries.toList()
     }
 
     private fun notifyCriticalScanFeedback(installsFound: Int, diagnostics: ScanDiagnostics) {
@@ -458,5 +561,9 @@ class BlenderInstallationScanner(val project: Project) {
                 else -> ""
             }
         }
+    }
+
+    private companion object {
+        const val MAX_SEARCH_DEPTH = 3
     }
 }
