@@ -28,83 +28,83 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class BlenderBootstrapScriptCleanupTest {
-  @Test
-  fun newScriptFileNameHasExpectedPrefixAndExtension() {
-    val first = BlenderBootstrapScriptCleanup.newScriptFileName()
-    val second = BlenderBootstrapScriptCleanup.newScriptFileName()
+    @Test
+    fun newScriptFileNameHasExpectedPrefixAndExtension() {
+        val first = BlenderBootstrapScriptCleanup.newScriptFileName()
+        val second = BlenderBootstrapScriptCleanup.newScriptFileName()
 
-    assertTrue(first.startsWith("blender_runtime_launch_"))
-    assertTrue(first.endsWith(".py"))
-    assertTrue(second.startsWith("blender_runtime_launch_"))
-    assertTrue(second.endsWith(".py"))
-    assertFalse(first == second)
-  }
-
-  @Test
-  fun cleanupScriptDeletesManagedBootstrapFile() {
-    val tempDir = Files.createTempDirectory("bootstrap-cleanup-test")
-    try {
-      val scriptPath = tempDir.resolve(BlenderBootstrapScriptCleanup.newScriptFileName())
-      Files.writeString(scriptPath, "print('hello')")
-
-      val debugLogs = mutableListOf<String>()
-      val warnLogs = mutableListOf<String>()
-      BlenderBootstrapScriptCleanup.cleanupScript(
-          path = scriptPath,
-          debugLog = { debugLogs.add(it) },
-          warnLog = { message, _ -> warnLogs.add(message) },
-      )
-
-      assertFalse(Files.exists(scriptPath))
-      assertEquals(1, debugLogs.size)
-      assertTrue(warnLogs.isEmpty())
-    } finally {
-      deleteRecursively(tempDir)
+        assertTrue(first.startsWith("blender_runtime_launch_"))
+        assertTrue(first.endsWith(".py"))
+        assertTrue(second.startsWith("blender_runtime_launch_"))
+        assertTrue(second.endsWith(".py"))
+        assertFalse(first == second)
     }
-  }
 
-  @Test
-  fun cleanupStaleScriptsDeletesOnlyManagedStaleScripts() {
-    val tempDir = Files.createTempDirectory("stale-bootstrap-cleanup-test")
-    try {
-      val staleManaged = tempDir.resolve(BlenderBootstrapScriptCleanup.newScriptFileName())
-      val freshManaged = tempDir.resolve(BlenderBootstrapScriptCleanup.newScriptFileName())
-      val staleNonManaged = tempDir.resolve("other_script.py")
-      val staleEmptyManaged = tempDir.resolve("blender_runtime_launch_empty.py")
+    @Test
+    fun cleanupScriptDeletesManagedBootstrapFile() {
+        val tempDir = Files.createTempDirectory("bootstrap-cleanup-test")
+        try {
+            val scriptPath = tempDir.resolve(BlenderBootstrapScriptCleanup.newScriptFileName())
+            Files.writeString(scriptPath, "print('hello')")
 
-      Files.writeString(staleManaged, "print('stale')")
-      Files.writeString(freshManaged, "print('fresh')")
-      Files.writeString(staleNonManaged, "print('other')")
-      Files.writeString(staleEmptyManaged, "")
+            val debugLogs = mutableListOf<String>()
+            val warnLogs = mutableListOf<String>()
+            BlenderBootstrapScriptCleanup.cleanupScript(
+                path = scriptPath,
+                debugLog = { debugLogs.add(it) },
+                warnLog = { message, _ -> warnLogs.add(message) },
+            )
 
-      Files.setLastModifiedTime(staleManaged, FileTime.from(Instant.now().minusSeconds(60 * 60 * 30)))
-      Files.setLastModifiedTime(freshManaged, FileTime.from(Instant.now().minusSeconds(60 * 5)))
-      Files.setLastModifiedTime(staleNonManaged, FileTime.from(Instant.now().minusSeconds(60 * 60 * 30)))
-      Files.setLastModifiedTime(staleEmptyManaged, FileTime.from(Instant.now().minusSeconds(60 * 60 * 30)))
-
-      val debugLogs = mutableListOf<String>()
-      val warnLogs = mutableListOf<String>()
-      BlenderBootstrapScriptCleanup.cleanupStaleScripts(
-          directory = tempDir,
-          debugLog = { debugLogs.add(it) },
-          warnLog = { message, _ -> warnLogs.add(message) },
-      )
-
-      assertFalse(Files.exists(staleManaged))
-      assertTrue(Files.exists(freshManaged))
-      assertTrue(Files.exists(staleNonManaged))
-      assertTrue(Files.exists(staleEmptyManaged))
-      assertEquals(1, debugLogs.size)
-      assertTrue(warnLogs.isEmpty())
-    } finally {
-      deleteRecursively(tempDir)
+            assertFalse(Files.exists(scriptPath))
+            assertEquals(1, debugLogs.size)
+            assertTrue(warnLogs.isEmpty())
+        } finally {
+            deleteRecursively(tempDir)
+        }
     }
-  }
 
-  private fun deleteRecursively(path: Path) {
-    if (!Files.exists(path)) return
-    Files.walk(path).use { stream ->
-      stream.sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) }
+    @Test
+    fun cleanupStaleScriptsDeletesOnlyManagedStaleScripts() {
+        val tempDir = Files.createTempDirectory("stale-bootstrap-cleanup-test")
+        try {
+            val staleManaged = tempDir.resolve(BlenderBootstrapScriptCleanup.newScriptFileName())
+            val freshManaged = tempDir.resolve(BlenderBootstrapScriptCleanup.newScriptFileName())
+            val staleNonManaged = tempDir.resolve("other_script.py")
+            val staleEmptyManaged = tempDir.resolve("blender_runtime_launch_empty.py")
+
+            Files.writeString(staleManaged, "print('stale')")
+            Files.writeString(freshManaged, "print('fresh')")
+            Files.writeString(staleNonManaged, "print('other')")
+            Files.writeString(staleEmptyManaged, "")
+
+            Files.setLastModifiedTime(staleManaged, FileTime.from(Instant.now().minusSeconds(60 * 60 * 30)))
+            Files.setLastModifiedTime(freshManaged, FileTime.from(Instant.now().minusSeconds(60 * 5)))
+            Files.setLastModifiedTime(staleNonManaged, FileTime.from(Instant.now().minusSeconds(60 * 60 * 30)))
+            Files.setLastModifiedTime(staleEmptyManaged, FileTime.from(Instant.now().minusSeconds(60 * 60 * 30)))
+
+            val debugLogs = mutableListOf<String>()
+            val warnLogs = mutableListOf<String>()
+            BlenderBootstrapScriptCleanup.cleanupStaleScripts(
+                directory = tempDir,
+                debugLog = { debugLogs.add(it) },
+                warnLog = { message, _ -> warnLogs.add(message) },
+            )
+
+            assertFalse(Files.exists(staleManaged))
+            assertTrue(Files.exists(freshManaged))
+            assertTrue(Files.exists(staleNonManaged))
+            assertTrue(Files.exists(staleEmptyManaged))
+            assertEquals(1, debugLogs.size)
+            assertTrue(warnLogs.isEmpty())
+        } finally {
+            deleteRecursively(tempDir)
+        }
     }
-  }
+
+    private fun deleteRecursively(path: Path) {
+        if (!Files.exists(path)) return
+        Files.walk(path).use { stream ->
+            stream.sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) }
+        }
+    }
 }

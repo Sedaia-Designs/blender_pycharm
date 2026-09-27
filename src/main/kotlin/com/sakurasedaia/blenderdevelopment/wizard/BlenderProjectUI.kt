@@ -39,197 +39,199 @@ import com.sakurasedaia.blenderdevelopment.util.PythonModuleNameValidator
 /** Renders Blender-specific controls around PyCharm's native environment selector. */
 @Suppress("UnstableApiUsage")
 object BlenderProjectUI : PyV3ProjectTypeSpecificUI<BlenderProjectSettings> {
-  /**
-   * Adds frequently used Blender settings above the Python environment selector.
-   *
-   * @param settings Blender form state.
-   * @param checkBoxRow PyCharm's row containing common project checkboxes.
-   * @param belowCheckBoxes panel immediately above the environment selector.
-   */
-  override fun configureUpperPanel(settings: BlenderProjectSettings, checkBoxRow: Row, belowCheckBoxes: Panel) {
-    checkBoxRow
-        .checkBox(MessageBundle.message("ui.project.wizard.ui.group.project.add_example_code"))
-        .bindSelected(settings.addExampleCodeProperty)
+    /**
+     * Adds frequently used Blender settings above the Python environment selector.
+     *
+     * @param settings Blender form state.
+     * @param checkBoxRow PyCharm's row containing common project checkboxes.
+     * @param belowCheckBoxes panel immediately above the environment selector.
+     */
+    override fun configureUpperPanel(settings: BlenderProjectSettings, checkBoxRow: Row, belowCheckBoxes: Panel) {
+        checkBoxRow
+            .checkBox(MessageBundle.message("ui.project.wizard.ui.group.project.add_example_code"))
+            .bindSelected(settings.addExampleCodeProperty)
 
-    with(belowCheckBoxes) {
-      row(MessageBundle.message("ui.project.wizard.section.project.basics")) {}
-      separator()
+        with(belowCheckBoxes) {
+            row(MessageBundle.message("ui.project.wizard.section.project.basics")) {}
+            separator()
 
-      row(MessageBundle.message("ui.project.wizard.ui.group.project.extension.type")) {
-            segmentedButton(
-                    listOf(
-                        BlenderProjectGenerator.PROJECT_TYPE_EXTENSION,
-                        BlenderProjectGenerator.PROJECT_TYPE_ADD_ON,
-                    )
-                ) {
-                  text =
-                      when (it) {
-                        BlenderProjectGenerator.PROJECT_TYPE_EXTENSION ->
-                            MessageBundle.message("ui.project.wizard.option.extension.type.extension")
-                        BlenderProjectGenerator.PROJECT_TYPE_ADD_ON ->
-                            MessageBundle.message("ui.project.wizard.option.extension.type.addon")
-                        else -> it
-                      }
+            row(MessageBundle.message("ui.project.wizard.ui.group.project.extension.type")) {
+                    segmentedButton(
+                            listOf(
+                                BlenderProjectGenerator.PROJECT_TYPE_EXTENSION,
+                                BlenderProjectGenerator.PROJECT_TYPE_ADD_ON,
+                            )
+                        ) {
+                            text =
+                                when (it) {
+                                    BlenderProjectGenerator.PROJECT_TYPE_EXTENSION ->
+                                        MessageBundle.message("ui.project.wizard.option.extension.type.extension")
+                                    BlenderProjectGenerator.PROJECT_TYPE_ADD_ON ->
+                                        MessageBundle.message("ui.project.wizard.option.extension.type.addon")
+                                    else -> it
+                                }
+                        }
+                        .bind(settings.manifestExtensionTypeProperty)
                 }
-                .bind(settings.manifestExtensionTypeProperty)
-          }
-          .bottomGap(BottomGap.SMALL)
+                .bottomGap(BottomGap.SMALL)
 
-      row(MessageBundle.message("ui.project.wizard.ui.group.project.author")) {
-        textField().bindText(settings.authorNameProperty)
-      }
-      row(MessageBundle.message("ui.project.wizard.ui.group.project.version")) {
-        textField().bindText(settings.extensionVersionProperty)
-      }
-      row(MessageBundle.message("ui.project.wizard.ui.group.project.blender.version")) {
-        comboBox(BlenderVersions.LIST.map { it.blMajorMinor }).bindItem(settings.blenderVersionProperty)
-      }
-      row {
-        checkBox(MessageBundle.message("ui.project.wizard.ui.group.project.install.stubs"))
-            .bindSelected(settings.installBlenderApiStubsProperty)
-      }
-      row("") {
-        comment("").bindText(settings.recommendedPythonVersionCommentProperty)
-      }
-      row(MessageBundle.message("ui.project.wizard.ui.group.project.license")) {
-        textField().bindText(settings.manifestLicenseProperty).enabled(false)
-      }
-      row(MessageBundle.message("ui.project.wizard.ui.group.project.website.docs")) {
-            textField()
-                .bindText(settings.manifestWebsiteLinkProperty)
-                .validationOnInput { validateWebsite(it.text) }
-                .comment(MessageBundle.message("ui.project.wizard.ui.group.manifest.website.description"))
-          }
-          .visibleIf(settings.manifestExtensionTypeProperty.equalsTo(BlenderProjectGenerator.PROJECT_TYPE_ADD_ON))
-      row(MessageBundle.message("ui.project.wizard.ui.group.project.description")) {
-        textArea().bindText(settings.descriptionProperty)
-      }
-
-      row(MessageBundle.message("ui.project.wizard.section.project.interpreter")) {}.topGap(topGap = TopGap.MEDIUM)
-      separator()
-    }
-  }
-
-  /** Detailed manifest and permission fields shown under PyCharm's Advanced Settings section. */
-  override val advancedSettings: Panel.(BlenderProjectSettings, ProjectPathProvider) -> Unit = { settings, projectPath ->
-    projectPath.onProjectFileNameChanged(settings::updateProjectName)
-
-    rowsRange {
-          row(MessageBundle.message("ui.project.wizard.ui.group.manifest.addon_id")) {
-            textField()
-                .bindText(settings.manifestIdProperty)
-                .applyToComponent {
-                  whenTextChangedFromUi { settings.markManifestIdCustomized() }
-                }
-                .validationOnInput {
-                  if (PythonModuleNameValidator.isValid(it.text.trim())) null
-                  else error(MessageBundle.message("ui.common.python.module.name.validation"))
-                }
-          }
-          row(MessageBundle.message("ui.project.wizard.ui.group.manifest.min.blender")) {
-            comboBox(BlenderVersions.LIST.map { it.blMajorMinor }).bindItem(settings.manifestMinBlenderVersionProperty).validationOnInput {
-              validateVersionRange(settings.manifestMinBlenderVersion, settings.maximumBlenderVersion, true)
+            row(MessageBundle.message("ui.project.wizard.ui.group.project.author")) {
+                textField().bindText(settings.authorNameProperty)
             }
-          }
-          row(MessageBundle.message("ui.project.wizard.ui.group.manifest.max.blender")) {
-            val noneLabel = MessageBundle.message("ui.project.wizard.option.none")
-            comboBox(listOf(noneLabel) + BlenderVersions.LIST.map { it.blMajorMinor })
-                .bindItem(settings.manifestMaxBlenderVersionProperty)
-                .validationOnInput {
-                  validateVersionRange(settings.manifestMinBlenderVersion, settings.maximumBlenderVersion, false)
-                }
-          }
-          row(MessageBundle.message("ui.project.wizard.ui.group.manifest.tags.label")) {
-            textField()
-                .bindText(settings.manifestTagsProperty)
-                .align(AlignX.FILL)
-                .comment(MessageBundle.message("ui.project.wizard.ui.group.manifest.tags.description"))
-          }
-          row(MessageBundle.message("ui.project.wizard.ui.group.manifest.website.label")) {
-            textField()
-                .bindText(settings.manifestWebsiteLinkProperty)
-                .validationOnInput { validateWebsite(it.text) }
-                .comment(MessageBundle.message("ui.project.wizard.ui.group.manifest.website.description"))
-          }
-          group(MessageBundle.message("ui.project.wizard.ui.group.manifest.permissions.label")) {
+            row(MessageBundle.message("ui.project.wizard.ui.group.project.version")) {
+                textField().bindText(settings.extensionVersionProperty)
+            }
+            row(MessageBundle.message("ui.project.wizard.ui.group.project.blender.version")) {
+                comboBox(BlenderVersions.LIST.map { it.blMajorMinor }).bindItem(settings.blenderVersionProperty)
+            }
             row {
-              comment(MessageBundle.message("ui.project.wizard.ui.group.manifest.permissions.description"))
+                checkBox(MessageBundle.message("ui.project.wizard.ui.group.project.install.stubs"))
+                    .bindSelected(settings.installBlenderApiStubsProperty)
             }
-            permissionRow(
-                MessageBundle.message("ui.project.wizard.ui.group.manifest.permissions.files"),
-                settings.manifestFilesPermissionProperty,
-            )
-            permissionRow(
-                MessageBundle.message("ui.project.wizard.ui.group.manifest.permissions.network"),
-                settings.manifestNetworkPermissionProperty,
-            )
-            permissionRow(
-                MessageBundle.message("ui.project.wizard.ui.group.manifest.permissions.clipboard"),
-                settings.manifestClipboardPermissionProperty,
-            )
-            permissionRow(
-                MessageBundle.message("ui.project.wizard.ui.group.manifest.permissions.camera"),
-                settings.manifestCameraPermissionProperty,
-            )
-            permissionRow(
-                MessageBundle.message("ui.project.wizard.ui.group.manifest.permissions.microphone"),
-                settings.manifestMicrophonePermissionProperty,
-            )
-          }
+            row("") {
+                comment("").bindText(settings.recommendedPythonVersionCommentProperty)
+            }
+            row(MessageBundle.message("ui.project.wizard.ui.group.project.license")) {
+                textField().bindText(settings.manifestLicenseProperty).enabled(false)
+            }
+            row(MessageBundle.message("ui.project.wizard.ui.group.project.website.docs")) {
+                    textField()
+                        .bindText(settings.manifestWebsiteLinkProperty)
+                        .validationOnInput { validateWebsite(it.text) }
+                        .comment(MessageBundle.message("ui.project.wizard.ui.group.manifest.website.description"))
+                }
+                .visibleIf(settings.manifestExtensionTypeProperty.equalsTo(BlenderProjectGenerator.PROJECT_TYPE_ADD_ON))
+            row(MessageBundle.message("ui.project.wizard.ui.group.project.description")) {
+                textArea().bindText(settings.descriptionProperty)
+            }
+
+            row(MessageBundle.message("ui.project.wizard.section.project.interpreter")) {}.topGap(topGap = TopGap.MEDIUM)
+            separator()
         }
-        .visibleIf(settings.manifestExtensionTypeProperty.equalsTo(BlenderProjectGenerator.PROJECT_TYPE_EXTENSION))
-  }
-
-  /**
-   * Adds a full-width permission-reason field.
-   *
-   * @param label localized permission label.
-   * @param property settings property bound to the field.
-   */
-  private fun Panel.permissionRow(
-      label: String,
-      property: com.intellij.openapi.observable.properties.GraphProperty<String>,
-  ) {
-    row(label) {
-      textField().bindText(property).align(AlignX.FILL)
     }
-  }
 
-  /**
-   * Validates an optional HTTPS website value.
-   *
-   * @param value current field value.
-   * @return validation error for a non-HTTPS value, otherwise `null`.
-   */
-  private fun ValidationInfoBuilder.validateWebsite(value: String): ValidationInfo? =
-      if (value.isNotBlank() && !value.startsWith("https://")) {
-        error(MessageBundle.message("ui.project.wizard.ui.group.manifest.website.error.improper_format"))
-      } else {
-        null
-      }
+    /** Detailed manifest and permission fields shown under PyCharm's Advanced Settings section. */
+    override val advancedSettings: Panel.(BlenderProjectSettings, ProjectPathProvider) -> Unit = { settings, projectPath ->
+        projectPath.onProjectFileNameChanged(settings::updateProjectName)
 
-  /**
-   * Validates the selected minimum and maximum Blender versions.
-   *
-   * @param minimum selected minimum Blender version.
-   * @param maximum optional selected maximum Blender version.
-   * @param validatingMinimum whether the minimum-version field requested validation.
-   * @return localized validation error when the range is reversed, otherwise `null`.
-   */
-  private fun ValidationInfoBuilder.validateVersionRange(
-      minimum: String,
-      maximum: String?,
-      validatingMinimum: Boolean,
-  ): ValidationInfo? =
-      if (maximum != null && VersionComparatorUtil.compare(minimum, maximum) > 0) {
-        val key =
-            if (validatingMinimum) {
-              "ui.project.wizard.ui.group.manifest.min.blender.error"
-            } else {
-              "ui.project.wizard.ui.group.manifest.max.blender.error"
+        rowsRange {
+                row(MessageBundle.message("ui.project.wizard.ui.group.manifest.addon_id")) {
+                    textField()
+                        .bindText(settings.manifestIdProperty)
+                        .applyToComponent {
+                            whenTextChangedFromUi { settings.markManifestIdCustomized() }
+                        }
+                        .validationOnInput {
+                            if (PythonModuleNameValidator.isValid(it.text.trim())) null
+                            else error(MessageBundle.message("ui.common.python.module.name.validation"))
+                        }
+                }
+                row(MessageBundle.message("ui.project.wizard.ui.group.manifest.min.blender")) {
+                    comboBox(BlenderVersions.LIST.map { it.blMajorMinor })
+                        .bindItem(settings.manifestMinBlenderVersionProperty)
+                        .validationOnInput {
+                            validateVersionRange(settings.manifestMinBlenderVersion, settings.maximumBlenderVersion, true)
+                        }
+                }
+                row(MessageBundle.message("ui.project.wizard.ui.group.manifest.max.blender")) {
+                    val noneLabel = MessageBundle.message("ui.project.wizard.option.none")
+                    comboBox(listOf(noneLabel) + BlenderVersions.LIST.map { it.blMajorMinor })
+                        .bindItem(settings.manifestMaxBlenderVersionProperty)
+                        .validationOnInput {
+                            validateVersionRange(settings.manifestMinBlenderVersion, settings.maximumBlenderVersion, false)
+                        }
+                }
+                row(MessageBundle.message("ui.project.wizard.ui.group.manifest.tags.label")) {
+                    textField()
+                        .bindText(settings.manifestTagsProperty)
+                        .align(AlignX.FILL)
+                        .comment(MessageBundle.message("ui.project.wizard.ui.group.manifest.tags.description"))
+                }
+                row(MessageBundle.message("ui.project.wizard.ui.group.manifest.website.label")) {
+                    textField()
+                        .bindText(settings.manifestWebsiteLinkProperty)
+                        .validationOnInput { validateWebsite(it.text) }
+                        .comment(MessageBundle.message("ui.project.wizard.ui.group.manifest.website.description"))
+                }
+                group(MessageBundle.message("ui.project.wizard.ui.group.manifest.permissions.label")) {
+                    row {
+                        comment(MessageBundle.message("ui.project.wizard.ui.group.manifest.permissions.description"))
+                    }
+                    permissionRow(
+                        MessageBundle.message("ui.project.wizard.ui.group.manifest.permissions.files"),
+                        settings.manifestFilesPermissionProperty,
+                    )
+                    permissionRow(
+                        MessageBundle.message("ui.project.wizard.ui.group.manifest.permissions.network"),
+                        settings.manifestNetworkPermissionProperty,
+                    )
+                    permissionRow(
+                        MessageBundle.message("ui.project.wizard.ui.group.manifest.permissions.clipboard"),
+                        settings.manifestClipboardPermissionProperty,
+                    )
+                    permissionRow(
+                        MessageBundle.message("ui.project.wizard.ui.group.manifest.permissions.camera"),
+                        settings.manifestCameraPermissionProperty,
+                    )
+                    permissionRow(
+                        MessageBundle.message("ui.project.wizard.ui.group.manifest.permissions.microphone"),
+                        settings.manifestMicrophonePermissionProperty,
+                    )
+                }
             }
-        error(MessageBundle.message(key))
-      } else {
-        null
-      }
+            .visibleIf(settings.manifestExtensionTypeProperty.equalsTo(BlenderProjectGenerator.PROJECT_TYPE_EXTENSION))
+    }
+
+    /**
+     * Adds a full-width permission-reason field.
+     *
+     * @param label localized permission label.
+     * @param property settings property bound to the field.
+     */
+    private fun Panel.permissionRow(
+        label: String,
+        property: com.intellij.openapi.observable.properties.GraphProperty<String>,
+    ) {
+        row(label) {
+            textField().bindText(property).align(AlignX.FILL)
+        }
+    }
+
+    /**
+     * Validates an optional HTTPS website value.
+     *
+     * @param value current field value.
+     * @return validation error for a non-HTTPS value, otherwise `null`.
+     */
+    private fun ValidationInfoBuilder.validateWebsite(value: String): ValidationInfo? =
+        if (value.isNotBlank() && !value.startsWith("https://")) {
+            error(MessageBundle.message("ui.project.wizard.ui.group.manifest.website.error.improper_format"))
+        } else {
+            null
+        }
+
+    /**
+     * Validates the selected minimum and maximum Blender versions.
+     *
+     * @param minimum selected minimum Blender version.
+     * @param maximum optional selected maximum Blender version.
+     * @param validatingMinimum whether the minimum-version field requested validation.
+     * @return localized validation error when the range is reversed, otherwise `null`.
+     */
+    private fun ValidationInfoBuilder.validateVersionRange(
+        minimum: String,
+        maximum: String?,
+        validatingMinimum: Boolean,
+    ): ValidationInfo? =
+        if (maximum != null && VersionComparatorUtil.compare(minimum, maximum) > 0) {
+            val key =
+                if (validatingMinimum) {
+                    "ui.project.wizard.ui.group.manifest.min.blender.error"
+                } else {
+                    "ui.project.wizard.ui.group.manifest.max.blender.error"
+                }
+            error(MessageBundle.message(key))
+        } else {
+            null
+        }
 }

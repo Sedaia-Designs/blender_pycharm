@@ -15,94 +15,95 @@ import org.apache.commons.codec.digest.HmacUtils
  * are expected to have a fixed size defined by `KEY_SIZE_BYTES`.
  */
 internal object BlenderAuthentication {
-  private const val KEY_SIZE_BYTES = 32
-  private val secureRandom = SecureRandom()
+    private const val KEY_SIZE_BYTES = 32
+    private val secureRandom = SecureRandom()
 
-  /**
-   * Generates a cryptographic key as a random sequence of bytes.
-   *
-   * @return A byte array of length equal to `KEY_SIZE_BYTES`, securely generated using a cryptographically strong random number generator.
-   */
-  fun create(): ByteArray = ByteArray(KEY_SIZE_BYTES).also(secureRandom::nextBytes)
+    /**
+     * Generates a cryptographic key as a random sequence of bytes.
+     *
+     * @return A byte array of length equal to `KEY_SIZE_BYTES`, securely generated using a cryptographically strong random number
+     *   generator.
+     */
+    fun create(): ByteArray = ByteArray(KEY_SIZE_BYTES).also(secureRandom::nextBytes)
 
-  /**
-   * Encodes the provided cryptographic key into a Base64 URL-safe string.
-   *
-   * @param key The cryptographic key to encode. It must be a byte array of length `KEY_SIZE_BYTES`.
-   * @return The Base64 URL-safe encoded string representation of the key.
-   * @throws InvalidKeyException If the length of the provided key is not equal to `KEY_SIZE_BYTES`.
-   */
-  fun encode(key: ByteArray): String {
-    return Base64.getUrlEncoder().withoutPadding().encodeToString(requireValid(key))
-  }
+    /**
+     * Encodes the provided cryptographic key into a Base64 URL-safe string.
+     *
+     * @param key The cryptographic key to encode. It must be a byte array of length `KEY_SIZE_BYTES`.
+     * @return The Base64 URL-safe encoded string representation of the key.
+     * @throws InvalidKeyException If the length of the provided key is not equal to `KEY_SIZE_BYTES`.
+     */
+    fun encode(key: ByteArray): String {
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(requireValid(key))
+    }
 
-  /**
-   * Notarizes a given message using the HMAC-SHA-256 algorithm and a specified key.
-   *
-   * @param key The secret key used for HMAC signing. Must be a valid key with the required size.
-   * @param message The message to be authenticated.
-   * @return The HMAC-SHA-256 hexadecimal string of the authenticated message.
-   */
-  fun notarizeMessage(key: ByteArray, message: String): String {
-    return notarizeMessage(key, message.toByteArray(Charsets.UTF_8))
-  }
+    /**
+     * Notarizes a given message using the HMAC-SHA-256 algorithm and a specified key.
+     *
+     * @param key The secret key used for HMAC signing. Must be a valid key with the required size.
+     * @param message The message to be authenticated.
+     * @return The HMAC-SHA-256 hexadecimal string of the authenticated message.
+     */
+    fun notarizeMessage(key: ByteArray, message: String): String {
+        return notarizeMessage(key, message.toByteArray(Charsets.UTF_8))
+    }
 
-  fun notarizeMessage(key: ByteArray, message: ByteArray): String {
-    return HmacUtils(HmacAlgorithms.HMAC_SHA_256, requireValid(key)).hmacHex(message)
-  }
+    fun notarizeMessage(key: ByteArray, message: ByteArray): String {
+        return HmacUtils(HmacAlgorithms.HMAC_SHA_256, requireValid(key)).hmacHex(message)
+    }
 
-  /**
-   * Verifies the authenticity of a message by comparing the provided signature with the expected signature derived from the message body
-   * and a secret key.
-   *
-   * @param signature The hexadecimal string representing the signature to be verified.
-   * @param body The byte array representing the message body for which the signature was generated.
-   * @param key The secret key used to generate the expected signature.
-   * @return `true` when the provided signature matches the expected signature.
-   */
-  fun isPostAuthentic(signature: String, body: ByteArray, key: ByteArray): Boolean {
-    val receivedSignature =
-        try {
-          signature.hexToByteArray()
-        } catch (_: IllegalArgumentException) {
-          return false
+    /**
+     * Verifies the authenticity of a message by comparing the provided signature with the expected signature derived from the message body
+     * and a secret key.
+     *
+     * @param signature The hexadecimal string representing the signature to be verified.
+     * @param body The byte array representing the message body for which the signature was generated.
+     * @param key The secret key used to generate the expected signature.
+     * @return `true` when the provided signature matches the expected signature.
+     */
+    fun isPostAuthentic(signature: String, body: ByteArray, key: ByteArray): Boolean {
+        val receivedSignature =
+            try {
+                signature.hexToByteArray()
+            } catch (_: IllegalArgumentException) {
+                return false
+            }
+
+        if (receivedSignature.size != KEY_SIZE_BYTES) {
+            return false
         }
 
-    if (receivedSignature.size != KEY_SIZE_BYTES) {
-      return false
+        val expectedSignature = notarizeMessage(key, body).hexToByteArray()
+
+        return MessageDigest.isEqual(
+            expectedSignature,
+            receivedSignature,
+        )
     }
 
-    val expectedSignature = notarizeMessage(key, body).hexToByteArray()
+    /**
+     * Decodes a Base64 URL-safe encoded string back into its corresponding cryptographic key.
+     *
+     * @param encodedKey The Base64 URL-safe encoded string representation of the cryptographic key. It is expected to decode into a byte
+     *   array of length `KEY_SIZE_BYTES`.
+     * @return A byte array representing the decoded cryptographic key.
+     * @throws IllegalArgumentException If the provided string is not a valid Base64 URL-safe encoded string.
+     * @throws InvalidKeyException If the decoded key does not have a length of `KEY_SIZE_BYTES`.
+     */
+    fun decode(encodedKey: String): ByteArray {
+        val decodedKey = Base64.getUrlDecoder().decode(encodedKey)
 
-    return MessageDigest.isEqual(
-        expectedSignature,
-        receivedSignature,
-    )
-  }
-
-  /**
-   * Decodes a Base64 URL-safe encoded string back into its corresponding cryptographic key.
-   *
-   * @param encodedKey The Base64 URL-safe encoded string representation of the cryptographic key. It is expected to decode into a byte
-   *   array of length `KEY_SIZE_BYTES`.
-   * @return A byte array representing the decoded cryptographic key.
-   * @throws IllegalArgumentException If the provided string is not a valid Base64 URL-safe encoded string.
-   * @throws InvalidKeyException If the decoded key does not have a length of `KEY_SIZE_BYTES`.
-   */
-  fun decode(encodedKey: String): ByteArray {
-    val decodedKey = Base64.getUrlDecoder().decode(encodedKey)
-
-    return requireValid(decodedKey)
-  }
-
-  fun requireValid(key: ByteArray): ByteArray {
-    if (key.size != KEY_SIZE_BYTES) {
-      throw ErrorTypes.KEY_SIZE_MISMATCH.createException(
-          KEY_SIZE_BYTES,
-          key.size,
-      )
+        return requireValid(decodedKey)
     }
 
-    return key
-  }
+    fun requireValid(key: ByteArray): ByteArray {
+        if (key.size != KEY_SIZE_BYTES) {
+            throw ErrorTypes.KEY_SIZE_MISMATCH.createException(
+                KEY_SIZE_BYTES,
+                key.size,
+            )
+        }
+
+        return key
+    }
 }

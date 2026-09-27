@@ -25,45 +25,45 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SystemHelperTest {
-  @Test
-  fun invocationReturnsCachedSystemInfo() {
-    assertSame(SystemInfo.getSysInfo, SystemInfo())
-  }
-
-  @Test
-  fun mapsSupportedDownloadBundleTypes() {
-    assertEquals("zip", SystemInfo.normalizeBundleFileType("windows"))
-    assertEquals("dmg", SystemInfo.normalizeBundleFileType("macos"))
-    assertEquals("tar.xz", SystemInfo.normalizeBundleFileType("linux"))
-    assertTrue(SystemInfo.isBundleFileTypeSupported("windows", "msi"))
-    assertTrue(SystemInfo.isBundleFileTypeSupported("windows", "msix"))
-    assertFalse(SystemInfo.isBundleFileTypeSupported("windows", "exe"))
-  }
-
-  @Test
-  fun unknownVersionIsAlwaysIncompatible() {
-    assertFalse(SystemInfo.isOSCompatible("9.9"))
-  }
-
-  @Test
-  fun compatibilityLookupMatchesCurrentHostWhenVersionExists() {
-    val hostInfo = SystemInfo.getSysInfo
-    if (hostInfo.osName == "unknown" || hostInfo.osArch == "unknown") {
-      assertFalse(SystemInfo.isOSCompatible("4.5"))
-      return
+    @Test
+    fun invocationReturnsCachedSystemInfo() {
+        assertSame(SystemInfo.getSysInfo, SystemInfo())
     }
 
-    val compatibleVersion =
-        BlenderVersions.LIST.firstOrNull { entry ->
-          entry.compatWithOs[hostInfo.osName]?.contains(hostInfo.osArch) == true
+    @Test
+    fun mapsSupportedDownloadBundleTypes() {
+        assertEquals("zip", SystemInfo.normalizeBundleFileType("windows"))
+        assertEquals("dmg", SystemInfo.normalizeBundleFileType("macos"))
+        assertEquals("tar.xz", SystemInfo.normalizeBundleFileType("linux"))
+        assertTrue(SystemInfo.isBundleFileTypeSupported("windows", "msi"))
+        assertTrue(SystemInfo.isBundleFileTypeSupported("windows", "msix"))
+        assertFalse(SystemInfo.isBundleFileTypeSupported("windows", "exe"))
+    }
+
+    @Test
+    fun unknownVersionIsAlwaysIncompatible() {
+        assertFalse(SystemInfo.isOSCompatible("9.9"))
+    }
+
+    @Test
+    fun compatibilityLookupMatchesCurrentHostWhenVersionExists() {
+        val hostInfo = SystemInfo.getSysInfo
+        if (hostInfo.osName == "unknown" || hostInfo.osArch == "unknown") {
+            assertFalse(SystemInfo.isOSCompatible("4.5"))
+            return
         }
 
-    if (compatibleVersion != null) {
-      assertTrue(SystemInfo.isOSCompatible(compatibleVersion.blMajorMinor))
-    } else {
-      BlenderVersions.LIST.forEach { entry ->
-        assertFalse(SystemInfo.isOSCompatible(entry.blMajorMinor))
-      }
+        val compatibleVersion =
+            BlenderVersions.LIST.firstOrNull { entry ->
+                entry.compatWithOs[hostInfo.osName]?.contains(hostInfo.osArch) == true
+            }
+
+        if (compatibleVersion != null) {
+            assertTrue(SystemInfo.isOSCompatible(compatibleVersion.blMajorMinor))
+        } else {
+            BlenderVersions.LIST.forEach { entry ->
+                assertFalse(SystemInfo.isOSCompatible(entry.blMajorMinor))
+            }
+        }
     }
-  }
 }

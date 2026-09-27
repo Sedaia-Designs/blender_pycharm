@@ -24,15 +24,15 @@ import com.sakurasedaia.blenderdevelopment.ui.IconBundle
 
 /** Contributes Blender Python templates to IntelliJ's "New File" template groups. */
 class TemplateGroupDescription : FileTemplateGroupDescriptorFactory {
-  /**
-   * Creates the Blender file template group descriptor shown in the "New File" dialog.
-   *
-   * @return descriptor containing the plugin's predefined Blender Python templates.
-   */
-  override fun getFileTemplatesDescriptor(): FileTemplateGroupDescriptor {
-    val group = FileTemplateGroupDescriptor("Blender", IconBundle.BlenderColor)
-    group.addTemplate(FileTemplateDescriptor("Main Script.py", IconBundle.PythonIcon))
-    group.addTemplate(FileTemplateDescriptor("Component.py", IconBundle.PythonIcon))
-    return group
-  }
+    /**
+     * Creates the Blender file template group descriptor shown in the "New File" dialog.
+     *
+     * @return descriptor containing the plugin's predefined Blender Python templates.
+     */
+    override fun getFileTemplatesDescriptor(): FileTemplateGroupDescriptor {
+        val group = FileTemplateGroupDescriptor("Blender", IconBundle.BlenderColor)
+        group.addTemplate(FileTemplateDescriptor("Main Script.py", IconBundle.PythonIcon))
+        group.addTemplate(FileTemplateDescriptor("Component.py", IconBundle.PythonIcon))
+        return group
+    }
 }

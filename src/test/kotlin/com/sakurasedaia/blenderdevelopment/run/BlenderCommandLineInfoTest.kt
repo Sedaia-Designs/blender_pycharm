@@ -22,28 +22,28 @@ import junit.framework.TestCase
 import kotlinx.coroutines.runBlocking
 
 class BlenderCommandLineInfoTest : TestCase() {
-  fun testExtensionCompletionReadsSelectedCommandWithoutRecursion() = runBlocking {
-    val commandLineInfo =
-        BlenderCommandLineInfo(
-            selectedCommand = { "extension" },
-            modificationTracker = ModificationTracker.NEVER_CHANGED,
-        )
+    fun testExtensionCompletionReadsSelectedCommandWithoutRecursion() = runBlocking {
+        val commandLineInfo =
+            BlenderCommandLineInfo(
+                selectedCommand = { "extension" },
+                modificationTracker = ModificationTracker.NEVER_CHANGED,
+            )
 
-    val completions = commandLineInfo.tablesInfo.flatMap { it.collectCompletionInfo() }
+        val completions = commandLineInfo.tablesInfo.flatMap { it.collectCompletionInfo() }
 
-    assertTrue(completions.any { it.text == "build" })
-    assertTrue(completions.any { it.text == "--source-dir" })
-  }
+        assertTrue(completions.any { it.text == "build" })
+        assertTrue(completions.any { it.text == "--source-dir" })
+    }
 
-  fun testNonExtensionCommandDoesNotOfferExtensionArguments() = runBlocking {
-    val commandLineInfo =
-        BlenderCommandLineInfo(
-            selectedCommand = { "sysinfo" },
-            modificationTracker = ModificationTracker.NEVER_CHANGED,
-        )
+    fun testNonExtensionCommandDoesNotOfferExtensionArguments() = runBlocking {
+        val commandLineInfo =
+            BlenderCommandLineInfo(
+                selectedCommand = { "sysinfo" },
+                modificationTracker = ModificationTracker.NEVER_CHANGED,
+            )
 
-    val completions = commandLineInfo.tablesInfo.flatMap { it.collectCompletionInfo() }
+        val completions = commandLineInfo.tablesInfo.flatMap { it.collectCompletionInfo() }
 
-    assertTrue(completions.isEmpty())
-  }
+        assertTrue(completions.isEmpty())
+    }
 }

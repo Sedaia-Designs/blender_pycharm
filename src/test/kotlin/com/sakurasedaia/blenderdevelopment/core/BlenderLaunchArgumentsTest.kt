@@ -22,92 +22,92 @@ import java.nio.file.Path
 import junit.framework.TestCase
 
 class BlenderLaunchArgumentsTest : TestCase() {
-  fun testRawLaunchRequestDefaultsToPlainBlenderArguments() {
-    val request = BlenderLaunchRequest()
+    fun testRawLaunchRequestDefaultsToPlainBlenderArguments() {
+        val request = BlenderLaunchRequest()
 
-    assertTrue(request.blenderPath.isEmpty())
-    assertTrue(request.arguments.isEmpty())
-    assertTrue(request.environment.isEmpty())
-    assertNull(request.workingDirectory)
-  }
+        assertTrue(request.blenderPath.isEmpty())
+        assertTrue(request.arguments.isEmpty())
+        assertTrue(request.environment.isEmpty())
+        assertNull(request.workingDirectory)
+    }
 
-  fun testPythonArgumentsKeepTheScriptPathAsOneArgument() {
-    val arguments =
-        BlenderLaunchArguments.python(
-            logLevel = BlenderLogLevel.DEBUG,
-            workspaceArguments = listOf("--factory-startup"),
-            scriptPath = Path.of("/project path/bootstrap script.py"),
-            additionalArguments = listOf("--python-exit-code", "1"),
+    fun testPythonArgumentsKeepTheScriptPathAsOneArgument() {
+        val arguments =
+            BlenderLaunchArguments.python(
+                logLevel = BlenderLogLevel.DEBUG,
+                workspaceArguments = listOf("--factory-startup"),
+                scriptPath = Path.of("/project path/bootstrap script.py"),
+                additionalArguments = listOf("--python-exit-code", "1"),
+            )
+
+        assertEquals(
+            listOf(
+                "--log-level",
+                "debug",
+                "--factory-startup",
+                "--python",
+                "/project path/bootstrap script.py",
+                "--python-exit-code",
+                "1",
+            ),
+            arguments,
         )
+    }
 
-    assertEquals(
-        listOf(
-            "--log-level",
-            "debug",
-            "--factory-startup",
-            "--python",
-            "/project path/bootstrap script.py",
-            "--python-exit-code",
-            "1",
-        ),
-        arguments,
-    )
-  }
+    fun testCommandArgumentsFollowCommandBecauseBlenderConsumesTheRemainder() {
+        val arguments =
+            BlenderLaunchArguments.command(
+                logLevel = BlenderLogLevel.INFO,
+                commandArguments = listOf("extension", "build", "--source-dir", "/project path/extension"),
+            )
 
-  fun testCommandArgumentsFollowCommandBecauseBlenderConsumesTheRemainder() {
-    val arguments =
-        BlenderLaunchArguments.command(
-            logLevel = BlenderLogLevel.INFO,
-            commandArguments = listOf("extension", "build", "--source-dir", "/project path/extension"),
+        assertEquals(
+            listOf(
+                "--log-level",
+                "info",
+                "--command",
+                "extension",
+                "build",
+                "--source-dir",
+                "/project path/extension",
+            ),
+            arguments,
         )
-
-    assertEquals(
-        listOf(
-            "--log-level",
-            "info",
-            "--command",
-            "extension",
-            "build",
-            "--source-dir",
-            "/project path/extension",
-        ),
-        arguments,
-    )
-  }
-
-  fun testCommandArgumentsRejectAnEmptyCommand() {
-    try {
-      BlenderLaunchArguments.command(BlenderLogLevel.INFO, emptyList())
-    } catch (_: IllegalArgumentException) {
-      return
     }
-    fail("Expected an empty Blender command to be rejected")
-  }
 
-  fun testCommandArgumentsRejectABlankCommand() {
-    try {
-      BlenderLaunchArguments.command(BlenderLogLevel.INFO, listOf(""))
-    } catch (_: IllegalArgumentException) {
-      return
+    fun testCommandArgumentsRejectAnEmptyCommand() {
+        try {
+            BlenderLaunchArguments.command(BlenderLogLevel.INFO, emptyList())
+        } catch (_: IllegalArgumentException) {
+            return
+        }
+        fail("Expected an empty Blender command to be rejected")
     }
-    fail("Expected a blank Blender command to be rejected")
-  }
 
-  fun testCommandArgumentsRejectTheLongCommandOption() {
-    try {
-      BlenderLaunchArguments.command(BlenderLogLevel.INFO, listOf("--command", "extension", "list"))
-    } catch (_: IllegalArgumentException) {
-      return
+    fun testCommandArgumentsRejectABlankCommand() {
+        try {
+            BlenderLaunchArguments.command(BlenderLogLevel.INFO, listOf(""))
+        } catch (_: IllegalArgumentException) {
+            return
+        }
+        fail("Expected a blank Blender command to be rejected")
     }
-    fail("Expected a duplicate --command option to be rejected")
-  }
 
-  fun testCommandArgumentsRejectTheShortCommandOption() {
-    try {
-      BlenderLaunchArguments.command(BlenderLogLevel.INFO, listOf("-c", "extension", "list"))
-    } catch (_: IllegalArgumentException) {
-      return
+    fun testCommandArgumentsRejectTheLongCommandOption() {
+        try {
+            BlenderLaunchArguments.command(BlenderLogLevel.INFO, listOf("--command", "extension", "list"))
+        } catch (_: IllegalArgumentException) {
+            return
+        }
+        fail("Expected a duplicate --command option to be rejected")
     }
-    fail("Expected a duplicate -c option to be rejected")
-  }
+
+    fun testCommandArgumentsRejectTheShortCommandOption() {
+        try {
+            BlenderLaunchArguments.command(BlenderLogLevel.INFO, listOf("-c", "extension", "list"))
+        } catch (_: IllegalArgumentException) {
+            return
+        }
+        fail("Expected a duplicate -c option to be rejected")
+    }
 }

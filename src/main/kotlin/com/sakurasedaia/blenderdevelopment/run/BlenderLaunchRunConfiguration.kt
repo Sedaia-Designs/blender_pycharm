@@ -45,50 +45,50 @@ internal class BlenderLaunchRunConfiguration(
     name: String,
 ) : RunConfigurationBase<Any?>(project, factory, name) {
 
-  override fun getConfigurationEditor(): SettingsEditor<BlenderLaunchRunConfiguration> =
-      object : SettingsEditor<BlenderLaunchRunConfiguration>() {
-        override fun resetEditorFrom(configuration: BlenderLaunchRunConfiguration) = Unit
+    override fun getConfigurationEditor(): SettingsEditor<BlenderLaunchRunConfiguration> =
+        object : SettingsEditor<BlenderLaunchRunConfiguration>() {
+            override fun resetEditorFrom(configuration: BlenderLaunchRunConfiguration) = Unit
 
-        override fun applyEditorTo(configuration: BlenderLaunchRunConfiguration) = Unit
+            override fun applyEditorTo(configuration: BlenderLaunchRunConfiguration) = Unit
 
-        override fun createEditor(): JComponent = JPanel()
-      }
-
-  override fun checkConfiguration() {
-    val blenderPath = ProjectConfig.getInstance(project).getBlenderPath().trim()
-    if (blenderPath.isEmpty()) {
-      throw RuntimeConfigurationError(MessageBundle.message("run.configuration.blender.error.blender.path.empty"))
-    }
-  }
-
-  override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState {
-    val shouldAttachDebugger = executor.id == DefaultDebugExecutor.EXECUTOR_ID
-    return object : CommandLineState(environment) {
-      override fun startProcess(): OSProcessHandler {
-        return BlenderPythonLauncher.getInstance(project)
-            .start(
-                BlenderPythonLaunchRequest(
-                    blenderPath = ProjectConfig.getInstance(project).getBlenderPath().trim(),
-                    debugger = shouldAttachDebugger,
-                )
-            )
-      }
-
-      override fun execute(executor: Executor, runner: ProgramRunner<*>): ExecutionResult {
-        val executionResult = super.execute(executor, runner)
-        if (shouldAttachDebugger) {
-          val sessionIdentifier = executionResult.processHandler.getUserData(BlenderPythonLauncher.LAUNCH_SESSION_IDENTIFIER_KEY)
-          if (!sessionIdentifier.isNullOrBlank()) {
-            BlenderDebugAttachService.getInstance(project)
-                .scheduleAttach(
-                    environment = environment,
-                    executionResult = executionResult,
-                    sessionIdentifier = sessionIdentifier,
-                )
-          }
+            override fun createEditor(): JComponent = JPanel()
         }
-        return executionResult
-      }
+
+    override fun checkConfiguration() {
+        val blenderPath = ProjectConfig.getInstance(project).getBlenderPath().trim()
+        if (blenderPath.isEmpty()) {
+            throw RuntimeConfigurationError(MessageBundle.message("run.configuration.blender.error.blender.path.empty"))
+        }
     }
-  }
+
+    override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState {
+        val shouldAttachDebugger = executor.id == DefaultDebugExecutor.EXECUTOR_ID
+        return object : CommandLineState(environment) {
+            override fun startProcess(): OSProcessHandler {
+                return BlenderPythonLauncher.getInstance(project)
+                    .start(
+                        BlenderPythonLaunchRequest(
+                            blenderPath = ProjectConfig.getInstance(project).getBlenderPath().trim(),
+                            debugger = shouldAttachDebugger,
+                        )
+                    )
+            }
+
+            override fun execute(executor: Executor, runner: ProgramRunner<*>): ExecutionResult {
+                val executionResult = super.execute(executor, runner)
+                if (shouldAttachDebugger) {
+                    val sessionIdentifier = executionResult.processHandler.getUserData(BlenderPythonLauncher.LAUNCH_SESSION_IDENTIFIER_KEY)
+                    if (!sessionIdentifier.isNullOrBlank()) {
+                        BlenderDebugAttachService.getInstance(project)
+                            .scheduleAttach(
+                                environment = environment,
+                                executionResult = executionResult,
+                                sessionIdentifier = sessionIdentifier,
+                            )
+                    }
+                }
+                return executionResult
+            }
+        }
+    }
 }

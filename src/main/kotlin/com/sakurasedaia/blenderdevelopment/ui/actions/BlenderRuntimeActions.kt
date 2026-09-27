@@ -35,21 +35,21 @@ internal abstract class BaseBlenderRuntimeAction(
         null,
     ),
     DumbAware {
-  override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
-  override fun update(event: AnActionEvent) {
-    val project = event.project
-    if (project == null) {
-      event.presentation.isEnabledAndVisible = false
-      return
+    override fun update(event: AnActionEvent) {
+        val project = event.project
+        if (project == null) {
+            event.presentation.isEnabledAndVisible = false
+            return
+        }
+
+        event.presentation.isVisible = true
+        val runtimeService = BlenderRuntimeCommandService.getInstance(project)
+        event.presentation.isEnabled = runtimeService.hasActiveSession() && isActionApplicable(event)
     }
 
-    event.presentation.isVisible = true
-    val runtimeService = BlenderRuntimeCommandService.getInstance(project)
-    event.presentation.isEnabled = runtimeService.hasActiveSession() && isActionApplicable(event)
-  }
-
-  open fun isActionApplicable(event: AnActionEvent): Boolean = true
+    open fun isActionApplicable(event: AnActionEvent): Boolean = true
 }
 
 internal class BlenderRuntimeRunScriptAction :
@@ -57,15 +57,15 @@ internal class BlenderRuntimeRunScriptAction :
         textKey = "action.blender.runtime.script.text",
         descriptionKey = "action.blender.runtime.script.description",
     ) {
-  override fun actionPerformed(event: AnActionEvent) {
-    val project = event.project ?: return
-    BlenderRuntimeCommandService.getInstance(project).sendRunScriptCommand()
-  }
+    override fun actionPerformed(event: AnActionEvent) {
+        val project = event.project ?: return
+        BlenderRuntimeCommandService.getInstance(project).sendRunScriptCommand()
+    }
 
-  override fun isActionApplicable(event: AnActionEvent): Boolean {
-    val selectedFile = event.getData(CommonDataKeys.VIRTUAL_FILE)
-    return selectedFile?.extension.equals("py", ignoreCase = true)
-  }
+    override fun isActionApplicable(event: AnActionEvent): Boolean {
+        val selectedFile = event.getData(CommonDataKeys.VIRTUAL_FILE)
+        return selectedFile?.extension.equals("py", ignoreCase = true)
+    }
 }
 
 internal class BlenderRuntimeReloadAction :
@@ -73,10 +73,10 @@ internal class BlenderRuntimeReloadAction :
         textKey = "action.blender.runtime.reload.text",
         descriptionKey = "action.blender.runtime.reload.description",
     ) {
-  override fun actionPerformed(event: AnActionEvent) {
-    val project = event.project ?: return
-    BlenderRuntimeCommandService.getInstance(project).sendReloadCommand()
-  }
+    override fun actionPerformed(event: AnActionEvent) {
+        val project = event.project ?: return
+        BlenderRuntimeCommandService.getInstance(project).sendReloadCommand()
+    }
 }
 
 internal class BlenderRuntimeStopAction :
@@ -84,8 +84,8 @@ internal class BlenderRuntimeStopAction :
         textKey = "action.blender.runtime.stop.text",
         descriptionKey = "action.blender.runtime.stop.description",
     ) {
-  override fun actionPerformed(event: AnActionEvent) {
-    val project = event.project ?: return
-    BlenderRuntimeCommandService.getInstance(project).sendStopCommand()
-  }
+    override fun actionPerformed(event: AnActionEvent) {
+        val project = event.project ?: return
+        BlenderRuntimeCommandService.getInstance(project).sendStopCommand()
+    }
 }
