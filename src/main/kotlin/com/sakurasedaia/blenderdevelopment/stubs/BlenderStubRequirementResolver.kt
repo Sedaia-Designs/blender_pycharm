@@ -13,17 +13,17 @@ import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
 
 /** Resolves Blender releases to the linting package declared by the version registry. */
 object BlenderStubRequirementResolver {
-  private val additionalRequirementsByVersion = mapOf("5.1" to "fake-bpy-module-5.1")
+    private val additionalRequirementsByVersion = mapOf("5.1" to "fake-bpy-module-5.1")
 
-  /**
-   * Resolves a Blender major/minor or full version to its configured package requirement. Registry entries take precedence so their
-   * `fakeBpy` override is honored.
-   *
-   * @param blenderVersion selected Blender version.
-   * @return exact package requirement, or `null` when the release has no configured mapping.
-   */
-  fun resolve(blenderVersion: String): String? {
-    val normalizedVersion = BlenderVersions.normalizeVersion(blenderVersion)
-    return BlenderVersions.getFakeBpyPackageName(normalizedVersion) ?: additionalRequirementsByVersion[normalizedVersion]
-  }
+    /**
+     * Resolves a Blender major/minor or full version to its configured package requirement. Registry entries take precedence so their
+     * `fakeBpy` override is honored.
+     *
+     * @param blenderVersion selected Blender version.
+     * @return exact package requirement, or `null` when the release has no configured mapping.
+     */
+    fun resolve(blenderVersion: String): String? {
+        val normalizedVersion = BlenderVersions.normalizeVersion(blenderVersion)
+        return BlenderVersions.getFakeBpyPackageName(normalizedVersion) ?: additionalRequirementsByVersion[normalizedVersion]
+    }
 }

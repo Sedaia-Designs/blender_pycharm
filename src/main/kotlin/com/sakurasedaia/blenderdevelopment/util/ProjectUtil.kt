@@ -9,6 +9,6 @@ import com.intellij.openapi.project.ProjectManager
  * @return the project suitable for project-level services when no explicit project is available.
  */
 fun currentProject(): Project {
-  val projectManager = ProjectManager.getInstance()
-  return projectManager.openProjects.firstOrNull { it.isOpen && !it.isDisposed } ?: projectManager.defaultProject
+    val projectManager = ProjectManager.getInstance()
+    return projectManager.openProjects.firstOrNull { it.isOpen && !it.isDisposed } ?: projectManager.defaultProject
 }

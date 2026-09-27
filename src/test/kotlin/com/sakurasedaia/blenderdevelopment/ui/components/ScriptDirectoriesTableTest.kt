@@ -22,19 +22,19 @@ import com.intellij.ui.table.JBTable
 import com.intellij.util.ui.UIUtil
 
 internal class ScriptDirectoriesTableTest : BasePlatformTestCase() {
-  fun testBrowseResultWhileBrowseButtonIsEditingDoesNotReenterEditorCommit() {
-    val directoriesTable = ScriptDirectoriesTable(project)
-    directoriesTable.setDirectories(listOf("/initial"))
-    var observedDirectories = emptyList<String>()
-    directoriesTable.setOnChangeListener { observedDirectories = it }
-    val table = UIUtil.findComponentOfType(directoriesTable.component(), JBTable::class.java)
+    fun testBrowseResultWhileBrowseButtonIsEditingDoesNotReenterEditorCommit() {
+        val directoriesTable = ScriptDirectoriesTable(project)
+        directoriesTable.setDirectories(listOf("/initial"))
+        var observedDirectories = emptyList<String>()
+        directoriesTable.setOnChangeListener { observedDirectories = it }
+        val table = UIUtil.findComponentOfType(directoriesTable.component(), JBTable::class.java)
 
-    assertNotNull(table)
-    assertTrue(table!!.editCellAt(0, 1))
+        assertNotNull(table)
+        assertTrue(table!!.editCellAt(0, 1))
 
-    table.model.setValueAt("/selected/from/browse", 0, 0)
+        table.model.setValueAt("/selected/from/browse", 0, 0)
 
-    assertEquals(listOf("/selected/from/browse"), observedDirectories)
-    assertTrue(table.isEditing)
-  }
+        assertEquals(listOf("/selected/from/browse"), observedDirectories)
+        assertTrue(table.isEditing)
+    }
 }

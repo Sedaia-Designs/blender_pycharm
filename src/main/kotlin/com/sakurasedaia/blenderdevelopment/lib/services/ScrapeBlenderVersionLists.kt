@@ -16,88 +16,88 @@ import kotlinx.coroutines.withContext
 
 @Service
 internal class ScrapeBlenderVersionLists {
-  val blenderVersionSite: String = "https://download.blender.org/release/"
+    val blenderVersionSite: String = "https://download.blender.org/release/"
 
-  companion object {
-    private val VERSION_DIRECTORY_PATTERN =
-        Regex(
-            pattern = "^Blender(\\d+(?:\\.\\d+)+(?:[a-z]+)?)/$",
-            option = RegexOption.IGNORE_CASE,
-        )
-    private val PATCH_VERSION_PATTERN =
-        Regex(
-            pattern = "^blender-(\\d+\\.\\d+\\.\\d+)(?:[.-].*)?$",
-            option = RegexOption.IGNORE_CASE,
-        )
+    companion object {
+        private val VERSION_DIRECTORY_PATTERN =
+            Regex(
+                pattern = "^Blender(\\d+(?:\\.\\d+)+(?:[a-z]+)?)/$",
+                option = RegexOption.IGNORE_CASE,
+            )
+        private val PATCH_VERSION_PATTERN =
+            Regex(
+                pattern = "^blender-(\\d+\\.\\d+\\.\\d+)(?:[.-].*)?$",
+                option = RegexOption.IGNORE_CASE,
+            )
 
-    fun getInstance(): ScrapeBlenderVersionLists = service()
-  }
+        fun getInstance(): ScrapeBlenderVersionLists = service()
+    }
 
-  internal suspend fun refreshVersionCache(): List<BlenderVersion> =
-      withContext(Dispatchers.IO) {
-        val availableMinorVersions =
-            filterMinorVersions(
-                    parseAvailableVersions(getHTML(blenderVersionSite)),
-                    PluginConfig.getInstance().getMinimumBlenderVersion(),
-                )
-                .toSet()
-        val discoveredPatchVersions = availableMinorVersions.mapNotNull { minorVersion ->
-          val releaseUrl = "${blenderVersionSite}Blender$minorVersion/"
-          parsePatchVersions(getHTML(releaseUrl), minorVersion)
+    internal suspend fun refreshVersionCache(): List<BlenderVersion> =
+        withContext(Dispatchers.IO) {
+            val availableMinorVersions =
+                filterMinorVersions(
+                        parseAvailableVersions(getHTML(blenderVersionSite)),
+                        PluginConfig.getInstance().getMinimumBlenderVersion(),
+                    )
+                    .toSet()
+            val discoveredPatchVersions = availableMinorVersions.mapNotNull { minorVersion ->
+                val releaseUrl = "${blenderVersionSite}Blender$minorVersion/"
+                parsePatchVersions(getHTML(releaseUrl), minorVersion)
+            }
+
+            val cache = BlenderVersionCache.getInstance()
+            cache.cacheDiscoveredVersions(discoveredPatchVersions)
+            cache.getVersionTable()
         }
 
-        val cache = BlenderVersionCache.getInstance()
-        cache.cacheDiscoveredVersions(discoveredPatchVersions)
-        cache.getVersionTable()
-      }
+    internal fun getHTML(url: String): String = HttpRequests.request(url).connectTimeout(5_000).readTimeout(10_000).readString()
 
-  internal fun getHTML(url: String): String = HttpRequests.request(url).connectTimeout(5_000).readTimeout(10_000).readString()
-
-  internal fun parseAvailableVersions(html: String): List<String> {
-    val versions = linkedSetOf<String>()
-    parseLinks(html) { href ->
-      VERSION_DIRECTORY_PATTERN.matchEntire(href)?.groupValues?.get(1)?.let(versions::add)
-    }
-    return versions.toList()
-  }
-
-  internal fun parsePatchVersions(html: String, minorVersion: String): List<Int>? {
-    val versions = linkedSetOf<List<Int>>()
-    parseLinks(html) { href ->
-      val version = PATCH_VERSION_PATTERN.matchEntire(href)?.groupValues?.get(1) ?: return@parseLinks
-      if (version.substringBeforeLast('.') != minorVersion) return@parseLinks
-
-      versions += version.split('.').map(String::toInt)
-    }
-    return versions.maxWithOrNull(compareBy({ it[0] }, { it[1] }, { it[2] }))
-  }
-
-  internal fun filterMinorVersions(versions: List<String>, minimumVersion: String): List<String> {
-    val minimum = parseMinorVersion(minimumVersion) ?: return emptyList()
-    return versions.filter { version -> parseMinorVersion(version)?.let { it >= minimum } == true }
-  }
-
-  private fun parseMinorVersion(version: String): MinorVersion? {
-    val parts = version.split('.')
-    if (parts.size != 2) return null
-    return MinorVersion(parts[0].toIntOrNull() ?: return null, parts[1].toIntOrNull() ?: return null)
-  }
-
-  private fun parseLinks(html: String, consumeHref: (String) -> Unit) {
-    val callback =
-        object : HTMLEditorKit.ParserCallback() {
-          override fun handleStartTag(tag: HTML.Tag, attributes: MutableAttributeSet, position: Int) {
-            if (tag != HTML.Tag.A) return
-
-            val href = attributes.getAttribute(HTML.Attribute.HREF) as? String ?: return
-            consumeHref(href)
-          }
+    internal fun parseAvailableVersions(html: String): List<String> {
+        val versions = linkedSetOf<String>()
+        parseLinks(html) { href ->
+            VERSION_DIRECTORY_PATTERN.matchEntire(href)?.groupValues?.get(1)?.let(versions::add)
         }
+        return versions.toList()
+    }
 
-    ParserDelegator().parse(StringReader(html), callback, true)
-  }
+    internal fun parsePatchVersions(html: String, minorVersion: String): List<Int>? {
+        val versions = linkedSetOf<List<Int>>()
+        parseLinks(html) { href ->
+            val version = PATCH_VERSION_PATTERN.matchEntire(href)?.groupValues?.get(1) ?: return@parseLinks
+            if (version.substringBeforeLast('.') != minorVersion) return@parseLinks
 
-  private data class MinorVersion(val major: Int, val minor: Int) : Comparable<MinorVersion> {
-    override fun compareTo(other: MinorVersion): Int = compareValuesBy(this, other, MinorVersion::major, MinorVersion::minor)
-  }
+            versions += version.split('.').map(String::toInt)
+        }
+        return versions.maxWithOrNull(compareBy({ it[0] }, { it[1] }, { it[2] }))
+    }
+
+    internal fun filterMinorVersions(versions: List<String>, minimumVersion: String): List<String> {
+        val minimum = parseMinorVersion(minimumVersion) ?: return emptyList()
+        return versions.filter { version -> parseMinorVersion(version)?.let { it >= minimum } == true }
+    }
+
+    private fun parseMinorVersion(version: String): MinorVersion? {
+        val parts = version.split('.')
+        if (parts.size != 2) return null
+        return MinorVersion(parts[0].toIntOrNull() ?: return null, parts[1].toIntOrNull() ?: return null)
+    }
+
+    private fun parseLinks(html: String, consumeHref: (String) -> Unit) {
+        val callback =
+            object : HTMLEditorKit.ParserCallback() {
+                override fun handleStartTag(tag: HTML.Tag, attributes: MutableAttributeSet, position: Int) {
+                    if (tag != HTML.Tag.A) return
+
+                    val href = attributes.getAttribute(HTML.Attribute.HREF) as? String ?: return
+                    consumeHref(href)
+                }
+            }
+
+        ParserDelegator().parse(StringReader(html), callback, true)
+    }
+
+    private data class MinorVersion(val major: Int, val minor: Int) : Comparable<MinorVersion> {
+        override fun compareTo(other: MinorVersion): Int = compareValuesBy(this, other, MinorVersion::major, MinorVersion::minor)
+    }
 }

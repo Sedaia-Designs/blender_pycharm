@@ -18,7 +18,7 @@
 package com.sakurasedaia.blenderdevelopment.util
 
 object PythonModuleNameValidator {
-  private val MODULE_NAME_REGEX = Regex("^[A-Za-z_][A-Za-z0-9_]*$")
+    private val MODULE_NAME_REGEX = Regex("^[A-Za-z_][A-Za-z0-9_]*$")
 
-  fun isValid(value: String): Boolean = MODULE_NAME_REGEX.matches(value)
+    fun isValid(value: String): Boolean = MODULE_NAME_REGEX.matches(value)
 }

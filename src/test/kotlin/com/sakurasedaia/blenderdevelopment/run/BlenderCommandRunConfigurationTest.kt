@@ -25,105 +25,105 @@ import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
 import org.jdom.Element
 
 class BlenderCommandRunConfigurationTest : BasePlatformTestCase() {
-  fun testBlenderConfigurationTypeRegistersLaunchCommandAndExtensionBuildFactories() {
-    val factories = BlenderConfigurationType().configurationFactories
+    fun testBlenderConfigurationTypeRegistersLaunchCommandAndExtensionBuildFactories() {
+        val factories = BlenderConfigurationType().configurationFactories
 
-    assertEquals(3, factories.size)
-    assertEquals("BlenderLaunchConfigurationFactory", factories[0].id)
-    assertEquals("BlenderCommandConfigurationFactory", factories[1].id)
-    assertEquals("BlenderExtensionBuildConfigurationFactory", factories[2].id)
-  }
-
-  fun testCommandArgumentsPersistWithTheRunConfiguration() {
-    val configuration = createConfiguration()
-    configuration.commandArguments = "extension build --source-dir src"
-    val serializedConfiguration = Element("configuration")
-
-    configuration.writeExternal(serializedConfiguration)
-    val restoredConfiguration = createConfiguration()
-    restoredConfiguration.readExternal(serializedConfiguration)
-
-    assertEquals("extension build --source-dir src", restoredConfiguration.commandArguments)
-  }
-
-  fun testBlankCommandFailsValidation() {
-    configureBlenderPath()
-    val configuration = createConfiguration()
-
-    try {
-      configuration.checkConfiguration()
-    } catch (_: RuntimeConfigurationError) {
-      return
+        assertEquals(3, factories.size)
+        assertEquals("BlenderLaunchConfigurationFactory", factories[0].id)
+        assertEquals("BlenderCommandConfigurationFactory", factories[1].id)
+        assertEquals("BlenderExtensionBuildConfigurationFactory", factories[2].id)
     }
-    fail("Expected a blank Blender command to fail validation")
-  }
 
-  fun testCommandOptionFailsValidationWhenTheConfigurationAddsIt() {
-    configureBlenderPath()
-    val configuration = createConfiguration()
-    configuration.commandArguments = "--command extension list"
+    fun testCommandArgumentsPersistWithTheRunConfiguration() {
+        val configuration = createConfiguration()
+        configuration.commandArguments = "extension build --source-dir src"
+        val serializedConfiguration = Element("configuration")
 
-    try {
-      configuration.checkConfiguration()
-    } catch (_: RuntimeConfigurationError) {
-      return
+        configuration.writeExternal(serializedConfiguration)
+        val restoredConfiguration = createConfiguration()
+        restoredConfiguration.readExternal(serializedConfiguration)
+
+        assertEquals("extension build --source-dir src", restoredConfiguration.commandArguments)
     }
-    fail("Expected a duplicate --command option to fail validation")
-  }
 
-  fun testKnownCommandOptionWithoutValueFailsValidation() {
-    configureBlenderPath()
-    val configuration = createConfiguration()
-    configuration.commandArguments = "extension build --source-dir"
+    fun testBlankCommandFailsValidation() {
+        configureBlenderPath()
+        val configuration = createConfiguration()
 
-    try {
-      configuration.checkConfiguration()
-    } catch (_: RuntimeConfigurationError) {
-      return
+        try {
+            configuration.checkConfiguration()
+        } catch (_: RuntimeConfigurationError) {
+            return
+        }
+        fail("Expected a blank Blender command to fail validation")
     }
-    fail("Expected a known option without its value to fail validation")
-  }
 
-  fun testInstallationDefinedCommandPassesValidation() {
-    configureBlenderPath()
-    val configuration = createConfiguration()
-    configuration.commandArguments = "custom_command --installation-defined-option"
+    fun testCommandOptionFailsValidationWhenTheConfigurationAddsIt() {
+        configureBlenderPath()
+        val configuration = createConfiguration()
+        configuration.commandArguments = "--command extension list"
 
-    configuration.checkConfiguration()
-  }
+        try {
+            configuration.checkConfiguration()
+        } catch (_: RuntimeConfigurationError) {
+            return
+        }
+        fail("Expected a duplicate --command option to fail validation")
+    }
 
-  fun testCommandEditorStateSeparatesCommandFromArguments() {
-    assertEquals(
-        BlenderCommandEditorState(
-            command = "extension",
-            arguments = "build --source-dir \"Extension Source\"",
-        ),
-        BlenderCommandEditorState.fromCommandLine("extension build --source-dir \"Extension Source\""),
-    )
-  }
+    fun testKnownCommandOptionWithoutValueFailsValidation() {
+        configureBlenderPath()
+        val configuration = createConfiguration()
+        configuration.commandArguments = "extension build --source-dir"
 
-  fun testCommandEditorStatePreservesCustomCommand() {
-    val state = BlenderCommandEditorState.fromCommandLine("custom_command --custom-option value")
+        try {
+            configuration.checkConfiguration()
+        } catch (_: RuntimeConfigurationError) {
+            return
+        }
+        fail("Expected a known option without its value to fail validation")
+    }
 
-    assertEquals("custom_command", state.command)
-    assertEquals("--custom-option value", state.arguments)
-    assertEquals("custom_command --custom-option value", state.toCommandLine())
-  }
+    fun testInstallationDefinedCommandPassesValidation() {
+        configureBlenderPath()
+        val configuration = createConfiguration()
+        configuration.commandArguments = "custom_command --installation-defined-option"
 
-  fun testCommandEditorStateHandlesCommandWithoutArguments() {
-    val state = BlenderCommandEditorState.fromCommandLine("sysinfo")
+        configuration.checkConfiguration()
+    }
 
-    assertEquals("sysinfo", state.command)
-    assertTrue(state.arguments.isEmpty())
-    assertEquals("sysinfo", state.toCommandLine())
-  }
+    fun testCommandEditorStateSeparatesCommandFromArguments() {
+        assertEquals(
+            BlenderCommandEditorState(
+                command = "extension",
+                arguments = "build --source-dir \"Extension Source\"",
+            ),
+            BlenderCommandEditorState.fromCommandLine("extension build --source-dir \"Extension Source\""),
+        )
+    }
 
-  private fun createConfiguration(): BlenderCommandRunConfiguration {
-    val factory = BlenderConfigurationType().configurationFactories[1]
-    return factory.createTemplateConfiguration(project) as BlenderCommandRunConfiguration
-  }
+    fun testCommandEditorStatePreservesCustomCommand() {
+        val state = BlenderCommandEditorState.fromCommandLine("custom_command --custom-option value")
 
-  private fun configureBlenderPath() {
-    ProjectConfig.getInstance(project).setBlenderPath("/path/to/blender")
-  }
+        assertEquals("custom_command", state.command)
+        assertEquals("--custom-option value", state.arguments)
+        assertEquals("custom_command --custom-option value", state.toCommandLine())
+    }
+
+    fun testCommandEditorStateHandlesCommandWithoutArguments() {
+        val state = BlenderCommandEditorState.fromCommandLine("sysinfo")
+
+        assertEquals("sysinfo", state.command)
+        assertTrue(state.arguments.isEmpty())
+        assertEquals("sysinfo", state.toCommandLine())
+    }
+
+    private fun createConfiguration(): BlenderCommandRunConfiguration {
+        val factory = BlenderConfigurationType().configurationFactories[1]
+        return factory.createTemplateConfiguration(project) as BlenderCommandRunConfiguration
+    }
+
+    private fun configureBlenderPath() {
+        ProjectConfig.getInstance(project).setBlenderPath("/path/to/blender")
+    }
 }

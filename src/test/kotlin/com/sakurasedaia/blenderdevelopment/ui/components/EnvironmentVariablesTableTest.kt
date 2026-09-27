@@ -23,20 +23,20 @@ import com.intellij.util.ui.UIUtil
 import javax.swing.JTextField
 
 internal class EnvironmentVariablesTableTest : BasePlatformTestCase() {
-  fun testEditorCommitDoesNotReenterEditorCommit() {
-    val variablesTable = EnvironmentVariablesTable()
-    variablesTable.setVariables(mapOf("OLD_KEY" to "value"))
-    var observedVariables = emptyMap<String, String>()
-    variablesTable.setOnChangeListener { observedVariables = it }
-    val table = UIUtil.findComponentOfType(variablesTable.component(), JBTable::class.java)
+    fun testEditorCommitDoesNotReenterEditorCommit() {
+        val variablesTable = EnvironmentVariablesTable()
+        variablesTable.setVariables(mapOf("OLD_KEY" to "value"))
+        var observedVariables = emptyMap<String, String>()
+        variablesTable.setOnChangeListener { observedVariables = it }
+        val table = UIUtil.findComponentOfType(variablesTable.component(), JBTable::class.java)
 
-    assertNotNull(table)
-    assertTrue(table!!.editCellAt(0, 0))
-    (table.editorComponent as JTextField).text = "NEW_KEY"
+        assertNotNull(table)
+        assertTrue(table!!.editCellAt(0, 0))
+        (table.editorComponent as JTextField).text = "NEW_KEY"
 
-    assertTrue(table.cellEditor.stopCellEditing())
+        assertTrue(table.cellEditor.stopCellEditing())
 
-    assertEquals(mapOf("NEW_KEY" to "value"), observedVariables)
-    assertFalse(table.isEditing)
-  }
+        assertEquals(mapOf("NEW_KEY" to "value"), observedVariables)
+        assertFalse(table.isEditing)
+    }
 }

@@ -34,95 +34,100 @@ internal class BlenderToolWindowController(
     private val scanInstallations: (onCompleted: () -> Unit) -> Unit,
     private val installStubs: (String) -> Unit,
     private val reloadAddon: () -> Unit,
+    private val saveWorkspaceConfig: () -> Unit,
     private val logAutosave: (String) -> Unit,
 ) {
-  init {
-    bindView()
-    view.render(
-        toViewState(
-            projectConfig.stateFlow.value,
-            pluginConfig.stateFlow.value,
+    init {
+        bindView()
+        view.render(
+            toViewState(
+                projectConfig.stateFlow.value,
+                pluginConfig.stateFlow.value,
+            )
         )
-    )
-    scope.launch(Dispatchers.EDT) {
-      combine(
-              projectConfig.stateFlow,
-              pluginConfig.stateFlow,
-              ::toViewState,
-          )
-          .collect(view::render)
+        scope.launch(Dispatchers.EDT) {
+            combine(
+                    projectConfig.stateFlow,
+                    pluginConfig.stateFlow,
+                    ::toViewState,
+                )
+                .collect(view::render)
+        }
     }
-  }
 
-  private fun bindView() {
-    view.onBlenderPathChanged = { save("blenderPath") { projectConfig.setBlenderPath(it.trim()) } }
-    view.onAddonSymlinkNameChanged = ::saveAddonSymlinkName
-    view.onSourceFolderChanged = { save("sourceFolder") { projectConfig.setSourceFolder(it.trim()) } }
-    view.onRunArgumentsChanged = { save("runArguments") { projectConfig.setRunArguments(it.trim()) } }
-    view.onBlenderLogLevelChanged = { save("blenderLogLevel") { projectConfig.setBlenderLogLevel(it) } }
-    view.onReloadOnSaveChanged = { save("reloadOnSave") { projectConfig.setReloadOnSave(it) } }
-    view.onJustMyCodeChanged = { save("justMyCode") { projectConfig.setJustMyCode(it) } }
-    view.onEnvironmentVariablesChanged = {
-      save("environmentVariables") { projectConfig.setEnvironmentVariables(it) }
+    private fun bindView() {
+        view.onBlenderPathChanged = { save("blenderPath") { projectConfig.setBlenderPath(it.trim()) } }
+        view.onAddonSymlinkNameChanged = ::saveAddonSymlinkName
+        view.onSourceFolderChanged = { save("sourceFolder") { projectConfig.setSourceFolder(it.trim()) } }
+        view.onRunArgumentsChanged = { save("runArguments") { projectConfig.setRunArguments(it.trim()) } }
+        view.onBlenderLogLevelChanged = { save("blenderLogLevel") { projectConfig.setBlenderLogLevel(it) } }
+        view.onReloadOnSaveChanged = { save("reloadOnSave") { projectConfig.setReloadOnSave(it) } }
+        view.onJustMyCodeChanged = { save("justMyCode") { projectConfig.setJustMyCode(it) } }
+        view.onEnvironmentVariablesChanged = {
+            save("environmentVariables") { projectConfig.setEnvironmentVariables(it) }
+        }
+        view.onScriptDirectoriesChanged = {
+            save("scriptDirectories") { projectConfig.setScriptDirectories(it.ifEmpty { null }) }
+        }
+        view.onReloadRequested = reloadAddon
+        view.onSaveWorkspaceConfigRequested = saveWorkspaceConfig
+        view.onScanInstallationsRequested = ::scanForInstallations
+        view.onInstallStubsRequested = installStubs
+        view.onBlendFileToOpenChanged = { save("blendFileToOpen") { projectConfig.setBlendFileToOpen(it) } }
     }
-    view.onScriptDirectoriesChanged = {
-      save("scriptDirectories") { projectConfig.setScriptDirectories(it.ifEmpty { null }) }
+
+    internal fun scanForInstallations() {
+        val previousInstallations = pluginConfig.stateFlow.value.detectedBlenderInstalls
+
+        scanInstallations {
+            onInstallationScanCompleted(previousInstallations)
+        }
     }
-    view.onReloadRequested = reloadAddon
-    view.onScanInstallationsRequested = ::scanForInstallations
-    view.onInstallStubsRequested = installStubs
-  }
 
-  internal fun scanForInstallations() {
-    val previousInstallations = pluginConfig.stateFlow.value.detectedBlenderInstalls
+    private fun onInstallationScanCompleted(previousInstallations: List<PluginConfig.BlendInstallInfo>) {
+        val updatedInstallations = pluginConfig.stateFlow.value.detectedBlenderInstalls
+        val configuredPath = projectConfig.stateFlow.value.blenderPath
 
-    scanInstallations {
-      onInstallationScanCompleted(previousInstallations)
+        val removeSelectedInstall =
+            previousInstallations.any { it.path == configuredPath } && updatedInstallations.none { it.path == configuredPath }
+
+        if (removeSelectedInstall) {
+            save("blenderPath") {
+                projectConfig.setBlenderPath(updatedInstallations.firstOrNull()?.path.orEmpty())
+            }
+        }
     }
-  }
 
-  private fun onInstallationScanCompleted(previousInstallations: List<PluginConfig.BlendInstallInfo>) {
-    val updatedInstallations = pluginConfig.stateFlow.value.detectedBlenderInstalls
-    val configuredPath = projectConfig.stateFlow.value.blenderPath
-
-    val removeSelectedInstall =
-        previousInstallations.any { it.path == configuredPath } && updatedInstallations.none { it.path == configuredPath }
-
-    if (removeSelectedInstall) {
-      save("blenderPath") {
-        projectConfig.setBlenderPath(updatedInstallations.firstOrNull()?.path.orEmpty())
-      }
+    private fun saveAddonSymlinkName(candidate: String) {
+        val normalizedCandidate = candidate.trim()
+        if (!PythonModuleNameValidator.isValid(normalizedCandidate)) return
+        save("addonSymlinkName") {
+            projectConfig.setAddonSymlinkName(normalizedCandidate)
+        }
     }
-  }
 
-  private fun saveAddonSymlinkName(candidate: String) {
-    val normalizedCandidate = candidate.trim()
-    if (!PythonModuleNameValidator.isValid(normalizedCandidate)) return
-    save("addonSymlinkName") {
-      projectConfig.setAddonSymlinkName(normalizedCandidate)
+    private fun save(fieldName: String, update: () -> Unit) {
+        update()
+        logAutosave(fieldName)
     }
-  }
 
-  private fun save(fieldName: String, update: () -> Unit) {
-    update()
-    logAutosave(fieldName)
-  }
-
-  private fun toViewState(
-      projectState: ProjectConfig.ProjectSnapshot,
-      pluginState: PluginConfig.PluginSnapshot,
-  ): BlenderToolWindowState {
-    return BlenderToolWindowState(
-        blenderPath = projectState.blenderPath,
-        detectedBlenderInstalls = pluginState.detectedBlenderInstalls,
-        addonSymlinkName = projectState.addonSymlinkName,
-        sourceFolder = projectState.sourceFolder,
-        runArguments = projectState.runArguments,
-        blenderLogLevel = projectState.blenderLogLevel,
-        reloadOnSave = projectState.reloadOnSave,
-        justMyCode = projectState.justMyCode,
-        environmentVariables = projectState.environmentVariables,
-        scriptDirectories = projectState.scriptDirectories.orEmpty(),
-    )
-  }
+    private fun toViewState(
+        projectState: ProjectConfig.ProjectSnapshot,
+        pluginState: PluginConfig.PluginSnapshot,
+    ): BlenderToolWindowState {
+        return BlenderToolWindowState(
+            blenderPath = projectState.blenderPath,
+            detectedBlenderInstalls = pluginState.detectedBlenderInstalls,
+            addonSymlinkName = projectState.addonSymlinkName,
+            sourceFolder = projectState.sourceFolder,
+            runArguments = projectState.runArguments,
+            blenderLogLevel = projectState.blenderLogLevel,
+            reloadOnSave = projectState.reloadOnSave,
+            justMyCode = projectState.justMyCode,
+            workspaceConfigEnabled = projectState.workspaceConfigEnabled,
+            environmentVariables = projectState.environmentVariables,
+            scriptDirectories = projectState.scriptDirectories.orEmpty(),
+            blendFileToOpen = projectState.blendFileToOpen,
+        )
+    }
 }
