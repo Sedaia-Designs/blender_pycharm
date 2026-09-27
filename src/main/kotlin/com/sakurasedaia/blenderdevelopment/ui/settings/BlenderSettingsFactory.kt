@@ -24,34 +24,34 @@ import javax.swing.JComponent
 
 /** Global plugin settings configurable for Blender plugin state. */
 class BlenderSettingsFactory : SearchableConfigurable, Configurable.NoScroll {
-  private var settingsComponent: BlenderSettingsComponent? = null
+    private var settingsComponent: BlenderSettingsComponent? = null
 
-  override fun getId(): String = "com.sakurasedaia.blenderdevelopment.settings.plugin"
+    override fun getId(): String = "com.sakurasedaia.blenderdevelopment.settings.plugin"
 
-  override fun getDisplayName(): String = MessageBundle.message("ui.settings.title")
+    override fun getDisplayName(): String = MessageBundle.message("ui.settings.title")
 
-  override fun createComponent(): JComponent {
-    val component =
-        settingsComponent
-            ?: BlenderSettingsComponent().also {
-              settingsComponent = it
-            }
-    component.reset()
-    return component.component()
-  }
+    override fun createComponent(): JComponent {
+        val component =
+            settingsComponent
+                ?: BlenderSettingsComponent().also {
+                    settingsComponent = it
+                }
+        component.reset()
+        return component.component()
+    }
 
-  override fun isModified(): Boolean = settingsComponent?.isModified() == true
+    override fun isModified(): Boolean = settingsComponent?.isModified() == true
 
-  override fun apply() {
-    settingsComponent?.apply()
-  }
+    override fun apply() {
+        settingsComponent?.apply()
+    }
 
-  override fun reset() {
-    settingsComponent?.reset()
-  }
+    override fun reset() {
+        settingsComponent?.reset()
+    }
 
-  override fun disposeUIResources() {
-    settingsComponent?.dispose()
-    settingsComponent = null
-  }
+    override fun disposeUIResources() {
+        settingsComponent?.dispose()
+        settingsComponent = null
+    }
 }

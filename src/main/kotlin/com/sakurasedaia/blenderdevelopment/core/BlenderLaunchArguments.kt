@@ -22,35 +22,42 @@ import java.nio.file.Path
 
 /** Builds ordered argument lists for Blender's mutually exclusive launch modes. */
 internal object BlenderLaunchArguments {
-  /** Builds arguments for executing a Python script after shared Blender options. */
-  fun python(
-      logLevel: BlenderLogLevel,
-      workspaceArguments: List<String>,
-      scriptPath: Path,
-      additionalArguments: List<String> = emptyList(),
-  ): List<String> {
-    return buildLogArguments(logLevel) + workspaceArguments + listOf("--python", scriptPath.toString()) + additionalArguments
-  }
-
-  /** Builds arguments for a Blender command, which consumes every argument after `--command`. */
-  fun command(logLevel: BlenderLogLevel, commandArguments: List<String>): List<String> {
-    require(commandArguments.isNotEmpty() && commandArguments.first().isNotBlank()) { "A Blender command is required." }
-    require(commandArguments.first() != "--command" && commandArguments.first() != "-c") {
-      "Command arguments must not include the --command option."
-    }
-    return buildLogArguments(logLevel) + listOf("--command") + commandArguments
-  }
-
-  private fun buildLogArguments(logLevel: BlenderLogLevel): List<String> {
-    val level =
-        when (logLevel) {
-          BlenderLogLevel.FATAL -> "fatal"
-          BlenderLogLevel.ERROR -> "error"
-          BlenderLogLevel.WARNING -> "warning"
-          BlenderLogLevel.INFO -> "info"
-          BlenderLogLevel.DEBUG -> "debug"
-          BlenderLogLevel.TRACE -> "trace"
+    /** Builds arguments for executing a Python script after shared Blender options. */
+    fun python(
+        logLevel: BlenderLogLevel,
+        workspaceArguments: List<String>,
+        scriptPath: Path,
+        additionalArguments: List<String> = emptyList(),
+        blendFileToOpen: String? = null,
+    ): List<String> {
+        return buildList {
+            addAll(buildLogArguments(logLevel))
+            addAll(workspaceArguments)
+            blendFileToOpen?.takeIf(String::isNotBlank)?.let(::add)
+            addAll(listOf("--python", scriptPath.toString()))
+            addAll(additionalArguments)
         }
-    return listOf("--log-level", level)
-  }
+    }
+
+    /** Builds arguments for a Blender command, which consumes every argument after `--command`. */
+    fun command(logLevel: BlenderLogLevel, commandArguments: List<String>): List<String> {
+        require(commandArguments.isNotEmpty() && commandArguments.first().isNotBlank()) { "A Blender command is required." }
+        require(commandArguments.first() != "--command" && commandArguments.first() != "-c") {
+            "Command arguments must not include the --command option."
+        }
+        return buildLogArguments(logLevel) + listOf("--command") + commandArguments
+    }
+
+    private fun buildLogArguments(logLevel: BlenderLogLevel): List<String> {
+        val level =
+            when (logLevel) {
+                BlenderLogLevel.FATAL -> "fatal"
+                BlenderLogLevel.ERROR -> "error"
+                BlenderLogLevel.WARNING -> "warning"
+                BlenderLogLevel.INFO -> "info"
+                BlenderLogLevel.DEBUG -> "debug"
+                BlenderLogLevel.TRACE -> "trace"
+            }
+        return listOf("--log-level", level)
+    }
 }

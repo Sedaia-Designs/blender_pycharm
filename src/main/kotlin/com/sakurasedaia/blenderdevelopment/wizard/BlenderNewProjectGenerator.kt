@@ -77,261 +77,261 @@ data class BlenderExtensionManifest(
  * project creation
  */
 class BlenderProjectGenerator(private val data: BlenderExtensionManifest) {
-  /**
-   * Generates Blender scaffolding in the module and directory selected by PyCharm.
-   *
-   * @param module module being initialized.
-   * @param baseDir project root directory.
-   * @param sdk Python SDK assigned to the module by PyCharm.
-   * @return successful generation result, or a localized failure PyCharm can report.
-   */
-  suspend fun generateNewProject(module: Module, baseDir: VirtualFile, sdk: Sdk): PyResult<Unit> {
-    val project = module.project
-    val logger = PluginLogger.getInstance(project)
-    logger.log("Creating new project for ${data.name} at ${baseDir.path} with SDK ${sdk.name}")
+    /**
+     * Generates Blender scaffolding in the module and directory selected by PyCharm.
+     *
+     * @param module module being initialized.
+     * @param baseDir project root directory.
+     * @param sdk Python SDK assigned to the module by PyCharm.
+     * @return successful generation result, or a localized failure PyCharm can report.
+     */
+    suspend fun generateNewProject(module: Module, baseDir: VirtualFile, sdk: Sdk): PyResult<Unit> {
+        val project = module.project
+        val logger = PluginLogger.getInstance(project)
+        logger.log("Creating new project for ${data.name} at ${baseDir.path} with SDK ${sdk.name}")
 
-    return try {
-      edtWriteAction {
-        val sourceDir = baseDir.findChild("src") ?: baseDir.createChildDirectory(this, "src")
-        addSourceRoot(module, baseDir, sourceDir)
+        return try {
+            edtWriteAction {
+                val sourceDir = baseDir.findChild("src") ?: baseDir.createChildDirectory(this, "src")
+                addSourceRoot(module, baseDir, sourceDir)
 
-        // Necessary Components for a Blender Project
-        if (data.projectType != PROJECT_TYPE_ADD_ON) generateManifest(project, sourceDir)
-        generateMainScript(project, sourceDir)
+                // Necessary Components for a Blender Project
+                if (data.projectType != PROJECT_TYPE_ADD_ON) generateManifest(project, sourceDir)
+                generateMainScript(project, sourceDir)
 
-        // Package metadata must exist before later phases install development dependencies.
-        generatePyproject(project, baseDir)
+                // Package metadata must exist before later phases install development dependencies.
+                generatePyproject(project, baseDir)
 
-        // Repository Extras
-        if (data.isGitInitialized) {
-          logger.log("Initializing Git instance")
-          generateGitIgnore(project, baseDir)
-          generateReadme(project, baseDir)
+                // Repository Extras
+                if (data.isGitInitialized) {
+                    logger.log("Initializing Git instance")
+                    generateGitIgnore(project, baseDir)
+                    generateReadme(project, baseDir)
+                }
+                generateLicense(project, baseDir)
+
+                VfsUtil.markDirtyAndRefresh(false, true, true, baseDir)
+            }
+
+            ProjectConfig.getInstance(project).apply {
+                setAddonSymlinkName(data.extensionId)
+                setSourceFolder("src/")
+            }
+
+            logger.log("Project generation complete")
+            PyResult.success(Unit)
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            logger.warn(ErrorTypes.PROJECT_GENERATION_FAILED.format(data.name, baseDir.path), exception)
+
+            @Suppress("UnstableApiUsage")
+            PyResult.failure(
+                MessageError(
+                    MessageBundle.message(
+                        "ui.project.wizard.error.project.generation.failed",
+                        exception.message ?: exception.javaClass.simpleName,
+                    )
+                )
+            )
         }
-        generateLicense(project, baseDir)
-
-        VfsUtil.markDirtyAndRefresh(false, true, true, baseDir)
-      }
-
-      ProjectConfig.getInstance(project).apply {
-        setAddonSymlinkName(data.extensionId)
-        setSourceFolder("src/")
-      }
-
-      logger.log("Project generation complete")
-      PyResult.success(Unit)
-    } catch (exception: CancellationException) {
-      throw exception
-    } catch (exception: Exception) {
-      logger.warn(ErrorTypes.PROJECT_GENERATION_FAILED.format(data.name, baseDir.path), exception)
-
-      @Suppress("UnstableApiUsage")
-      PyResult.failure(
-          MessageError(
-              MessageBundle.message(
-                  "ui.project.wizard.error.project.generation.failed",
-                  exception.message ?: exception.javaClass.simpleName,
-              )
-          )
-      )
     }
-  }
 
-  /**
-   * Marks the generated source directory on the module supplied by PyCharm.
-   *
-   * @param module generated Python module.
-   * @param baseDir project root used to locate the matching content entry.
-   * @param sourceDir generated source directory.
-   */
-  private fun addSourceRoot(module: Module, baseDir: VirtualFile, sourceDir: VirtualFile) {
-    val model = ModuleRootManager.getInstance(module).modifiableModel
-    try {
-      val contentEntry =
-          model.contentEntries.find { entry ->
-            entry.file == baseDir || entry.file?.let { VfsUtil.isAncestor(it, baseDir, false) } == true
-          }
-              ?: throw IllegalStateException(
-                  MessageBundle.message("ui.project.wizard.error.project.module.content.root.missing", baseDir.path)
-              )
+    /**
+     * Marks the generated source directory on the module supplied by PyCharm.
+     *
+     * @param module generated Python module.
+     * @param baseDir project root used to locate the matching content entry.
+     * @param sourceDir generated source directory.
+     */
+    private fun addSourceRoot(module: Module, baseDir: VirtualFile, sourceDir: VirtualFile) {
+        val model = ModuleRootManager.getInstance(module).modifiableModel
+        try {
+            val contentEntry =
+                model.contentEntries.find { entry ->
+                    entry.file == baseDir || entry.file?.let { VfsUtil.isAncestor(it, baseDir, false) } == true
+                }
+                    ?: throw IllegalStateException(
+                        MessageBundle.message("ui.project.wizard.error.project.module.content.root.missing", baseDir.path)
+                    )
 
-      contentEntry.addSourceFolder(sourceDir, JavaSourceRootType.SOURCE)
-      model.commit()
-    } finally {
-      if (!model.isDisposed) {
-        model.dispose()
-      }
-    }
-  }
-
-  /**
-   * Creates `pyproject.toml` from the internal file template.
-   *
-   * @param project active project context.
-   * @param baseDir project root directory.
-   */
-  private fun generatePyproject(project: Project, baseDir: VirtualFile) {
-    PluginResources.createFromTemplate(
-        project,
-        name = "pyproject.toml",
-        template = "Pyproject",
-        destination = baseDir,
-        internal = true,
-        Pair("name", data.name),
-        Pair("version", data.extensionVersion),
-        Pair("python", BlenderVersions.getPythonVersion(data.blenderVersion).orEmpty()),
-        Pair("license", data.projectLicense),
-        Pair(
-            "stubRequirement",
-            if (data.installBlenderApiStubs) {
-              BlenderStubRequirementResolver.resolve(data.blenderVersion).orEmpty()
-            } else {
-              ""
-            },
-        ),
-    )
-  }
-
-  /**
-   * Creates `blender_manifest.toml` from wizard configuration values.
-   *
-   * @param project active project context.
-   * @param baseDir output directory for the manifest file.
-   */
-  private fun generateManifest(project: Project, baseDir: VirtualFile) {
-    // Helper to ensure empty strings are passed instead of nulls for Velocity logic.
-    fun String?.valOrEmpty(): String = if (this.isNullOrBlank()) "" else this
-
-    // TODO(V1): Serialize tags with TOML-aware escaping instead of manually quoting user-provided values.
-    val formattedTags = data.tags.joinToString(prefix = "[", postfix = "]") { "\"$it\"" }
-
-    // Convert Extension to 'add-on', since the type key in the blender_manifest expects "add-on" or "theme", not extension.
-    val projectType =
-        when (data.projectType) {
-          PROJECT_TYPE_EXTENSION -> "add-on"
-          PROJECT_TYPE_THEME -> "theme"
-          else -> ""
+            contentEntry.addSourceFolder(sourceDir, JavaSourceRootType.SOURCE)
+            model.commit()
+        } finally {
+            if (!model.isDisposed) {
+                model.dispose()
+            }
         }
+    }
 
-    PluginResources.createFromTemplate(
-        project = project,
-        name = "blender_manifest.toml",
-        template = "BlenderManifest",
-        destination = baseDir,
-        internal = true,
+    /**
+     * Creates `pyproject.toml` from the internal file template.
+     *
+     * @param project active project context.
+     * @param baseDir project root directory.
+     */
+    private fun generatePyproject(project: Project, baseDir: VirtualFile) {
+        PluginResources.createFromTemplate(
+            project,
+            name = "pyproject.toml",
+            template = "Pyproject",
+            destination = baseDir,
+            internal = true,
+            Pair("name", data.name),
+            Pair("version", data.extensionVersion),
+            Pair("python", BlenderVersions.getPythonVersion(data.blenderVersion).orEmpty()),
+            Pair("license", data.projectLicense),
+            Pair(
+                "stubRequirement",
+                if (data.installBlenderApiStubs) {
+                    BlenderStubRequirementResolver.resolve(data.blenderVersion).orEmpty()
+                } else {
+                    ""
+                },
+            ),
+        )
+    }
 
-        // Base Info
-        "extensionId" to data.extensionId,
-        "extensionVersion" to data.extensionVersion,
-        "name" to data.name,
-        "description" to data.description,
-        "author" to data.author,
-        "extensionType" to projectType,
+    /**
+     * Creates `blender_manifest.toml` from wizard configuration values.
+     *
+     * @param project active project context.
+     * @param baseDir output directory for the manifest file.
+     */
+    private fun generateManifest(project: Project, baseDir: VirtualFile) {
+        // Helper to ensure empty strings are passed instead of nulls for Velocity logic.
+        fun String?.valOrEmpty(): String = if (this.isNullOrBlank()) "" else this
 
-        // Mandatory & Optional Blender Settings
-        "website" to data.website.valOrEmpty(),
-        "tags" to formattedTags,
-        "minBlenderVersion" to data.minBlenderVersion,
-        "maxBlendVersion" to data.maxBlenderVersion.valOrEmpty(),
-        "license" to data.projectLicense,
+        // TODO(V1): Serialize tags with TOML-aware escaping instead of manually quoting user-provided values.
+        val formattedTags = data.tags.joinToString(prefix = "[", postfix = "]") { "\"$it\"" }
 
-        // Permissions (Mapped from textFields)
-        "network" to data.networkPermission.valOrEmpty(),
-        "files" to data.filesPermission.valOrEmpty(),
-        "clipboard" to data.clipboardPermission.valOrEmpty(),
-        "camera" to data.cameraPermission.valOrEmpty(),
-        "microphone" to data.microphonePermission.valOrEmpty(),
-    )
-  }
+        // Convert Extension to 'add-on', since the type key in the blender_manifest expects "add-on" or "theme", not extension.
+        val projectType =
+            when (data.projectType) {
+                PROJECT_TYPE_EXTENSION -> "add-on"
+                PROJECT_TYPE_THEME -> "theme"
+                else -> ""
+            }
 
-  /**
-   * Creates the initial add-on `__init__.py` script from template.
-   *
-   * @param project active project context.
-   * @param baseDir output directory for the script.
-   */
-  private fun generateMainScript(project: Project, baseDir: VirtualFile) {
-    // Helper for normalizing nullable strings.
-    fun String?.valOrEmpty(): String = if (this.isNullOrBlank()) "" else this
+        PluginResources.createFromTemplate(
+            project = project,
+            name = "blender_manifest.toml",
+            template = "BlenderManifest",
+            destination = baseDir,
+            internal = true,
 
-    PluginResources.createFromTemplate(
-        project = project,
-        name = "__init__.py",
-        template = "NewProjectMainScript", // Ensure this matches your plugin.xml registration
-        destination = baseDir,
-        internal = true,
+            // Base Info
+            "extensionId" to data.extensionId,
+            "extensionVersion" to data.extensionVersion,
+            "name" to data.name,
+            "description" to data.description,
+            "author" to data.author,
+            "extensionType" to projectType,
 
-        // Flags for the #if blocks
-        "newProject" to "true", // Usually true for a new wizard project
-        "exampleCode" to data.addExampleCode.toString(),
+            // Mandatory & Optional Blender Settings
+            "website" to data.website.valOrEmpty(),
+            "tags" to formattedTags,
+            "minBlenderVersion" to data.minBlenderVersion,
+            "maxBlendVersion" to data.maxBlenderVersion.valOrEmpty(),
+            "license" to data.projectLicense,
 
-        // Metadata
-        "name" to data.name,
-        "author" to data.author,
-        "version" to data.extensionVersion.valOrEmpty(),
-        "blenderVersion" to data.minBlenderVersion.valOrEmpty(),
-        "description" to data.description.valOrEmpty(),
-    )
-  }
+            // Permissions (Mapped from textFields)
+            "network" to data.networkPermission.valOrEmpty(),
+            "files" to data.filesPermission.valOrEmpty(),
+            "clipboard" to data.clipboardPermission.valOrEmpty(),
+            "camera" to data.cameraPermission.valOrEmpty(),
+            "microphone" to data.microphonePermission.valOrEmpty(),
+        )
+    }
 
-  /**
-   * Creates the `.gitignore` template file.
-   *
-   * @param project active project context.
-   * @param baseDir project root directory.
-   */
-  private fun generateGitIgnore(project: Project, baseDir: VirtualFile) {
-    PluginResources.createFromTemplate(
-        project,
-        name = ".gitignore",
-        template = "GitIgnore",
-        destination = baseDir,
-        internal = true,
-    )
-  }
+    /**
+     * Creates the initial add-on `__init__.py` script from template.
+     *
+     * @param project active project context.
+     * @param baseDir output directory for the script.
+     */
+    private fun generateMainScript(project: Project, baseDir: VirtualFile) {
+        // Helper for normalizing nullable strings.
+        fun String?.valOrEmpty(): String = if (this.isNullOrBlank()) "" else this
 
-  /**
-   * Creates a GPLv3 license file from template.
-   *
-   * @param project active project context.
-   * @param baseDir project root directory.
-   */
-  private fun generateLicense(project: Project, baseDir: VirtualFile) {
-    PluginResources.createFromTemplate(
-        project,
-        name = "LICENSE",
-        template = "GplLicenseV3",
-        destination = baseDir,
-        internal = true,
-    )
-  }
+        PluginResources.createFromTemplate(
+            project = project,
+            name = "__init__.py",
+            template = "NewProjectMainScript", // Ensure this matches your plugin.xml registration
+            destination = baseDir,
+            internal = true,
 
-  /**
-   * Creates `README.md` from template.
-   *
-   * @param project active project context.
-   * @param baseDir project root directory.
-   */
-  private fun generateReadme(project: Project, baseDir: VirtualFile) {
-    // Helper for normalizing nullable strings.
-    fun String?.valOrEmpty(): String = if (this.isNullOrBlank()) "" else this
-    PluginResources.createFromTemplate(
-        project,
-        name = "README.md",
-        template = "README",
-        destination = baseDir,
-        internal = true,
+            // Flags for the #if blocks
+            "newProject" to "true", // Usually true for a new wizard project
+            "exampleCode" to data.addExampleCode.toString(),
 
-        // Metadata
-        "name" to data.name.valOrEmpty(),
-        "description" to data.description.valOrEmpty(),
-        "blenderVersion" to data.blenderVersion.valOrEmpty(),
-    )
-  }
+            // Metadata
+            "name" to data.name,
+            "author" to data.author,
+            "version" to data.extensionVersion.valOrEmpty(),
+            "blenderVersion" to data.minBlenderVersion.valOrEmpty(),
+            "description" to data.description.valOrEmpty(),
+        )
+    }
 
-  companion object {
-    const val PROJECT_TYPE_EXTENSION: String = "extension"
-    const val PROJECT_TYPE_ADD_ON: String = "add-on"
-    const val PROJECT_TYPE_THEME: String = "theme"
-  }
+    /**
+     * Creates the `.gitignore` template file.
+     *
+     * @param project active project context.
+     * @param baseDir project root directory.
+     */
+    private fun generateGitIgnore(project: Project, baseDir: VirtualFile) {
+        PluginResources.createFromTemplate(
+            project,
+            name = ".gitignore",
+            template = "GitIgnore",
+            destination = baseDir,
+            internal = true,
+        )
+    }
+
+    /**
+     * Creates a GPLv3 license file from template.
+     *
+     * @param project active project context.
+     * @param baseDir project root directory.
+     */
+    private fun generateLicense(project: Project, baseDir: VirtualFile) {
+        PluginResources.createFromTemplate(
+            project,
+            name = "LICENSE",
+            template = "GplLicenseV3",
+            destination = baseDir,
+            internal = true,
+        )
+    }
+
+    /**
+     * Creates `README.md` from template.
+     *
+     * @param project active project context.
+     * @param baseDir project root directory.
+     */
+    private fun generateReadme(project: Project, baseDir: VirtualFile) {
+        // Helper for normalizing nullable strings.
+        fun String?.valOrEmpty(): String = if (this.isNullOrBlank()) "" else this
+        PluginResources.createFromTemplate(
+            project,
+            name = "README.md",
+            template = "README",
+            destination = baseDir,
+            internal = true,
+
+            // Metadata
+            "name" to data.name.valOrEmpty(),
+            "description" to data.description.valOrEmpty(),
+            "blenderVersion" to data.blenderVersion.valOrEmpty(),
+        )
+    }
+
+    companion object {
+        const val PROJECT_TYPE_EXTENSION: String = "extension"
+        const val PROJECT_TYPE_ADD_ON: String = "add-on"
+        const val PROJECT_TYPE_THEME: String = "theme"
+    }
 }

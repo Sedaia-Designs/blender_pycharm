@@ -32,26 +32,26 @@ internal data class BlenderCommandLaunchRequest(
 /** Builds and starts Blender's command-line command mode. */
 @Service(Service.Level.PROJECT)
 internal class BlenderCommandLauncher(project: Project) {
-  private val projectConfig = ProjectConfig.getInstance(project)
-  private val blenderLauncher = BlenderLauncher.getInstance(project)
+    private val projectConfig = ProjectConfig.getInstance(project)
+    private val blenderLauncher = BlenderLauncher.getInstance(project)
 
-  /** Starts Blender with `--command` followed by the supplied command arguments. */
-  fun start(request: BlenderCommandLaunchRequest): OSProcessHandler {
-    val arguments =
-        BlenderLaunchArguments.command(
-            logLevel = projectConfig.getBlenderLogLevel(),
-            commandArguments = request.commandArguments,
+    /** Starts Blender with `--command` followed by the supplied command arguments. */
+    fun start(request: BlenderCommandLaunchRequest): OSProcessHandler {
+        val arguments =
+            BlenderLaunchArguments.command(
+                logLevel = projectConfig.getBlenderLogLevel(),
+                commandArguments = request.commandArguments,
+            )
+        return blenderLauncher.start(
+            BlenderLaunchRequest(
+                blenderPath = request.blenderPath,
+                arguments = arguments,
+            )
         )
-    return blenderLauncher.start(
-        BlenderLaunchRequest(
-            blenderPath = request.blenderPath,
-            arguments = arguments,
-        )
-    )
-  }
+    }
 
-  companion object {
-    /** Returns the project-scoped Blender command launcher. */
-    fun getInstance(project: Project): BlenderCommandLauncher = project.service()
-  }
+    companion object {
+        /** Returns the project-scoped Blender command launcher. */
+        fun getInstance(project: Project): BlenderCommandLauncher = project.service()
+    }
 }

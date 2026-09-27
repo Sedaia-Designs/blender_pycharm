@@ -38,53 +38,53 @@ internal data class BlenderLaunchRequest(
 /** Starts Blender processes without adding a Python script or another launch mode. */
 @Service(Service.Level.PROJECT)
 internal class BlenderLauncher(private val project: Project) {
-  private val projectConfig = ProjectConfig.getInstance(project)
-  private val pluginConfig = PluginConfig.getInstance()
+    private val projectConfig = ProjectConfig.getInstance(project)
+    private val pluginConfig = PluginConfig.getInstance()
 
-  /**
-   * Launches a Blender process using the specified launch request.
-   *
-   * @param request The request containing the Blender executable path, arguments, environment variables, and optionally the working
-   *   directory for the process.
-   * @return The process handler managing the launched Blender process.
-   */
-  fun start(request: BlenderLaunchRequest): OSProcessHandler {
-    val blenderPath = resolveBlenderPath(request.blenderPath)
-    val processHandler =
-        ExternalProcessBuilder(project)
-            .startProcessHandler(
-                command = blenderPath,
-                args = request.arguments,
-                workDirectory = request.workingDirectory ?: project.basePath,
-                environment = buildEnvironment(request.environment),
-                internalBinary = resolveMacInternalBinary(blenderPath),
-            )
-    ProcessTerminatedListener.attach(processHandler)
-    return processHandler
-  }
-
-  private fun resolveBlenderPath(requestedPath: String): String {
-    val blenderPath = requestedPath.ifBlank { projectConfig.getBlenderPath().trim() }
-    require(blenderPath.isNotEmpty()) {
-      MessageBundle.message("run.configuration.blender.error.blender.path.empty")
+    /**
+     * Launches a Blender process using the specified launch request.
+     *
+     * @param request The request containing the Blender executable path, arguments, environment variables, and optionally the working
+     *   directory for the process.
+     * @return The process handler managing the launched Blender process.
+     */
+    fun start(request: BlenderLaunchRequest): OSProcessHandler {
+        val blenderPath = resolveBlenderPath(request.blenderPath)
+        val processHandler =
+            ExternalProcessBuilder(project)
+                .startProcessHandler(
+                    command = blenderPath,
+                    args = request.arguments,
+                    workDirectory = request.workingDirectory ?: project.basePath,
+                    environment = buildEnvironment(request.environment),
+                    internalBinary = resolveMacInternalBinary(blenderPath),
+                )
+        ProcessTerminatedListener.attach(processHandler)
+        return processHandler
     }
-    return blenderPath
-  }
 
-  private fun buildEnvironment(overrides: Map<String, String>): Map<String, String> {
-    val environment =
-        pluginConfig.getGlobalEnvironmentVariables().filterKeys(String::isNotBlank).filterValues(String::isNotBlank).toMutableMap()
-    environment.putAll(projectConfig.getEnvironmentVariables().filterKeys(String::isNotBlank).filterValues(String::isNotBlank))
-    environment.putAll(overrides)
-    return environment
-  }
+    private fun resolveBlenderPath(requestedPath: String): String {
+        val blenderPath = requestedPath.ifBlank { projectConfig.getBlenderPath().trim() }
+        require(blenderPath.isNotEmpty()) {
+            MessageBundle.message("run.configuration.blender.error.blender.path.empty")
+        }
+        return blenderPath
+    }
 
-  private fun resolveMacInternalBinary(blenderPath: String): String? {
-    return if (blenderPath.removeSuffix("/").endsWith(".app", ignoreCase = true)) "Blender" else null
-  }
+    private fun buildEnvironment(overrides: Map<String, String>): Map<String, String> {
+        val environment =
+            pluginConfig.getGlobalEnvironmentVariables().filterKeys(String::isNotBlank).filterValues(String::isNotBlank).toMutableMap()
+        environment.putAll(projectConfig.getEnvironmentVariables().filterKeys(String::isNotBlank).filterValues(String::isNotBlank))
+        environment.putAll(overrides)
+        return environment
+    }
 
-  companion object {
-    /** Returns the project-scoped raw Blender launcher. */
-    fun getInstance(project: Project): BlenderLauncher = project.service()
-  }
+    private fun resolveMacInternalBinary(blenderPath: String): String? {
+        return if (blenderPath.removeSuffix("/").endsWith(".app", ignoreCase = true)) "Blender" else null
+    }
+
+    companion object {
+        /** Returns the project-scoped raw Blender launcher. */
+        fun getInstance(project: Project): BlenderLauncher = project.service()
+    }
 }

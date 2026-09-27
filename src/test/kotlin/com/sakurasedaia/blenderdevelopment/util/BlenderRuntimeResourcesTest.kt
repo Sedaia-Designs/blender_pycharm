@@ -22,11 +22,11 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Test
 
 class BlenderRuntimeResourcesTest {
-  @Test
-  fun packagedPluginVersionComesFromGeneratedMetadata() {
-    val pluginVersion = BlenderRuntimeResources.resolvePluginVersion()
+    @Test
+    fun packagedPluginVersionComesFromGeneratedMetadata() {
+        val pluginVersion = BlenderRuntimeResources.resolvePluginVersion()
 
-    assertNotEquals("dev", pluginVersion)
-    assertFalse(pluginVersion.contains($$"${"))
-  }
+        assertNotEquals("dev", pluginVersion)
+        assertFalse(pluginVersion.contains($$"${"))
+    }
 }

@@ -27,6 +27,7 @@ out/
 .hidden/
 .output.txt
 .reference
+/ObsidianVault/
 
 ### Python ###
 __pycache__/

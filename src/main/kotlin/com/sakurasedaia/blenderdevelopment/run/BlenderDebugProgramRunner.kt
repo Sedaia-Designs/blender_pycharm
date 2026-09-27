@@ -34,52 +34,52 @@ import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.resolvedPromise
 
 internal class BlenderDebugProgramRunner : AsyncProgramRunner<RunnerSettings>() {
-  // TODO(V1): Add Windows, macOS, and Linux smoke coverage for complete Run and Debug launch lifecycles.
-  override fun getRunnerId(): String = "BlenderDebugProgramRunner"
+    // TODO(V1): Add Windows, macOS, and Linux smoke coverage for complete Run and Debug launch lifecycles.
+    override fun getRunnerId(): String = "BlenderDebugProgramRunner"
 
-  override fun canRun(executorId: String, profile: RunProfile): Boolean {
-    return executorId == DefaultDebugExecutor.EXECUTOR_ID && profile is BlenderLaunchRunConfiguration
-  }
-
-  override fun execute(environment: ExecutionEnvironment, state: RunProfileState): Promise<RunContentDescriptor?> {
-    val executionResult = state.execute(environment.executor, this)
-    val processHandler = executionResult?.processHandler
-    if (processHandler != null) {
-      installReloadOnSaveListener(environment, processHandler)
+    override fun canRun(executorId: String, profile: RunProfile): Boolean {
+        return executorId == DefaultDebugExecutor.EXECUTOR_ID && profile is BlenderLaunchRunConfiguration
     }
-    return resolvedPromise(showRunContent(executionResult, environment))
-  }
 
-  private fun installReloadOnSaveListener(
-      environment: ExecutionEnvironment,
-      processHandler: com.intellij.execution.process.ProcessHandler,
-  ) {
-    val project = environment.project
-    val connection = project.messageBus.connect()
-    val projectConfig = ProjectConfig.getInstance(project)
-    val runtimeCommandService = BlenderRuntimeCommandService.getInstance(project)
-
-    connection.subscribe(
-        FileDocumentManagerListener.TOPIC,
-        object : FileDocumentManagerListener {
-          override fun beforeDocumentSaving(document: com.intellij.openapi.editor.Document) {
-            if (!projectConfig.getReloadOnSave()) {
-              return
-            }
-            if (!runtimeCommandService.hasActiveSession()) {
-              return
-            }
-            runtimeCommandService.sendReloadCommand(showSuccessNotification = false)
-          }
-        },
-    )
-
-    processHandler.addProcessListener(
-        object : ProcessListener {
-          override fun processTerminated(event: ProcessEvent) {
-            connection.disconnect()
-          }
+    override fun execute(environment: ExecutionEnvironment, state: RunProfileState): Promise<RunContentDescriptor?> {
+        val executionResult = state.execute(environment.executor, this)
+        val processHandler = executionResult?.processHandler
+        if (processHandler != null) {
+            installReloadOnSaveListener(environment, processHandler)
         }
-    )
-  }
+        return resolvedPromise(showRunContent(executionResult, environment))
+    }
+
+    private fun installReloadOnSaveListener(
+        environment: ExecutionEnvironment,
+        processHandler: com.intellij.execution.process.ProcessHandler,
+    ) {
+        val project = environment.project
+        val connection = project.messageBus.connect()
+        val projectConfig = ProjectConfig.getInstance(project)
+        val runtimeCommandService = BlenderRuntimeCommandService.getInstance(project)
+
+        connection.subscribe(
+            FileDocumentManagerListener.TOPIC,
+            object : FileDocumentManagerListener {
+                override fun beforeDocumentSaving(document: com.intellij.openapi.editor.Document) {
+                    if (!projectConfig.getReloadOnSave()) {
+                        return
+                    }
+                    if (!runtimeCommandService.hasActiveSession()) {
+                        return
+                    }
+                    runtimeCommandService.sendReloadCommand(showSuccessNotification = false)
+                }
+            },
+        )
+
+        processHandler.addProcessListener(
+            object : ProcessListener {
+                override fun processTerminated(event: ProcessEvent) {
+                    connection.disconnect()
+                }
+            }
+        )
+    }
 }
