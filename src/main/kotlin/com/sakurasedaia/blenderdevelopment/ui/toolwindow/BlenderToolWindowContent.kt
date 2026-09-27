@@ -20,10 +20,13 @@ package com.sakurasedaia.blenderdevelopment.ui.toolwindow
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.sakurasedaia.blenderdevelopment.core.BlenderRuntimeCommandService
+import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
+import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
 import com.sakurasedaia.blenderdevelopment.stubs.BlenderStubInstallationService
+import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import javax.swing.JComponent
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
@@ -37,35 +40,49 @@ class BlenderToolWindowContent(
     project: Project,
     onScanInstallations: (onCompleted: () -> Unit) -> Unit,
 ) : Disposable {
-  @Suppress("RAW_SCOPE_CREATION")
-  private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default + CoroutineName("Project Blender Manager"))
-  private val view = BlenderToolWindowView(project)
+    @Suppress("RAW_SCOPE_CREATION")
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default + CoroutineName("Project Blender Manager"))
+    private val view = BlenderToolWindowView(project)
 
-  init {
-    val logger = PluginLogger.getInstance(project)
-    val pluginConfig = PluginConfig.getInstance()
-    BlenderToolWindowController(
-        scope = scope,
-        view = view,
-        projectConfig = ProjectConfig.getInstance(project),
-        pluginConfig = pluginConfig,
-        scanInstallations = onScanInstallations,
-        installStubs = { blenderVersion ->
-          scope.launch {
-            BlenderStubInstallationService.getInstance(project).installForProject(blenderVersion)
-          }
-        },
-        reloadAddon = BlenderRuntimeCommandService.getInstance(project)::sendReloadCommand,
-        logAutosave = { fieldName ->
-          logger.debug("Autosaved `$fieldName` from Blender tool window.")
-        },
-    )
-  }
+    init {
+        val logger = PluginLogger.getInstance(project)
+        val notifications = NotificationModal.getInstance(project)
+        val pluginConfig = PluginConfig.getInstance()
+        val projectConfig = ProjectConfig.getInstance(project)
+        BlenderToolWindowController(
+            scope = scope,
+            view = view,
+            projectConfig = projectConfig,
+            pluginConfig = pluginConfig,
+            scanInstallations = onScanInstallations,
+            installStubs = { blenderVersion ->
+                scope.launch {
+                    BlenderStubInstallationService.getInstance(project).installForProject(blenderVersion)
+                }
+            },
+            reloadAddon = BlenderRuntimeCommandService.getInstance(project)::sendReloadCommand,
+            saveWorkspaceConfig = {
+                scope.launch {
+                    runCatching { projectConfig.saveWorkspaceState() }
+                        .onSuccess { path ->
+                            notifications.sendInfo(MessageBundle.message("notification.workspace.config.saved", path.fileName.toString()))
+                        }
+                        .onFailure { error ->
+                            logger.warn(ErrorTypes.WORKSPACE_CONFIG_SAVE_FAILED.format(project.basePath), error)
+                            notifications.sendError(MessageBundle.message("notification.workspace.config.save.failed"))
+                        }
+                }
+            },
+            logAutosave = { fieldName ->
+                logger.debug("Autosaved `$fieldName` from Blender tool window.")
+            },
+        )
+    }
 
-  /** Returns the root Swing component for the Blender tool window. */
-  fun getContent(): JComponent = view.component
+    /** Returns the root Swing component for the Blender tool window. */
+    fun getContent(): JComponent = view.component
 
-  override fun dispose() {
-    scope.cancel()
-  }
+    override fun dispose() {
+        scope.cancel()
+    }
 }

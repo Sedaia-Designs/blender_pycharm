@@ -32,54 +32,54 @@ import kotlin.io.path.name
 import kotlin.io.path.notExists
 
 internal object BlenderBootstrapScriptCleanup {
-  private const val SCRIPT_PREFIX = "blender_runtime_launch_"
-  private const val SCRIPT_EXTENSION = "py"
-  private val STALE_SCRIPT_MAX_AGE: Duration = Duration.ofHours(24)
+    private const val SCRIPT_PREFIX = "blender_runtime_launch_"
+    private const val SCRIPT_EXTENSION = "py"
+    private val STALE_SCRIPT_MAX_AGE: Duration = Duration.ofHours(24)
 
-  fun newScriptFileName(): String = "${SCRIPT_PREFIX}${UUID.randomUUID().toString().replace("-", "")}.$SCRIPT_EXTENSION"
+    fun newScriptFileName(): String = "${SCRIPT_PREFIX}${UUID.randomUUID().toString().replace("-", "")}.$SCRIPT_EXTENSION"
 
-  fun cleanupScript(path: Path, debugLog: (String) -> Unit, warnLog: (String, Throwable) -> Unit) {
-    if (!isManagedBootstrapScript(path) || path.notExists()) {
-      return
+    fun cleanupScript(path: Path, debugLog: (String) -> Unit, warnLog: (String, Throwable) -> Unit) {
+        if (!isManagedBootstrapScript(path) || path.notExists()) {
+            return
+        }
+
+        runCatching { Files.deleteIfExists(path) }
+            .onFailure { error ->
+                warnLog(ErrorTypes.BOOTSTRAP_SCRIPT_DELETE_FAILED.format(path.toAbsolutePath()), error)
+            }
+            .onSuccess { deleted ->
+                if (deleted) {
+                    debugLog("Deleted bootstrap script `${path.toAbsolutePath()}`.")
+                }
+            }
     }
 
-    runCatching { Files.deleteIfExists(path) }
-        .onFailure { error ->
-          warnLog(ErrorTypes.BOOTSTRAP_SCRIPT_DELETE_FAILED.format(path.toAbsolutePath()), error)
+    fun cleanupStaleScripts(
+        directory: Path,
+        debugLog: (String) -> Unit,
+        warnLog: (String, Throwable) -> Unit,
+    ) {
+        if (directory.notExists()) {
+            return
         }
-        .onSuccess { deleted ->
-          if (deleted) {
-            debugLog("Deleted bootstrap script `${path.toAbsolutePath()}`.")
-          }
-        }
-  }
 
-  fun cleanupStaleScripts(
-      directory: Path,
-      debugLog: (String) -> Unit,
-      warnLog: (String, Throwable) -> Unit,
-  ) {
-    if (directory.notExists()) {
-      return
+        val staleBefore = Instant.now().minus(STALE_SCRIPT_MAX_AGE)
+        runCatching {
+            Files.list(directory).use { entries ->
+                entries.filter { isManagedBootstrapScript(it) && isStale(it, staleBefore) }.forEach { cleanupScript(it, debugLog, warnLog) }
+            }
+        }
+            .onFailure { error ->
+                warnLog(ErrorTypes.BOOTSTRAP_SCRIPT_SCAN_FAILED.format(directory.toAbsolutePath()), error)
+            }
     }
 
-    val staleBefore = Instant.now().minus(STALE_SCRIPT_MAX_AGE)
-    runCatching {
-      Files.list(directory).use { entries ->
-        entries.filter { isManagedBootstrapScript(it) && isStale(it, staleBefore) }.forEach { cleanupScript(it, debugLog, warnLog) }
-      }
+    private fun isManagedBootstrapScript(path: Path): Boolean {
+        return path.isRegularFile() && path.extension == SCRIPT_EXTENSION && path.name.startsWith(SCRIPT_PREFIX) && path.fileSize() > 0L
     }
-        .onFailure { error ->
-          warnLog(ErrorTypes.BOOTSTRAP_SCRIPT_SCAN_FAILED.format(directory.toAbsolutePath()), error)
-        }
-  }
 
-  private fun isManagedBootstrapScript(path: Path): Boolean {
-    return path.isRegularFile() && path.extension == SCRIPT_EXTENSION && path.name.startsWith(SCRIPT_PREFIX) && path.fileSize() > 0L
-  }
-
-  private fun isStale(path: Path, staleBefore: Instant): Boolean {
-    val lastModifiedTime: FileTime = runCatching { path.getLastModifiedTime() }.getOrNull() ?: return false
-    return lastModifiedTime.toInstant().isBefore(staleBefore)
-  }
+    private fun isStale(path: Path, staleBefore: Instant): Boolean {
+        val lastModifiedTime: FileTime = runCatching { path.getLastModifiedTime() }.getOrNull() ?: return false
+        return lastModifiedTime.toInstant().isBefore(staleBefore)
+    }
 }

@@ -35,6 +35,9 @@ import com.sakurasedaia.blenderdevelopment.core.BlenderPythonLaunchRequest
 import com.sakurasedaia.blenderdevelopment.core.BlenderPythonLauncher
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
+import java.nio.file.Files
+import java.nio.file.InvalidPathException
+import java.nio.file.Path
 import javax.swing.JComponent
 import javax.swing.JPanel
 
@@ -45,50 +48,69 @@ internal class BlenderLaunchRunConfiguration(
     name: String,
 ) : RunConfigurationBase<Any?>(project, factory, name) {
 
-  override fun getConfigurationEditor(): SettingsEditor<BlenderLaunchRunConfiguration> =
-      object : SettingsEditor<BlenderLaunchRunConfiguration>() {
-        override fun resetEditorFrom(configuration: BlenderLaunchRunConfiguration) = Unit
+    override fun getConfigurationEditor(): SettingsEditor<BlenderLaunchRunConfiguration> =
+        object : SettingsEditor<BlenderLaunchRunConfiguration>() {
+            override fun resetEditorFrom(configuration: BlenderLaunchRunConfiguration) = Unit
 
-        override fun applyEditorTo(configuration: BlenderLaunchRunConfiguration) = Unit
+            override fun applyEditorTo(configuration: BlenderLaunchRunConfiguration) = Unit
 
-        override fun createEditor(): JComponent = JPanel()
-      }
-
-  override fun checkConfiguration() {
-    val blenderPath = ProjectConfig.getInstance(project).getBlenderPath().trim()
-    if (blenderPath.isEmpty()) {
-      throw RuntimeConfigurationError(MessageBundle.message("run.configuration.blender.error.blender.path.empty"))
-    }
-  }
-
-  override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState {
-    val shouldAttachDebugger = executor.id == DefaultDebugExecutor.EXECUTOR_ID
-    return object : CommandLineState(environment) {
-      override fun startProcess(): OSProcessHandler {
-        return BlenderPythonLauncher.getInstance(project)
-            .start(
-                BlenderPythonLaunchRequest(
-                    blenderPath = ProjectConfig.getInstance(project).getBlenderPath().trim(),
-                    debugger = shouldAttachDebugger,
-                )
-            )
-      }
-
-      override fun execute(executor: Executor, runner: ProgramRunner<*>): ExecutionResult {
-        val executionResult = super.execute(executor, runner)
-        if (shouldAttachDebugger) {
-          val sessionIdentifier = executionResult.processHandler.getUserData(BlenderPythonLauncher.LAUNCH_SESSION_IDENTIFIER_KEY)
-          if (!sessionIdentifier.isNullOrBlank()) {
-            BlenderDebugAttachService.getInstance(project)
-                .scheduleAttach(
-                    environment = environment,
-                    executionResult = executionResult,
-                    sessionIdentifier = sessionIdentifier,
-                )
-          }
+            override fun createEditor(): JComponent = JPanel()
         }
-        return executionResult
-      }
+
+    override fun checkConfiguration() {
+        val state = ProjectConfig.getInstance(project)
+        val blenderPath = state.getBlenderPath().trim()
+        val blendFileToOpen = state.resolveBlendFileToOpen().trim()
+
+        if (blenderPath.isEmpty()) {
+            throw RuntimeConfigurationError(MessageBundle.message("run.configuration.blender.error.blender.path.empty"))
+        }
+
+        if (blendFileToOpen.isBlank()) return
+        val invalidPathNameError = MessageBundle.message("run.configuration.blender.error.blender.file-to-open.invalid")
+        val blendFilePath =
+            try {
+                Path.of(blendFileToOpen)
+            } catch (_: InvalidPathException) {
+                throw RuntimeConfigurationError(invalidPathNameError)
+            }
+        val hasBlendExtension = blendFilePath.fileName?.toString()?.endsWith(".blend", ignoreCase = true) == true
+        if (!hasBlendExtension || !Files.isRegularFile(blendFilePath)) {
+            throw RuntimeConfigurationError(invalidPathNameError)
+        }
     }
-  }
+
+    override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState {
+        val shouldAttachDebugger = executor.id == DefaultDebugExecutor.EXECUTOR_ID
+        return object : CommandLineState(environment) {
+            override fun startProcess(): OSProcessHandler {
+                val state = ProjectConfig.getInstance(project)
+                val blendFileToOpen = state.resolveBlendFileToOpen().trim().ifBlank { null }
+                return BlenderPythonLauncher.getInstance(project)
+                    .start(
+                        BlenderPythonLaunchRequest(
+                            blenderPath = state.getBlenderPath().trim(),
+                            debugger = shouldAttachDebugger,
+                            blendFileToOpen = blendFileToOpen,
+                        )
+                    )
+            }
+
+            override fun execute(executor: Executor, runner: ProgramRunner<*>): ExecutionResult {
+                val executionResult = super.execute(executor, runner)
+                if (shouldAttachDebugger) {
+                    val sessionIdentifier = executionResult.processHandler.getUserData(BlenderPythonLauncher.LAUNCH_SESSION_IDENTIFIER_KEY)
+                    if (!sessionIdentifier.isNullOrBlank()) {
+                        BlenderDebugAttachService.getInstance(project)
+                            .scheduleAttach(
+                                environment = environment,
+                                executionResult = executionResult,
+                                sessionIdentifier = sessionIdentifier,
+                            )
+                    }
+                }
+                return executionResult
+            }
+        }
+    }
 }

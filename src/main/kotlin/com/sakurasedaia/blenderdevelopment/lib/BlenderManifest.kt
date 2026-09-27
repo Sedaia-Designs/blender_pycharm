@@ -51,17 +51,17 @@ data class BlenderManifest(
     val permissions: Permissions? = null,
     val build: Build? = null,
 ) {
-  companion object {
-    private val toml = Toml {
-      ignoreUnknownKeys = true
-    }
+    companion object {
+        private val toml = Toml {
+            ignoreUnknownKeys = true
+        }
 
-    /**
-     * Parses a Blender Manifest file from the specified file path into a BlenderManifest object.
-     *
-     * @param filePath the path of the Blender Manifest file to be read and parsed.
-     * @return a BlenderManifest object representing the data from the provided file.
-     */
-    operator fun invoke(filePath: String): BlenderManifest = toml.decodeFromString(string = Paths.get(filePath).readText())
-  }
+        /**
+         * Parses a Blender Manifest file from the specified file path into a BlenderManifest object.
+         *
+         * @param filePath the path of the Blender Manifest file to be read and parsed.
+         * @return a BlenderManifest object representing the data from the provided file.
+         */
+        operator fun invoke(filePath: String): BlenderManifest = toml.decodeFromString(string = Paths.get(filePath).readText())
+    }
 }

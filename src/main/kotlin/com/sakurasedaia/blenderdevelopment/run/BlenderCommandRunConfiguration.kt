@@ -46,7 +46,7 @@ import javax.swing.JComponent
 
 /** Persists the arguments entered for a Blender command run configuration. */
 internal class BlenderCommandRunConfigurationOptions : RunConfigurationOptions() {
-  @get:OptionTag("commandArguments") var commandArguments: String? by string()
+    @get:OptionTag("commandArguments") var commandArguments: String? by string()
 }
 
 /** Runs one persisted Blender `--command` invocation. */
@@ -55,54 +55,54 @@ internal class BlenderCommandRunConfiguration(
     factory: ConfigurationFactory,
     name: String,
 ) : RunConfigurationBase<BlenderCommandRunConfigurationOptions>(project, factory, name) {
-  internal var commandArguments: String
-    get() = (options as BlenderCommandRunConfigurationOptions).commandArguments.orEmpty()
-    set(value) {
-      (options as BlenderCommandRunConfigurationOptions).commandArguments = value
+    internal var commandArguments: String
+        get() = (options as BlenderCommandRunConfigurationOptions).commandArguments.orEmpty()
+        set(value) {
+            (options as BlenderCommandRunConfigurationOptions).commandArguments = value
+        }
+
+    override fun getConfigurationEditor(): SettingsEditor<BlenderCommandRunConfiguration> {
+        return BlenderCommandSettingsEditor(project)
     }
 
-  override fun getConfigurationEditor(): SettingsEditor<BlenderCommandRunConfiguration> {
-    return BlenderCommandSettingsEditor(project)
-  }
+    override fun checkConfiguration() {
+        if (ProjectConfig.getInstance(project).getBlenderPath().isBlank()) {
+            throw RuntimeConfigurationError(MessageBundle.message("run.configuration.blender.error.blender.path.empty"))
+        }
+        val parsedArguments = ParametersListUtil.parse(commandArguments.trim())
+        BlenderCommandValidator.validate(parsedArguments)?.let { issue ->
+            throw RuntimeConfigurationError(issue.toErrorMessage())
+        }
+    }
 
-  override fun checkConfiguration() {
-    if (ProjectConfig.getInstance(project).getBlenderPath().isBlank()) {
-      throw RuntimeConfigurationError(MessageBundle.message("run.configuration.blender.error.blender.path.empty"))
+    override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState {
+        return object : CommandLineState(environment) {
+            override fun startProcess(): OSProcessHandler {
+                val projectConfig = ProjectConfig.getInstance(project)
+                return BlenderCommandLauncher.getInstance(project)
+                    .start(
+                        BlenderCommandLaunchRequest(
+                            blenderPath = projectConfig.getBlenderPath().trim(),
+                            commandArguments = ParametersListUtil.parse(commandArguments.trim()),
+                        )
+                    )
+            }
+        }
     }
-    val parsedArguments = ParametersListUtil.parse(commandArguments.trim())
-    BlenderCommandValidator.validate(parsedArguments)?.let { issue ->
-      throw RuntimeConfigurationError(issue.toErrorMessage())
-    }
-  }
-
-  override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState {
-    return object : CommandLineState(environment) {
-      override fun startProcess(): OSProcessHandler {
-        val projectConfig = ProjectConfig.getInstance(project)
-        return BlenderCommandLauncher.getInstance(project)
-            .start(
-                BlenderCommandLaunchRequest(
-                    blenderPath = projectConfig.getBlenderPath().trim(),
-                    commandArguments = ParametersListUtil.parse(commandArguments.trim()),
-                )
-            )
-      }
-    }
-  }
 }
 
 private fun BlenderCommandValidationIssue.toErrorMessage(): String {
-  return when (this) {
-    BlenderCommandValidationIssue.MissingCommand -> MessageBundle.message("run.configuration.blender.command.error.arguments.empty")
-    BlenderCommandValidationIssue.DuplicateCommandOption ->
-        MessageBundle.message("run.configuration.blender.command.error.option.duplicate")
-    is BlenderCommandValidationIssue.MissingOptionValue ->
-        MessageBundle.message("run.configuration.blender.command.error.option.value.missing", optionName)
-    is BlenderCommandValidationIssue.MissingRequiredOption ->
-        MessageBundle.message("run.configuration.blender.command.error.option.required", optionName)
-    is BlenderCommandValidationIssue.MissingPositional ->
-        MessageBundle.message("run.configuration.blender.command.error.positional.required", positionalName)
-  }
+    return when (this) {
+        BlenderCommandValidationIssue.MissingCommand -> MessageBundle.message("run.configuration.blender.command.error.arguments.empty")
+        BlenderCommandValidationIssue.DuplicateCommandOption ->
+            MessageBundle.message("run.configuration.blender.command.error.option.duplicate")
+        is BlenderCommandValidationIssue.MissingOptionValue ->
+            MessageBundle.message("run.configuration.blender.command.error.option.value.missing", optionName)
+        is BlenderCommandValidationIssue.MissingRequiredOption ->
+            MessageBundle.message("run.configuration.blender.command.error.option.required", optionName)
+        is BlenderCommandValidationIssue.MissingPositional ->
+            MessageBundle.message("run.configuration.blender.command.error.positional.required", positionalName)
+    }
 }
 
 /** Represents the command selector and arguments editor values stored in one persisted command line. */
@@ -110,74 +110,74 @@ internal data class BlenderCommandEditorState(
     val command: String,
     val arguments: String,
 ) {
-  /** Combines the editor values into the existing persisted command-line format. */
-  fun toCommandLine(): String {
-    return listOf(command.trim(), arguments.trim()).filter(String::isNotEmpty).joinToString(" ")
-  }
-
-  companion object {
-    /** Splits a persisted command line into its command identifier and remaining arguments. */
-    fun fromCommandLine(commandLine: String): BlenderCommandEditorState {
-      val trimmedCommandLine = commandLine.trim()
-      val separatorIndex = trimmedCommandLine.indexOfFirst(Char::isWhitespace)
-      if (separatorIndex < 0) {
-        return BlenderCommandEditorState(trimmedCommandLine, "")
-      }
-      return BlenderCommandEditorState(
-          command = trimmedCommandLine.substring(0, separatorIndex),
-          arguments = trimmedCommandLine.substring(separatorIndex).trimStart(),
-      )
+    /** Combines the editor values into the existing persisted command-line format. */
+    fun toCommandLine(): String {
+        return listOf(command.trim(), arguments.trim()).filter(String::isNotEmpty).joinToString(" ")
     }
-  }
+
+    companion object {
+        /** Splits a persisted command line into its command identifier and remaining arguments. */
+        fun fromCommandLine(commandLine: String): BlenderCommandEditorState {
+            val trimmedCommandLine = commandLine.trim()
+            val separatorIndex = trimmedCommandLine.indexOfFirst(Char::isWhitespace)
+            if (separatorIndex < 0) {
+                return BlenderCommandEditorState(trimmedCommandLine, "")
+            }
+            return BlenderCommandEditorState(
+                command = trimmedCommandLine.substring(0, separatorIndex),
+                arguments = trimmedCommandLine.substring(separatorIndex).trimStart(),
+            )
+        }
+    }
 }
 
 /** Edits the persisted argument string for a Blender command configuration. */
 private class BlenderCommandSettingsEditor(project: Project) : SettingsEditor<BlenderCommandRunConfiguration>() {
-  private val completionModificationTracker = SimpleModificationTracker()
-  private val commandField =
-      ComboBox(BlenderCommandCatalog.commandIds.toTypedArray()).apply {
-        isEditable = true
-        addActionListener { completionModificationTracker.incModificationCount() }
-      }
-  private val commandLabel =
-      JBLabel(MessageBundle.message("run.configuration.blender.command.command.label")).apply {
-        labelFor = commandField
-      }
-  private val commandArgumentsField =
-      CommandLineField(
-          project,
-          BlenderCommandLineInfo(::selectedCommand, completionModificationTracker),
-          this,
-      )
-  private val commandArgumentsLabel =
-      JBLabel(MessageBundle.message("run.configuration.blender.command.arguments.label")).apply {
-        labelFor = commandArgumentsField
-      }
-  private val component =
-      FormBuilder.createFormBuilder()
-          .addLabeledComponent(commandLabel, commandField, 1, false)
-          .addLabeledComponent(commandArgumentsLabel, commandArgumentsField, 1, false)
-          .addComponentFillVertically(javax.swing.JPanel(), 0)
-          .panel
+    private val completionModificationTracker = SimpleModificationTracker()
+    private val commandField =
+        ComboBox(BlenderCommandCatalog.commandIds.toTypedArray()).apply {
+            isEditable = true
+            addActionListener { completionModificationTracker.incModificationCount() }
+        }
+    private val commandLabel =
+        JBLabel(MessageBundle.message("run.configuration.blender.command.command.label")).apply {
+            labelFor = commandField
+        }
+    private val commandArgumentsField =
+        CommandLineField(
+            project,
+            BlenderCommandLineInfo(::selectedCommand, completionModificationTracker),
+            this,
+        )
+    private val commandArgumentsLabel =
+        JBLabel(MessageBundle.message("run.configuration.blender.command.arguments.label")).apply {
+            labelFor = commandArgumentsField
+        }
+    private val component =
+        FormBuilder.createFormBuilder()
+            .addLabeledComponent(commandLabel, commandField, 1, false)
+            .addLabeledComponent(commandArgumentsLabel, commandArgumentsField, 1, false)
+            .addComponentFillVertically(javax.swing.JPanel(), 0)
+            .panel
 
-  override fun resetEditorFrom(configuration: BlenderCommandRunConfiguration) {
-    val editorState = BlenderCommandEditorState.fromCommandLine(configuration.commandArguments)
-    commandField.selectedItem = editorState.command.ifBlank { BlenderCommandCatalog.commandIds.first() }
-    commandArgumentsField.commandLine = editorState.arguments
-  }
+    override fun resetEditorFrom(configuration: BlenderCommandRunConfiguration) {
+        val editorState = BlenderCommandEditorState.fromCommandLine(configuration.commandArguments)
+        commandField.selectedItem = editorState.command.ifBlank { BlenderCommandCatalog.commandIds.first() }
+        commandArgumentsField.commandLine = editorState.arguments
+    }
 
-  override fun applyEditorTo(configuration: BlenderCommandRunConfiguration) {
-    configuration.commandArguments =
-        BlenderCommandEditorState(
-                command = selectedCommand(),
-                arguments = commandArgumentsField.commandLine,
-            )
-            .toCommandLine()
-  }
+    override fun applyEditorTo(configuration: BlenderCommandRunConfiguration) {
+        configuration.commandArguments =
+            BlenderCommandEditorState(
+                    command = selectedCommand(),
+                    arguments = commandArgumentsField.commandLine,
+                )
+                .toCommandLine()
+    }
 
-  override fun createEditor(): JComponent = component
+    override fun createEditor(): JComponent = component
 
-  private fun selectedCommand(): String {
-    return commandField.editor.item?.toString().orEmpty()
-  }
+    private fun selectedCommand(): String {
+        return commandField.editor.item?.toString().orEmpty()
+    }
 }

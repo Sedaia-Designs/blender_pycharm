@@ -2,9 +2,18 @@
 
 # Builds and publishes one plugin pre-release to the JetBrains Marketplace dev channel.
 
+release_marketplace_validation_dir=""
+
 release_marketplace_error() {
   printf 'Error: %s\n' "$*" >&2
   return 1
+}
+
+cleanup_release_marketplace_validation() {
+  if [ -n "$release_marketplace_validation_dir" ]; then
+    rm -rf -- "$release_marketplace_validation_dir"
+    release_marketplace_validation_dir=""
+  fi
 }
 
 release_marketplace_usage() {
@@ -63,7 +72,6 @@ main() {
   local release_version
   local asset_name
   local asset_path
-  local validation_dir
 
   while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -111,9 +119,9 @@ main() {
     return 1
   fi
 
-  validation_dir="$(mktemp -d "${TMPDIR:-/tmp}/blender-marketplace-release.XXXXXX")"
-  trap 'rm -rf -- "$validation_dir"' EXIT
-  extract_release_notes "$project_root/CHANGELOG.md" "$release_version" > "$validation_dir/release-notes.md"
+  release_marketplace_validation_dir="$(mktemp -d "${TMPDIR:-/tmp}/blender-marketplace-release.XXXXXX")"
+  trap cleanup_release_marketplace_validation EXIT
+  extract_release_notes "$project_root/CHANGELOG.md" "$release_version" > "$release_marketplace_validation_dir/release-notes.md"
   ./gradlew verifyPluginProjectConfiguration --no-daemon
 
   if [ "$check_only" = true ]; then

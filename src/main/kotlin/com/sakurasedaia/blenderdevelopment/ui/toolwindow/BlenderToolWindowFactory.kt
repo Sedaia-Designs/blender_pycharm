@@ -25,36 +25,36 @@ import com.sakurasedaia.blenderdevelopment.lib.services.SettingsInstallationScan
 
 /** Registers and populates the Blender tool window content. */
 class BlenderToolWindowFactory : ToolWindowFactory {
-  /**
-   * Creates the tool window tab content for a project.
-   *
-   * @param project current project instance.
-   * @param toolWindow target tool window container.
-   * @return `Unit`.
-   */
-  @Suppress("UsePropertyAccessSyntax")
-  override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-    val toolWindowContent =
-        BlenderToolWindowContent(
-            project = project,
-            onScanInstallations = { onCompleted ->
-              SettingsInstallationScanService.getInstance()
-                  .scanInstallations(
-                      projectOverride = project,
-                      onComplete = { onCompleted() },
-                  )
-            },
-        )
-    val content =
-        ContentFactory.getInstance()
-            .createContent(
-                toolWindowContent.getContent(),
-                "",
-                false,
+    /**
+     * Creates the tool window tab content for a project.
+     *
+     * @param project current project instance.
+     * @param toolWindow target tool window container.
+     * @return `Unit`.
+     */
+    @Suppress("UsePropertyAccessSyntax")
+    override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
+        val toolWindowContent =
+            BlenderToolWindowContent(
+                project = project,
+                onScanInstallations = { onCompleted ->
+                    SettingsInstallationScanService.getInstance()
+                        .scanInstallations(
+                            projectOverride = project,
+                            onComplete = { onCompleted() },
+                        )
+                },
             )
-            .apply {
-              setDisposer(toolWindowContent)
-            }
-    toolWindow.contentManager.addContent(content)
-  }
+        val content =
+            ContentFactory.getInstance()
+                .createContent(
+                    toolWindowContent.getContent(),
+                    "",
+                    false,
+                )
+                .apply {
+                    setDisposer(toolWindowContent)
+                }
+        toolWindow.contentManager.addContent(content)
+    }
 }

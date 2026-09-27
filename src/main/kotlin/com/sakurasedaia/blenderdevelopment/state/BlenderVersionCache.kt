@@ -31,34 +31,35 @@ import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
 @State(name = "BlenderVersionCache", storages = [Storage("blender-version-cache.xml")])
 internal class BlenderVersionCache : SerializablePersistentStateComponent<BlenderVersionCacheState>(BlenderVersionCacheState()) {
 
-  internal fun getVersionTable(): List<BlenderVersion> = BlenderVersions.mergeDiscoveredVersions(state.versions.mapNotNull(::parseVersion))
+    internal fun getVersionTable(): List<BlenderVersion> =
+        BlenderVersions.mergeDiscoveredVersions(state.versions.mapNotNull(::parseVersion))
 
-  internal fun hasCachedVersions(): Boolean = state.versions.any { parseVersion(it) != null }
+    internal fun hasCachedVersions(): Boolean = state.versions.any { parseVersion(it) != null }
 
-  internal fun cacheDiscoveredVersions(discoveredVersions: List<List<Int>>) {
-    val versions =
-        discoveredVersions
-            .filter { it.size == 3 }
-            .groupBy { BlenderVersions.normalizeVersionFromList(it) }
-            .map { (_, patches) -> patches.maxWith(compareBy({ it[0] }, { it[1] }, { it[2] })) }
-            .map { it.joinToString(".") }
+    internal fun cacheDiscoveredVersions(discoveredVersions: List<List<Int>>) {
+        val versions =
+            discoveredVersions
+                .filter { it.size == 3 }
+                .groupBy { BlenderVersions.normalizeVersionFromList(it) }
+                .map { (_, patches) -> patches.maxWith(compareBy({ it[0] }, { it[1] }, { it[2] })) }
+                .map { it.joinToString(".") }
 
-    updateState { it.copy(versions = versions) }
-  }
+        updateState { it.copy(versions = versions) }
+    }
 
-  internal fun clear() {
-    updateState { BlenderVersionCacheState() }
-  }
+    internal fun clear() {
+        updateState { BlenderVersionCacheState() }
+    }
 
-  private fun parseVersion(version: String): List<Int>? {
-    val parts = version.split('.')
-    if (parts.size != 3) return null
-    return parts.map { it.toIntOrNull() ?: return null }
-  }
+    private fun parseVersion(version: String): List<Int>? {
+        val parts = version.split('.')
+        if (parts.size != 3) return null
+        return parts.map { it.toIntOrNull() ?: return null }
+    }
 
-  companion object {
-    fun getInstance(): BlenderVersionCache = service()
-  }
+    companion object {
+        fun getInstance(): BlenderVersionCache = service()
+    }
 }
 
 internal data class BlenderVersionCacheState(@JvmField @Property val versions: List<String> = emptyList())

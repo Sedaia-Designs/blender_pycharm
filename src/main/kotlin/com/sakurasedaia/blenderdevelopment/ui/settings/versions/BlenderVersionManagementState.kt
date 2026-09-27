@@ -15,11 +15,11 @@ internal data class BlenderVersionManagementState(
     val isClearVersionCacheEnabled: Boolean,
 ) {
 
-  internal enum class Operation {
-    REFRESHING,
-    SCANNING,
-    INSTALLING,
-    DELETING,
-    CLEARING_CACHE,
-  }
+    internal enum class Operation {
+        REFRESHING,
+        SCANNING,
+        INSTALLING,
+        DELETING,
+        CLEARING_CACHE,
+    }
 }
