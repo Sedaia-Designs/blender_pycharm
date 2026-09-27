@@ -22,7 +22,7 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
-import kotlin.io.path.createFile
+import kotlin.io.path.writeText
 
 class BlenderLaunchRunConfigurationTest : BasePlatformTestCase() {
     private lateinit var config: ProjectConfig
@@ -42,21 +42,21 @@ class BlenderLaunchRunConfigurationTest : BasePlatformTestCase() {
     }
 
     fun testExistingBlendFilePassesValidation() {
-        val blendFile = projectPath.resolve("scene.blend").createFile()
+        val blendFile = projectPath.resolve("existing-scene.blend").apply { writeText("") }
         config.setBlendFileToOpen(blendFile.toString())
 
         createConfiguration().checkConfiguration()
     }
 
     fun testUppercaseBlendExtensionPassesValidation() {
-        val blendFile = projectPath.resolve("scene.BLEND").createFile()
+        val blendFile = projectPath.resolve("uppercase-scene.BLEND").apply { writeText("") }
         config.setBlendFileToOpen(blendFile.toString())
 
         createConfiguration().checkConfiguration()
     }
 
     fun testWrongBlendFileExtensionFailsValidation() {
-        val file = projectPath.resolve("scene.txt").createFile()
+        val file = projectPath.resolve("wrong-extension-scene.txt").apply { writeText("") }
         config.setBlendFileToOpen(file.toString())
 
         assertValidationFails()
@@ -77,6 +77,72 @@ class BlenderLaunchRunConfigurationTest : BasePlatformTestCase() {
         )
 
         assertValidationFails()
+    }
+
+    fun testSafeRunArgumentsPassValidationWithBlendFile() {
+        val blendFile = projectPath.resolve("safe-arguments-scene.blend").apply { writeText("") }
+        config.setBlendFileToOpen(blendFile.toString())
+        config.setRunArguments("--background --factory-startup")
+
+        createConfiguration().checkConfiguration()
+    }
+
+    fun testRunArgumentBlendFilePassesWhenDedicatedFieldIsBlank() {
+        config.setRunArguments("workspace.blend")
+
+        createConfiguration().checkConfiguration()
+    }
+
+    fun testRunArgumentBlendFileFailsWhenDedicatedFieldIsConfigured() {
+        val blendFile = projectPath.resolve("conflicting-arguments-scene.blend").apply { writeText("") }
+        config.setBlendFileToOpen(blendFile.toString())
+        config.setRunArguments("workspace.blend")
+
+        assertValidationFails()
+    }
+
+    fun testPythonRunArgumentFailsValidation() {
+        config.setRunArguments("--python script.py")
+
+        assertValidationFails()
+    }
+
+    fun testCommandModeRunArgumentFailsValidation() {
+        config.setRunArguments("--command extension list")
+
+        assertValidationFails()
+    }
+
+    fun testOptionTerminatorRunArgumentFailsValidation() {
+        config.setRunArguments("-- --user-argument")
+
+        assertValidationFails()
+    }
+
+    fun testRunLaunchRequestContainsResolvedBlendFile() {
+        val blendFile = projectPath.resolve("scene with spaces.blend").apply { writeText("") }
+        config.setBlendFileToOpen(blendFile.toString())
+
+        val request = createConfiguration().createLaunchRequest(shouldAttachDebugger = false)
+
+        assertEquals(blendFile.normalize().toString(), request.blendFileToOpen)
+        assertFalse(request.debugger)
+    }
+
+    fun testDebugLaunchRequestContainsResolvedBlendFile() {
+        val blendFile = projectPath.resolve("debug-scene.blend").apply { writeText("") }
+        config.setBlendFileToOpen(blendFile.toString())
+
+        val request = createConfiguration().createLaunchRequest(shouldAttachDebugger = true)
+
+        assertEquals(blendFile.normalize().toString(), request.blendFileToOpen)
+        assertTrue(request.debugger)
+    }
+
+    fun testBlankBlendFileLaunchRequestUsesNull() {
+        val request = createConfiguration().createLaunchRequest(shouldAttachDebugger = false)
+
+        assertNull(request.blendFileToOpen)
     }
 
     private fun assertValidationFails() {

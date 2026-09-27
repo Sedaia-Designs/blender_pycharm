@@ -23,11 +23,14 @@ import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
 import com.sakurasedaia.blenderdevelopment.util.PythonModuleNameValidator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 internal class BlenderToolWindowController(
-    scope: CoroutineScope,
+    private val scope: CoroutineScope,
     private val view: BlenderToolWindowView,
     private val projectConfig: ProjectConfig,
     private val pluginConfig: PluginConfig,
@@ -37,21 +40,22 @@ internal class BlenderToolWindowController(
     private val saveWorkspaceConfig: () -> Unit,
     private val logAutosave: (String) -> Unit,
 ) {
+    private var blendFileValidationJob: Job? = null
+    private var lastBlendFileToValidate: String? = null
+
     init {
         bindView()
-        view.render(
-            toViewState(
-                projectConfig.stateFlow.value,
-                pluginConfig.stateFlow.value,
-            )
+        render(
+            projectConfig.stateFlow.value,
+            pluginConfig.stateFlow.value,
         )
         scope.launch(Dispatchers.EDT) {
             combine(
                     projectConfig.stateFlow,
                     pluginConfig.stateFlow,
-                    ::toViewState,
+                    ::Pair,
                 )
-                .collect(view::render)
+                .collect { (projectState, pluginState) -> render(projectState, pluginState) }
         }
     }
 
@@ -111,6 +115,23 @@ internal class BlenderToolWindowController(
         logAutosave(fieldName)
     }
 
+    private fun render(projectState: ProjectConfig.ProjectSnapshot, pluginState: PluginConfig.PluginSnapshot) {
+        view.render(toViewState(projectState, pluginState))
+        scheduleBlendFileValidation(projectState.blendFileToOpen)
+    }
+
+    private fun scheduleBlendFileValidation(storedPath: String) {
+        if (lastBlendFileToValidate == storedPath) return
+        lastBlendFileToValidate = storedPath
+        blendFileValidationJob?.cancel()
+        blendFileValidationJob = scope.launch {
+            delay(BLEND_FILE_VALIDATION_DELAY_MILLIS)
+            val resolvedPath = projectConfig.resolveBlendFileToOpen()
+            val validation = withContext(Dispatchers.IO) { BlendFileToOpenValidator.validate(resolvedPath) }
+            withContext(Dispatchers.EDT) { view.renderBlendFileValidation(validation) }
+        }
+    }
+
     private fun toViewState(
         projectState: ProjectConfig.ProjectSnapshot,
         pluginState: PluginConfig.PluginSnapshot,
@@ -129,5 +150,9 @@ internal class BlenderToolWindowController(
             scriptDirectories = projectState.scriptDirectories.orEmpty(),
             blendFileToOpen = projectState.blendFileToOpen,
         )
+    }
+
+    private companion object {
+        private const val BLEND_FILE_VALIDATION_DELAY_MILLIS = 250L
     }
 }

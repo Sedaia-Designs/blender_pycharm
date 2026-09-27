@@ -17,17 +17,21 @@
 
 package com.sakurasedaia.blenderdevelopment.ui.toolwindow
 
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.observable.properties.GraphProperty
 import com.intellij.openapi.observable.properties.PropertyGraph
 import com.intellij.openapi.observable.util.equalsTo
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.BrowseFolderDescriptor.Companion.withTextToPathConvertor
+import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.RightGap
 import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.panel
+import com.intellij.util.EditSourceOnEnterKeyHandler
 import com.intellij.util.ui.JBUI
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig.BlenderLogLevel
@@ -36,6 +40,8 @@ import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
 import com.sakurasedaia.blenderdevelopment.ui.components.EnvironmentVariablesTable
 import com.sakurasedaia.blenderdevelopment.ui.components.ScriptDirectoriesTable
 import com.sakurasedaia.blenderdevelopment.util.PythonModuleNameValidator
+import java.nio.file.InvalidPathException
+import java.nio.file.Path
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JButton
 import javax.swing.JCheckBox
@@ -50,7 +56,7 @@ import javax.swing.text.AttributeSet
 import javax.swing.text.DocumentFilter
 import javax.swing.text.JTextComponent
 
-internal class BlenderToolWindowView(project: Project) {
+internal class BlenderToolWindowView(private val project: Project, parentDisposable: Disposable) {
     var onBlenderPathChanged: (String) -> Unit = {}
     var onAddonSymlinkNameChanged: (String) -> Unit = {}
     var onSourceFolderChanged: (String) -> Unit = {}
@@ -87,6 +93,8 @@ internal class BlenderToolWindowView(project: Project) {
 
     private var detectedBlenderInstalls: List<PluginConfig.BlendInstallInfo> = emptyList()
     private var isRendering = false
+    private var currentBlendFileValidation = BlendFileValidation.NONE
+    private var requestBlendFileValidation: () -> Unit = {}
 
     val component: JComponent
     val blenderPath: String
@@ -95,9 +103,14 @@ internal class BlenderToolWindowView(project: Project) {
     val blendFileToOpen: String
         get() = blendFileToOpenField.text
 
+    val blendFileValidation: BlendFileValidation
+        get() = currentBlendFileValidation
+
     init {
+        val contentPanel = createContentPanel()
+        contentPanel.registerValidators(parentDisposable)
         component =
-            JBScrollPane(createContentPanel()).apply {
+            JBScrollPane(contentPanel).apply {
                 horizontalScrollBarPolicy = JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
                 verticalScrollBarPolicy = JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED
                 border = JBUI.Borders.empty()
@@ -127,7 +140,9 @@ internal class BlenderToolWindowView(project: Project) {
             environmentVariablesTable.setVariables(state.environmentVariables)
             scriptDirectoriesTable.setDirectories(state.scriptDirectories)
             detectedBlenderInstalls = state.detectedBlenderInstalls
-            blendFileToOpenField.text = state.blendFileToOpen
+            if (blendFileToOpenField.text != state.blendFileToOpen) {
+                blendFileToOpenField.text = state.blendFileToOpen
+            }
             updateInstallModel()
             applyBlenderInstallSelection(state.blenderPath)
         } finally {
@@ -135,7 +150,14 @@ internal class BlenderToolWindowView(project: Project) {
         }
     }
 
-    private fun createContentPanel(): JComponent = panel {
+    /** Renders the latest asynchronously computed Blender startup-file validation state. */
+    fun renderBlendFileValidation(validation: BlendFileValidation) {
+        if (currentBlendFileValidation == validation) return
+        currentBlendFileValidation = validation
+        requestBlendFileValidation()
+    }
+
+    private fun createContentPanel(): DialogPanel = panel {
         group(MessageBundle.message("ui.toolwindow.group.executable.title")) {
             row {
                     comboBox(detectedBlenderInstalls.map { it.name }.toList())
@@ -249,10 +271,20 @@ internal class BlenderToolWindowView(project: Project) {
             row(MessageBundle.message("ui.toolwindow.group.environment.blend-file-to-open")) {
                 @Suppress("UnstableApiUsage")
                 textFieldWithBrowseButton(
-                        fileChooserDescriptor = FileChooserDescriptorFactory.singleFile().withExtensionFilter("blend"),
+                        fileChooserDescriptor =
+                            FileChooserDescriptorFactory.singleFile()
+                                .withExtensionFilter("blend")
+                                .withTitle(MessageBundle.message("ui.toolwindow.group.environment.blend-file-to-open.browse.title"))
+                                .withTextToPathConvertor(::resolveBlendFileChooserPath),
+                        project = project,
                         fileChosen = { selectedFile -> selectedFile.path },
                     )
                     .align(AlignX.FILL)
+                    .validationRequestor { validate -> requestBlendFileValidation = validate }
+                    .validationOnInput {
+                        blendFileValidationMessage()?.let { message -> error(message) }
+                    }
+                    .comment(MessageBundle.message("ui.toolwindow.group.environment.blend-file-to-open.comment"))
                     .applyToComponent {
                         blendFileToOpenField = this
                         addDocumentListener(textField, ::emitBlenderFileToOpen)
@@ -338,7 +370,10 @@ internal class BlenderToolWindowView(project: Project) {
     }
 
     private fun emitBlenderFileToOpen() {
-        emit { onBlendFileToOpenChanged(blendFileToOpenField.text) }
+        emit {
+            renderBlendFileValidation(BlendFileValidation.NONE)
+            onBlendFileToOpenChanged(blendFileToOpenField.text)
+        }
     }
 
     private fun emit(callback: () -> Unit) {
@@ -355,6 +390,31 @@ internal class BlenderToolWindowView(project: Project) {
 
     private fun logLevelLabel(level: BlenderLogLevel): String {
         return MessageBundle.message("ui.toolwindow.group.environment.log.level.${level.name.lowercase()}")
+    }
+
+    private fun blendFileValidationMessage(): String? {
+        val messageKey =
+            when (currentBlendFileValidation) {
+                BlendFileValidation.NONE -> return null
+                BlendFileValidation.INVALID_PATH -> "ui.toolwindow.group.environment.blend-file-to-open.error.invalid-path"
+                BlendFileValidation.WRONG_EXTENSION -> "ui.toolwindow.group.environment.blend-file-to-open.error.extension"
+                BlendFileValidation.MISSING -> "ui.toolwindow.group.environment.blend-file-to-open.error.missing"
+                BlendFileValidation.NOT_FILE -> "ui.toolwindow.group.environment.blend-file-to-open.error.not-file"
+            }
+        return MessageBundle.message(messageKey)
+    }
+
+    private fun resolveBlendFileChooserPath(value: String): String {
+        val path =
+            try {
+                Path.of(value.trim())
+            } catch (_: InvalidPathException) {
+                return value
+            }
+        if (path.isAbsolute) return path.normalize().toString()
+
+        val projectPath = project.basePath ?: return path.normalize().toString()
+        return Path.of(projectPath).resolve(path).normalize().toString()
     }
 
     private fun addDocumentListener(textComponent: JTextComponent, onChange: () -> Unit) {

@@ -103,6 +103,19 @@ class BlenderLaunchArgumentsTest : TestCase() {
         )
     }
 
+    fun testPythonArgumentsRejectWorkspaceArgumentsThatCanBypassBootstrap() {
+        try {
+            BlenderLaunchArguments.python(
+                logLevel = BlenderLogLevel.INFO,
+                workspaceArguments = listOf("--"),
+                scriptPath = Path.of("runtime", "bootstrap.py"),
+            )
+        } catch (_: IllegalArgumentException) {
+            return
+        }
+        fail("Expected a conflicting workspace argument to be rejected")
+    }
+
     fun testCommandArgumentsFollowCommandBecauseBlenderConsumesTheRemainder() {
         val arguments =
             BlenderLaunchArguments.command(

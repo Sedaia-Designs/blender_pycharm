@@ -11,7 +11,7 @@ import javax.swing.ScrollPaneConstants
 
 class BlenderToolWindowViewTest : BasePlatformTestCase() {
     fun testRenderDoesNotEmitChangeCallbacks() {
-        val view = BlenderToolWindowView(project)
+        val view = BlenderToolWindowView(project, testRootDisposable)
         var changeCount = 0
         view.onBlenderPathChanged = { changeCount++ }
         view.onAddonSymlinkNameChanged = { changeCount++ }
@@ -32,7 +32,7 @@ class BlenderToolWindowViewTest : BasePlatformTestCase() {
     }
 
     fun testBlendFileRenderAndManualEditEmitImmediately() {
-        val view = BlenderToolWindowView(project)
+        val view = BlenderToolWindowView(project, testRootDisposable)
         var changedValue: String? = null
         view.onBlendFileToOpenChanged = { changedValue = it }
         view.render(state(blenderPath = "/Applications/Blender.app", blendFileToOpen = "scenes/initial.blend"))
@@ -43,8 +43,30 @@ class BlenderToolWindowViewTest : BasePlatformTestCase() {
         assertEquals("scenes/edited.blend", changedValue)
     }
 
+    fun testRenderingUnchangedBlendFilePreservesCaretPosition() {
+        val view = BlenderToolWindowView(project, testRootDisposable)
+        val state = state(blenderPath = "/Applications/Blender.app", blendFileToOpen = "scenes/example.blend")
+        view.render(state)
+        val blendFileTextField = descendantsOf(view.component).filterIsInstance<TextFieldWithBrowseButton>().last().textField
+        blendFileTextField.caretPosition = 3
+
+        view.render(state)
+
+        assertEquals(3, blendFileTextField.caretPosition)
+    }
+
+    fun testBlendFileValidationStateCanBeRenderedAndCleared() {
+        val view = BlenderToolWindowView(project, testRootDisposable)
+
+        view.renderBlendFileValidation(BlendFileValidation.MISSING)
+        assertEquals(BlendFileValidation.MISSING, view.blendFileValidation)
+
+        view.renderBlendFileValidation(BlendFileValidation.NONE)
+        assertEquals(BlendFileValidation.NONE, view.blendFileValidation)
+    }
+
     fun testRefreshSelectsFirstInstallWhenPreviousInstallDisappears() {
-        val view = BlenderToolWindowView(project)
+        val view = BlenderToolWindowView(project, testRootDisposable)
         view.render(state(blenderPath = "/Applications/Blender.app"))
 
         view.render(
@@ -58,7 +80,7 @@ class BlenderToolWindowViewTest : BasePlatformTestCase() {
     }
 
     fun testComponentUsesVerticalOnlyScrollPane() {
-        val view = BlenderToolWindowView(project)
+        val view = BlenderToolWindowView(project, testRootDisposable)
         val scrollPane = view.component as JBScrollPane
 
         assertEquals(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, scrollPane.verticalScrollBarPolicy)
@@ -66,7 +88,7 @@ class BlenderToolWindowViewTest : BasePlatformTestCase() {
     }
 
     fun testInstallStubsButtonUsesSelectedBlenderVersion() {
-        val view = BlenderToolWindowView(project)
+        val view = BlenderToolWindowView(project, testRootDisposable)
         var requestedVersion: String? = null
         view.onInstallStubsRequested = { requestedVersion = it }
         view.render(state(blenderPath = "/Applications/Blender.app"))
@@ -80,7 +102,7 @@ class BlenderToolWindowViewTest : BasePlatformTestCase() {
     }
 
     fun testWorkspaceButtonEmitsSaveIntentAndReflectsEnabledState() {
-        val view = BlenderToolWindowView(project)
+        val view = BlenderToolWindowView(project, testRootDisposable)
         var saveRequested = false
         view.onSaveWorkspaceConfigRequested = { saveRequested = true }
         view.render(state(blenderPath = "/Applications/Blender.app"))

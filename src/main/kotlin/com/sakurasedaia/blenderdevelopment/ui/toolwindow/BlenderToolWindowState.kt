@@ -20,6 +20,15 @@ package com.sakurasedaia.blenderdevelopment.ui.toolwindow
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig.BlenderLogLevel
 
+/** Presentation states for optional Blender startup-file validation. */
+internal enum class BlendFileValidation {
+    NONE,
+    INVALID_PATH,
+    WRONG_EXTENSION,
+    MISSING,
+    NOT_FILE,
+}
+
 internal data class BlenderToolWindowState(
     val blenderPath: String,
     val detectedBlenderInstalls: List<PluginConfig.BlendInstallInfo>,

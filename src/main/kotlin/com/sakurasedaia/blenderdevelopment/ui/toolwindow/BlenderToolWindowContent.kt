@@ -42,7 +42,7 @@ class BlenderToolWindowContent(
 ) : Disposable {
     @Suppress("RAW_SCOPE_CREATION")
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default + CoroutineName("Project Blender Manager"))
-    private val view = BlenderToolWindowView(project)
+    private val view = BlenderToolWindowView(project, this)
 
     init {
         val logger = PluginLogger.getInstance(project)

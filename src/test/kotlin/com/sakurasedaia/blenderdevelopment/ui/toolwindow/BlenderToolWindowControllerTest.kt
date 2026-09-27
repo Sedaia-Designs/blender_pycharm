@@ -22,7 +22,7 @@ class BlenderToolWindowControllerTest : BasePlatformTestCase() {
         pluginConfig.loadState(PluginConfig.PluginState())
         projectConfig = ProjectConfig.getInstance(project)
         projectConfig.loadState(ProjectConfig.ProjectState())
-        view = BlenderToolWindowView(project)
+        view = BlenderToolWindowView(project, testRootDisposable)
     }
 
     override fun tearDown() {

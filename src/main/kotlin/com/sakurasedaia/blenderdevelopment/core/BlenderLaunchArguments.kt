@@ -30,6 +30,14 @@ internal object BlenderLaunchArguments {
         additionalArguments: List<String> = emptyList(),
         blendFileToOpen: String? = null,
     ): List<String> {
+        require(
+            BlenderLaunchArgumentValidator.findConflict(
+                workspaceArguments = workspaceArguments,
+                hasManagedBlendFile = !blendFileToOpen.isNullOrBlank(),
+            ) == null
+        ) {
+            "Workspace arguments must not conflict with the plugin-managed Blender launch mode."
+        }
         return buildList {
             addAll(buildLogArguments(logLevel))
             addAll(workspaceArguments)

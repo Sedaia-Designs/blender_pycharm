@@ -30,7 +30,10 @@ import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.execution.runners.ProgramRunner
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
+import com.intellij.util.execution.ParametersListUtil
 import com.sakurasedaia.blenderdevelopment.core.BlenderDebugAttachService
+import com.sakurasedaia.blenderdevelopment.core.BlenderLaunchArgumentConflict
+import com.sakurasedaia.blenderdevelopment.core.BlenderLaunchArgumentValidator
 import com.sakurasedaia.blenderdevelopment.core.BlenderPythonLaunchRequest
 import com.sakurasedaia.blenderdevelopment.core.BlenderPythonLauncher
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
@@ -66,6 +69,16 @@ internal class BlenderLaunchRunConfiguration(
             throw RuntimeConfigurationError(MessageBundle.message("run.configuration.blender.error.blender.path.empty"))
         }
 
+        val workspaceArguments = ParametersListUtil.parse(state.getRunArguments().trim())
+        val argumentConflict =
+            BlenderLaunchArgumentValidator.findConflict(
+                workspaceArguments = workspaceArguments,
+                hasManagedBlendFile = blendFileToOpen.isNotBlank(),
+            )
+        if (argumentConflict != null) {
+            throw RuntimeConfigurationError(MessageBundle.message(argumentConflict.messageKey()))
+        }
+
         if (blendFileToOpen.isBlank()) return
         val invalidPathNameError = MessageBundle.message("run.configuration.blender.error.blender.file-to-open.invalid")
         val blendFilePath =
@@ -80,20 +93,30 @@ internal class BlenderLaunchRunConfiguration(
         }
     }
 
+    private fun BlenderLaunchArgumentConflict.messageKey(): String {
+        return when (this) {
+            BlenderLaunchArgumentConflict.BLEND_FILE -> "run.configuration.blender.error.run-arguments.blend-file"
+            BlenderLaunchArgumentConflict.PYTHON_EXECUTION -> "run.configuration.blender.error.run-arguments.python"
+            BlenderLaunchArgumentConflict.COMMAND_MODE -> "run.configuration.blender.error.run-arguments.command"
+            BlenderLaunchArgumentConflict.OPTION_TERMINATOR -> "run.configuration.blender.error.run-arguments.option-terminator"
+        }
+    }
+
+    /** Builds the request consumed by the shared Blender Python launcher. */
+    internal fun createLaunchRequest(shouldAttachDebugger: Boolean): BlenderPythonLaunchRequest {
+        val state = ProjectConfig.getInstance(project)
+        return BlenderPythonLaunchRequest(
+            blenderPath = state.getBlenderPath().trim(),
+            debugger = shouldAttachDebugger,
+            blendFileToOpen = state.resolveBlendFileToOpen().trim().ifBlank { null },
+        )
+    }
+
     override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState {
         val shouldAttachDebugger = executor.id == DefaultDebugExecutor.EXECUTOR_ID
         return object : CommandLineState(environment) {
             override fun startProcess(): OSProcessHandler {
-                val state = ProjectConfig.getInstance(project)
-                val blendFileToOpen = state.resolveBlendFileToOpen().trim().ifBlank { null }
-                return BlenderPythonLauncher.getInstance(project)
-                    .start(
-                        BlenderPythonLaunchRequest(
-                            blenderPath = state.getBlenderPath().trim(),
-                            debugger = shouldAttachDebugger,
-                            blendFileToOpen = blendFileToOpen,
-                        )
-                    )
+                return BlenderPythonLauncher.getInstance(project).start(createLaunchRequest(shouldAttachDebugger))
             }
 
             override fun execute(executor: Executor, runner: ProgramRunner<*>): ExecutionResult {
