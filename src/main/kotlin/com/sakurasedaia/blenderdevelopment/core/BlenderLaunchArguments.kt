@@ -28,8 +28,15 @@ internal object BlenderLaunchArguments {
         workspaceArguments: List<String>,
         scriptPath: Path,
         additionalArguments: List<String> = emptyList(),
+        blendFileToOpen: String? = null,
     ): List<String> {
-        return buildLogArguments(logLevel) + workspaceArguments + listOf("--python", scriptPath.toString()) + additionalArguments
+        return buildList {
+            addAll(buildLogArguments(logLevel))
+            addAll(workspaceArguments)
+            blendFileToOpen?.takeIf(String::isNotBlank)?.let(::add)
+            addAll(listOf("--python", scriptPath.toString()))
+            addAll(additionalArguments)
+        }
     }
 
     /** Builds arguments for a Blender command, which consumes every argument after `--command`. */

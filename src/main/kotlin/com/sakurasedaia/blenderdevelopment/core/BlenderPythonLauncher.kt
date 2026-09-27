@@ -28,7 +28,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.util.execution.ParametersListUtil
-import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig.BlenderLogLevel
@@ -45,6 +44,7 @@ internal data class BlenderPythonLaunchRequest(
     val scriptPath: Path? = null,
     val additionalArguments: List<String> = emptyList(),
     val debugger: Boolean = false,
+    val blendFileToOpen: String? = null,
 )
 
 /** Orchestrates Blender Python bootstrap generation, runtime sessions, and cleanup. */
@@ -56,7 +56,6 @@ internal class BlenderPythonLauncher(private val project: Project) {
 
     /** Starts Blender with an explicit `--python` launch surface. */
     fun start(request: BlenderPythonLaunchRequest): OSProcessHandler {
-
         val launchSession =
             if (request.debugger) {
                 BlenderEditorServerService.getInstance(project).prepareLaunchSession()
@@ -70,7 +69,7 @@ internal class BlenderPythonLauncher(private val project: Project) {
                 request.debugger -> createScratchDebugLaunchScript()
                 else -> createScratchRuntimeSyncLaunchScript()
             }
-
+        val blendFileToOpen = request.blendFileToOpen
         val scriptPath = request.scriptPath ?: checkNotNull(generatedScriptPath)
         val workspaceArguments = ParametersListUtil.parse(projectConfig.getRunArguments().trim())
         val arguments =
@@ -79,6 +78,7 @@ internal class BlenderPythonLauncher(private val project: Project) {
                 workspaceArguments = workspaceArguments,
                 scriptPath = scriptPath,
                 additionalArguments = request.additionalArguments,
+                blendFileToOpen = blendFileToOpen,
             )
 
         val processHandler =

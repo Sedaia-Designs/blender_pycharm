@@ -1,5 +1,6 @@
 package com.sakurasedaia.blenderdevelopment.ui.toolwindow
 
+import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.ui.components.JBScrollPane
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig
@@ -22,11 +23,24 @@ class BlenderToolWindowViewTest : BasePlatformTestCase() {
         view.onSaveWorkspaceConfigRequested = { changeCount++ }
         view.onEnvironmentVariablesChanged = { changeCount++ }
         view.onScriptDirectoriesChanged = { changeCount++ }
+        view.onBlendFileToOpenChanged = { changeCount++ }
 
         view.render(state(blenderPath = "/Applications/Blender.app"))
 
         assertEquals(0, changeCount)
         assertEquals("/Applications/Blender.app", view.blenderPath)
+    }
+
+    fun testBlendFileRenderAndManualEditEmitImmediately() {
+        val view = BlenderToolWindowView(project)
+        var changedValue: String? = null
+        view.onBlendFileToOpenChanged = { changedValue = it }
+        view.render(state(blenderPath = "/Applications/Blender.app", blendFileToOpen = "scenes/initial.blend"))
+        val blendFileField = descendantsOf(view.component).filterIsInstance<TextFieldWithBrowseButton>().last()
+
+        blendFileField.text = "scenes/edited.blend"
+
+        assertEquals("scenes/edited.blend", changedValue)
     }
 
     fun testRefreshSelectsFirstInstallWhenPreviousInstallDisappears() {
@@ -84,6 +98,7 @@ class BlenderToolWindowViewTest : BasePlatformTestCase() {
         blenderPath: String,
         installs: List<PluginConfig.BlendInstallInfo> = listOf(install(name = "Blender 4.5", path = "/Applications/Blender.app")),
         workspaceConfigEnabled: Boolean = false,
+        blendFileToOpen: String = "",
     ): BlenderToolWindowState {
         return BlenderToolWindowState(
             blenderPath = blenderPath,
@@ -97,6 +112,7 @@ class BlenderToolWindowViewTest : BasePlatformTestCase() {
             workspaceConfigEnabled = workspaceConfigEnabled,
             environmentVariables = mapOf("EXAMPLE" to "value"),
             scriptDirectories = listOf("/project/scripts"),
+            blendFileToOpen = blendFileToOpen,
         )
     }
 

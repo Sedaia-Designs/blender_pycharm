@@ -54,6 +54,55 @@ class BlenderLaunchArgumentsTest : TestCase() {
         )
     }
 
+    fun testPythonArgumentsOmitNullAndBlankBlendFiles() {
+        val scriptPath = Path.of("runtime", "bootstrap.py")
+
+        val withoutFile =
+            BlenderLaunchArguments.python(
+                logLevel = BlenderLogLevel.INFO,
+                workspaceArguments = emptyList(),
+                scriptPath = scriptPath,
+            )
+        val withBlankFile =
+            BlenderLaunchArguments.python(
+                logLevel = BlenderLogLevel.INFO,
+                workspaceArguments = emptyList(),
+                scriptPath = scriptPath,
+                blendFileToOpen = "  ",
+            )
+
+        assertEquals(withoutFile, withBlankFile)
+        assertEquals(listOf("--log-level", "info", "--python", scriptPath.toString()), withoutFile)
+    }
+
+    fun testPythonArgumentsPlaceBlendFileBetweenWorkspaceOptionsAndScript() {
+        val blendFile = Path.of("project with spaces", "example.blend").toString()
+        val scriptPath = Path.of("runtime", "bootstrap.py")
+
+        val arguments =
+            BlenderLaunchArguments.python(
+                logLevel = BlenderLogLevel.DEBUG,
+                workspaceArguments = listOf("--factory-startup"),
+                scriptPath = scriptPath,
+                additionalArguments = listOf("--python-exit-code", "1"),
+                blendFileToOpen = blendFile,
+            )
+
+        assertEquals(
+            listOf(
+                "--log-level",
+                "debug",
+                "--factory-startup",
+                blendFile,
+                "--python",
+                scriptPath.toString(),
+                "--python-exit-code",
+                "1",
+            ),
+            arguments,
+        )
+    }
+
     fun testCommandArgumentsFollowCommandBecauseBlenderConsumesTheRemainder() {
         val arguments =
             BlenderLaunchArguments.command(

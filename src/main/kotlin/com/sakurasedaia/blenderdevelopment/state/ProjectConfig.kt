@@ -26,6 +26,7 @@ import com.sakurasedaia.blenderdevelopment.util.SystemInfo
 import dev.eav.tomlkt.Toml
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
+import java.nio.file.InvalidPathException
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import kotlin.io.path.exists
@@ -76,6 +77,7 @@ class ProjectConfig(private val project: Project, private val coroutineScope: Co
         var extensionsRepository: String = "pycharm_blender",
         var environmentVariables: Map<String, String> = emptyMap(),
         var scriptDirectories: List<String>? = null,
+        var blendFileToOpen: String = "",
     )
 
     /** Immutable observable snapshot of project-scoped Blender configuration. */
@@ -92,6 +94,7 @@ class ProjectConfig(private val project: Project, private val coroutineScope: Co
         val environmentVariables: Map<String, String>,
         val scriptDirectories: List<String>?,
         val workspaceConfigEnabled: Boolean,
+        val blendFileToOpen: String,
     )
 
     @Serializable
@@ -112,15 +115,48 @@ class ProjectConfig(private val project: Project, private val coroutineScope: Co
     private var workspaceState: WorkspaceState? = null
     private val mutableStateFlow = MutableStateFlow(effectiveState().toSnapshot())
 
+    /**
+     * Converts an absolute path to a relative path based on the project's base path.
+     *
+     * @param value The absolute path to be converted into a relative project path.
+     * @return The relative path if the project base path exists and is valid; otherwise, an empty string.
+     */
+    private fun toRelativeProjectPath(value: String): String {
+        val trimmed = value.trim()
+        if (trimmed.isEmpty()) return ""
+
+        val path =
+            try {
+                Path.of(trimmed).normalize()
+            } catch (_: InvalidPathException) {
+                return trimmed
+            }
+        if (!path.isAbsolute) return path.toString()
+
+        val projectPath = project.basePath?.let { Path.of(it).toAbsolutePath().normalize() } ?: return path.toString()
+        if (!path.startsWith(projectPath)) return path.toString()
+
+        return runCatching { projectPath.relativize(path).toString() }.getOrDefault(path.toString())
+    }
+
     private fun toAbsoluteProjectPath(value: String): String {
         val trimmed = value.trim()
         if (trimmed.isEmpty()) return ""
 
         if (trimmed.startsWith("~/") || trimmed == "~") {
-            return SystemInfo().userHomeDir.resolve(trimmed.removePrefix("~/")).normalize().toString()
+            return try {
+                SystemInfo().userHomeDir.resolve(trimmed.removePrefix("~/")).normalize().toString()
+            } catch (_: InvalidPathException) {
+                trimmed
+            }
         }
 
-        val path = Path.of(trimmed)
+        val path =
+            try {
+                Path.of(trimmed)
+            } catch (_: InvalidPathException) {
+                return trimmed
+            }
         if (path.isAbsolute) return path.normalize().toString()
 
         val projectPath = project.basePath ?: return path.normalize().toString()
@@ -280,6 +316,25 @@ class ProjectConfig(private val project: Project, private val coroutineScope: Co
     fun getScriptDirectories(): List<String>? = effectiveState().scriptDirectories
 
     /**
+     * Sets the path of the file to be opened for this project when a Blender GUI session is launched.
+     *
+     * @param file the path of the file to open.
+     */
+    fun setBlendFileToOpen(file: String) {
+        updateLocalState { blendFileToOpen = toRelativeProjectPath(file) }
+    }
+
+    /**
+     * Retrieves the file path configured to be opened in a Blender GUI session for this project.
+     *
+     * @return the path of the file to open, or an empty string if no file is configured.
+     */
+    fun getBlendFileToOpen(): String = effectiveState().blendFileToOpen
+
+    /** Resolves the configured Blender file to an executable filesystem path. */
+    fun resolveBlendFileToOpen(): String = toAbsoluteProjectPath(effectiveState().blendFileToOpen)
+
+    /**
      * Forces initialization of persisted workspace settings for this project.
      *
      * This should be called during project startup to ensure the state from the project-level workspace file is loaded before UI and run
@@ -384,6 +439,7 @@ class ProjectConfig(private val project: Project, private val coroutineScope: Co
             extensionsRepository = workspace.extensionsRepository ?: localState.extensionsRepository,
             environmentVariables = localState.environmentVariables.toMap(),
             scriptDirectories = localState.scriptDirectories?.toList(),
+            blendFileToOpen = localState.blendFileToOpen,
         )
     }
 
@@ -443,6 +499,7 @@ class ProjectConfig(private val project: Project, private val coroutineScope: Co
             environmentVariables = environmentVariables.toMap(),
             scriptDirectories = scriptDirectories?.toList(),
             workspaceConfigEnabled = workspaceState != null,
+            blendFileToOpen = blendFileToOpen,
         )
     }
 

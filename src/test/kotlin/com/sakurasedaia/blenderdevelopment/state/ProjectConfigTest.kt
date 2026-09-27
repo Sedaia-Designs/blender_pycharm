@@ -49,11 +49,13 @@ class ProjectConfigTest : BasePlatformTestCase() {
         assertTrue(config.getJustMyCode())
         assertTrue(config.getEnvironmentVariables().isEmpty())
         assertNull(config.getScriptDirectories())
+        assertEquals("", config.getBlendFileToOpen())
     }
 
     fun testConfigurationRoundTripPersistsAllMutableFields() {
         val envVars = mapOf("PYTHONPATH" to "/tmp/stubs", "BLENDER_USER_SCRIPTS" to "/tmp/scripts")
         val scriptDirectories = listOf("scripts/core", "scripts/extra")
+        val blendFile = Path.of(project.basePath!!).resolve("scenes/example.blend").normalize()
 
         config.setBlenderPath("/Applications/Blender.app")
         config.setInstalledStubRequirement("fake-bpy-module-4.5")
@@ -66,6 +68,7 @@ class ProjectConfigTest : BasePlatformTestCase() {
         config.setExtensionsRepository("extensions_example")
         config.setEnvironmentVariables(envVars)
         config.setScriptDirectories(scriptDirectories)
+        config.setBlendFileToOpen("scenes/example.blend")
 
         assertEquals("/Applications/Blender.app", config.getBlenderPath())
         assertEquals("fake-bpy-module-4.5", config.getInstalledStubRequirement())
@@ -81,6 +84,8 @@ class ProjectConfigTest : BasePlatformTestCase() {
             scriptDirectories.map { Path.of(project.basePath!!).resolve(it).normalize().toString() },
             config.getScriptDirectories(),
         )
+        assertEquals(Path.of("scenes", "example.blend").toString(), config.getBlendFileToOpen())
+        assertEquals(blendFile.toString(), config.resolveBlendFileToOpen())
     }
 
     fun testRelativeBlenderPathResolvesAgainstProjectDirectory() {
@@ -124,6 +129,17 @@ class ProjectConfigTest : BasePlatformTestCase() {
         assertEquals("", initialSnapshot.blenderPath)
         assertEquals("/Applications/Blender.app", config.stateFlow.value.blenderPath)
         assertEquals(mapOf("MODE" to "development"), config.stateFlow.value.environmentVariables)
+    }
+
+    fun testBlendFileUpdatePublishesNormalizedPath() {
+        val expectedPath = Path.of(project.basePath!!).resolve("scenes/example.blend").normalize().toString()
+
+        config.setBlendFileToOpen(" scenes/example.blend ")
+
+        val expectedRelativePath = Path.of("scenes", "example.blend").toString()
+        assertEquals(expectedRelativePath, config.getBlendFileToOpen())
+        assertEquals(expectedRelativePath, config.stateFlow.value.blendFileToOpen)
+        assertEquals(expectedPath, config.resolveBlendFileToOpen())
     }
 
     fun testLoadStatePublishesPersistedSnapshot() {
@@ -178,6 +194,7 @@ class ProjectConfigTest : BasePlatformTestCase() {
         config.setRunArguments("--factory-startup")
         config.setEnvironmentVariables(mapOf("TOKEN" to "local-value"))
         config.setScriptDirectories(listOf("local-scripts"))
+        config.setBlendFileToOpen("scenes/local.blend")
 
         val workspacePath = config.saveWorkspaceState()
         val contents = workspacePath.readText()
@@ -189,6 +206,8 @@ class ProjectConfigTest : BasePlatformTestCase() {
         assertFalse(contents.contains("installedStubRequirement"))
         assertFalse(contents.contains("environmentVariables"))
         assertFalse(contents.contains("scriptDirectories"))
+        assertFalse(contents.contains("blend_file_to_open"))
+        assertFalse(contents.contains("local.blend"))
         assertTrue(config.stateFlow.value.workspaceConfigEnabled)
     }
 

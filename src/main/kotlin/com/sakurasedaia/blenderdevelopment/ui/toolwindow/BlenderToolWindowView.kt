@@ -64,6 +64,7 @@ internal class BlenderToolWindowView(project: Project) {
     var onReloadRequested: () -> Unit = {}
     var onScanInstallationsRequested: () -> Unit = {}
     var onInstallStubsRequested: (String) -> Unit = {}
+    var onBlendFileToOpenChanged: (String) -> Unit = {}
 
     private val environmentVariablesTable = EnvironmentVariablesTable()
     private val scriptDirectoriesTable = ScriptDirectoriesTable(project)
@@ -82,6 +83,7 @@ internal class BlenderToolWindowView(project: Project) {
     private lateinit var availableBlenderInstalls: JComboBox<String>
     private lateinit var installStubsButton: JButton
     private lateinit var saveWorkspaceConfigButton: JButton
+    private lateinit var blendFileToOpenField: TextFieldWithBrowseButton
 
     private var detectedBlenderInstalls: List<PluginConfig.BlendInstallInfo> = emptyList()
     private var isRendering = false
@@ -89,6 +91,9 @@ internal class BlenderToolWindowView(project: Project) {
     val component: JComponent
     val blenderPath: String
         get() = blenderPathField.text
+
+    val blendFileToOpen: String
+        get() = blendFileToOpenField.text
 
     init {
         component =
@@ -122,6 +127,7 @@ internal class BlenderToolWindowView(project: Project) {
             environmentVariablesTable.setVariables(state.environmentVariables)
             scriptDirectoriesTable.setDirectories(state.scriptDirectories)
             detectedBlenderInstalls = state.detectedBlenderInstalls
+            blendFileToOpenField.text = state.blendFileToOpen
             updateInstallModel()
             applyBlenderInstallSelection(state.blenderPath)
         } finally {
@@ -240,6 +246,18 @@ internal class BlenderToolWindowView(project: Project) {
                         toolTipText = MessageBundle.message("ui.toolwindow.workspace.comment")
                     }
             }
+            row(MessageBundle.message("ui.toolwindow.group.environment.blend-file-to-open")) {
+                @Suppress("UnstableApiUsage")
+                textFieldWithBrowseButton(
+                        fileChooserDescriptor = FileChooserDescriptorFactory.singleFile().withExtensionFilter("blend"),
+                        fileChosen = { selectedFile -> selectedFile.path },
+                    )
+                    .align(AlignX.FILL)
+                    .applyToComponent {
+                        blendFileToOpenField = this
+                        addDocumentListener(textField, ::emitBlenderFileToOpen)
+                    }
+            }
         }
 
         group(MessageBundle.message("ui.toolwindow.group.environment.section-title")) {
@@ -317,6 +335,10 @@ internal class BlenderToolWindowView(project: Project) {
 
     private fun emitBlenderPath() {
         emit { onBlenderPathChanged(blenderPathField.text) }
+    }
+
+    private fun emitBlenderFileToOpen() {
+        emit { onBlendFileToOpenChanged(blendFileToOpenField.text) }
     }
 
     private fun emit(callback: () -> Unit) {

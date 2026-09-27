@@ -73,6 +73,7 @@ internal class BlenderToolWindowController(
         view.onSaveWorkspaceConfigRequested = saveWorkspaceConfig
         view.onScanInstallationsRequested = ::scanForInstallations
         view.onInstallStubsRequested = installStubs
+        view.onBlendFileToOpenChanged = { save("blendFileToOpen") { projectConfig.setBlendFileToOpen(it) } }
     }
 
     internal fun scanForInstallations() {
@@ -126,6 +127,7 @@ internal class BlenderToolWindowController(
             workspaceConfigEnabled = projectState.workspaceConfigEnabled,
             environmentVariables = projectState.environmentVariables,
             scriptDirectories = projectState.scriptDirectories.orEmpty(),
+            blendFileToOpen = projectState.blendFileToOpen,
         )
     }
 }

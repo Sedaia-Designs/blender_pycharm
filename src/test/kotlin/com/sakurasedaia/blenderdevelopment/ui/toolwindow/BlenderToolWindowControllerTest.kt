@@ -4,6 +4,7 @@ import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
+import java.nio.file.Path
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -48,6 +49,17 @@ class BlenderToolWindowControllerTest : BasePlatformTestCase() {
         createController()
 
         assertEquals(persistedInstall.path, view.blenderPath)
+    }
+
+    fun testBlendFileIntentUpdatesProjectStateAndRendersBackToView() {
+        createController()
+        val relativePath = Path.of("scenes", "example.blend").toString()
+
+        view.onBlendFileToOpenChanged(relativePath)
+        PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+
+        assertEquals(relativePath, projectConfig.getBlendFileToOpen())
+        assertEquals(relativePath, view.blendFileToOpen)
     }
 
     fun testScanReplacesRemovedSelectedInstallation() {

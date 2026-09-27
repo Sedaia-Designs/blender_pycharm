@@ -35,6 +35,9 @@ import com.sakurasedaia.blenderdevelopment.core.BlenderPythonLaunchRequest
 import com.sakurasedaia.blenderdevelopment.core.BlenderPythonLauncher
 import com.sakurasedaia.blenderdevelopment.state.ProjectConfig
 import com.sakurasedaia.blenderdevelopment.ui.MessageBundle
+import java.nio.file.Files
+import java.nio.file.InvalidPathException
+import java.nio.file.Path
 import javax.swing.JComponent
 import javax.swing.JPanel
 
@@ -55,9 +58,25 @@ internal class BlenderLaunchRunConfiguration(
         }
 
     override fun checkConfiguration() {
-        val blenderPath = ProjectConfig.getInstance(project).getBlenderPath().trim()
+        val state = ProjectConfig.getInstance(project)
+        val blenderPath = state.getBlenderPath().trim()
+        val blendFileToOpen = state.resolveBlendFileToOpen().trim()
+
         if (blenderPath.isEmpty()) {
             throw RuntimeConfigurationError(MessageBundle.message("run.configuration.blender.error.blender.path.empty"))
+        }
+
+        if (blendFileToOpen.isBlank()) return
+        val invalidPathNameError = MessageBundle.message("run.configuration.blender.error.blender.file-to-open.invalid")
+        val blendFilePath =
+            try {
+                Path.of(blendFileToOpen)
+            } catch (_: InvalidPathException) {
+                throw RuntimeConfigurationError(invalidPathNameError)
+            }
+        val hasBlendExtension = blendFilePath.fileName?.toString()?.endsWith(".blend", ignoreCase = true) == true
+        if (!hasBlendExtension || !Files.isRegularFile(blendFilePath)) {
+            throw RuntimeConfigurationError(invalidPathNameError)
         }
     }
 
@@ -65,11 +84,14 @@ internal class BlenderLaunchRunConfiguration(
         val shouldAttachDebugger = executor.id == DefaultDebugExecutor.EXECUTOR_ID
         return object : CommandLineState(environment) {
             override fun startProcess(): OSProcessHandler {
+                val state = ProjectConfig.getInstance(project)
+                val blendFileToOpen = state.resolveBlendFileToOpen().trim().ifBlank { null }
                 return BlenderPythonLauncher.getInstance(project)
                     .start(
                         BlenderPythonLaunchRequest(
-                            blenderPath = ProjectConfig.getInstance(project).getBlenderPath().trim(),
+                            blenderPath = state.getBlenderPath().trim(),
                             debugger = shouldAttachDebugger,
+                            blendFileToOpen = blendFileToOpen,
                         )
                     )
             }

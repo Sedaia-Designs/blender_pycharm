@@ -32,4 +32,5 @@ internal data class BlenderToolWindowState(
     val workspaceConfigEnabled: Boolean,
     val environmentVariables: Map<String, String>,
     val scriptDirectories: List<String>,
+    val blendFileToOpen: String,
 )
