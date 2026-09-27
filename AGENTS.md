@@ -83,7 +83,7 @@ project. Act as a senior engineer who teaches while pairing, not only as an impl
 - Prefer IntelliJ Platform APIs and existing project services/patterns over custom infrastructure.
 - Keep changes scoped to the requested behavior; avoid unrelated refactors.
 - Put user-visible text in `messages/MessageBundle.properties` (localizable strings), not inline literals.
-- For internal-use documentation, prefer HTML documents over Markdown.
+- Write new internal-use documentation as Obsidian Markdown under `/ObsidianVault/`; do not add pages to the legacy dedicated wiki.
 
 ## Kotlin Style
 
@@ -142,7 +142,8 @@ project. Act as a senior engineer who teaches while pairing, not only as an impl
 - If a subclass is referenced (for example `PluginConfig.BlendInstallInfo`), include the parent class name when referring to that subclass.
 - All commits must use standardized prefixing: `[Type -> module] Description`.
 - Omit `-> module` when 3 or more modules are touched, using `[Type] Description` instead.
-- **NEVER commit files under `docs/Wiki/internal`.** Internal wiki changes must remain uncommitted, including updates to its `index.html`.
+- **NEVER commit files under `/ObsidianVault/`.** The vault is local-only working material.
+- Treat `docs/Wiki/internal` as a legacy, read-only reference. Do not add, edit, rename, or stage files there.
 - **NEVER** perform `git push` or anything that affects the remote unless I explicitly give permission.
 - If a module is deleted with a new module created in a new location, example below, treat it as a file move instead of a deletion and recreation
 ```diff
@@ -152,18 +153,12 @@ project. Act as a senior engineer who teaches while pairing, not only as an impl
 
 ## Documentation
 
-- Use `docs/Wiki/internal/index.html` as the launch page for internal documentation.
-- Keep internal wiki styling centralized in `docs/Wiki/internal/wiki.css`; do not duplicate page-level style blocks unless there is a page-specific exception.
-- Use `docs/Wiki/internal/wiki-page-template.html` as the baseline when creating new wiki pages.
-- Every new internal wiki page should:
-  - include `<link rel="stylesheet" href="./wiki.css" />` in `<head>`
-  - include a top navigation link back to `index.html`
-  - include a table of contents with anchored sections
-  - include a “Source References” section with concrete file paths and/or upstream references
+- Write all new internal documentation under `/ObsidianVault/Documentation/` as Markdown compatible with Obsidian.
+- Treat `docs/Wiki/internal` as a legacy, read-only reference. Do not maintain its pages, templates, styles, or index, and do not create new documentation there.
+- Organize vault documentation by topic with descriptive kebab-case filenames and use Obsidian links where they improve navigation.
+- Include a table of contents for long documents and a “Source References” section with concrete file paths and/or upstream references when the document is based on implementation research.
 - Prefer concise, source-grounded technical documentation. Clearly separate facts, inferences, and implementation plans.
   - When referencing source files from any project, always use repo-relative source pathing (E.g. /Users/Sakura/Documents/IdeaProjects/intellij-community/platform/platform-impl/src/com/intellij/ui/dsl/builder/textFieldWithBrowseButton.kt -> /intellij-community/platform/platform-impl/src/com/intellij/ui/dsl/builder/textFieldWithBrowseButton.kt)
-- Keep filenames kebab-case and descriptive (for example `intellij-run-configuration-system.html`).
-- When a page is added or renamed in `docs/Wiki/internal`, update `docs/Wiki/internal/index.html` so the wiki remains navigable.
 - Provide code snippets for examples on complex API's
 
 ## Project Documentation (External / Non-Internal)
@@ -177,7 +172,7 @@ project. Act as a senior engineer who teaches while pairing, not only as an impl
 - Before editing Blender Developer Docs, read its root `AGENTS.md` and use this repository's `sedaia-docs-authoring` skill. Use
   `sedaia-docs-validation` before handoff.
 - Treat this repository's current code, tests, README, changelog, and release metadata as the authoritative evidence for
-  behavior. Do not publish internal wiki content without explicit approval.
+  behavior. Do not publish private Obsidian vault content without explicit approval.
 - Keep public instructions task-focused. Exclude local-machine paths, private assets, credentials, security-sensitive
   implementation details, and source-reference inventories.
 - Use the canonical public route `https://docs.blender-development.sakura-sedaia.tech/` and absolute HTTPS links when crossing
@@ -200,9 +195,10 @@ project. Act as a senior engineer who teaches while pairing, not only as an impl
 
 ## Obsidian Vault and Local Record Keeping
 
-- Store working notes and information that are not needed for the README, license, contributing guide, changelog, public
-  documentation, or other repository-essential metadata in `/ObsidianVault/`.
-- Use the vault for local plans, handoffs, audits, reports, feature ideas, investigation notes, and similar working records.
+- Store all private/internal documentation and working notes that are not needed for the README, license, contributing guide,
+  changelog, public documentation, or other repository-essential metadata in `/ObsidianVault/`.
+- Use `/ObsidianVault/Documentation/` for new internal technical documentation. Use the rest of the vault for local plans,
+  handoffs, audits, reports, feature ideas, investigation notes, and similar working records.
 - Keep `/ObsidianVault/` local-only and Git-ignored. Never stage or commit files from the vault.
 - When writing Obsidian Markdown, keep each paragraph, list item, and checkbox on a single physical line. Rely on Obsidian's
   word wrapping because hard-wrapped lines can interfere with checkbox rendering.
@@ -217,5 +213,5 @@ project. Act as a senior engineer who teaches while pairing, not only as an impl
   completion criteria.
 - When the owner clarifies a plan, phase, or step, apply that clarification to the relevant vault document rather than leaving
   it only in conversation history.
-- These vault rules apply to working records. The HTML internal wiki and the external Blender Developer Docs repository remain
-  governed by their respective documentation sections above.
+- The external Blender Developer Docs repository remains governed by its documentation section above. The legacy HTML wiki is
+  read-only and must not receive new or updated documentation.

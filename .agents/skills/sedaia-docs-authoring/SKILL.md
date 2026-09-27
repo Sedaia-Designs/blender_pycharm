@@ -10,7 +10,8 @@ description: Create or revise public Blender Development documentation in the se
 - Treat the current Blender Development repository as the authoritative product source.
 - Edit public pages in `/Users/Sakura/Documents/WebstormProjects/blender-developer-docs/src/content/docs/blender-development/`.
 - Read the documentation repository's root `AGENTS.md` before making changes; its instructions govern files edited there.
-- Keep internal material in `docs/Wiki/internal` private. Never copy it into public documentation without explicit approval.
+- Keep internal material in `/ObsidianVault/` private. Never copy it into public documentation without explicit approval.
+- Treat `docs/Wiki/internal` as a legacy, read-only reference; never create or update documentation there.
 - Preserve unrelated changes in both worktrees. Do not create commits, push, or deploy unless requested.
 
 ## Workflow

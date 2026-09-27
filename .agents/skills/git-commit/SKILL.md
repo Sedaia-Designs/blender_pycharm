@@ -66,7 +66,8 @@ git add path/to/file1 path/to/file2
 - Keep one logical change per commit.
 - Do not use broad staging commands such as `git add .` when unrelated changes exist.
 - Do not commit secrets, credentials, private keys, environment files, or other sensitive data.
-- Never commit files under `docs/Wiki/internal`, even when they were edited for the task.
+- Never stage or commit files under `/ObsidianVault/`; the vault is local-only.
+- Treat `docs/Wiki/internal` as legacy, read-only material. If it appears modified, leave it untouched and exclude it from the commit.
 - If unrelated files are already staged, do not include them silently. Preserve their staged state and isolate the requested commit safely; ask for direction if isolation would require changing user-owned staging.
 
 ### 4. Verify the Candidate Commit
