@@ -4,7 +4,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
-import com.sakurasedaia.blenderdevelopment.core.BlenderInstallationScanner
+import com.sakurasedaia.blenderdevelopment.core.installs.ScannerUtils
 import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
 import com.sakurasedaia.blenderdevelopment.logging.NotificationModal
 import com.sakurasedaia.blenderdevelopment.logging.PluginLogger
@@ -77,7 +77,7 @@ class SettingsInstallationScanService {
         }
 
         try {
-            project.getService(BlenderInstallationScanner::class.java).refreshInstalledVersionsCache(scanShouldCancel)
+            project.getService(ScannerUtils::class.java).refreshInstalledVersionsCache(scanShouldCancel)
         } catch (cancelled: CancellationException) {
             if (deadlineExpired) throw ScanDeadlineExceededException()
             throw cancelled

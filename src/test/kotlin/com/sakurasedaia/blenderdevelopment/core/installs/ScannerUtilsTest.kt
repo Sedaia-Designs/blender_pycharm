@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sakurasedaia.blenderdevelopment.core
+package com.sakurasedaia.blenderdevelopment.core.installs
 
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import java.nio.file.Files
@@ -24,13 +24,15 @@ import java.util.concurrent.CancellationException
 import kotlin.io.path.createDirectories
 import kotlin.io.path.createFile
 
-class BlenderInstallationScannerTest : BasePlatformTestCase() {
-    private lateinit var scanner: BlenderInstallationScanner
+class ScannerUtilsTest : BasePlatformTestCase() {
+    private lateinit var macScanner: MacScanner
+    private lateinit var support: ScannerSupport
     private lateinit var testRoot: Path
 
     override fun setUp() {
         super.setUp()
-        scanner = BlenderInstallationScanner(project)
+        support = ScannerSupport(project)
+        macScanner = MacScanner(support)
         val projectPath = Path.of(project.basePath!!).createDirectories()
         testRoot = Files.createTempDirectory(projectPath, "installation-scanner-")
     }
@@ -66,7 +68,7 @@ class BlenderInstallationScannerTest : BasePlatformTestCase() {
         var probeCount = 0
 
         val discovered =
-            scanner.findMacBlenderBundles(
+            macScanner.findBlenderBundles(
                 searchRoots = listOf(testRoot, container, testRoot.resolve(".")),
                 maxSearchDepth = 1,
                 isExecutable = {
@@ -83,7 +85,7 @@ class BlenderInstallationScannerTest : BasePlatformTestCase() {
         createBundle(testRoot.resolve("Blender.app"))
 
         try {
-            scanner.findMacBlenderBundles(
+            macScanner.findBlenderBundles(
                 searchRoots = listOf(testRoot),
                 maxSearchDepth = 1,
                 shouldCancel = { true },
@@ -101,7 +103,7 @@ class BlenderInstallationScannerTest : BasePlatformTestCase() {
             createBinary(testRoot.resolve("Cellar").resolve("blender-runtime").resolve("4.5.0").resolve("bin").resolve("blender-runtime"))
 
         val discovered =
-            scanner.findHomebrewBlenderBinaries(
+            support.findHomebrewBlenderBinaries(
                 brewPrefixes = listOf(testRoot, testRoot.resolve(".")),
                 isExecutable = Files::isRegularFile,
             )
@@ -112,8 +114,33 @@ class BlenderInstallationScannerTest : BasePlatformTestCase() {
         )
     }
 
+    fun testHomebrewDiscoveryHonorsCancellationBeforeInspectingPaths() {
+        var executableChecks = 0
+
+        try {
+            support.findHomebrewBlenderBinaries(
+                brewPrefixes = listOf(testRoot),
+                shouldCancel = { true },
+                isExecutable = {
+                    executableChecks += 1
+                    Files.isRegularFile(it)
+                },
+            )
+            fail("Expected discovery to be cancelled")
+        } catch (_: CancellationException) {}
+
+        assertEquals(0, executableChecks)
+    }
+
+    fun testExtractsSemanticVersionsFromSupportedBlenderOutputFormats() {
+        assertEquals("4.2.1", formSemanticVersion("Blender 4.2.1"))
+        assertEquals("4.2.0", formSemanticVersion("Blender 4.2"))
+        assertEquals("4.2.1", formSemanticVersion("Blender version 4 build 2 revision 1"))
+        assertEquals("", formSemanticVersion("Blender unknown"))
+    }
+
     private fun findBundles(searchRoots: List<Path>, maxSearchDepth: Int = 1): List<Path> {
-        return scanner.findMacBlenderBundles(
+        return macScanner.findBlenderBundles(
             searchRoots = searchRoots,
             maxSearchDepth = maxSearchDepth,
             isExecutable = Files::isRegularFile,
