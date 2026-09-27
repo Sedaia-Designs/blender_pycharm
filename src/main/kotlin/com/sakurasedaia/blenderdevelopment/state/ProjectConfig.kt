@@ -54,6 +54,8 @@ import kotlinx.serialization.encodeToString
 )
 class ProjectConfig(private val project: Project, private val coroutineScope: CoroutineScope) :
     PersistentStateComponent<ProjectConfig.ProjectState> {
+    // region Configuration models
+
     /** Available log levels according to Blender Documentation */
     enum class BlenderLogLevel {
         FATAL,
@@ -106,7 +108,12 @@ class ProjectConfig(private val project: Project, private val coroutineScope: Co
         @SerialName("reload_on_save") val reloadOnSave: Boolean? = null,
         @SerialName("just_my_code") val justMyCode: Boolean? = null,
         @SerialName("extensions_repository") val extensionsRepository: String? = null,
+        @SerialName("blend_file_to_open") val blendFileToOpen: String? = null,
     )
+
+    // endregion
+
+    // region Service state
 
     private val stateLock = Any()
     private val workspaceWriteMutex = Mutex()
@@ -115,13 +122,26 @@ class ProjectConfig(private val project: Project, private val coroutineScope: Co
     private var workspaceState: WorkspaceState? = null
     private val mutableStateFlow = MutableStateFlow(effectiveState().toSnapshot())
 
+    /** Read-only stream of current project configuration snapshots. */
+    val stateFlow: StateFlow<ProjectSnapshot> = mutableStateFlow.asStateFlow()
+
+    // endregion
+
+    // region Path and value normalization
+
     /**
-     * Converts an absolute path to a relative path based on the project's base path.
+     * Normalizes a path and converts an in-project absolute path to a project-relative path.
      *
-     * @param value The absolute path to be converted into a relative project path.
-     * @return The relative path if the project base path exists and is valid; otherwise, an empty string.
+     * @param value path to normalize for project configuration storage.
+     * @return a normalized relative path for project content, a normalized absolute path for external content, or the trimmed input when
+     *   the path cannot be parsed.
      */
     private fun toRelativeProjectPath(value: String): String {
+        return normalizeProjectRelativePath(value, project.basePath)
+    }
+
+    /** Normalizes a stored path and makes in-project absolute paths relative when a project base path is available. */
+    internal fun normalizeProjectRelativePath(value: String, projectBasePath: String?): String {
         val trimmed = value.trim()
         if (trimmed.isEmpty()) return ""
 
@@ -133,7 +153,13 @@ class ProjectConfig(private val project: Project, private val coroutineScope: Co
             }
         if (!path.isAbsolute) return path.toString()
 
-        val projectPath = project.basePath?.let { Path.of(it).toAbsolutePath().normalize() } ?: return path.toString()
+        val basePath = projectBasePath ?: return path.toString()
+        val projectPath =
+            try {
+                Path.of(basePath).toAbsolutePath().normalize()
+            } catch (_: InvalidPathException) {
+                return path.toString()
+            }
         if (!path.startsWith(projectPath)) return path.toString()
 
         return runCatching { projectPath.relativize(path).toString() }.getOrDefault(path.toString())
@@ -163,8 +189,13 @@ class ProjectConfig(private val project: Project, private val coroutineScope: Co
         return Path.of(projectPath).resolve(path).normalize().toString()
     }
 
-    /** Read-only stream of current project configuration snapshots. */
-    val stateFlow: StateFlow<ProjectSnapshot> = mutableStateFlow.asStateFlow()
+    private fun normalizeAddonSymlinkName(name: String): String {
+        return name.trim().replace(SYMLINK_NAME_SEPARATOR_REGEX, "_")
+    }
+
+    // endregion
+
+    // region Local installation settings
 
     /**
      * Stores the Blender executable path.
@@ -191,6 +222,10 @@ class ProjectConfig(private val project: Project, private val coroutineScope: Co
     /** Returns the exact linting-stub requirement last installed by the plugin. */
     fun getInstalledStubRequirement(): String = effectiveState().installedStubRequirement
 
+    // endregion
+
+    // region Portable workspace settings
+
     /**
      * Stores the add-on symlink name.
      *
@@ -206,10 +241,6 @@ class ProjectConfig(private val project: Project, private val coroutineScope: Co
 
     /** Returns the configured add-on symlink name. */
     fun getAddonSymlinkName(): String = effectiveState().addonSymlinkName
-
-    private fun normalizeAddonSymlinkName(name: String): String {
-        return name.trim().replace(SYMLINK_NAME_SEPARATOR_REGEX, "_")
-    }
 
     /**
      * Stores the source folder path.
@@ -290,6 +321,29 @@ class ProjectConfig(private val project: Project, private val coroutineScope: Co
     fun getExtensionsRepository(): String = effectiveState().extensionsRepository
 
     /**
+     * Sets the path of the file to be opened for this project when a Blender GUI session is launched.
+     *
+     * @param file the path of the file to open.
+     */
+    fun setBlendFileToOpen(file: String) {
+        updatePortableState { blendFileToOpen = toRelativeProjectPath(file) }
+    }
+
+    /**
+     * Retrieves the file path configured to be opened in a Blender GUI session for this project.
+     *
+     * @return the path of the file to open, or an empty string if no file is configured.
+     */
+    fun getBlendFileToOpen(): String = effectiveState().blendFileToOpen
+
+    /** Resolves the configured Blender file to an executable filesystem path. */
+    fun resolveBlendFileToOpen(): String = toAbsoluteProjectPath(effectiveState().blendFileToOpen)
+
+    // endregion
+
+    // region Local runtime settings
+
+    /**
      * Stores project-scoped environment variables for Blender runtime workflows.
      *
      * @param variables environment variables map.
@@ -315,24 +369,9 @@ class ProjectConfig(private val project: Project, private val coroutineScope: Co
     /** Returns optional script directories used by runtime workflows. */
     fun getScriptDirectories(): List<String>? = effectiveState().scriptDirectories
 
-    /**
-     * Sets the path of the file to be opened for this project when a Blender GUI session is launched.
-     *
-     * @param file the path of the file to open.
-     */
-    fun setBlendFileToOpen(file: String) {
-        updateLocalState { blendFileToOpen = toRelativeProjectPath(file) }
-    }
+    // endregion
 
-    /**
-     * Retrieves the file path configured to be opened in a Blender GUI session for this project.
-     *
-     * @return the path of the file to open, or an empty string if no file is configured.
-     */
-    fun getBlendFileToOpen(): String = effectiveState().blendFileToOpen
-
-    /** Resolves the configured Blender file to an executable filesystem path. */
-    fun resolveBlendFileToOpen(): String = toAbsoluteProjectPath(effectiveState().blendFileToOpen)
+    // region Workspace configuration lifecycle
 
     /**
      * Forces initialization of persisted workspace settings for this project.
@@ -382,6 +421,10 @@ class ProjectConfig(private val project: Project, private val coroutineScope: Co
         return path
     }
 
+    // endregion
+
+    // region IntelliJ persistent state
+
     /**
      * Loads workspace state from persistent storage.
      *
@@ -401,6 +444,10 @@ class ProjectConfig(private val project: Project, private val coroutineScope: Co
 
     /** Returns the current persisted workspace state payload. */
     override fun getState(): ProjectState = synchronized(stateLock) { localState.copyState() }
+
+    // endregion
+
+    // region State coordination
 
     private inline fun updateLocalState(update: ProjectState.() -> Unit) {
         synchronized(stateLock) {
@@ -439,9 +486,13 @@ class ProjectConfig(private val project: Project, private val coroutineScope: Co
             extensionsRepository = workspace.extensionsRepository ?: localState.extensionsRepository,
             environmentVariables = localState.environmentVariables.toMap(),
             scriptDirectories = localState.scriptDirectories?.toList(),
-            blendFileToOpen = localState.blendFileToOpen,
+            blendFileToOpen = workspace.blendFileToOpen ?: localState.blendFileToOpen,
         )
     }
+
+    // endregion
+
+    // region Workspace storage
 
     private fun scheduleWorkspaceSave() {
         coroutineScope.launch(Dispatchers.IO) {
@@ -468,6 +519,10 @@ class ProjectConfig(private val project: Project, private val coroutineScope: Co
 
     private fun workspaceConfigPath(): Path? = project.basePath?.let(Path::of)?.resolve(WORKSPACE_CONFIG_FILE_NAME)
 
+    // endregion
+
+    // region State mapping
+
     private fun ProjectState.copyState(): ProjectState =
         copy(
             environmentVariables = environmentVariables.toMap(),
@@ -483,6 +538,7 @@ class ProjectConfig(private val project: Project, private val coroutineScope: Co
             reloadOnSave = reloadOnSave,
             justMyCode = justMyCode,
             extensionsRepository = extensionsRepository,
+            blendFileToOpen = blendFileToOpen,
         )
 
     private fun ProjectState.toSnapshot(): ProjectSnapshot {
@@ -503,6 +559,10 @@ class ProjectConfig(private val project: Project, private val coroutineScope: Co
         )
     }
 
+    // endregion
+
+    // region Service access and constants
+
     companion object {
         private const val WORKSPACE_CONFIG_FILE_NAME = "blender-workspace.toml"
         private val SYMLINK_NAME_SEPARATOR_REGEX = Regex("[\\s-]+")
@@ -516,6 +576,8 @@ class ProjectConfig(private val project: Project, private val coroutineScope: Co
          */
         fun getInstance(project: Project): ProjectConfig = project.service()
     }
+
+    // endregion
 }
 
 // State managed by com.sakurasedaia.blenderdevelopment.ui.toolwindow.BlenderToolWindowFactory

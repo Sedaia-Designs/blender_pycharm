@@ -142,6 +142,67 @@ class ProjectConfigTest : BasePlatformTestCase() {
         assertEquals(expectedPath, config.resolveBlendFileToOpen())
     }
 
+    fun testBlankBlendFileRemainsBlank() {
+        config.setBlendFileToOpen("   ")
+
+        assertEquals("", config.getBlendFileToOpen())
+        assertEquals("", config.resolveBlendFileToOpen())
+    }
+
+    fun testRelativeBlendFileNormalizesSegmentsAndPreservesSpaces() {
+        val input = Path.of("scenes", "drafts with spaces", "..", "final scene.blend")
+        val expectedRelativePath = Path.of("scenes", "final scene.blend").toString()
+
+        config.setBlendFileToOpen(input.toString())
+
+        assertEquals(expectedRelativePath, config.getBlendFileToOpen())
+        assertEquals(Path.of(project.basePath!!).resolve(expectedRelativePath).normalize().toString(), config.resolveBlendFileToOpen())
+    }
+
+    fun testMalformedBlendFilePathIsPreservedForCorrection() {
+        config.setBlendFileToOpen(" \u0000 ")
+
+        assertEquals("\u0000", config.getBlendFileToOpen())
+        assertEquals("\u0000", config.resolveBlendFileToOpen())
+    }
+
+    fun testAbsoluteBlendFileRemainsAbsoluteWithoutProjectBasePath() {
+        val absolutePath = Path.of(project.basePath!!).resolve("scene.blend").toAbsolutePath().normalize()
+
+        val normalized = config.normalizeProjectRelativePath(absolutePath.toString(), projectBasePath = null)
+
+        assertEquals(absolutePath.toString(), normalized)
+    }
+
+    fun testAbsoluteInProjectBlendFileIsStoredRelative() {
+        val projectPath = Path.of(project.basePath!!).toAbsolutePath().normalize()
+        val blendFile = projectPath.resolve("scenes").resolve("drafts").resolve("..").resolve("example.blend")
+
+        config.setBlendFileToOpen(blendFile.toString())
+
+        assertEquals(Path.of("scenes", "example.blend").toString(), config.getBlendFileToOpen())
+        assertEquals(projectPath.resolve("scenes").resolve("example.blend").toString(), config.resolveBlendFileToOpen())
+    }
+
+    fun testExternalAbsoluteBlendFileRemainsAbsolute() {
+        val projectPath = Path.of(project.basePath!!).toAbsolutePath().normalize()
+        val externalFile = projectPath.resolveSibling("${projectPath.fileName}-external").resolve("example.blend").normalize()
+
+        config.setBlendFileToOpen(externalFile.toString())
+
+        assertEquals(externalFile.toString(), config.getBlendFileToOpen())
+        assertEquals(externalFile.toString(), config.resolveBlendFileToOpen())
+    }
+
+    fun testLegacyAbsoluteBlendFileStateStillResolves() {
+        val legacyPath = Path.of(project.basePath!!).resolve("legacy scene.blend").toAbsolutePath().normalize()
+
+        config.loadState(ProjectConfig.ProjectState(blendFileToOpen = legacyPath.toString()))
+
+        assertEquals(legacyPath.toString(), config.getBlendFileToOpen())
+        assertEquals(legacyPath.toString(), config.resolveBlendFileToOpen())
+    }
+
     fun testLoadStatePublishesPersistedSnapshot() {
         config.loadState(
             ProjectConfig.ProjectState(
@@ -164,6 +225,7 @@ class ProjectConfigTest : BasePlatformTestCase() {
                 sourceFolder = "local-src",
                 runArguments = "--local",
                 environmentVariables = mapOf("LOCAL_ONLY" to "true"),
+                blendFileToOpen = Path.of("scenes", "local.blend").toString(),
             )
         )
         workspacePath.writeText(
@@ -181,6 +243,7 @@ class ProjectConfigTest : BasePlatformTestCase() {
         assertEquals("--factory-startup", config.getRunArguments())
         assertEquals(localBlenderPath, config.getBlenderPath())
         assertEquals(mapOf("LOCAL_ONLY" to "true"), config.getEnvironmentVariables())
+        assertEquals(Path.of("scenes", "local.blend").toString(), config.getBlendFileToOpen())
         assertEquals("local-src", config.state.sourceFolder)
         assertTrue(config.stateFlow.value.workspaceConfigEnabled)
     }
@@ -206,8 +269,8 @@ class ProjectConfigTest : BasePlatformTestCase() {
         assertFalse(contents.contains("installedStubRequirement"))
         assertFalse(contents.contains("environmentVariables"))
         assertFalse(contents.contains("scriptDirectories"))
-        assertFalse(contents.contains("blend_file_to_open"))
-        assertFalse(contents.contains("local.blend"))
+        assertTrue(contents.contains("blend_file_to_open"))
+        assertTrue(contents.contains("local.blend"))
         assertTrue(config.stateFlow.value.workspaceConfigEnabled)
     }
 
@@ -232,6 +295,42 @@ class ProjectConfigTest : BasePlatformTestCase() {
                 delay(20)
             }
         }
+    }
+
+    fun testBlendFileChangesAutosaveAfterWorkspaceFileIsEnabled() = runBlocking {
+        val workspacePath = config.saveWorkspaceState()
+        val blendFile = Path.of("scenes", "autosaved.blend").toString()
+
+        config.setBlendFileToOpen(blendFile)
+
+        withTimeout(5_000) {
+            while (!workspacePath.readText().contains("blend_file_to_open = \"$blendFile\"")) {
+                delay(20)
+            }
+        }
+        assertEquals(blendFile, config.getBlendFileToOpen())
+
+        config.setBlendFileToOpen("")
+
+        withTimeout(5_000) {
+            while (!workspacePath.readText().contains("blend_file_to_open = \"\"")) {
+                delay(20)
+            }
+        }
+        assertEquals("", config.getBlendFileToOpen())
+    }
+
+    fun testWorkspaceBlendFileOverridesLocalStateAfterRoundTrip() = runBlocking {
+        val workspaceBlendFile = Path.of("scenes", "workspace.blend").toString()
+        val localBlendFile = Path.of("scenes", "local.blend").toString()
+        config.setBlendFileToOpen(workspaceBlendFile)
+        config.saveWorkspaceState()
+        config.loadState(ProjectConfig.ProjectState(blendFileToOpen = localBlendFile))
+
+        config.loadWorkspaceState()
+
+        assertEquals(workspaceBlendFile, config.getBlendFileToOpen())
+        assertEquals(localBlendFile, config.state.blendFileToOpen)
     }
 
     fun testWorkspaceTomlRoundTripPreservesWindowsStylePathSeparatorsAndSpaces() = runBlocking {
