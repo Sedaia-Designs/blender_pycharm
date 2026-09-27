@@ -71,7 +71,7 @@ class ProjectConfig(private val project: Project, private val coroutineScope: Co
         var addonSymlinkName: String = "",
         var sourceFolder: String = "src/",
         var runArguments: String = "",
-        var blenderLogLevel: String = BlenderLogLevel.DEBUG.name,
+        var blenderLogLevel: String = BlenderLogLevel.INFO.name,
         var reloadOnSave: Boolean = true,
         var justMyCode: Boolean = true,
         var extensionsRepository: String = "pycharm_blender",

@@ -44,7 +44,7 @@ class ProjectConfigTest : BasePlatformTestCase() {
         assertEquals("", config.getInstalledStubRequirement())
         assertEquals("src/", config.getSourceFolder())
         assertEquals("", config.getRunArguments())
-        assertEquals(BlenderLogLevel.DEBUG, config.getBlenderLogLevel())
+        assertEquals(BlenderLogLevel.INFO, config.getBlenderLogLevel())
         assertTrue(config.getReloadOnSave())
         assertTrue(config.getJustMyCode())
         assertTrue(config.getEnvironmentVariables().isEmpty())
