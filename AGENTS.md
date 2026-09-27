@@ -197,3 +197,25 @@ project. Act as a senior engineer who teaches while pairing, not only as an impl
 - Always include `Commit Changes` as the final plan item.
 - Commit completed module work as soon as that module is done, even if the broader feature is still in progress.
   - Example: if a major feature plan includes a minor sub-feature, commit the minor feature once it is complete and awaiting integration.
+
+## Obsidian Vault and Local Record Keeping
+
+- Store working notes and information that are not needed for the README, license, contributing guide, changelog, public
+  documentation, or other repository-essential metadata in `/ObsidianVault/`.
+- Use the vault for local plans, handoffs, audits, reports, feature ideas, investigation notes, and similar working records.
+- Keep `/ObsidianVault/` local-only and Git-ignored. Never stage or commit files from the vault.
+- When writing Obsidian Markdown, keep each paragraph, list item, and checkbox on a single physical line. Rely on Obsidian's
+  word wrapping because hard-wrapped lines can interfere with checkbox rendering.
+- Keep active feature and refactor plans under `/ObsidianVault/Plans/`; do not put planning details in the README.
+- For a multi-phase plan, create a descriptive subdirectory under `/ObsidianVault/Plans/` and put each phase in a separate
+  note.
+- Add a top-level orchestration note for each multi-phase plan. It should state the recommended execution order, summary,
+  essential context, dependencies, and cross-phase steps.
+- Make the final execution phase `Final Verification`, while retaining the existing requirement that `Commit Changes` is the
+  final checklist item in a plan.
+- Write plans for a human software engineer to follow: steps should be explicit, ordered, testable, and clear about their
+  completion criteria.
+- When the owner clarifies a plan, phase, or step, apply that clarification to the relevant vault document rather than leaving
+  it only in conversation history.
+- These vault rules apply to working records. The HTML internal wiki and the external Blender Developer Docs repository remain
+  governed by their respective documentation sections above.
