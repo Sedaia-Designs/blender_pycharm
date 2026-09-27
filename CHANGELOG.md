@@ -2,12 +2,30 @@
 
 # Blender Development for PyCharm Changelog
 
-## [Unreleased]
+## [1.0.0-beta.4]
 
 ### Added
 
 - Added optional `blender-workspace.toml` configuration for sharing portable project settings. Project Blender Manager can
   create the file and automatically keeps it synchronized while machine-specific paths and environment values remain local.
+- Added a **Blend File to Open** control to Project Blender Manager. Launch Blender configurations persist and validate the
+  selected `.blend` file, pass it to Blender at startup, and reject conflicting free-form launch arguments.
+- Added a Docker-based local GitLab CI harness, validation scripts, and IntelliJ run configurations for running CI checks,
+  release preparation, Marketplace checks, and code formatting locally.
+- Added GitHub issue templates for bug reports, documentation issues, and feature requests as the first step of the repository
+  migration from GitLab. CI/CD remains on GitLab.
+
+### Changed
+
+- Expanded Blender installation discovery to find nested macOS application bundles and Blender installations managed through
+  Homebrew on macOS and Linux.
+
+### Fixed
+
+- Fixed external-process cancellation so descendant processes are terminated before the parent is forcibly stopped.
+- Fixed Marketplace signing configuration to use CI-provided credentials when available and fall back to local certificate
+  files otherwise.
+- Excluded generated release artifacts from version control and local CI build contexts.
 
 ## [1.0.0-beta.3] - 2026-08-16
 
