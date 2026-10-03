@@ -1,0 +1,70 @@
+name: Publish validated release
+
+on:
+  workflow_dispatch:
+    inputs:
+      validation_run_id:
+        description: Successful validate workflow run ID containing the release artifact
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: release-publication
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    environment: release-publication
+    steps:
+      - name: Validate source run
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.validation_run_id }}
+        run: |
+          case "$RUN_ID" in *[!0-9]*|'') exit 1 ;; esac
+          run_json="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID")"
+          test "$(jq -r .conclusion <<< "$run_json")" = success
+          test "$(jq -r .event <<< "$run_json")" = workflow_dispatch
+          case "$(jq -r .path <<< "$run_json")" in
+            .github/workflows/validate.yml|.github/workflows/validate.yml@refs/heads/*) ;;
+            *) exit 1 ;;
+          esac
+          test "$(jq -r .head_repository.full_name <<< "$run_json")" = "$GITHUB_REPOSITORY"
+          default_branch="$(gh api "repos/$GITHUB_REPOSITORY" --jq .default_branch)"
+          test "$(jq -r .head_branch <<< "$run_json")" = "$default_branch"
+          printf 'sha=%s\n' "$(jq -r .head_sha <<< "$run_json")" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.source.outputs.sha }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: validated-release
+          run-id: ${{ inputs.validation_run_id }}
+          github-token: ${{ github.token }}
+          path: .
+      - name: Verify artifact and source identity
+        env:
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+          SOURCE_RUN_ID: ${{ inputs.validation_run_id }}
+        run: bash scripts/verify-downloaded-release.sh
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/publish-github-release.sh
+      - name: Publish the validated plugin to Marketplace
+        env:
+          PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
+        run: bash scripts/publish-validated-marketplace.sh

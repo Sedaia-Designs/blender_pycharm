@@ -21,8 +21,8 @@ assert_fails() {
   fi
 }
 
-if ! release_marketplace_usage | grep -q -- 'GitLab pipeline'; then
-  printf 'FAIL: usage does not describe GitLab Marketplace publication.\n' >&2
+if ! release_marketplace_usage | grep -q -- 'GitHub publication workflow'; then
+  printf 'FAIL: usage does not describe GitHub Marketplace publication.\n' >&2
   exit 1
 fi
 

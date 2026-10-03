@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Validates and prepares metadata consumed by the manual GitLab release pipeline.
+# Validates and prepares metadata consumed by release workflows.
 
 release_error() {
   printf 'Error: %s\n' "$*" >&2
@@ -171,7 +171,7 @@ main() {
     printf 'MARKETPLACE_CHANNEL=%s\n' "$marketplace_channel"
   } > "$output_dir/release.env"
 
-  printf 'Prepared GitLab release %s with artifact %s.\n' "$tag_name" "$asset_name"
+  printf 'Prepared release %s with artifact %s.\n' "$tag_name" "$asset_name"
 }
 
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then

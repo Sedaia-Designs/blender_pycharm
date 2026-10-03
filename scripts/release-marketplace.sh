@@ -21,8 +21,8 @@ release_marketplace_usage() {
 Usage: scripts/release-marketplace.sh [options]
 
 Builds and publishes the release declared in build.gradle.kts to the
-JetBrains Marketplace dev or default channel. The GitLab pipeline uses this script after
-the manually approved GitLab release succeeds; it also remains available for
+JetBrains Marketplace dev or default channel. The GitHub publication workflow uses this script after
+the manually approved GitHub release succeeds; it also remains available for
 local validation and publication recovery.
 
 Options:
@@ -100,8 +100,8 @@ main() {
   script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   project_root="$(cd "$script_dir/.." && pwd)"
 
-  # shellcheck source=prepare-gitlab-release.sh
-  source "$script_dir/prepare-gitlab-release.sh"
+  # shellcheck source=prepare-github-release.sh
+  source "$script_dir/prepare-github-release.sh"
 
   gradle_version="$(read_gradle_version "$project_root/build.gradle.kts")"
   release_version="$(release_version_from_gradle_version "$gradle_version")"

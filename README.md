@@ -53,19 +53,18 @@ The [Blender Development documentation](https://docs.blender-development.sakura-
 
 Release changes are recorded in the [changelog](CHANGELOG.md). Bugs and feature requests can be submitted through the [GitLab issue tracker](https://gitlab.com/sedaia-designs/blender_pycharm/-/issues).
 
-## Local GitLab CI validation
+## Local GitHub CI validation
 
-The release preparation and Marketplace-input checks can run in a Docker container that matches the GitLab Linux/AMD64
-environment. Docker Desktop with Docker Compose is required.
+The required validation gates and release preparation can run in a Docker container using the same gate runner as GitHub Actions. Docker Desktop with Docker Compose is required.
 
 ```shell
-bash scripts/local-gitlab-ci.sh prepare_release
-bash scripts/local-gitlab-ci.sh publish_release_check
-bash scripts/local-gitlab-ci.sh marketplace_check
+bash scripts/local-github-ci.sh validate
+bash scripts/local-github-ci.sh prepare
 ```
 
-Use `all` to run all checks. The harness never publishes, reads signing credentials, or includes `.env/` in its Docker build
-context. Set `LOCAL_CI_PLATFORM` only when intentionally testing a different container architecture.
+`validate` runs the lockfile, Python, Ruff, Spotless, JVM, release-script, project configuration, and Plugin Verifier gates. `prepare` additionally builds and checks the ZIP and writes its checksum manifest. The harness never publishes, reads signing credentials, or includes `.env/` or `.venv/` in its Docker build context. Set `LOCAL_CI_PLATFORM` only when intentionally testing a different container architecture.
+
+GitHub Actions runs the same gates on pushes and pull requests. To prepare a release, dispatch **Validate and prepare release** on the default branch; its successful run stores the ZIP, release notes, metadata, and SHA-256 manifest for 30 days. Then dispatch **Publish validated release** with that run ID. The publication workflow verifies the source commit and checksum before creating the GitHub release and signing the validated ZIP for JetBrains Marketplace. Configure the `release-publication` GitHub environment and its reviewers where supported, and provide `PUBLISH_TOKEN`, `PRIVATE_KEY`, and `CERTIFICATE_CHAIN` as repository or environment secrets.
 
 ## License
 

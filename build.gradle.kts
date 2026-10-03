@@ -4,6 +4,8 @@ import org.gradle.api.tasks.testing.Test
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.jetbrains.intellij.platform.gradle.tasks.PublishPluginTask
+import org.jetbrains.intellij.platform.gradle.tasks.SignPluginTask
 import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
 
 plugins {
@@ -117,6 +119,19 @@ intellijPlatform {
 }
 
 tasks {
+    val validatedPluginArchive = providers.gradleProperty("validatedPluginArchive")
+    if (validatedPluginArchive.isPresent) {
+        val archive = layout.projectDirectory.file(validatedPluginArchive.get())
+        named<SignPluginTask>("signPlugin") {
+            archiveFile.set(archive)
+            setDependsOn(emptyList<Any>())
+        }
+        named<PublishPluginTask>("publishPlugin") {
+            archiveFile.set(named<SignPluginTask>("signPlugin").flatMap { it.signedArchiveFile })
+            setDependsOn(listOf("signPlugin"))
+        }
+    }
+
     withType<Test> {
         // Keep platform tests isolated from unrelated bundled IDE plugins such as Vue.js.
         // The platform automatically loads this plugin's non-optional dependencies.

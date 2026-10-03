@@ -3,12 +3,12 @@
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-release_script="$script_dir/../prepare-gitlab-release.sh"
+release_script="$script_dir/../prepare-github-release.sh"
 
-# shellcheck source=../prepare-gitlab-release.sh
+# shellcheck source=../prepare-github-release.sh
 source "$release_script"
 
-test_tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/prepare-gitlab-release-test.XXXXXX")"
+test_tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/prepare-github-release-test.XXXXXX")"
 trap 'rm -rf -- "$test_tmpdir"' EXIT
 
 assert_equals() {
@@ -183,7 +183,7 @@ git -C "$fixture_root" tag 'v1.2.3'
 git -C "$fixture_root" push -q origin 'v1.2.3'
 git -C "$fixture_root" tag -d 'v1.2.3' >/dev/null
 if ! validate_release_inputs "$fixture_root" '1.2.3' 'v1.2.3' 'BlenderPythonDevelopment-1.2.3.zip' 'allow_existing'; then
-  printf 'FAIL: Marketplace validation rejected the tag created by GitLab.\n' >&2
+  printf 'FAIL: Marketplace validation rejected the tag created by GitHub.\n' >&2
   exit 1
 fi
 if validate_release_inputs "$fixture_root" '1.2.3' 'v1.2.3' 'BlenderPythonDevelopment-1.2.3.zip' >/dev/null 2>&1; then
@@ -192,8 +192,8 @@ if validate_release_inputs "$fixture_root" '1.2.3' 'v1.2.3' 'BlenderPythonDevelo
 fi
 git -C "$fixture_root" remote remove origin
 mkdir -p "$fixture_root/scripts"
-cp "$release_script" "$fixture_root/scripts/prepare-gitlab-release.sh"
-bash "$fixture_root/scripts/prepare-gitlab-release.sh" "$test_tmpdir/stable-output" >/dev/null
+cp "$release_script" "$fixture_root/scripts/prepare-github-release.sh"
+bash "$fixture_root/scripts/prepare-github-release.sh" "$test_tmpdir/stable-output" >/dev/null
 if ! grep -q '^TAG_NAME=v1.2.3$' "$test_tmpdir/stable-output/release.env" ||
    ! grep -q '^ASSET_NAME=BlenderPythonDevelopment-1.2.3.zip$' "$test_tmpdir/stable-output/release.env" ||
    ! grep -q '^MARKETPLACE_CHANNEL=default$' "$test_tmpdir/stable-output/release.env"; then
@@ -222,4 +222,4 @@ if extract_release_notes "$test_tmpdir/CHANGELOG.md" '9.9.9-Snapshot' >/dev/null
   exit 1
 fi
 
-printf 'All prepare-gitlab-release tests passed.\n'
+printf 'All prepare-github-release tests passed.\n'
