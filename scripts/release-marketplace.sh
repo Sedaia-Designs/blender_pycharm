@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Builds and publishes one plugin pre-release to the JetBrains Marketplace dev channel.
+# Builds and publishes one plugin release to the selected JetBrains Marketplace channel.
 
 release_marketplace_validation_dir=""
 
@@ -20,8 +20,8 @@ release_marketplace_usage() {
   cat <<'EOF'
 Usage: scripts/release-marketplace.sh [options]
 
-Builds and publishes the pre-release declared in build.gradle.kts to the
-JetBrains Marketplace dev channel. The GitLab pipeline uses this script after
+Builds and publishes the release declared in build.gradle.kts to the
+JetBrains Marketplace dev or default channel. The GitLab pipeline uses this script after
 the manually approved GitLab release succeeds; it also remains available for
 local validation and publication recovery.
 
@@ -34,7 +34,7 @@ Options:
 
 Prerequisites:
   - The worktree and index must be clean.
-  - CHANGELOG.md must contain the matching pre-release section.
+  - Release metadata and CHANGELOG.md must match the plugin version.
   - PUBLISH_TOKEN must be available in the environment for publication.
   - CI signing uses PRIVATE_KEY and CERTIFICATE_CHAIN environment variables.
   - Local signing falls back to the protected file paths configured in build.gradle.kts.
@@ -71,7 +71,7 @@ main() {
   local gradle_version
   local release_version
   local asset_name
-  local asset_path
+  local marketplace_channel
 
   while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -106,18 +106,17 @@ main() {
   gradle_version="$(read_gradle_version "$project_root/build.gradle.kts")"
   release_version="$(release_version_from_gradle_version "$gradle_version")"
   asset_name="BlenderPythonDevelopment-$gradle_version.zip"
-  asset_path="$project_root/build/distributions/$asset_name"
+  marketplace_channel="$(release_marketplace_channel "$gradle_version")"
 
   cd "$project_root"
-  ensure_clean_worktree
+  if [ "$check_only" = false ]; then
+    ensure_clean_worktree
+  fi
 
   if [ "$skip_build" = false ]; then
     ./gradlew compileKotlin test buildPlugin --no-daemon
   fi
-  if [ ! -f "$asset_path" ]; then
-    release_marketplace_error "Distribution ZIP not found: $asset_path"
-    return 1
-  fi
+  validate_release_inputs "$project_root" "$gradle_version" "v$release_version" "$asset_name" 'allow_existing' || return 1
 
   release_marketplace_validation_dir="$(mktemp -d "${TMPDIR:-/tmp}/blender-marketplace-release.XXXXXX")"
   trap cleanup_release_marketplace_validation EXIT
@@ -139,7 +138,7 @@ main() {
 
   ./gradlew publishPlugin --no-daemon
   unset PUBLISH_TOKEN || true
-  printf 'Published %s to the JetBrains Marketplace dev channel.\n' "$release_version"
+  printf 'Published %s to the JetBrains Marketplace %s channel.\n' "$release_version" "$marketplace_channel"
 }
 
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then

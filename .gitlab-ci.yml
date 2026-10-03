@@ -67,7 +67,7 @@ publish_marketplace:
   before_script:
     - apt-get update
     - apt-get install --yes --no-install-recommends git
-  resource_group: jetbrains-marketplace-dev
+  resource_group: jetbrains-marketplace
   needs:
     - job: prepare_release
       artifacts: true
@@ -78,9 +78,10 @@ publish_marketplace:
       when: on_success
     - when: never
   script:
+    - test "$MARKETPLACE_CHANNEL" = "dev" -o "$MARKETPLACE_CHANNEL" = "default"
     - test -n "$PUBLISH_TOKEN"
     - test -n "$PRIVATE_KEY"
     - test -n "$CERTIFICATE_CHAIN"
     - bash scripts/release-marketplace.sh --skip-build --yes
   environment:
-    name: jetbrains-marketplace/dev
+    name: jetbrains-marketplace

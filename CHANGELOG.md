@@ -2,6 +2,13 @@
 
 # Blender Development for PyCharm Changelog
 
+## [Unreleased]
+
+### Changed
+
+- Prepared stable releases for the default JetBrains Marketplace channel while keeping preview releases on `dev`.
+- Aligned the root Python project version with the plugin version, using Python's normalized prerelease spelling.
+
 ## [1.0.0-beta.4]
 
 ### Added

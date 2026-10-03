@@ -102,7 +102,8 @@ intellijPlatform {
 
     publishing {
         token.set(providers.environmentVariable("PUBLISH_TOKEN"))
-        channels.set(listOf("dev"))
+        val stableVersion = Regex("^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$")
+        channels.set(listOf(if (stableVersion.matches(project.version.toString())) "default" else "dev"))
     }
 
     autoReload = true

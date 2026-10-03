@@ -1,6 +1,6 @@
 [project]
 name = "blender-pycharm"
-version = "1.0.0"
+version = "1.0.0b4"
 description = "Blender Development plugin and Blender runtime support"
 readme = "README.md"
 requires-python = ">=3.11.7"
