@@ -36,6 +36,15 @@ enum class ErrorTypes(private val message: String, private val exceptionFactory:
     ARCHIVE_EXTRACTION_ERROR("[BL-003]: Failed to extract archive", ::IOException),
     UNKNOWN_DOWNLOAD_URL("[BL-004]: Could not get the download URL for that version.", ::IllegalStateException),
     ARCHIVE_CLEANUP_FAILURE_WARNING("[BL-005]: Could not clean installer archive artifacts"),
+    UNSUPPORTED_DOWNLOAD_ORIGIN("[BL-006]: Blender archive or checksum URL is outside the official release origin.", ::SecurityException),
+    MISSING_OFFICIAL_BLENDER_CHECKSUM(
+        "[BL-007]: Official SHA-256 checksum is unavailable for this Blender archive.",
+        ::IllegalStateException,
+    ),
+    ARCHIVE_DIGEST_MISMATCH("[BL-008]: Blender archive SHA-256 does not match the official checksum.", ::SecurityException),
+    CORRUPT_BLENDER_CACHE("[BL-009]: Cached Blender archive failed verification and was removed.", ::IOException),
+    ARCHIVE_VERIFICATION_IO_FAILURE("[BL-010]: Could not verify the Blender archive.", ::IOException),
+    BLENDER_DOWNLOAD_FAILED("[BL-011]: Could not download the Blender archive.", ::IOException),
 
     // Process Execution Failures [BL-100]
     PROCESS_EXECUTION_FAILED("[BL-100]: Failed to execute `{0}`", ::IOException),

@@ -52,6 +52,8 @@ class ArchiveUtilTest : TestCase() {
     }
 
     fun testDiskutilAttachArgumentsUseSeparateSupportedTokens() {
+        val archive = testDirectory.resolve("downloads").resolve("blender.dmg")
+        val mountPoint = testDirectory.resolve("mount")
         assertEquals(
             listOf(
                 "image",
@@ -59,12 +61,12 @@ class ArchiveUtilTest : TestCase() {
                 "--readOnly",
                 "--nobrowse",
                 "--mountPoint",
-                "/tmp/mount",
-                "/downloads/blender.dmg",
+                mountPoint.toString(),
+                archive.toString(),
             ),
             ArchiveUtil.diskutilAttachArguments(
-                    archive = Path.of("/downloads/blender.dmg"),
-                    mountPoint = Path.of("/tmp/mount"),
+                    archive = archive,
+                    mountPoint = mountPoint,
                 )
                 .toList(),
         )

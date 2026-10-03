@@ -6,14 +6,17 @@ import com.sakurasedaia.blenderdevelopment.state.PluginConfig
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
+import java.security.MessageDigest
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionException
+import java.util.concurrent.atomic.AtomicInteger
 
 class InstallBlenderTest : BasePlatformTestCase() {
     // TODO(V1): Add live and platform-specific ZIP, TAR, and DMG installation coverage on supported operating systems.
     private lateinit var downloadDirectory: Path
     private lateinit var installDirectory: Path
     private lateinit var tempDirectory: Path
+    private val emptyArchiveDigest = MessageDigest.getInstance("SHA-256").digest()
 
     override fun setUp() {
         super.setUp()
@@ -42,13 +45,14 @@ class InstallBlenderTest : BasePlatformTestCase() {
                     completedDownload(expectedDownload)
                 },
                 downloadPathOverride = downloadDirectory,
+                checksumResolver = { emptyArchiveDigest },
             )
 
         val result =
             installer
                 .downloadBlenderService(
                     project = project,
-                    downloadUrl = "https://example.invalid/blender.tar.xz",
+                    downloadUrl = BlenderVersions.getVersionMeta("4.5")!!.getDownloadURL(),
                     targetDirectory = downloadDirectory,
                     version = "4.5",
                 )
@@ -58,7 +62,7 @@ class InstallBlenderTest : BasePlatformTestCase() {
         assertEquals(
             DownloadRequest(
                 usesExpectedProject = true,
-                url = "https://example.invalid/blender.tar.xz",
+                url = BlenderVersions.getVersionMeta("4.5")!!.getDownloadURL(),
                 target = downloadDirectory,
                 archiveName =
                     BlenderVersions.getVersionMeta("4.5")?.getArchiveName()?.takeIf(String::isNotBlank)
@@ -81,6 +85,7 @@ class InstallBlenderTest : BasePlatformTestCase() {
                     failedDownload(AssertionError("Downloader should not be invoked"))
                 },
                 downloadPathOverride = downloadDirectory,
+                checksumResolver = { emptyArchiveDigest },
             )
 
         val result = installer.downloadVersion("4.5", project).join()
@@ -101,6 +106,7 @@ class InstallBlenderTest : BasePlatformTestCase() {
                     },
                 downloadPathOverride = downloadDirectory,
                 errorReporter = BlenderInstallErrorReporter { errorReported = true },
+                checksumResolver = { emptyArchiveDigest },
             )
 
         val failure = runCatching { installer.downloadVersion("999.999", project).join() }.exceptionOrNull()
@@ -121,12 +127,15 @@ class InstallBlenderTest : BasePlatformTestCase() {
                     failedDownload(expectedFailure)
                 },
                 downloadPathOverride = downloadDirectory,
+                checksumResolver = { emptyArchiveDigest },
             )
 
         val failure = runCatching { installer.downloadVersion("4.5", project).join() }.exceptionOrNull()
 
         assertTrue(failure is CompletionException)
-        assertSame(expectedFailure, failure?.cause)
+        assertTrue(failureCause(failure) is IOException)
+        assertTrue(failureCause(failure)?.message.orEmpty().contains("BL-011"))
+        assertSame(expectedFailure, failureCause(failure)?.cause)
         assertTrue(downloadInvoked)
     }
 
@@ -137,12 +146,205 @@ class InstallBlenderTest : BasePlatformTestCase() {
                     CompletableFuture.completedFuture(BlenderArtifactDownloadResult.Cancelled)
                 },
                 downloadPathOverride = downloadDirectory,
+                checksumResolver = { emptyArchiveDigest },
             )
 
         val failure = runCatching { installer.downloadVersion("4.5", project).join() }.exceptionOrNull()
 
         assertTrue(failure is CompletionException)
         assertTrue(failure?.cause is java.util.concurrent.CancellationException)
+    }
+
+    fun testMissingOfficialChecksumBlocksDownload() {
+        val archive = Files.createFile(downloadDirectory.resolve(archiveName()))
+        var downloaded = false
+        val installer =
+            BlenderInstallationService(
+                artifactDownloader = { _, _, _, _ ->
+                    downloaded = true
+                    failedDownload(AssertionError("Missing checksum must block the download"))
+                },
+                downloadPathOverride = downloadDirectory,
+                checksumResolver = { null },
+            )
+
+        val failure = runCatching { installer.downloadVersion("4.5", project).join() }.exceptionOrNull()
+
+        assertTrue(failureCause(failure) is IllegalStateException)
+        assertTrue(failureCause(failure)?.message.orEmpty().contains("BL-007"))
+        assertFalse(downloaded)
+        assertFalse(Files.exists(archive))
+    }
+
+    fun testCorruptCacheIsRemovedBeforeAnyExtraction() {
+        val archive = Files.writeString(downloadDirectory.resolve(archiveName()), "stale archive")
+        var downloaded = false
+        val installer =
+            BlenderInstallationService(
+                artifactDownloader = { _, _, _, _ ->
+                    downloaded = true
+                    failedDownload(AssertionError("Retry is a separate user action"))
+                },
+                downloadPathOverride = downloadDirectory,
+                checksumResolver = { emptyArchiveDigest },
+            )
+
+        val failure = runCatching { installer.downloadVersion("4.5", project).join() }.exceptionOrNull()
+
+        assertTrue(failureCause(failure) is IOException)
+        assertTrue(failureCause(failure)?.message.orEmpty().contains("BL-009"))
+        assertFalse(Files.exists(archive))
+        assertFalse(downloaded)
+    }
+
+    fun testCorruptCacheNeverReachesExtractor() {
+        val archive = Files.writeString(downloadDirectory.resolve(archiveName()), "untrusted")
+        var extracted = false
+        val installer =
+            BlenderInstallationService(
+                downloadPathOverride = downloadDirectory,
+                installPathOverride = installDirectory,
+                tempPath = tempDirectory,
+                artifactExtractor = { _, _, _ ->
+                    extracted = true
+                    throw AssertionError("Unverified archive reached extraction")
+                },
+                checksumResolver = { emptyArchiveDigest },
+            )
+
+        val failure = runCatching { installer.extractBlender("4.5").join() }.exceptionOrNull()
+
+        assertTrue(failureCause(failure) is IOException)
+        assertFalse(extracted)
+        assertFalse(Files.exists(archive))
+    }
+
+    fun testExtractorReceivesVerifiedPrivateCopy() {
+        val archive = Files.createFile(downloadDirectory.resolve(archiveName()))
+        var stagedArchive: Path? = null
+        val installer =
+            BlenderInstallationService(
+                downloadPathOverride = downloadDirectory,
+                installPathOverride = installDirectory,
+                tempPath = tempDirectory,
+                platformName = "linux",
+                artifactExtractor = { staged, target, _ ->
+                    stagedArchive = staged
+                    assertTrue(Files.isRegularFile(staged))
+                    assertFalse(archive == staged)
+                    Files.createDirectory(target.resolve(artifactName()))
+                },
+                shouldCleanupArchive = { false },
+                checksumResolver = { emptyArchiveDigest },
+            )
+
+        assertTrue(Files.isDirectory(installer.extractBlender("4.5").join()))
+        assertFalse(Files.exists(checkNotNull(stagedArchive)))
+        assertTrue(Files.exists(archive))
+    }
+
+    fun testWrongDigestDeletesPartialAndDoesNotPublishCache() {
+        val partial = Files.writeString(downloadDirectory.resolve("${archiveName()}-test.part"), "truncated")
+        val installer =
+            BlenderInstallationService(
+                artifactDownloader = { _, _, _, _ -> completedDownload(partial) },
+                downloadPathOverride = downloadDirectory,
+                checksumResolver = { emptyArchiveDigest },
+            )
+
+        val failure = runCatching { installer.downloadVersion("4.5", project).join() }.exceptionOrNull()
+
+        assertTrue(failureCause(failure) is SecurityException)
+        assertTrue(failureCause(failure)?.message.orEmpty().contains("BL-008"))
+        assertFalse(Files.exists(partial))
+        assertFalse(Files.exists(downloadDirectory.resolve(archiveName())))
+    }
+
+    fun testConcurrentRequestsPublishOnlyOneVerifiedArchive() {
+        val downloads = AtomicInteger()
+        val installer =
+            BlenderInstallationService(
+                artifactDownloader = { _, _, target, name ->
+                    downloads.incrementAndGet()
+                    completedDownload(Files.createTempFile(target, "$name-", ".part"))
+                },
+                downloadPathOverride = downloadDirectory,
+                checksumResolver = { emptyArchiveDigest },
+            )
+
+        val first = installer.downloadVersion("4.5", project)
+        val second = installer.downloadVersion("4.5", project)
+
+        assertEquals(first.join(), second.join())
+        assertEquals(1, downloads.get())
+        assertTrue(Files.isRegularFile(first.join()))
+    }
+
+    fun testInvalidOriginIsRejectedBeforeDownloaderRuns() {
+        var downloaded = false
+        val installer =
+            BlenderInstallationService(
+                artifactDownloader = { _, _, _, _ ->
+                    downloaded = true
+                    failedDownload(AssertionError("Untrusted origin must be rejected"))
+                },
+                downloadPathOverride = downloadDirectory,
+                checksumResolver = { emptyArchiveDigest },
+            )
+
+        val failure = runCatching {
+            installer
+                .downloadBlenderService(
+                    project,
+                    "https://download.blender.org.evil.example/release/Blender4.5/${archiveName()}",
+                    downloadDirectory,
+                    "4.5",
+                )
+                .join()
+        }
+            .exceptionOrNull()
+
+        assertTrue(failureCause(failure) is SecurityException)
+        assertFalse(downloaded)
+    }
+
+    fun testChecksumReadFailureBlocksCachedArchive() {
+        val archive = Files.createFile(downloadDirectory.resolve(archiveName()))
+        val installer =
+            BlenderInstallationService(
+                downloadPathOverride = downloadDirectory,
+                checksumResolver = { throw IOException("offline") },
+            )
+
+        val failure = runCatching { installer.downloadVersion("4.5", project).join() }.exceptionOrNull()
+
+        assertTrue(failureCause(failure) is IOException)
+        assertTrue(Files.exists(archive))
+    }
+
+    fun testConcurrentInstallsExtractOnce() {
+        val archive = Files.createFile(downloadDirectory.resolve(archiveName()))
+        val extractions = AtomicInteger()
+        val installer =
+            BlenderInstallationService(
+                downloadPathOverride = downloadDirectory,
+                installPathOverride = installDirectory,
+                tempPath = tempDirectory,
+                platformName = "linux",
+                artifactExtractor = { _, target, _ ->
+                    extractions.incrementAndGet()
+                    Files.createDirectory(target.resolve(artifactName()))
+                },
+                shouldCleanupArchive = { true },
+                checksumResolver = { emptyArchiveDigest },
+            )
+
+        val first = installer.extractBlender("4.5")
+        val second = installer.extractBlender("4.5")
+
+        assertEquals(first.join(), second.join())
+        assertEquals(1, extractions.get())
+        assertFalse(Files.exists(archive))
     }
 
     fun testInstallVersionReturnsExistingInstallationWithoutDownloading() {
@@ -167,7 +369,7 @@ class InstallBlenderTest : BasePlatformTestCase() {
     }
 
     fun testSuccessfulInstallationCleansArchiveWhenEnabled() {
-        val archive = Files.createFile(downloadDirectory.resolve("downloaded-blender.tar.xz"))
+        val archive = Files.createFile(downloadDirectory.resolve(archiveName()))
         val expectedInstallation = installDirectory.resolve(artifactName())
         var cleanedArchive: Path? = null
         val installer =
@@ -189,7 +391,7 @@ class InstallBlenderTest : BasePlatformTestCase() {
     }
 
     fun testSuccessfulInstallationPreservesArchiveWhenCleanupDisabled() {
-        val archive = Files.createFile(downloadDirectory.resolve("downloaded-blender.tar.xz"))
+        val archive = Files.createFile(downloadDirectory.resolve(archiveName()))
         var cleanupInvoked = false
         val installer =
             installerForCleanupWorkflow(
@@ -206,7 +408,7 @@ class InstallBlenderTest : BasePlatformTestCase() {
     }
 
     fun testFailedInstallationPreservesArchive() {
-        val archive = Files.createFile(downloadDirectory.resolve("downloaded-blender.tar.xz"))
+        val archive = Files.createFile(downloadDirectory.resolve(archiveName()))
         val expectedFailure = IOException("Extraction failed")
         var cleanupInvoked = false
         val installer =
@@ -219,6 +421,7 @@ class InstallBlenderTest : BasePlatformTestCase() {
                 artifactExtractor = { _, _, _ -> throw expectedFailure },
                 shouldCleanupArchive = { true },
                 archiveCleaner = { cleanupInvoked = true },
+                checksumResolver = { emptyArchiveDigest },
             )
 
         val failure = runCatching { installer.extractBlender("4.5").join() }.exceptionOrNull()
@@ -230,7 +433,7 @@ class InstallBlenderTest : BasePlatformTestCase() {
     }
 
     fun testCleanupFailureDoesNotFailSuccessfulInstallation() {
-        val archive = Files.createFile(downloadDirectory.resolve("downloaded-blender.tar.xz"))
+        val archive = Files.createFile(downloadDirectory.resolve(archiveName()))
         val installer =
             installerForCleanupWorkflow(
                 archive = archive,
@@ -366,13 +569,14 @@ class InstallBlenderTest : BasePlatformTestCase() {
     }
 
     fun testExtractBlenderPropagatesUnsupportedPlatformFailure() {
-        val archive = Files.createFile(downloadDirectory.resolve("blender-test.archive"))
+        val archive = Files.createFile(downloadDirectory.resolve(archiveName()))
         val installer =
             BlenderInstallationService(
                 artifactDownloader = { _, _, _, _ -> completedDownload(archive) },
                 downloadPathOverride = downloadDirectory,
                 installPathOverride = installDirectory,
                 platformName = "unsupported",
+                checksumResolver = { emptyArchiveDigest },
             )
 
         val failure = runCatching { installer.extractBlender("4.5").join() }.exceptionOrNull()
@@ -382,6 +586,14 @@ class InstallBlenderTest : BasePlatformTestCase() {
     }
 
     private fun artifactName(): String = BlenderVersions.getVersionMeta("4.5")?.artifactName ?: error("Expected Blender 4.5 metadata")
+
+    private fun archiveName(): String = BlenderVersions.getVersionMeta("4.5")?.getArchiveName() ?: error("Expected archive name")
+
+    private fun failureCause(error: Throwable?): Throwable? {
+        var cause = error
+        while (cause is CompletionException && cause.cause != null) cause = cause.cause
+        return cause
+    }
 
     private fun installerForCleanupWorkflow(
         archive: Path,
@@ -399,6 +611,7 @@ class InstallBlenderTest : BasePlatformTestCase() {
             },
             shouldCleanupArchive = { shouldCleanupArchive },
             archiveCleaner = archiveCleaner,
+            checksumResolver = { emptyArchiveDigest },
         )
 
     private fun completedDownload(path: Path): CompletableFuture<BlenderArtifactDownloadResult> =

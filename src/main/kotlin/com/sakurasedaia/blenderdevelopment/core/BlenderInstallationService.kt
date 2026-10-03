@@ -11,7 +11,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.io.NioFiles
 import com.intellij.platform.eel.fs.EelFileUtils
 import com.intellij.util.concurrency.AppExecutorUtil
-import com.intellij.util.io.HttpRequests
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersion
 import com.sakurasedaia.blenderdevelopment.lib.BlenderVersions
 import com.sakurasedaia.blenderdevelopment.lib.ErrorTypes
@@ -23,13 +22,17 @@ import com.sakurasedaia.blenderdevelopment.util.ArchiveUtil
 import com.sakurasedaia.blenderdevelopment.util.SystemInfo
 import com.sakurasedaia.blenderdevelopment.util.currentProject
 import java.io.IOException
+import java.net.URI
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Files
+import java.nio.file.LinkOption
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 
 /** Result of attempting to download a Blender distribution archive. */
 internal sealed interface BlenderArtifactDownloadResult {
@@ -71,8 +74,8 @@ private object IdeBlenderArtifactDownloader : BlenderArtifactDownloader {
         archiveName: String,
     ): CompletableFuture<BlenderArtifactDownloadResult> {
         val result = CompletableFuture<BlenderArtifactDownloadResult>()
-        val archive = targetDirectory.resolve(archiveName)
-        val partialArchive = targetDirectory.resolve("$archiveName.part")
+        Files.createDirectories(targetDirectory)
+        val partialArchive = Files.createTempFile(targetDirectory, "$archiveName-", ".part")
 
         @Suppress("DialogTitleCapitalization")
         ProgressManager.getInstance()
@@ -86,11 +89,10 @@ private object IdeBlenderArtifactDownloader : BlenderArtifactDownloader {
                     override fun run(indicator: ProgressIndicator) {
                         try {
                             NioFiles.createDirectories(targetDirectory)
-                            Files.deleteIfExists(partialArchive)
-                            HttpRequests.request(downloadUrl).saveToFile(partialArchive, indicator, true)
-                            indicator.checkCanceled()
-                            moveCompletedDownload(partialArchive, archive)
-                            result.complete(BlenderArtifactDownloadResult.Downloaded(archive))
+                            BlenderReleaseTransport.open(URI.create(downloadUrl), archiveName).body().use { input ->
+                                streamBlenderDownload(input, partialArchive, indicator::checkCanceled)
+                            }
+                            result.complete(BlenderArtifactDownloadResult.Downloaded(partialArchive))
                         } catch (e: ProcessCanceledException) {
                             deletePartialDownload(partialArchive)
                             result.complete(BlenderArtifactDownloadResult.Cancelled)
@@ -111,19 +113,6 @@ private object IdeBlenderArtifactDownloader : BlenderArtifactDownloader {
         return result
     }
 
-    private fun moveCompletedDownload(partialArchive: Path, archive: Path) {
-        try {
-            Files.move(
-                partialArchive,
-                archive,
-                StandardCopyOption.ATOMIC_MOVE,
-                StandardCopyOption.REPLACE_EXISTING,
-            )
-        } catch (_: AtomicMoveNotSupportedException) {
-            Files.move(partialArchive, archive, StandardCopyOption.REPLACE_EXISTING)
-        }
-    }
-
     private fun deletePartialDownload(partialArchive: Path) {
         runCatching { Files.deleteIfExists(partialArchive) }
     }
@@ -142,44 +131,92 @@ internal class BlenderInstallationService(
     private val artifactExtractor: (Path, Path, String) -> Path = ::extractDownloadedArtifact,
     private val shouldCleanupArchive: () -> Boolean = { PluginConfig.getInstance().getClearDownloadsAfterInstall() },
     private val archiveCleaner: (Path) -> Unit = EelFileUtils::deleteRecursively,
+    private val checksumResolver: (BlenderArtifactDescriptor) -> ByteArray? = ::fetchOfficialDigest,
 ) {
     private val logger: PluginLogger = PluginLogger.getInstance()
 
     companion object {
+        private val archiveLocks = ConcurrentHashMap<Path, Any>()
+        private val activeInstalls = ConcurrentHashMap<Path, AtomicInteger>()
+
         fun getInstance(): BlenderInstallationService = service()
     }
 
     internal fun extractBlender(version: String): CompletableFuture<Path> {
+        val archiveKey = downloadPath().resolve(descriptor(version).filename).toAbsolutePath().normalize()
+        val active = activeInstalls.computeIfAbsent(archiveKey) { AtomicInteger() }
+        active.incrementAndGet()
         @Suppress("UnstableApiUsage")
-        return checkForArtifact(version).thenCompose { installedArtifact ->
-            if (installedArtifact != null) {
-                CompletableFuture.completedFuture(installedArtifact)
-            } else {
-                downloadVersion(version)
-                    .thenApplyAsync(
-                        { archive ->
-                            // TODO(V1): Verify Blender's published checksum before extraction and reject archives from unexpected origins.
-                            NioFiles.createDirectories(tempPath)
-                            val extractionPath = Files.createTempDirectory(tempPath, "blender-extract-")
-                            try {
-                                val extractedArtifact = artifactExtractor(archive, extractionPath, platformName)
-                                val installedArtifact = moveFromTemp(extractedArtifact, version)
-
-                                if (shouldCleanupArchive()) {
+        val operation =
+            checkForArtifact(version).thenCompose { installedArtifact ->
+                if (installedArtifact != null) {
+                    CompletableFuture.completedFuture(installedArtifact)
+                } else {
+                    downloadVersion(version)
+                        .thenApplyAsync(
+                            { archive ->
+                                synchronized(archiveLocks.computeIfAbsent(archiveKey) { Any() }) {
+                                    checkForArtifact(version).join()?.let {
+                                        return@synchronized it
+                                    }
+                                    val descriptor = resolvedDescriptor(version, archiveKey)
+                                    val digest = checkNotNull(descriptor.expectedSha256)
+                                    val valid =
+                                        try {
+                                            verifyArchiveDigest(archive, digest)
+                                        } catch (exception: IOException) {
+                                            reject(
+                                                ErrorTypes.ARCHIVE_VERIFICATION_IO_FAILURE,
+                                                "notification.blender.archive.verification.io",
+                                                exception,
+                                            )
+                                        }
+                                    if (!valid) {
+                                        reject(ErrorTypes.ARCHIVE_DIGEST_MISMATCH, "notification.blender.archive.digest.mismatch")
+                                    }
+                                    NioFiles.createDirectories(tempPath)
+                                    val extractionPath = Files.createTempDirectory(tempPath, "blender-extract-")
                                     try {
-                                        archiveCleaner(archive)
-                                    } catch (_: IOException) {
-                                        logger.warn(ErrorTypes.ARCHIVE_CLEANUP_FAILURE_WARNING.toString())
+                                        val stagedArchive = extractionPath.resolve(descriptor.filename)
+                                        val stagedValid =
+                                            try {
+                                                Files.copy(archive, stagedArchive)
+                                                verifyArchiveDigest(stagedArchive, digest)
+                                            } catch (exception: IOException) {
+                                                reject(
+                                                    ErrorTypes.ARCHIVE_VERIFICATION_IO_FAILURE,
+                                                    "notification.blender.archive.verification.io",
+                                                    exception,
+                                                )
+                                            }
+                                        if (!stagedValid) {
+                                            reject(ErrorTypes.ARCHIVE_DIGEST_MISMATCH, "notification.blender.archive.digest.mismatch")
+                                        }
+                                        val extractedArtifact = artifactExtractor(stagedArchive, extractionPath, platformName)
+                                        val installedArtifact = moveFromTemp(extractedArtifact, version)
+
+                                        installedArtifact
+                                    } finally {
+                                        EelFileUtils.deleteRecursively(extractionPath)
                                     }
                                 }
-
-                                installedArtifact
-                            } finally {
-                                EelFileUtils.deleteRecursively(extractionPath)
-                            }
-                        },
-                        AppExecutorUtil.getAppExecutorService(),
-                    )
+                            },
+                            AppExecutorUtil.getAppExecutorService(),
+                        )
+                }
+            }
+        return operation.whenComplete { installed, failure ->
+            val remaining = active.decrementAndGet()
+            if (installed != null && failure == null && remaining == 0 && shouldCleanupArchive()) {
+                synchronized(archiveLocks.computeIfAbsent(archiveKey) { Any() }) {
+                    if (active.get() == 0 && Files.exists(archiveKey)) {
+                        try {
+                            archiveCleaner(archiveKey)
+                        } catch (_: IOException) {
+                            logger.warn(ErrorTypes.ARCHIVE_CLEANUP_FAILURE_WARNING.toString())
+                        }
+                    }
+                }
             }
         }
     }
@@ -189,22 +226,79 @@ internal class BlenderInstallationService(
         project: Project = currentProject(),
     ): CompletableFuture<Path> {
         val versionMeta = BlenderVersions.getVersionMeta(version)
-
-        // 1. Check if a downloaded file exists. Exit and return the archive path if so
-        checkForArchive(version)?.let {
-            return CompletableFuture.completedFuture(it)
-        }
-
-        // 2. Parse version URL, and error out if failed
-        val downloadUrl = versionMeta?.getDownloadURL()
-
-        if (downloadUrl == null) {
+        if (versionMeta == null) {
             errorReporter.unknownDownloadUrl()
             return CompletableFuture.failedFuture(IllegalArgumentException("Unknown Blender version: $version"))
         }
-
-        // 3. Download the artifact
-        return downloadBlenderService(project, downloadUrl, downloadPath(), version)
+        val descriptor =
+            try {
+                BlenderArtifactDescriptor.forHost(versionMeta)
+            } catch (exception: Exception) {
+                return CompletableFuture.failedFuture(
+                    rejection(ErrorTypes.UNSUPPORTED_DOWNLOAD_ORIGIN, "notification.blender.archive.origin.invalid", exception)
+                )
+            }
+        val archive = downloadPath().resolve(descriptor.filename)
+        val lock = archiveLocks.computeIfAbsent(archive.toAbsolutePath().normalize()) { Any() }
+        return CompletableFuture.supplyAsync(
+            {
+                synchronized(lock) {
+                    val digest = checkNotNull(resolvedDescriptor(descriptor, archive).expectedSha256)
+                    if (Files.exists(archive)) {
+                        val valid =
+                            try {
+                                Files.isRegularFile(archive, LinkOption.NOFOLLOW_LINKS) && verifyArchiveDigest(archive, digest)
+                            } catch (exception: IOException) {
+                                reject(
+                                    ErrorTypes.ARCHIVE_VERIFICATION_IO_FAILURE,
+                                    "notification.blender.archive.verification.io",
+                                    exception,
+                                )
+                            }
+                        if (valid) return@synchronized archive
+                        try {
+                            Files.deleteIfExists(archive)
+                        } catch (exception: IOException) {
+                            reject(ErrorTypes.ARCHIVE_VERIFICATION_IO_FAILURE, "notification.blender.archive.verification.io", exception)
+                        }
+                        reject(ErrorTypes.CORRUPT_BLENDER_CACHE, "notification.blender.archive.cache.corrupt")
+                    }
+                    val downloaded = downloadBlenderService(project, descriptor.archiveUri.toString(), downloadPath(), version).join()
+                    try {
+                        if (
+                            downloaded != archive &&
+                                (downloaded.parent != downloadPath() ||
+                                    !downloaded.fileName.toString().endsWith(".part") ||
+                                    !Files.isRegularFile(downloaded, LinkOption.NOFOLLOW_LINKS))
+                        ) {
+                            reject(ErrorTypes.UNSUPPORTED_DOWNLOAD_ORIGIN, "notification.blender.archive.origin.invalid")
+                        }
+                        val valid =
+                            try {
+                                verifyArchiveDigest(downloaded, digest)
+                            } catch (exception: IOException) {
+                                reject(
+                                    ErrorTypes.ARCHIVE_VERIFICATION_IO_FAILURE,
+                                    "notification.blender.archive.verification.io",
+                                    exception,
+                                )
+                            }
+                        if (!valid) {
+                            reject(ErrorTypes.ARCHIVE_DIGEST_MISMATCH, "notification.blender.archive.digest.mismatch")
+                        }
+                        try {
+                            Files.move(downloaded, archive, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+                        } catch (_: AtomicMoveNotSupportedException) {
+                            Files.move(downloaded, archive, StandardCopyOption.REPLACE_EXISTING)
+                        }
+                        archive
+                    } finally {
+                        if (downloaded != archive) runCatching { Files.deleteIfExists(downloaded) }
+                    }
+                }
+            },
+            AppExecutorUtil.getAppExecutorService(),
+        )
     }
 
     internal fun downloadBlenderService(
@@ -213,11 +307,31 @@ internal class BlenderInstallationService(
         targetDirectory: Path = downloadPath(),
         version: String,
     ): CompletableFuture<Path> {
+        try {
+            BlenderArtifactDescriptor.requireTrustedUri(
+                URI.create(downloadUrl),
+                BlenderVersions.getVersionMeta(version)?.getArchiveName() ?: "",
+            )
+        } catch (exception: Exception) {
+            return CompletableFuture.failedFuture(
+                rejection(ErrorTypes.UNSUPPORTED_DOWNLOAD_ORIGIN, "notification.blender.archive.origin.invalid", exception)
+            )
+        }
         val archiveName =
             BlenderVersions.getVersionMeta(version)?.getArchiveName()?.takeIf(String::isNotBlank)
                 ?: "blender-installer.${SystemInfo().bundleFileType}"
         logger.debug("Downloading Blender archive from '$downloadUrl' to '${targetDirectory.resolve(archiveName)}'")
-        return artifactDownloader.download(project, downloadUrl, targetDirectory, archiveName).thenCompose { result ->
+        val download =
+            try {
+                artifactDownloader.download(project, downloadUrl, targetDirectory, archiveName)
+            } catch (exception: Exception) {
+                return CompletableFuture.failedFuture(
+                    rejection(ErrorTypes.BLENDER_DOWNLOAD_FAILED, "notification.blender.archive.download.failed", exception).apply {
+                        initCause(exception)
+                    }
+                )
+            }
+        return download.thenCompose { result ->
             when (result) {
                 is BlenderArtifactDownloadResult.Downloaded -> {
                     logger.debug("Downloaded Blender archive to '${result.archive}'")
@@ -227,7 +341,14 @@ internal class BlenderInstallationService(
                     CompletableFuture.failedFuture(CancellationException("Blender download was cancelled"))
                 }
                 is BlenderArtifactDownloadResult.Failed -> {
-                    CompletableFuture.failedFuture(result.cause)
+                    if (result.cause is SecurityException) {
+                        reject(ErrorTypes.UNSUPPORTED_DOWNLOAD_ORIGIN, "notification.blender.archive.origin.invalid", result.cause)
+                    }
+                    CompletableFuture.failedFuture(
+                        rejection(ErrorTypes.BLENDER_DOWNLOAD_FAILED, "notification.blender.archive.download.failed", result.cause).apply {
+                            initCause(result.cause)
+                        }
+                    )
                 }
             }
         }
@@ -322,6 +443,49 @@ internal class BlenderInstallationService(
     private fun downloadPath(): Path = downloadPathOverride ?: Path.of(PluginConfig.getInstance().getDownloadPath())
 
     private fun installPath(): Path = installPathOverride ?: Path.of(PluginConfig.getInstance().getBlenderInstallPath())
+
+    private fun descriptor(version: String): BlenderArtifactDescriptor =
+        BlenderArtifactDescriptor.forHost(requireNotNull(BlenderVersions.getVersionMeta(version)))
+
+    private fun resolvedDescriptor(version: String, cachePath: Path): BlenderArtifactDescriptor =
+        resolvedDescriptor(descriptor(version), cachePath)
+
+    private fun resolvedDescriptor(descriptor: BlenderArtifactDescriptor, cachePath: Path): BlenderArtifactDescriptor =
+        descriptor.copy(expectedSha256 = requiredDigest(descriptor, cachePath))
+
+    private fun requiredDigest(descriptor: BlenderArtifactDescriptor, cachePath: Path): ByteArray {
+        val digest =
+            try {
+                checksumResolver(descriptor)
+            } catch (exception: MissingOfficialChecksumException) {
+                removeUnverifiableCache(cachePath)
+                reject(ErrorTypes.MISSING_OFFICIAL_BLENDER_CHECKSUM, "notification.blender.archive.checksum.missing", exception)
+            } catch (exception: Exception) {
+                reject(ErrorTypes.ARCHIVE_VERIFICATION_IO_FAILURE, "notification.blender.archive.verification.io", exception)
+            }
+        if (digest == null || digest.size != 32) {
+            removeUnverifiableCache(cachePath)
+            reject(ErrorTypes.MISSING_OFFICIAL_BLENDER_CHECKSUM, "notification.blender.archive.checksum.missing")
+        }
+        return digest
+    }
+
+    private fun removeUnverifiableCache(cachePath: Path) {
+        try {
+            Files.deleteIfExists(cachePath)
+        } catch (exception: IOException) {
+            reject(ErrorTypes.ARCHIVE_VERIFICATION_IO_FAILURE, "notification.blender.archive.verification.io", exception)
+        }
+    }
+
+    private fun rejection(errorType: ErrorTypes, messageKey: String, cause: Throwable? = null): Exception {
+        if (cause == null) logger.warn(errorType.toString()) else logger.warn(errorType.toString(), cause)
+        NotificationModal.getInstance().sendError(MessageBundle.message(messageKey))
+        return errorType.createException()
+    }
+
+    private fun reject(errorType: ErrorTypes, messageKey: String, cause: Throwable? = null): Nothing =
+        throw rejection(errorType, messageKey, cause)
 }
 
 private fun extractDownloadedArtifact(archive: Path, extractionPath: Path, platformName: String): Path =
