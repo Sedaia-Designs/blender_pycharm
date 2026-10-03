@@ -1,10 +1,7 @@
 import unittest
 from pathlib import Path
 
-TEMPLATE_PATH = (
-    Path(__file__).parents[2]
-    / "main/resources/fileTemplates/internal/NewProjectMainScript.ft"
-)
+TEMPLATE_PATH = Path(__file__).parents[2] / "main/resources/fileTemplates/internal/NewProjectMainScript.ft"
 
 
 class NewProjectMainScriptTest(unittest.TestCase):

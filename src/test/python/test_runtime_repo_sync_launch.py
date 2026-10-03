@@ -4,7 +4,6 @@ import types
 import unittest
 from pathlib import Path
 
-
 TEMPLATE_PATH = Path(__file__).parents[2] / "main/resources/fileTemplates/internal/BlenderRuntimeRepoSyncLaunch.py.ft"
 
 
@@ -50,14 +49,15 @@ class RuntimeRepoSyncLaunchTest(unittest.TestCase):
         )
 
         original_modules = {
-            name: sys.modules.get(name)
-            for name in ("bpy", "blender_pycharm", "blender_pycharm.load_addons")
+            name: sys.modules.get(name) for name in ("bpy", "blender_pycharm", "blender_pycharm.load_addons")
         }
-        sys.modules.update({
-            "bpy": bpy,
-            "blender_pycharm": blender_pycharm,
-            "blender_pycharm.load_addons": load_addons,
-        })
+        sys.modules.update(
+            {
+                "bpy": bpy,
+                "blender_pycharm": blender_pycharm,
+                "blender_pycharm.load_addons": load_addons,
+            }
+        )
         try:
             source = TEMPLATE_PATH.read_text(encoding="utf-8")
             substitutions = {

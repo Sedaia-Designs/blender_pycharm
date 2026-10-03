@@ -5,7 +5,6 @@ import types
 import unittest
 from pathlib import Path
 
-
 RUNTIME_PACKAGE = Path(__file__).parents[2] / "main/python"
 
 
@@ -17,13 +16,14 @@ class RuntimeLogFormatterTest(unittest.TestCase):
         environment.LOG_LEVEL = logging.DEBUG
 
         self.original_modules = {
-            name: sys.modules.get(name)
-            for name in ("blender_pycharm", "blender_pycharm.environment")
+            name: sys.modules.get(name) for name in ("blender_pycharm", "blender_pycharm.environment")
         }
-        sys.modules.update({
-            "blender_pycharm": package,
-            "blender_pycharm.environment": environment,
-        })
+        sys.modules.update(
+            {
+                "blender_pycharm": package,
+                "blender_pycharm.environment": environment,
+            }
+        )
         self.runtime_log = importlib.import_module("blender_pycharm.log")
 
     def tearDown(self):

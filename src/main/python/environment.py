@@ -47,19 +47,18 @@ version = bpy.app.version
 scripts_folder = blender_path.parent / f"{version[0]}.{version[1]}" / "scripts"
 addon_directories = tuple(map(Path, addon_utils.paths()))
 
-EXTENSIONS_REPOSITORY: Optional[str] = _env(
-    "BLENDER_PYCHARM_EXTENSIONS_REPOSITORY",
-    "user_default",
-) or "user_default"
+EXTENSIONS_REPOSITORY: Optional[str] = (
+    _env(
+        "BLENDER_PYCHARM_EXTENSIONS_REPOSITORY",
+        "user_default",
+    )
+    or "user_default"
+)
 
 LOG_LEVEL, LOG_FLASK = _parse_log("BLENDER_PYCHARM_LOG_LEVEL")
 PYCHARM_IDENTIFIER: Optional[str] = _env("BLENDER_PYCHARM_IDENTIFIER", "")
 ENCODED_PYCHARM_AUTHKEY: Optional[str] = _env("BLENDER_PYCHARM_AUTHKEY", "")
-DECODED_PYCHARM_AUTHKEY: Optional[bytes] = (
-    decode_key(ENCODED_PYCHARM_AUTHKEY)
-    if ENCODED_PYCHARM_AUTHKEY
-    else None
-)
+DECODED_PYCHARM_AUTHKEY: Optional[bytes] = decode_key(ENCODED_PYCHARM_AUTHKEY) if ENCODED_PYCHARM_AUTHKEY else None
 
 logging.getLogger("werkzeug").setLevel(logging.DEBUG if LOG_FLASK else logging.ERROR)
 # to mute all logs, disable also those logs. Be careful, the libs are extremely popular,

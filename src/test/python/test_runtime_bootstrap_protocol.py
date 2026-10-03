@@ -5,7 +5,6 @@ import json
 import sys
 import types
 import unittest
-import urllib.error
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -78,9 +77,7 @@ class RuntimeBootstrapProtocolTest(unittest.TestCase):
         self.runtime.environment.DECODED_PYCHARM_AUTHKEY = None
 
         with patch("urllib.request.urlopen") as urlopen:
-            self.runtime._report_bootstrap_failure(
-                "http://127.0.0.1:12345/", "session", "failed"
-            )
+            self.runtime._report_bootstrap_failure("http://127.0.0.1:12345/", "session", "failed")
 
         urlopen.assert_not_called()
         self.logger.error.assert_called_once()
@@ -89,9 +86,7 @@ class RuntimeBootstrapProtocolTest(unittest.TestCase):
         self.runtime.environment.DECODED_PYCHARM_AUTHKEY = "not-bytes"
 
         with patch("urllib.request.urlopen") as urlopen:
-            self.runtime._report_bootstrap_failure(
-                "http://127.0.0.1:12345/", "session", "failed"
-            )
+            self.runtime._report_bootstrap_failure("http://127.0.0.1:12345/", "session", "failed")
 
         urlopen.assert_not_called()
         self.logger.error.assert_called_once()

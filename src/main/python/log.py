@@ -7,9 +7,7 @@ class BlenderFormatter(logging.Formatter):
     """Format runtime messages like Blender console log entries without terminal control codes."""
 
     def __init__(self):
-        super().__init__(
-            "%(blender_time)s  blender.pycharm  | %(levelname)s: %(message)s (%(filename)s:%(lineno)d)"
-        )
+        super().__init__("%(blender_time)s  blender.pycharm  | %(levelname)s: %(message)s (%(filename)s:%(lineno)d)")
 
     def format(self, record):
         elapsed_milliseconds = max(0, round(record.relativeCreated))

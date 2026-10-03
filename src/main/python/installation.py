@@ -109,7 +109,9 @@ def module_can_be_imported(name: str):
         stripped_name = _strip_pip_version(name)
         mod = __import__(stripped_name)
         LOG.info("module: " + name + " is already installed")
-        LOG.debug(stripped_name + ":" + getattr(mod ,"__version__", "None") + " in path: " + getattr(mod, "__file__", "None"))
+        LOG.debug(
+            stripped_name + ":" + getattr(mod, "__version__", "None") + " in path: " + getattr(mod, "__file__", "None")
+        )
         return True
     except ModuleNotFoundError:
         return False
