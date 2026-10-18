@@ -95,12 +95,15 @@ class BlenderExtensionBuildRunConfigurationTest : BasePlatformTestCase() {
         assertEquals("/package output", restoredConfiguration.outputDirectory)
     }
 
-    fun testTemplateUsesPortableProjectRelativeDefaults() {
+    fun testSourcePathTracksProjectStateDespiteLegacyRunConfigurationValue() {
         ProjectConfig.getInstance(project).setSourceFolder("Extension/src")
 
         val configuration = createConfiguration()
+        configuration.sourcePath = "stale/src"
 
-        assertEquals("Extension/src", configuration.sourcePath)
+        assertEquals("Extension/src", configuration.effectiveSourcePath)
+        ProjectConfig.getInstance(project).setSourceFolder("Extension/")
+        assertEquals("Extension/", configuration.effectiveSourcePath)
         assertEquals(".", configuration.outputDirectory)
     }
 
@@ -108,7 +111,7 @@ class BlenderExtensionBuildRunConfigurationTest : BasePlatformTestCase() {
         configureBlenderPath()
         val configuration = createConfiguration()
         configuration.operation = BlenderExtensionBuildOperation.VALIDATE
-        configuration.sourcePath = ""
+        ProjectConfig.getInstance(project).setSourceFolder("")
 
         try {
             configuration.checkConfiguration()
@@ -182,7 +185,6 @@ class BlenderExtensionBuildRunConfigurationTest : BasePlatformTestCase() {
         editor.resetFrom(configuration)
 
         assertEquals(BlenderExtensionBuildOperation.VALIDATE, operationField(editor.component).selectedItem)
-        assertEquals("/project source", labeledTextField(editor.component, "run.configuration.blender.extension.build.source.label").text)
         assertEquals("/package output", labeledTextField(editor.component, "run.configuration.blender.extension.build.output.label").text)
     }
 
@@ -191,13 +193,11 @@ class BlenderExtensionBuildRunConfigurationTest : BasePlatformTestCase() {
         val editor = configuration.configurationEditor
         val component = editor.component
         operationField(component).selectedItem = BlenderExtensionBuildOperation.VALIDATE
-        labeledTextField(component, "run.configuration.blender.extension.build.source.label").text = "  /project source  "
         labeledTextField(component, "run.configuration.blender.extension.build.output.label").text = "  /package output  "
 
         editor.applyTo(configuration)
 
         assertEquals(BlenderExtensionBuildOperation.VALIDATE, configuration.operation)
-        assertEquals("/project source", configuration.sourcePath)
         assertEquals("/package output", configuration.outputDirectory)
     }
 

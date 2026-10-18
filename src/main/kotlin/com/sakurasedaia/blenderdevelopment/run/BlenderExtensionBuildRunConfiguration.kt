@@ -26,9 +26,9 @@ import com.intellij.execution.configurations.RunProfileState
 import com.intellij.execution.configurations.RuntimeConfigurationError
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.runners.ExecutionEnvironment
-import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.components.JBLabel
@@ -94,6 +94,7 @@ internal class BlenderExtensionBuildRunConfiguration(
             (options as BlenderExtensionBuildRunConfigurationOptions).operation = value.name
         }
 
+    /** Legacy source path retained for loading existing run configurations. */
     internal var sourcePath: String
         get() = (options as BlenderExtensionBuildRunConfigurationOptions).sourcePath.orEmpty()
         set(value) {
@@ -106,6 +107,9 @@ internal class BlenderExtensionBuildRunConfiguration(
             (options as BlenderExtensionBuildRunConfigurationOptions).outputDirectory = value
         }
 
+    internal val effectiveSourcePath: String
+        get() = ProjectConfig.getInstance(project).getSourceFolder().trim()
+
     override fun getConfigurationEditor(): SettingsEditor<BlenderExtensionBuildRunConfiguration> {
         return BlenderExtensionBuildSettingsEditor(project)
     }
@@ -114,7 +118,7 @@ internal class BlenderExtensionBuildRunConfiguration(
         if (ProjectConfig.getInstance(project).getBlenderPath().isBlank()) {
             throw RuntimeConfigurationError(MessageBundle.message("run.configuration.blender.error.blender.path.empty"))
         }
-        if (sourcePath.isBlank()) {
+        if (effectiveSourcePath.isBlank()) {
             throw RuntimeConfigurationError(MessageBundle.message("run.configuration.blender.extension.build.error.source.empty"))
         }
         if (operation == BlenderExtensionBuildOperation.BUILD && outputDirectory.isBlank()) {
@@ -132,7 +136,7 @@ internal class BlenderExtensionBuildRunConfiguration(
                             commandArguments =
                                 BlenderExtensionBuildCommand.arguments(
                                     operation = operation,
-                                    sourcePath = sourcePath.trim(),
+                                    sourcePath = effectiveSourcePath,
                                     outputDirectory = outputDirectory.trim(),
                                 ),
                         )
@@ -152,14 +156,6 @@ private class BlenderExtensionBuildSettingsEditor(project: Project) : SettingsEd
         JBLabel(MessageBundle.message("run.configuration.blender.extension.build.operation.label")).apply {
             labelFor = operationField
         }
-    private val sourcePathField =
-        TextFieldWithBrowseButton().apply {
-            addBrowseFolderListener(project, FileChooserDescriptorFactory.createSingleFileOrFolderDescriptor())
-        }
-    private val sourcePathLabel =
-        JBLabel(MessageBundle.message("run.configuration.blender.extension.build.source.label")).apply {
-            labelFor = sourcePathField.textField
-        }
     private val outputDirectoryField =
         TextFieldWithBrowseButton().apply {
             addBrowseFolderListener(project, FileChooserDescriptorFactory.createSingleFolderDescriptor())
@@ -171,7 +167,6 @@ private class BlenderExtensionBuildSettingsEditor(project: Project) : SettingsEd
     private val component =
         FormBuilder.createFormBuilder()
             .addLabeledComponent(operationLabel, operationField, 1, false)
-            .addLabeledComponent(sourcePathLabel, sourcePathField, 1, false)
             .addLabeledComponent(outputDirectoryLabel, outputDirectoryField, 1, false)
             .addComponentFillVertically(javax.swing.JPanel(), 0)
             .panel
@@ -182,14 +177,12 @@ private class BlenderExtensionBuildSettingsEditor(project: Project) : SettingsEd
 
     override fun resetEditorFrom(configuration: BlenderExtensionBuildRunConfiguration) {
         operationField.selectedItem = configuration.operation
-        sourcePathField.text = configuration.sourcePath
         outputDirectoryField.text = configuration.outputDirectory
         updateOutputVisibility()
     }
 
     override fun applyEditorTo(configuration: BlenderExtensionBuildRunConfiguration) {
         configuration.operation = selectedOperation()
-        configuration.sourcePath = sourcePathField.text.trim()
         configuration.outputDirectory = outputDirectoryField.text.trim()
     }
 

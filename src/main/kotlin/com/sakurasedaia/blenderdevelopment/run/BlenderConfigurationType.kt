@@ -55,7 +55,6 @@ private class BlenderExtensionBuildConfigurationFactory(type: BlenderConfigurati
                 this,
                 MessageBundle.message("run.configuration.blender.extension.build.default.name"),
             )
-        configuration.sourcePath = ProjectConfig.getInstance(project).getSourceFolder()
         configuration.outputDirectory = "."
         return configuration
     }
