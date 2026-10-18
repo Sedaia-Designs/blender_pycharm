@@ -40,15 +40,13 @@ import org.jetbrains.jps.model.java.JavaSourceRootType
 data class BlenderExtensionManifest(
     // Base Project Info
     val name: String,
+    val author: String,
     val path: String,
     val description: String,
     val extensionVersion: String,
-    val isGitInitialized: Boolean,
 
     // Blender Environment
     val blenderVersion: String,
-    val addExampleCode: Boolean,
-    val author: String,
     val projectType: String,
 
     // Blender Manifest Mandatory Settings
@@ -67,6 +65,11 @@ data class BlenderExtensionManifest(
     val clipboardPermission: String,
     val cameraPermission: String,
     val microphonePermission: String,
+
+    // Project Setup
+    val addExampleCode: Boolean,
+    val isGitInitialized: Boolean,
+    val nestSourceInSrc: Boolean,
     val installBlenderApiStubs: Boolean = true,
 )
 
@@ -90,9 +93,18 @@ class BlenderProjectGenerator(private val data: BlenderExtensionManifest) {
         val logger = PluginLogger.getInstance(project)
         logger.log("Creating new project for ${data.name} at ${baseDir.path} with SDK ${sdk.name}")
 
+        val sourceDirectory =
+            when (data.nestSourceInSrc) {
+                true -> "src"
+                false -> "."
+            }
+
         return try {
             edtWriteAction {
-                val sourceDir = baseDir.findChild("src") ?: baseDir.createChildDirectory(this, "src")
+                val sourceDir = when (data.nestSourceInSrc) {
+                    true -> baseDir.findChild("src") ?: baseDir.createChildDirectory(this, "src")
+                    false -> baseDir
+                }
                 addSourceRoot(module, baseDir, sourceDir)
 
                 // Necessary Components for a Blender Project
@@ -115,7 +127,7 @@ class BlenderProjectGenerator(private val data: BlenderExtensionManifest) {
 
             ProjectConfig.getInstance(project).apply {
                 setAddonSymlinkName(data.extensionId)
-                setSourceFolder("src/")
+                setSourceFolder("$sourceDirectory/")
             }
 
             logger.log("Project generation complete")

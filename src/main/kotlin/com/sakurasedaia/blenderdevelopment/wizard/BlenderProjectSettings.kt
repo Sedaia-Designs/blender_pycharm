@@ -107,6 +107,10 @@ class BlenderProjectSettings(initialProjectName: String = MessageBundle.message(
     val manifestMicrophonePermissionProperty: GraphProperty<String> = propertyGraph.property("")
     var manifestMicrophonePermission: String by manifestMicrophonePermissionProperty
 
+    val nestSourceInSrcProperty: GraphProperty<Boolean> = propertyGraph.property(false)
+    var nestSourceInSrc: Boolean by nestSourceInSrcProperty
+
+
     /**
      * Updates the generated project name and keeps the add-on ID synchronized until it is customized.
      *
@@ -133,26 +137,38 @@ class BlenderProjectSettings(initialProjectName: String = MessageBundle.message(
      */
     fun toManifest(projectPath: String, isGitInitialized: Boolean): BlenderExtensionManifest =
         BlenderExtensionManifest(
+            // Base Project Info
             name = projectName,
+            author = authorName,
             path = projectPath,
             description = description,
             extensionVersion = extensionVersion,
+
+            // Blender Environment
             blenderVersion = blenderVersion,
-            addExampleCode = addExampleCode,
-            isGitInitialized = isGitInitialized,
-            author = authorName,
             projectType = manifestExtensionType,
+
+            // Manifest Mandatory Settings
             extensionId = manifestId,
             projectLicense = manifestLicense,
             minBlenderVersion = manifestMinBlenderVersion,
             maxBlenderVersion = maximumBlenderVersion.orEmpty(),
+
+            // Manifest Optional Settings
             website = manifestWebsiteLink,
             tags = manifestTags.split(',').map(String::trim).filter(String::isNotEmpty),
+
+            // Permissions
             filesPermission = manifestFilesPermission,
             networkPermission = manifestNetworkPermission,
             clipboardPermission = manifestClipboardPermission,
             cameraPermission = manifestCameraPermission,
             microphonePermission = manifestMicrophonePermission,
+
+            // Project Setup
+            addExampleCode = addExampleCode,
+            nestSourceInSrc = nestSourceInSrc,
+            isGitInitialized = isGitInitialized,
             installBlenderApiStubs = installBlenderApiStubs,
         )
 

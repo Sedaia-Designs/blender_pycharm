@@ -51,6 +51,10 @@ object BlenderProjectUI : PyV3ProjectTypeSpecificUI<BlenderProjectSettings> {
             .checkBox(MessageBundle.message("ui.project.wizard.ui.group.project.add_example_code"))
             .bindSelected(settings.addExampleCodeProperty)
 
+        checkBoxRow
+            .checkBox(MessageBundle.message("ui.project.wizard.ui.group.project.next.src"))
+            .bindSelected(settings.nestSourceInSrcProperty)
+
         with(belowCheckBoxes) {
             row(MessageBundle.message("ui.project.wizard.section.project.basics")) {}
             separator()

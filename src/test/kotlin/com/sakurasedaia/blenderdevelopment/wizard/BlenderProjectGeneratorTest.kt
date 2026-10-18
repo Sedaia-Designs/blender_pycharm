@@ -42,7 +42,7 @@ class BlenderProjectGeneratorTest : BasePlatformTestCase() {
         val baseDir = myFixture.tempDirFixture.findOrCreateDir("generated-project")
         addContentRoot(module, baseDir)
 
-        val result = generate(module, baseDir)
+        val result = generate(module, baseDir, nestSourceInSrc = true)
 
         assertTrue(result is Result.Success)
         assertNotNull(baseDir.findFileByRelativePath("src/__init__.py"))
@@ -58,12 +58,28 @@ class BlenderProjectGeneratorTest : BasePlatformTestCase() {
         assertEquals("src/", ProjectConfig.getInstance(project).getSourceFolder())
     }
 
+    /** Verifies that the project root can itself be the extension source directory. */
+    fun testGenerationWithoutNestedSourceUsesProjectRoot() {
+        val baseDir = myFixture.tempDirFixture.findOrCreateDir("root-source-project")
+        addContentRoot(module, baseDir)
+
+        val result = generate(module, baseDir, nestSourceInSrc = false)
+
+        assertTrue(result is Result.Success)
+        assertNotNull(baseDir.findChild("__init__.py"))
+        assertNotNull(baseDir.findChild("blender_manifest.toml"))
+        assertNull(baseDir.findChild("src"))
+        assertNotNull(baseDir.findChild("pyproject.toml"))
+        assertTrue(ModuleRootManager.getInstance(module).getSourceRoots(JavaSourceRootType.SOURCE).contains(baseDir))
+        assertEquals("./", ProjectConfig.getInstance(project).getSourceFolder())
+    }
+
     /** Verifies that a missing content root is returned as a PyResult failure instead of being swallowed. */
     fun testMissingModuleContentRootReturnsFailure() {
         val baseDir = myFixture.tempDirFixture.findOrCreateDir("unowned-project")
         removeContentRoots(module)
 
-        val result = generate(module, baseDir)
+        val result = generate(module, baseDir, nestSourceInSrc = true)
 
         assertTrue(result is Result.Failure)
         assertTrue(result.errorOrNull.toString().contains(baseDir.path))
@@ -103,11 +119,12 @@ class BlenderProjectGeneratorTest : BasePlatformTestCase() {
      *
      * @param generatedModule target module.
      * @param baseDir target project directory.
+     * @param nestSourceInSrc whether to generate the extension under `src`.
      * @return generation result.
      */
-    private fun generate(generatedModule: Module, baseDir: VirtualFile): Result<Unit, *> =
+    private fun generate(generatedModule: Module, baseDir: VirtualFile, nestSourceInSrc: Boolean): Result<Unit, *> =
         runBlocking(Dispatchers.Default) {
-            BlenderProjectGenerator(sampleManifest(baseDir)).generateNewProject(generatedModule, baseDir, testSdk())
+            BlenderProjectGenerator(sampleManifest(baseDir, nestSourceInSrc)).generateNewProject(generatedModule, baseDir, testSdk())
         }
 
     /**
@@ -121,9 +138,10 @@ class BlenderProjectGeneratorTest : BasePlatformTestCase() {
      * Creates representative generator input.
      *
      * @param baseDir generated project directory.
+     * @param nestSourceInSrc whether to generate the extension under `src`.
      * @return manifest used by the generator.
      */
-    private fun sampleManifest(baseDir: VirtualFile): BlenderExtensionManifest =
+    private fun sampleManifest(baseDir: VirtualFile, nestSourceInSrc: Boolean): BlenderExtensionManifest =
         BlenderExtensionManifest(
             name = "Sample Project",
             path = baseDir.path,
@@ -145,5 +163,6 @@ class BlenderProjectGeneratorTest : BasePlatformTestCase() {
             clipboardPermission = "",
             cameraPermission = "",
             microphonePermission = "",
+            nestSourceInSrc = nestSourceInSrc,
         )
 }
