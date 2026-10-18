@@ -83,7 +83,7 @@ project. Act as a senior engineer who teaches while pairing, not only as an impl
 - Prefer IntelliJ Platform APIs and existing project services/patterns over custom infrastructure.
 - Keep changes scoped to the requested behavior; avoid unrelated refactors.
 - Put user-visible text in `messages/MessageBundle.properties` (localizable strings), not inline literals.
-- Write new internal-use documentation as Obsidian Markdown under `/ObsidianVault/`; do not add pages to the legacy dedicated wiki.
+- Follow the record-keeping rules below for internal documentation and plans.
 
 ## Kotlin Style
 
@@ -151,67 +151,32 @@ project. Act as a senior engineer who teaches while pairing, not only as an impl
 + /.../image/ImageProcessor.kt
 ```
 
-## Documentation
+## Record Keeping and Documentation
 
-- Write all new internal documentation under `/ObsidianVault/Documentation/` as Markdown compatible with Obsidian.
-- Treat `docs/Wiki/internal` as a legacy, read-only reference. Do not maintain its pages, templates, styles, or index, and do not create new documentation there.
-- Organize vault documentation by topic with descriptive kebab-case filenames and use Obsidian links where they improve navigation.
-- Include a table of contents for long documents and a “Source References” section with concrete file paths and/or upstream references when the document is based on implementation research.
-- Prefer concise, source-grounded technical documentation. Clearly separate facts, inferences, and implementation plans.
-  - When referencing source files from any project, always use repo-relative source pathing (E.g. /Users/Sakura/Documents/IdeaProjects/intellij-community/platform/platform-impl/src/com/intellij/ui/dsl/builder/textFieldWithBrowseButton.kt -> /intellij-community/platform/platform-impl/src/com/intellij/ui/dsl/builder/textFieldWithBrowseButton.kt)
-- Provide code snippets for examples on complex API's
+All internal information, notes, and planning that are not required in the README, license, contributing guide, changelog, public documentation, or other repository-essential metadata must go in `/ObsidianVault/`.
 
-## Project Documentation (External / Non-Internal)
-
-- Public Blender Development documentation lives in the Blender Developer Docs repository at
-  `/Users/Sakura/Documents/WebstormProjects/blender-developer-docs`.
-- The canonical content directory is `src/content/docs/blender-development/` in that repository. Do not recreate
-  `docs/Wiki/project` in this repository.
-- After user-visible code changes, update the associated Blender Developer Docs page in the same task when the documentation repository
-  is available and within the user's requested scope.
-- Before editing Blender Developer Docs, read its root `AGENTS.md` and use this repository's `sedaia-docs-authoring` skill. Use
-  `sedaia-docs-validation` before handoff.
-- Treat this repository's current code, tests, README, changelog, and release metadata as the authoritative evidence for
-  behavior. Do not publish private Obsidian vault content without explicit approval.
-- Keep public instructions task-focused. Exclude local-machine paths, private assets, credentials, security-sensitive
-  implementation details, and source-reference inventories.
-- Use the canonical public route `https://docs.blender-development.sakura-sedaia.tech/` and absolute HTTPS links when crossing
-  between the documentation, portfolio, or GitLab origins.
-- Keep documentation-repository changes and this repository's code changes in separate commits. Do not commit, push, or
-  deploy either repository unless the user explicitly requests it.
-
-## Planning
-
-- Write plans as checkbox task lists so completion can be tracked step by step.
-- Start each plan with a short scope statement: what will be changed and what is explicitly out of scope.
-- Break work into small, testable steps with clear completion criteria.
-- Order steps by dependency (foundations first, integrations after) to reduce rework.
-- Include explicit validation tasks (for example compile, targeted tests, and manual behavior checks).
-- Include documentation update tasks when behavior, workflows, or configuration are changed.
-- Track risks/unknowns early and add follow-up tasks to resolve them before final integration.
-- Always include `Commit Changes` as the final plan item.
-- Commit completed module work as soon as that module is done, even if the broader feature is still in progress.
-  - Example: if a major feature plan includes a minor sub-feature, commit the minor feature once it is complete and awaiting integration.
-
-## Obsidian Vault and Local Record Keeping
-
-- Store all private/internal documentation and working notes that are not needed for the README, license, contributing guide,
-  changelog, public documentation, or other repository-essential metadata in `/ObsidianVault/`.
-- Use `/ObsidianVault/Documentation/` for new internal technical documentation. Use the rest of the vault for local plans,
-  handoffs, audits, reports, feature ideas, investigation notes, and similar working records.
 - Keep `/ObsidianVault/` local-only and Git-ignored. Never stage or commit files from the vault.
-- When writing Obsidian Markdown, keep each paragraph, list item, and checkbox on a single physical line. Rely on Obsidian's
-  word wrapping because hard-wrapped lines can interfere with checkbox rendering.
-- Keep active feature and refactor plans under `/ObsidianVault/Plans/`; do not put planning details in the README.
-- For a multi-phase plan, create a descriptive subdirectory under `/ObsidianVault/Plans/` and put each phase in a separate
-  note.
-- Add a top-level orchestration note for each multi-phase plan. It should state the recommended execution order, summary,
-  essential context, dependencies, and cross-phase steps.
-- Make the final execution phase `Final Verification`, while retaining the existing requirement that `Commit Changes` is the
-  final checklist item in a plan.
-- Write plans for a human software engineer to follow: steps should be explicit, ordered, testable, and clear about their
-  completion criteria.
-- When the owner clarifies a plan, phase, or step, apply that clarification to the relevant vault document rather than leaving
-  it only in conversation history.
-- The external Blender Developer Docs repository remains governed by its documentation section above. The legacy HTML wiki is
-  read-only and must not receive new or updated documentation.
+- Do not publish private Obsidian vault content without explicit approval.
+- Write new internal technical documentation under `/ObsidianVault/Documentation/` as Obsidian-compatible Markdown.
+- Use the rest of the vault for plans, handoffs, audits, reports, feature ideas, investigation notes, and similar working records.
+- Organize documentation by topic with descriptive kebab-case filenames, and use Obsidian links when they improve navigation.
+- Keep every paragraph, list item, and checkbox on one physical line. Rely on Obsidian word wrapping because hard line breaks can disrupt checkbox rendering.
+- Include a table of contents in long documents and a `Source References` section when implementation research informs the document.
+- Prefer concise, source-grounded writing that clearly distinguishes facts, inferences, and implementation plans.
+- Use repository-relative paths in source references, even for files from another local project. For example, shorten `/Users/Sakura/Documents/IdeaProjects/intellij-community/platform/platform-impl/src/com/intellij/ui/dsl/builder/textFieldWithBrowseButton.kt` to `/intellij-community/platform/platform-impl/src/com/intellij/ui/dsl/builder/textFieldWithBrowseButton.kt`.
+- Include focused code examples when documenting complex APIs.
+- Treat `docs/Wiki/internal` as a legacy, read-only reference. Do not add, edit, rename, stage, or otherwise maintain content there.
+
+### Feature and Refactor Planning
+
+- Keep active plans under `/ObsidianVault/Plans/`; never put implementation planning in the README.
+- Write plans as checkbox task lists for a human software engineer to follow.
+- Begin each plan with a concise scope statement describing what is included and explicitly out of scope.
+- Break work into ordered, testable steps with clear completion criteria, placing foundations before integrations.
+- Identify risks and unknowns early, and add steps to resolve them before final integration.
+- Include validation tasks such as compilation, targeted tests, and manual behavior checks.
+- Include repository documentation updates when behavior, workflows, or configuration change.
+- For a multi-phase plan, create a descriptive subdirectory under `/ObsidianVault/Plans/`, give each phase its own note, and add a top-level orchestration note with the recommended order, summary, essential context, dependencies, and cross-phase work.
+- Make `Final Verification` the last execution phase and `Commit Changes` the final checklist item.
+- Commit completed module work when that module is finished and ready for integration, even if the broader feature remains in progress.
+- When the owner clarifies a plan, phase, or step, update the relevant vault document rather than leaving the clarification only in conversation history.
